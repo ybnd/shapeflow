@@ -61,7 +61,7 @@ class ReshapeSelection:
     def update(self):
         self.redraw()
         co = [corner.co for corner in self.corners]
-        print(f"Coordinates: {co}")
+        # print(f"Coordinates: {co}")
         self.transform.update(co)
 
     def redraw(self):
@@ -201,7 +201,7 @@ class TransformOverlay:
         self.img = ImageTk.PhotoImage(image=img)
         self.canvas.create_image(self.co[0], 0, image=self.img, anchor=tk.NW)
 
-        # print(f"The transform from {from_coordinates} to {self.to_coordinates} is {self.transform}")
+        print(f"The transform from {from_coordinates} to {self.to_coordinates} is {self.transform}")
 
 window = tk.Tk()
 
@@ -212,7 +212,7 @@ frameN = cap.get(cv2.CAP_PROP_FRAME_COUNT)
 cap.set(cv2.CAP_PROP_POS_FRAMES, int(frameN/4))
 ret, frame = cap.read()
 
-overlay = cv2.imread(os.path.join(os.getcwd(), "overlay.png"))
+overlay = cv2.imread(os.path.join(os.getcwd(), "overlay2.png"))
 
 rect = ImageDisplay(window, frame, overlay)
 # window.mainloop()
