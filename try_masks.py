@@ -3,6 +3,9 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
+# todo: for some reason, this approach produces different results on linux...
+        # because we're using different images, duh!
+
 def ckernel(size):
     if not size%2: size = size-1
     index = int(size/2)
@@ -55,9 +58,9 @@ ret, frame = cap.read()
 
 # Copied from try_tk_canvas_rectangel.py
 transform = np.array([
-    [-1.24753272e+00,  7.74865041e-03,  1.73556209e+03],
-     [ 3.33306868e-03, -1.24656769e+00,  1.26060824e+03],
-     [6.77439845e-06, 1.01403621e-05, 1.00000000e+00]
+    [-1.24008700e+00, - 1.47603451e-16,  1.73922202e+03],
+     [6.58495362e-03, - 1.23467880e+00,  1.24087689e+03],
+    [-1.07494466e-07,  1.00368835e-05,  1.00000000e+00],
 ])
 
 Y,X,C = full.shape

@@ -110,7 +110,7 @@ class Corner:
         co = self.canvas.coords(self.id)
         self.co = __coo__(co[0], co[1])
         # self.co = __coo__((co[0] + co[2]) / 2, (co[1] + co[3]) / 2)
-        self.selection.redraw()
+        self.selection.update()
         self.previous = self.co
 
 
@@ -196,7 +196,6 @@ class TransformOverlay:
         height, width, channels = self.overlay.shape
         img = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
         img = Image.fromarray(img)
-        img.save('img.bmp')
         img.thumbnail((int(width * self.__ratio__), int(height * self.__ratio__)))
         self.img = ImageTk.PhotoImage(image=img)
         self.canvas.create_image(self.co[0], 0, image=self.img, anchor=tk.NW)
@@ -212,7 +211,7 @@ frameN = cap.get(cv2.CAP_PROP_FRAME_COUNT)
 cap.set(cv2.CAP_PROP_POS_FRAMES, int(frameN/4))
 ret, frame = cap.read()
 
-overlay = cv2.imread(os.path.join(os.getcwd(), "overlay2.png"))
+overlay = cv2.imread(os.path.join(os.getcwd(), "overlay.png"))
 
 rect = ImageDisplay(window, frame, overlay)
 # window.mainloop()
