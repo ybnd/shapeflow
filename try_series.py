@@ -83,7 +83,7 @@ WLC_volume = []
 SLC_volume = []
 
 for f in range(int(frameN)):
-    if not f%10:
+    if not f%200:
         t.append(f / fps)
         # todo: should be faster if we only use the "minimal" image size per mask (lots of unneeded operations)
         cap.set(cv2.CAP_PROP_POS_FRAMES, f)
