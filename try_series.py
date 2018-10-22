@@ -3,8 +3,6 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
-# todo: for some reason, this approach produces different results on linux...
-        # because we're using different images, duh!
 
 DPI = 400
 DPmm = 400 / 25.4
@@ -64,7 +62,7 @@ SLC_mask, s = crop_mask(SLC_mask)
 # area = np.sum(masked > 0)
 
 # Get frame
-cap = cv2.VideoCapture(os.path.join(os.getcwd(), "video2.mp4"))
+cap = cv2.VideoCapture(os.path.join(os.getcwd(), "video.mp4"))
 frameN = cap.get(cv2.CAP_PROP_FRAME_COUNT)
 fps = cap.get(cv2.CAP_PROP_FPS)
 
@@ -72,9 +70,9 @@ fps = cap.get(cv2.CAP_PROP_FPS)
 
 # Copied from try_tk_canvas_rectangel.py
 transform = np.array([
-    [1.04249170e+00, - 1.48927386e-02, - 4.54861469e+02],
-     [-4.64578847e-03,  1.04762530e+00, - 2.67719368e+02],
-    [-3.09281044e-06, - 9.41138866e-06,  1.00000000e+00],
+    [-1.24753272e+00,  7.74865041e-03,  1.73556209e+03],
+     [ 3.33306868e-03, -1.24656769e+00,  1.26060824e+03],
+     [6.77439845e-06, 1.01403621e-05, 1.00000000e+00]
 ])
 
 t = []
@@ -83,7 +81,7 @@ WLC_volume = []
 SLC_volume = []
 
 for f in range(int(frameN)):
-    if not f%200:
+    if not f%100:
         t.append(f / fps)
         # todo: should be faster if we only use the "minimal" image size per mask (lots of unneeded operations)
         cap.set(cv2.CAP_PROP_POS_FRAMES, f)
@@ -109,30 +107,30 @@ for f in range(int(frameN)):
 
         mask = cv2.inRange(frame_PM, from_blue, to_blue)
 
-        frame_PM2 = cv2.bitwise_and(frame_PM, frame_PM, mask = mask)
+        # frame_PM2 = cv2.bitwise_and(frame_PM, frame_PM, mask = mask)
+        #
+        # gray = np.zeros((frame_PM2.shape[0], frame_PM2.shape[1]), frame_PM2.dtype)
+        # gray[:,:] = frame_PM2[:,:,2]
 
-        gray = np.zeros((frame_PM2.shape[0], frame_PM2.shape[1]), frame_PM2.dtype)
-        gray[:,:] = frame_PM2[:,:,2]
-
-        PM_volume.append(np.sum(gray > 0) / DPmm ** 2 * 0.153)
+        PM_volume.append(np.sum(mask > 0) / DPmm ** 2 * 0.153)
 
         mask = cv2.inRange(frame_WLC, from_blue, to_blue)
 
-        frame_PM2 = cv2.bitwise_and(frame_WLC, frame_WLC, mask = mask)
+        # frame_PM2 = cv2.bitwise_and(frame_WLC, frame_WLC, mask = mask)
+        #
+        # gray = np.zeros((frame_PM2.shape[0], frame_PM2.shape[1]), frame_PM2.dtype)
+        # gray[:, :] = frame_PM2[:, :, 2]
 
-        gray = np.zeros((frame_PM2.shape[0], frame_PM2.shape[1]), frame_PM2.dtype)
-        gray[:, :] = frame_PM2[:, :, 2]
-
-        WLC_volume.append(np.sum(gray > 0) / DPmm ** 2 * 0.153)
+        WLC_volume.append(np.sum(mask > 0) / DPmm ** 2 * 0.153)
 
         mask = cv2.inRange(frame_SLC, from_red, to_red)
 
-        frame_PM2 = cv2.bitwise_and(frame_SLC, frame_SLC, mask = mask)
+        # frame_PM2 = cv2.bitwise_and(frame_SLC, frame_SLC, mask = mask)
+        #
+        # gray = np.zeros((frame_PM2.shape[0], frame_PM2.shape[1]), frame_PM2.dtype)
+        # gray[:, :] = frame_PM2[:, :, 2]
 
-        gray = np.zeros((frame_PM2.shape[0], frame_PM2.shape[1]), frame_PM2.dtype)
-        gray[:, :] = frame_PM2[:, :, 2]
-
-        SLC_volume.append(np.sum(gray > 0) / DPmm ** 2 * 0.153)
+        SLC_volume.append(np.sum(mask > 0) / DPmm ** 2 * 0.153)
 
 plt.plot(t, PM_volume, label = 'PM')
 plt.plot(t, WLC_volume, label = 'WLC')
