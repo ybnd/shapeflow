@@ -1,8 +1,11 @@
 from lxml import etree
 import cairosvg as csvg
 import os
+import shutil
 
-with open("overlay.svg", 'r') as f:
+shutil.rmtree('.\\overlay')
+
+with open("shuttle_overlay.svg", 'r') as f:
     data = f.read()
     data = bytes(data, encoding='UTF-8')
 

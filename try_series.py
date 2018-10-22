@@ -64,7 +64,7 @@ SLC_mask, s = crop_mask(SLC_mask)
 # area = np.sum(masked > 0)
 
 # Get frame
-cap = cv2.VideoCapture(os.path.join(os.getcwd(), "video.mp4"))
+cap = cv2.VideoCapture(os.path.join(os.getcwd(), "video2.mp4"))
 frameN = cap.get(cv2.CAP_PROP_FRAME_COUNT)
 fps = cap.get(cv2.CAP_PROP_FPS)
 
@@ -72,9 +72,9 @@ fps = cap.get(cv2.CAP_PROP_FPS)
 
 # Copied from try_tk_canvas_rectangel.py
 transform = np.array([
-    [-1.24008700e+00, - 1.47603451e-16,  1.73922202e+03],
-     [6.58495362e-03, - 1.23467880e+00,  1.24087689e+03],
-    [-1.07494466e-07,  1.00368835e-05,  1.00000000e+00],
+    [1.04249170e+00, - 1.48927386e-02, - 4.54861469e+02],
+     [-4.64578847e-03,  1.04762530e+00, - 2.67719368e+02],
+    [-3.09281044e-06, - 9.41138866e-06,  1.00000000e+00],
 ])
 
 t = []

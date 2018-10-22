@@ -11,7 +11,7 @@
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    sodipodi:docname="overlay.svg"
-   inkscape:version="0.92.2 2405546, 2018-03-11"
+   inkscape:version="0.92.3 (2405546, 2018-03-11)"
    version="1.1"
    id="svg2"
    viewBox="0 0 259.0153 223.11094"
@@ -39,9 +39,9 @@
      showgrid="true"
      inkscape:current-layer="layer5"
      inkscape:document-units="px"
-     inkscape:cy="-6.2359942"
-     inkscape:cx="-132.40186"
-     inkscape:zoom="1.28"
+     inkscape:cy="112.40875"
+     inkscape:cx="64.592646"
+     inkscape:zoom="2.56"
      inkscape:pageshadow="2"
      inkscape:pageopacity="0.0"
      borderopacity="1.0"
@@ -50,9 +50,9 @@
      id="base"
      showguides="false"
      inkscape:window-width="1920"
-     inkscape:window-height="1054"
-     inkscape:window-x="1920"
-     inkscape:window-y="0"
+     inkscape:window-height="1027"
+     inkscape:window-x="1912"
+     inkscape:window-y="22"
      inkscape:window-maximized="1"
      units="px"
      inkscape:pagecheckerboard="true"
@@ -92,24 +92,20 @@
   <g
      inkscape:groupmode="layer"
      id="layer5"
-     inkscape:label="_background"
-     style="display:inline"
-     transform="translate(0,-829.25117)">
+     inkscape:label="_background">
     <rect
-       style="display:inline;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.9375;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-       id="rect4972"
+       style="display:inline;fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.70312506;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="rect881"
        width="259.01532"
-       height="223.11095"
-       x="0.00023814062"
-       y="829.2511"
-       inkscape:export-xdpi="400"
-       inkscape:export-ydpi="400" />
+       height="223.11093"
+       x="9.0087888e-005"
+       y="-7.5698241e-005" />
   </g>
   <g
      inkscape:groupmode="layer"
      id="layer4"
      inkscape:label="SLC"
-     style="display:none"
+     style="display:inline"
      transform="translate(0,-829.25117)">
     <path
        style="display:inline;opacity:1;fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:0.99921262;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
@@ -123,7 +119,7 @@
      inkscape:groupmode="layer"
      id="layer3"
      inkscape:label="WLC"
-     style="display:none"
+     style="display:inline"
      transform="translate(0,-829.25117)">
     <path
        style="display:inline;fill:#2a7fff;fill-opacity:1;fill-rule:evenodd;stroke:none;stroke-width:1px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
@@ -137,7 +133,7 @@
      inkscape:groupmode="layer"
      id="layer2"
      inkscape:label="PM"
-     style="display:none"
+     style="display:inline"
      transform="translate(0,-829.25117)">
     <path
        inkscape:connector-curvature="0"

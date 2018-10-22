@@ -204,14 +204,14 @@ class TransformOverlay:
 
 window = tk.Tk()
 
-cap = cv2.VideoCapture(os.path.join(os.getcwd(), "video.mp4"))
+cap = cv2.VideoCapture(os.path.join(os.getcwd(), "video2.mp4"))
 
 frameN = cap.get(cv2.CAP_PROP_FRAME_COUNT)
 
 cap.set(cv2.CAP_PROP_POS_FRAMES, int(frameN/4))
 ret, frame = cap.read()
 
-overlay = cv2.imread(os.path.join(os.getcwd(), "overlay.png"))
+overlay = cv2.imread(os.path.join(os.getcwd(), "overlay\\overlay.png"))
 
 rect = ImageDisplay(window, frame, overlay)
 # window.mainloop()
