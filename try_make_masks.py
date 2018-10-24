@@ -3,7 +3,7 @@ import cairosvg as csvg
 import os
 import shutil
 
-shutil.rmtree('.\\overlay')
+shutil.rmtree('./overlay')
 
 with open("shuttle_overlay.svg", 'r') as f:
     data = f.read()
@@ -101,5 +101,5 @@ class Layer:
     def show(self):
         self.root.attrib['style'] = 'display:inline'
 
-svg = LayerSwitch(data)
+svg = LayerSwitch(data, dpi = 400)
 svg.save_all('overlay')

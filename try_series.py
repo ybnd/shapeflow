@@ -62,7 +62,7 @@ SLC_mask, s = crop_mask(SLC_mask)
 # area = np.sum(masked > 0)
 
 # Get frame
-cap = cv2.VideoCapture(os.path.join(os.getcwd(), "video.mp4"))
+cap = cv2.VideoCapture(os.path.join(os.getcwd(), "video2.mp4"))
 frameN = cap.get(cv2.CAP_PROP_FRAME_COUNT)
 fps = cap.get(cv2.CAP_PROP_FPS)
 

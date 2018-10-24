@@ -3,6 +3,9 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
+from utils import timing
+import time
+
 DPI = 400
 DPmm = 400 / 25.4
 
@@ -52,6 +55,7 @@ class Series:
         self.previous_frame = None
 
         self.capture = cv2.VideoCapture(os.path.join(os.getcwd(), self.path))
+            # todo: failure should be more verbose!
         self.frameN = int(self.capture.get(cv2.CAP_PROP_FRAME_COUNT))
         self.fps = self.capture.get(cv2.CAP_PROP_FPS)
 
@@ -65,6 +69,11 @@ class Series:
         for path in files:
             self.masks.append(Mask(self, os.path.join(self.mask_folder, path), kernel = self.kernel))
 
+    @timing
+    def warp(self, frame):
+        return cv2.warpPerspective(frame, self.transform, (self.shape[1], self.shape[0]))
+
+    @timing
     def load_frame(self, number = None, to_hsv = True):
         if number is None:
             number = int(self.frameN / 4)
@@ -73,7 +82,7 @@ class Series:
             self.capture.set(cv2.CAP_PROP_POS_FRAMES, number)
             ret, frame = self.capture.read()
 
-            frame = cv2.warpPerspective(frame, self.transform, (self.shape[1], self.shape[0]))
+            frame = self.warp(frame)
 
             if to_hsv:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -85,8 +94,8 @@ class Series:
 
         return frame
 
-    def areas(self, number):
-        frame = self.load_frame(number)
+    @timing
+    def areas(self):
         return [mask.area(frame) for mask in self.masks]
 
 
@@ -183,14 +192,23 @@ transform = np.array([
     [-3.09281044e-06, - 9.41138866e-06,  1.00000000e+00],
 ])
 
-s = Series("video2.mp4", ".\\overlay", transform)
+s = Series("video2.mp4", "./overlay", transform)
 
 areas = []
 t = []
+
+t0 = time.time()
+
 for f in range(int(s.frameN)):
-    if not f%50:
+    if not f%30*240:
         t.append(f / s.fps)
-        areas.append(s.areas(f))
+        frame = s.load_frame(f)     # takes about 0.2 - 0.3 s per frame!,
+                                        # .avi is ~ 2-3 times worse
+                                        # .mkv is about the same
+        areas.append(s.areas())     # takes about 0.002 s per frame.
+
+total = time.time() - t0
+print(f"\n \n Total elapsed time: {total} s.")
 
 areas = np.transpose(np.array(areas))
 
@@ -202,5 +220,6 @@ plt.title('Image processing - volume measurement')
 plt.ylabel('Volume (uL)')
 plt.xlabel('Time (s)')
 plt.show()
+
 
 

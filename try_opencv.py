@@ -10,7 +10,7 @@ window.title('This is window.')
 ratio = 4
 
 
-cap = cv2.VideoCapture(os.path.join(os.getcwd(), "video.mp4"))
+cap = cv2.VideoCapture(os.path.join(os.getcwd(), "video2.mp4"))
 
 frameN = cap.get(cv2.CAP_PROP_FRAME_COUNT)
 
