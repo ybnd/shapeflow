@@ -74,7 +74,7 @@ class Series:
         return cv2.warpPerspective(frame, self.transform, (self.shape[1], self.shape[0]))
 
     @timing
-    def load_frame(self, number = None, to_hsv = True):
+    def get_frame(self, number = None, to_hsv = True):
         if number is None:
             number = int(self.frameN / 4)
 
@@ -94,8 +94,13 @@ class Series:
 
         return frame
 
+    def get_frame_at(self, position: float = 0.5, to_hsv = True):
+        number = int(self.frameN * position)
+        return self.get_frame(number, to_hsv)
+
+
     @timing
-    def areas(self):
+    def areas(self, frame):
         return [mask.area(frame) for mask in self.masks]
 
 
@@ -105,14 +110,14 @@ class Mask:
     __sat_window__ = [50, 255]
     __val_window__ = [50, 255]
 
-    def __init__(self, series, path, filter_color = None, kernel = ckernel(7)):
-        self.series = series
+    def __init__(self, video, path, filter_color = None, kernel = ckernel(7)):
+        self.video = video
         self.path = path
         self.name = path.split('\\')[-1].split('.png')[0]
         self.kernel = kernel
 
         self.full = to_mask(cv2.imread(path), self.kernel)
-        self.series.shape = self.full.shape # todo: should be the same for all files...
+        self.video.shape = self.full.shape # todo: should be the same for all files...
         self.partial, self.position = crop_mask(self.full)
 
         self.filter_from = np.array([90,50,50])
@@ -123,20 +128,22 @@ class Mask:
 
     def choose_color(self, color = None):
         if color is None:
-            image = self.series.load_frame()
+            image = self.video.get_frame()
             self.I = self.mask(image)
 
             self.window = f"Choose a filtering hue... (press any key to commit)"
             self.filtered_window = f"Filter output"
+
             cv2.namedWindow(self.filtered_window, cv2.WINDOW_KEEPRATIO)
             cv2.namedWindow(self.window, cv2.WINDOW_KEEPRATIO)
             cv2.setMouseCallback(self.window, self.pick)
-            cv2.createTrackbar('Frame', self.window, int(self.series.frameN / 4), self.series.frameN, self.track)
+            cv2.createTrackbar('Frame', self.window, int(self.video.frameN / 4), self.video.frameN, self.track)
             cv2.imshow(self.window, cv2.cvtColor(self.I, cv2.COLOR_HSV2BGR))
             cv2.imshow(self.filtered_window, self.filter(self.I))
             cv2.waitKey()
 
             cv2.destroyAllWindows()
+
         else:
             self.set_filter(color)
 
@@ -144,6 +151,9 @@ class Mask:
         hue = color[0]
         self.filter_from = np.array([hue - self.__hue_radius__, self.__sat_window__[0], self.__val_window__[0]])
         self.filter_to = np.array([hue + self.__hue_radius__, self.__sat_window__[1], self.__val_window__[1]])
+
+    def get_images(self):
+        return (self.I, self.filter(self.I))
 
     def pick(self, event, x, y, flags, param):
         if event == cv2.EVENT_LBUTTONDOWN:
@@ -155,12 +165,12 @@ class Mask:
             self.set_filter(color_HSV)
             print(f"Filter set to: {self.filter_from} -- {self.filter_to}")
 
-            cv2.imshow(self.filtered_window, self.filter(self.I))
+            # cv2.imshow(self.filtered_window, self.filter(self.I))
 
     def track(self, value):
-        self.I = self.mask(self.series.load_frame(value))
-        cv2.imshow(self.window, cv2.cvtColor(self.I, cv2.COLOR_HSV2BGR))
-        cv2.imshow(self.filtered_window, self.filter(self.I))
+        self.I = self.mask(self.video.get_frame(value))
+        # cv2.imshow(self.window, cv2.cvtColor(self.I, cv2.COLOR_HSV2BGR))
+        # cv2.imshow(self.filtered_window, self.filter(self.I))
 
     def filter(self, image):
         filtermask = cv2.inRange(image, self.filter_from, self.filter_to)
@@ -186,11 +196,11 @@ class Mask:
 
 # Make Series instance
 
-transform = np.array([
-    [1.04249170e+00, - 1.48927386e-02, - 4.54861469e+02],
-    [-4.64578847e-03,  1.04762530e+00, - 2.67719368e+02],
-    [-3.09281044e-06, - 9.41138866e-06,  1.00000000e+00],
-])
+transform = np.array(
+[[ 1.03786963e+00, -1.10411663e-02, -4.53819537e+02],
+ [-2.29624012e-03,  1.04019678e+00, -2.66840324e+02],
+ [-3.09883957e-06, -9.32530936e-06,  1.00000000e+00],]
+)
 
 s = Series("video2.mp4", "./overlay", transform)
 
@@ -202,10 +212,10 @@ t0 = time.time()
 for f in range(int(s.frameN)):
     if not f%30*240:
         t.append(f / s.fps)
-        frame = s.load_frame(f)     # takes about 0.2 - 0.3 s per frame!,
+        frame = s.get_frame(f)     # takes about 0.2 - 0.3 s per frame!,
                                         # .avi is ~ 2-3 times worse
                                         # .mkv is about the same
-        areas.append(s.areas())     # takes about 0.002 s per frame.
+        areas.append(s.areas(frame))     # takes about 0.002 s per frame.
 
 total = time.time() - t0
 print(f"\n \n Total elapsed time: {total} s.")

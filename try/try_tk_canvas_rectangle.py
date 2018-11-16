@@ -186,6 +186,8 @@ class TransformOverlay:
             ]
         )
 
+        self.show_overlay()
+
     def update(self, from_coordinates):
         self.transform = cv2.getPerspectiveTransform(np.float32(from_coordinates)/self.__ratio__, np.float32(self.to_coordinates))
         Y,X,C = self.overlay.shape
@@ -202,6 +204,13 @@ class TransformOverlay:
 
         print(f"The transform from {from_coordinates} to {self.to_coordinates} is {self.transform}")
 
+    def show_overlay(self):
+        img = cv2.cvtColor(self.overlay, cv2.COLOR_BGR2RGB)
+        img = Image.fromarray(img)
+        height, width, channels = self.overlay.shape
+        img.thumbnail((int(width * self.__ratio__), int(height * self.__ratio__)))
+
+
 window = tk.Tk()
 
 cap = cv2.VideoCapture(os.path.join(os.getcwd(), "video2.mp4"))
@@ -211,7 +220,7 @@ frameN = cap.get(cv2.CAP_PROP_FRAME_COUNT)
 cap.set(cv2.CAP_PROP_POS_FRAMES, int(frameN/4))
 ret, frame = cap.read()
 
-overlay = cv2.imread(os.path.join(os.getcwd(), "overlay\\overlay.png"))
+overlay = cv2.imread(os.path.join(os.getcwd(), "overlay/overlay.png"))
 
 rect = ImageDisplay(window, frame, overlay)
 # window.mainloop()
