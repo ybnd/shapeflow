@@ -5,7 +5,7 @@ import numpy as np
 import cv2
 import time
 
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import screeninfo
@@ -339,10 +339,12 @@ class ColorPicker:
 
 class OverlayAlignWindow(ScriptWindow):
     __default_frame__ = 0.5
+    __title__ = "Overlay alignment"
 
     def __init__(self, video):
         ScriptWindow.__init__(self)
         self.data = video
+        self.title(self.data.name)
 
         self.image = ImageDisplay(
             self,
@@ -355,9 +357,12 @@ class OverlayAlignWindow(ScriptWindow):
         pass
 
 class MaskFilterWindow(ScriptWindow):
+    __title__ = 'Filter hue selection'
+
     def __init__(self, mask):
         ScriptWindow.__init__(self)
         self.data = mask
+        self.title(self.data.name)
 
         self.picker = ColorPicker(
             self,
@@ -369,16 +374,23 @@ class MaskFilterWindow(ScriptWindow):
         pass
 
 class ProgressWindow(ScriptWindow):
-    __ratio__ = 0.25 * __monitor_h__
-    __w_spacing__ = 3
-    __pad__ = 0.3
+    __ratio__ = 0.25
+    __plot_pad__ = 0.075
+    __pad__ = 3
     __dpi__ = 100
+
+    __title__ = 'Volume measurement'
 
     def __init__(self, video):
         ScriptWindow.__init__(self)
         self.video = video
+        self.title(self.video.name)
 
-        self.__ratio__ = self.__ratio__ / self.video.shape[0]
+        self.canvas_height = self.__ratio__ * __monitor_h__
+        self.__raw_width__ = self.video.raw_frame.shape[1] * self.canvas_height / \
+                             self.video.raw_frame.shape[0]
+        self.__processed__ = self.video.frame.shape[1] * self.canvas_height / \
+                             self.video.frame.shape[0]
 
         self.tmax = self.video.frameN / self.video.fps
         self.t0 = time.time()
@@ -386,39 +398,53 @@ class ProgressWindow(ScriptWindow):
         frame = self.video.get_frame(1)
         self.size = frame.shape
 
-        self.canvas_width = int(self.size[1] * self.__ratio__)*2 + self.__w_spacing__
+        self.canvas_width = self.__raw_width__ + self.__processed__ + self.__pad__
 
         self.canvas = tk.Canvas(
             self,
             width = self.canvas_width,
-            height = int(self.size[0] * self.__ratio__)
+            height = self.canvas_height
         )
         self.update_image()
         self.canvas.pack()
 
         figw = self.canvas_width / self.__dpi__
 
+        plt.ioff()
         self.fig = Figure(
             figsize = (figw,7/9 * figw), dpi = self.__dpi__
         )
         self.ax = self.fig.add_subplot(111)
         plt.tight_layout(pad = 0)
+        self.fig.subplots_adjust(
+            left = self.__plot_pad__, bottom = self.__plot_pad__,
+            right = 1 - self.__plot_pad__/2, top = 1 - self.__plot_pad__
+        )
 
         self.figcanvas = FigureCanvasTkAgg(self.fig, master = self)
         self.figcanvas.draw()
+
+        self.toolbar = NavigationToolbar2Tk(self.figcanvas, window=self)
+        self.toolbar.update()
+        self.figcanvas._tkcanvas.pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
+
         self.figcanvas.get_tk_widget().pack()
 
+
+
+
+
     def update_image(self):
-        self.img = hsvimg2tk(self.video.raw_frame, ratio=self.__ratio__ *
-                                                         self.video.frame.shape[0] /
-                                                         self.video.raw_frame.shape[0])
-        self.state = hsvimg2tk(self.video.get_state_image(), ratio = self.__ratio__)
+        self.img = hsvimg2tk(self.video.raw_frame, ratio = \
+            self.canvas_height / self.video.raw_frame.shape[0])
+        self.state = hsvimg2tk(self.video.get_state_image(), ratio = \
+            self.canvas_height / self.video.frame.shape[0])
         self.canvas.create_image(
             0, 0, image=self.img, anchor=tk.NW
         )
 
         self.canvas.create_image(
-            int(self.size[1] * self.__ratio__) + self.__w_spacing__, 0,
+            self.__raw_width__ + self.__pad__, 1,
             image = self.state, anchor = tk.NW
         )
 
@@ -431,6 +457,7 @@ class ProgressWindow(ScriptWindow):
     def plot(self, t, areas):
         elapsed = time.time() - self.t0
         self.ax.clear()
+
         areas = np.transpose(areas)
         for i, curve in enumerate(areas):
             color = cv2.cvtColor(
@@ -440,17 +467,19 @@ class ProgressWindow(ScriptWindow):
             self.ax.plot(
                 t, curve / (400 / 25.4)**2 * 0.153, # todo: don't hardcode mm per area!
                 label = self.video.masks[i].name,
-                color = tuple(color)
+                color = tuple(color),
+                linewidth = 2
             )
 
-        self.ax.legend()
+        self.ax.legend(loc = 'center right')
         self.ax.set_title(
-            f"Progress: {t[-1]/self.tmax * 100:.0f}%  ({elapsed:.2f} s elapsed "
-            f" @ {t[-1]/elapsed:.2f}x)"
+            f"{t[-1]/self.tmax * 100:.0f}%  ({elapsed:.0f} s elapsed "
+            f" @ {t[-1]/elapsed:.1f} x)", size = 18, weight = 'bold'
         )
-        self.ax.set_ylabel('Volume (uL)')
-        self.ax.set_xlabel('Time (s)')
+        self.ax.set_ylabel('Volume (uL)', size = 12)
+        self.ax.set_xlabel('Time (s)', size = 12)
         self.ax.set_xlim(0, self.tmax)
+        self.ax.set_ylim(0, 17)
 
     def keepopen(self):
         self.mainloop()

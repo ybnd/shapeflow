@@ -1,10 +1,6 @@
-import cv2
 import os
-import numpy as np
-import matplotlib.pyplot as plt
 
-from utils import timing
-import time
+import re
 
 from source.gui import *
 from OnionSVG import OnionSVG
@@ -118,12 +114,36 @@ class VideoAnalyzer:
         files = os.listdir(self.__render_folder__)
         files.remove('overlay.png')
 
+        # todo: sort! ~ '(\d+)[?\-=_#/\\\ ]+([?\w\-=_#/\\\ ]+)'
+
+        pattern = re.compile('(\d+)[?\-=_#/\\\ ]+([?\w\-=_#/\\\ ]+)')
+
+        sorted_files = []
+        matched = {}
+        mismatched = []
+
         for path in files:
+            name = os.path.splitext(path)[0]
+            match = pattern.search(name)
+
+            if match:
+                matched.update(
+                    {int(match.groups()[0]):path}
+                )
+            else:
+                mismatched.append(path)
+
+        for index in sorted(matched.keys()):
+            sorted_files.append(matched[index])
+
+        sorted_files = sorted_files + mismatched
+
+        for path in sorted_files:
             self.masks.append(Mask(self, os.path.join(self.__render_folder__, path), kernel=self.kernel))
 
 
     def set_color(self, mask, color):
-        tolerance = 10
+        tolerance = 20
         increment = 60
 
 
@@ -239,7 +259,11 @@ class Mask:
     def __init__(self, video, path, filter_color=None, kernel=ckernel(7)):
         self.video = video
         self.path = path
-        self.name = os.path.splitext(os.path.basename(path))[0]
+
+        pattern = re.compile('(\d+)[?\-=_#/\\\ ]+([?\w\-=_#/\\\ ]+)')
+        fullname = os.path.splitext(os.path.basename(path))[0]
+        self.name = pattern.search(fullname).groups()[1]
+
         self.kernel = kernel
 
         self.full = to_mask(cv2.imread(path), self.kernel)
