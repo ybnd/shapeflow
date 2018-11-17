@@ -14,30 +14,23 @@ def start_loop(loop):
 __loop__ = asyncio.new_event_loop()
 __thread__ = threading.Thread(target=start_loop, args=(__loop__,))
 
-DPI = 400
-DPmm = 400 / 25.4
-
 t = []
 areas = []
 
-va = VideoAnalyzer("video2.mp4", "./overlay", dt = 5)
+va = VideoAnalyzer("video2.mp4", "shuttle_overlay.svg", dt = 5)
 va.reset()
-
-
-def playvid():
-    while not va.done:
-        ct = va.get_next_frame()
-
-        if not va.done:
-            areas.append(va.areas())
-            t.append(ct)
-
-            pw.plot(t = t, areas = areas)
-            pw.update()
 
 pw = ProgressWindow(va)
 
-playvid()
+while not va.done:
+    ct = va.get_next_frame()
+
+    if not va.done:
+        areas.append(va.areas())
+        t.append(ct)
+
+        pw.plot(t=t, areas=areas)
+        pw.update()
 
 pw.keepopen()
 

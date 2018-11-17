@@ -7,6 +7,8 @@ from utils import timing
 import time
 
 from source.gui import *
+from OnionSVG import OnionSVG
+
 
 DPI = 400               # todo: this is a workaround
 DPmm = 400 / 25.4
@@ -51,10 +53,14 @@ class VideoAnalyzer:
     __default_kernel__ = ckernel(7)
     __default_dt__ = 60
 
-    def __init__(self, path, mask_folder, dt = None, kernel = None):
-        self.path = path
-        self.name = path.split('\\')[-1].split('.png')[0]
-        self.mask_folder = mask_folder
+    __render_folder__ = os.path.join(os.getcwd(), 'render')
+
+    __overlay_DPI__ = 400
+
+    def __init__(self, video_path, overlay_path, dt = None, kernel = None):
+        self.path = video_path
+        self.name = video_path.split('\\')[-1].split('.png')[0]
+        self.overlay_path = overlay_path
 
         if kernel is None:
             self.kernel = self.__default_kernel__
@@ -63,13 +69,15 @@ class VideoAnalyzer:
 
         if dt is None:
             self.dt = self.__default_dt__
+        elif dt == "all":
+            self.dt = None
         else:
             self.dt = dt
 
         self.transform = None
         self.shape = None
 
-        self.previous_number = 1
+        self.number = 1
         self.previous_frame = None
         self.frame = None
         self.done = False
@@ -79,6 +87,7 @@ class VideoAnalyzer:
         self.frameN = int(self.capture.get(cv2.CAP_PROP_FRAME_COUNT))
         self.fps = self.capture.get(cv2.CAP_PROP_FPS)
 
+        self.render_svg()
         self.load_overlay()
         self.prompt_transform()
 
@@ -87,19 +96,30 @@ class VideoAnalyzer:
 
         self.load_masks()
 
+    def render_svg(self):
+        if not os.path.isdir(self.__render_folder__):
+            os.mkdir(self.__render_folder__)
+        else:
+            fl = [f for f in os.listdir(self.__render_folder__)]
+            for f in fl: os.remove(os.path.join(self.__render_folder__, f))
+
+        OnionSVG(
+            self.overlay_path,
+            dpi = self.__overlay_DPI__
+        ).peel('all', to = self.__render_folder__)
+
     def load_overlay(self):
-        self.overlay = cv2.imread(os.path.join(self.mask_folder, 'overlay.png'))
+        self.overlay = cv2.imread(os.path.join(self.__render_folder__, 'overlay.png'))
 
     def prompt_transform(self):
         OverlayAlignWindow(self)
 
-
     def load_masks(self):
-        files = os.listdir(self.mask_folder)
+        files = os.listdir(self.__render_folder__)
         files.remove('overlay.png')
 
         for path in files:
-            self.masks.append(Mask(self, os.path.join(self.mask_folder, path), kernel=self.kernel))
+            self.masks.append(Mask(self, os.path.join(self.__render_folder__, path), kernel=self.kernel))
 
 
     def set_color(self, mask, color):
@@ -110,9 +130,6 @@ class VideoAnalyzer:
         repitition = 0
 
         for m in self.colors.keys():
-
-            print(f"Distance of {abs(color[0] - self.colors[m][0])}")
-
             if abs(float(color[0]) - float(self.colors[m][0])) < tolerance and m != mask:
                 repitition = repitition + 1
 
@@ -129,20 +146,27 @@ class VideoAnalyzer:
         for mask in self.masks:
             _, filter = mask.get_images()
 
-            fullcolor = np.multiply(
-                np.ones((filter.shape[0], filter.shape[1], 3)), self.colors[mask]
-            )
+            full = np.ones((filter.shape[0], filter.shape[1], 3), dtype = np.uint8)
 
-            # filter = cv2.cvtColor(filter, cv2.COLOR_GRAY2RGB)
-            # hsv_filter = cv2.cvtColor(filter, cv2.COLOR_RGB2HSV)
+            fullcolor = np.multiply(
+                full, self.colors[mask]
+            )
 
             mask_state = cv2.bitwise_and(fullcolor, fullcolor, mask = filter)
 
             state_image[
                 mask.position[0]:mask.position[1],
                 mask.position[2]:mask.position[3]
-            ] = mask_state
+            ] = state_image[
+                mask.position[0]:mask.position[1],
+                mask.position[2]:mask.position[3]
+            ] + mask_state
 
+            state_image = cv2.cvtColor(state_image, cv2.COLOR_HSV2BGR)
+            state_image[state_image == 0] = 255
+
+            state_image = cv2.addWeighted(self.overlay, 0.05, state_image, 1-0.05, 0, state_image)
+            state_image = cv2.cvtColor(state_image, cv2.COLOR_BGR2HSV)
 
         return state_image
 
@@ -152,25 +176,28 @@ class VideoAnalyzer:
 
 
     def reset(self):
-        self.previous_number = 0
+        self.number = 0
         self.capture.set(cv2.CAP_PROP_POS_FRAMES, 1)
 
 
     def get_frame(self, number=None, do_warp = True, to_hsv=True):
         if number is None:
-            number = int(self.frameN / 4)
+            if self.number is None:
+                self.number = int(self.frameN / 4)
+            number = self.number
 
-        if self.previous_number != number:
+        if self.number != number:
             self.capture.set(cv2.CAP_PROP_POS_FRAMES, number)
             ret, self.frame = self.capture.read()
-
-            if do_warp:
-                self.frame = self.warp(self.frame)
 
             if to_hsv:
                 self.frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2HSV)
 
-            self.previous_number = number
+            if do_warp:
+                self.raw_frame = self.frame.copy()
+                self.frame = self.warp(self.frame)
+
+            self.number = number
             self.previous_frame = self.frame
         else:
             self.frame = self.previous_frame
@@ -184,7 +211,10 @@ class VideoAnalyzer:
 
 
     def get_next_frame(self, to_hsv = True):
-        number = self.previous_number + int(self.dt * self.fps)
+        if self.dt is not None:
+            number = self.number + int(self.dt * self.fps)
+        else:
+            number = self.number + 1
 
         if number > self.frameN:
             self.done = True
@@ -209,7 +239,7 @@ class Mask:
     def __init__(self, video, path, filter_color=None, kernel=ckernel(7)):
         self.video = video
         self.path = path
-        self.name = path.split('\\')[-1].split('.png')[0]
+        self.name = os.path.splitext(os.path.basename(path))[0]
         self.kernel = kernel
 
         self.full = to_mask(cv2.imread(path), self.kernel)
@@ -239,7 +269,7 @@ class Mask:
         self.filter_to = np.array(
             [hue + self.__hue_radius__, self.__sat_window__[1], self.__val_window__[1]])
 
-        print(f"Color = {color}")
+        print(f"Filter at H = {hue}")
 
         self.video.set_color(self, color)
 
@@ -258,11 +288,14 @@ class Mask:
         filtermask = cv2.inRange(image, self.filter_from, self.filter_to)
         return filtermask
 
-    def mask(self, image):
-        partial_image = image[
-                        self.position[0]:self.position[1],
-                        self.position[2]:self.position[3],
-                        ].copy()
+    def mask(self, image, do_crop = True):
+        if do_crop:
+            partial_image = image[
+                            self.position[0]:self.position[1],
+                            self.position[2]:self.position[3],
+                            ].copy()
+        else:
+            partial_image = image
 
         frame = cv2.bitwise_and(partial_image, partial_image, mask=self.partial)
 
@@ -270,7 +303,9 @@ class Mask:
 
     def mask_filter(self, image):
         frame = self.mask(image)
-        return self.filter(frame)
+        filtered =  self.filter(frame)
+
+        return filtered
 
     def area(self, image):
         return np.sum(self.mask_filter(image) > 1)
