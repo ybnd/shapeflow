@@ -143,7 +143,7 @@ class VideoAnalyzer:
 
 
     def set_color(self, mask, color):
-        tolerance = 20
+        tolerance = 15
         increment = 60
 
 
@@ -157,7 +157,7 @@ class VideoAnalyzer:
             {mask: (color[0], 220, 255 - repitition * increment)}
         )
 
-        print(f"Colors: {[self.colors[m] for m in self.colors.keys()]}")
+        # print(f"Colors: {[self.colors[m] for m in self.colors.keys()]}")
 
 
     def get_state_image(self):
@@ -252,7 +252,7 @@ class VideoAnalyzer:
 
 
 class Mask:
-    __hue_radius__ = 15
+    __hue_radius__ = 10
     __sat_window__ = [50, 255]
     __val_window__ = [50, 255]
 

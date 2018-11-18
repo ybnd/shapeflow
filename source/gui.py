@@ -376,7 +376,7 @@ class MaskFilterWindow(ScriptWindow):
 class ProgressWindow(ScriptWindow):
     __ratio__ = 0.25
     __plot_pad__ = 0.075
-    __pad__ = 3
+    __pad__ = 2
     __dpi__ = 100
 
     __title__ = 'Volume measurement'
@@ -412,7 +412,7 @@ class ProgressWindow(ScriptWindow):
 
         plt.ioff()
         self.fig = Figure(
-            figsize = (figw,7/9 * figw), dpi = self.__dpi__
+            figsize = (figw,6/9 * figw), dpi = self.__dpi__
         )
         self.ax = self.fig.add_subplot(111)
         plt.tight_layout(pad = 0)
@@ -465,7 +465,8 @@ class ProgressWindow(ScriptWindow):
                 cv2.COLOR_HSV2RGB
             )[0,0] / 255
             self.ax.plot(
-                t, curve / (400 / 25.4)**2 * 0.153, # todo: don't hardcode mm per area!
+                t, curve / (self.video.__overlay_DPI__ / 25.4)**2 * 0.153, # todo: don't hardcode
+                #  mm per area!
                 label = self.video.masks[i].name,
                 color = tuple(color),
                 linewidth = 2
