@@ -2,7 +2,10 @@ from functools import wraps
 import time
 
 def timing(f):
-    ""
+    """
+    Function decorator to measure elapsed time.
+    :param f: function
+    """
     @wraps(f)
     def wrap(*args, **kwargs):
         ts = time.time()
