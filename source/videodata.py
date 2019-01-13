@@ -350,6 +350,8 @@ class Mask:
     def filter(self, image):
         """ Filter an image with the current filter. """
         filtermask = cv2.inRange(image, self.filter_from, self.filter_to)
+        # todo: some kind of plugin functionality to do more involved filtering?
+          # i.e.: startup option to set a self._filter method (image -> image)
         return filtermask
 
     def mask(self, image, do_crop = True):

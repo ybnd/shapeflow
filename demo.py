@@ -1,10 +1,6 @@
 import argparse
-
 from source.videodata import *
 
-import numpy as np
-import matplotlib.pyplot as plt
-import time
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
@@ -33,7 +29,7 @@ if __name__ == '__main__':
 
     pw = ProgressWindow(va)
 
-    while not va.done:
+    while not va.done:  # todo: do this at the VideoAnalyzer level.
         ct = va.get_next_frame()
 
         if not va.done:
