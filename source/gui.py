@@ -240,6 +240,7 @@ class ImageDisplay:
         self.window = window # todo: some of this should actually be in an 'app' or 'window' object
         self.shape = image.shape
 
+
         self.__ratio__ = self.__ratio__ / self.shape[1]
 
         self.__width__ = int(self.shape[1]*self.__ratio__) + overlay.shape[1]*self.__ratio__
@@ -251,7 +252,7 @@ class ImageDisplay:
         self.canvas = tk.Canvas(
             self.window,
             width = self.__width__,
-            height = int(self.shape[0]*self.__ratio__)
+            height = max(int(self.shape[0]*self.__ratio__), int(overlay.shape[0]*self.__ratio__))
         )
         self.canvas.pack()
         self.scaled_shape = (int(self.shape[1]*self.__ratio__), int(self.shape[0]*self.__ratio__))
