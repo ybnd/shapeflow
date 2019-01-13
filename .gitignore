@@ -1,6 +1,6 @@
 *.mp4
 .idea/
-render/
+render/*.png
 *.png
 __pycache__/
 source/__pycache__/
