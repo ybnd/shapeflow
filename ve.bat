@@ -1,0 +1,1 @@
+D:\Code\SIMPLE\_py\Scripts\activate

@@ -1,5 +1,3 @@
-import os
-
 import re
 
 from source.gui import *
@@ -11,6 +9,7 @@ DPmm = 400 / 25.4
 
 
 def ckernel(size):
+    """ Circular filter kernel """
     if not size % 2: size = size - 1
     index = int(size / 2)
 
@@ -23,37 +22,55 @@ def ckernel(size):
 
 
 def to_mask(image, kernel):
+    """ Convert a .png image to a binary mask """
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     ret, image = cv2.threshold(image, 200, 255, cv2.THRESH_BINARY)
     image = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
-    return np.abs(np.subtract(np.array(image, dtype=np.uint8), 255))
+
+    # The binary threshold does not always map the same binary value to the center of the mask (should be the darker tone)
+    # To circumvent this, we assume that the outer edge is not included in the mask (should be ok in normal cases)
+    #   We want to end up with the mask as 255, the background as 0
+
+    # Apparently that's not it, do the arithmetic in float & convert to uint8 afterwards!
+
+    if  image[0,0] == 255:
+        return np.array(np.abs(np.subtract(255,np.array(image, dtype=np.float))), dtype = np.uint8)
+    else:
+        return image
 
 
 def gray_to_mask(image, kernel):
+    """ Convert a grayscale image to a binary mask. """
     ret, image = cv2.threshold(image, 200, 255, cv2.THRESH_BINARY)
     image = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
     return np.abs(np.subtract(np.array(image, dtype=np.uint8), 255))
 
 
 def crop_mask(mask: np.ndarray) -> (np.ndarray, np.ndarray):
+    """ Crop a binary mask image to its minimal size (to exclude unnecessary regions) """
     nz = np.nonzero(mask)
-    r0 = nz[0].min()
-    r1 = nz[0].max()
-    c0 = nz[1].min()
-    c1 = nz[1].max()
-    cropped_mask = mask[r0:r1, c0:c1]
-    return cropped_mask, np.array([r0, r1, c0, c1])
+    row_0 = nz[0].min()
+    row_1 = nz[0].max()
+    col_0 = nz[1].min()
+    col_1 = nz[1].max()
+    cropped_mask = mask[row_0:row_1, col_0:col_1]
+    return cropped_mask, np.array([row_0, row_1, col_0, col_1])
 
 
 class VideoAnalyzer:
+    """
+        Main video handling class
+    """
+
     __default_kernel__ = ckernel(7)
     __default_dt__ = 60
+    __default_h__ = 0.153
 
     __render_folder__ = os.path.join(os.getcwd(), 'render')
 
     __overlay_DPI__ = 400
 
-    def __init__(self, video_path, overlay_path, dt = None, kernel = None):
+    def __init__(self, video_path, overlay_path, dt = None, h = None, kernel = None):
         self.path = video_path
         self.name = video_path.split('\\')[-1].split('.png')[0]
         self.overlay_path = overlay_path
@@ -69,6 +86,11 @@ class VideoAnalyzer:
             self.dt = None
         else:
             self.dt = dt
+
+        if h is None:
+            self.h = self.__default_h__
+        else:
+            self.h = h
 
         self.transform = None
         self.shape = None
@@ -93,6 +115,8 @@ class VideoAnalyzer:
         self.load_masks()
 
     def render_svg(self):
+        """ Render out the .svg design file. """
+
         if not os.path.isdir(self.__render_folder__):
             os.mkdir(self.__render_folder__)
         else:
@@ -104,13 +128,18 @@ class VideoAnalyzer:
             dpi = self.__overlay_DPI__
         ).peel('all', to = self.__render_folder__)
 
+        print("\n")
+
     def load_overlay(self):
+        """ Load the rendered overlay image. """
         self.overlay = cv2.imread(os.path.join(self.__render_folder__, 'overlay.png'))
 
     def prompt_transform(self):
+        """ Open the overlay transform selection window. """
         OverlayAlignWindow(self)
 
     def load_masks(self):
+        """ Load the rendered mask images. """
         files = os.listdir(self.__render_folder__)
         files.remove('overlay.png')
 
@@ -141,26 +170,27 @@ class VideoAnalyzer:
         for path in sorted_files:
             self.masks.append(Mask(self, os.path.join(self.__render_folder__, path), kernel=self.kernel))
 
-
     def set_color(self, mask, color):
+        """ Set the filtering hue for a mask. """
         tolerance = 15
         increment = 60
 
-
-        repitition = 0
+        repetition = 0
 
         for m in self.colors.keys():
             if abs(float(color[0]) - float(self.colors[m][0])) < tolerance and m != mask:
-                repitition = repitition + 1
+                repetition = repetition + 1
 
         self.colors.update(
-            {mask: (color[0], 220, 255 - repitition * increment)}
+            {mask: (color[0], 220, 255 - repetition * increment)}
         )
 
         # print(f"Colors: {[self.colors[m] for m in self.colors.keys()]}")
 
-
     def get_state_image(self):
+        """ Generate a 'state' image for the current frame.
+                i.e.: show the detected regions for each mask (in the corresponding filtering hue) on the overlay image.
+        """
         state_image = np.zeros(self.frame.shape, dtype = np.uint8)
 
         for mask in self.masks:
@@ -190,47 +220,48 @@ class VideoAnalyzer:
 
         return state_image
 
-
     def warp(self, frame):
+        """ Apply a perspective transform. """
         return cv2.warpPerspective(frame, self.transform, (self.shape[1], self.shape[0]))
 
-
     def reset(self):
+        """ Reset position in the video file. """
         self.number = 0
         self.capture.set(cv2.CAP_PROP_POS_FRAMES, 1)
 
-
     def get_frame(self, number=None, do_warp = True, to_hsv=True):
+        """ Get a specific frame from the video file. """
         if number is None:
             if self.number is None:
                 self.number = int(self.frameN / 4)
             number = self.number
 
-        if self.number != number:
-            self.capture.set(cv2.CAP_PROP_POS_FRAMES, number)
-            ret, self.frame = self.capture.read()
+        # if self.number != number:
+        self.capture.set(cv2.CAP_PROP_POS_FRAMES, number)
+        ret, self.frame = self.capture.read()
 
-            if to_hsv:
-                self.frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2HSV)
+        if to_hsv:
+            self.frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2HSV)
 
-            if do_warp:
-                self.raw_frame = self.frame.copy()
-                self.frame = self.warp(self.frame)
+        if do_warp:
+            self.raw_frame = self.frame.copy()
+            self.frame = self.warp(self.frame)
 
-            self.number = number
-            self.previous_frame = self.frame
-        else:
-            self.frame = self.previous_frame
+        self.number = number
+        self.previous_frame = self.frame
+        # else:
+            # There's no way to know if previous frame was warped or not!!
+            # self.frame = self.previous_frame
 
         return self.frame
 
-
     def get_frame_at(self, position: float = 0.5, do_warp = True, to_hsv=True):
+        """ Get the frame at a relative position ~ [0,1] """
         number = int(self.frameN * position)
         return self.get_frame(number, do_warp, to_hsv)
 
-
     def get_next_frame(self, to_hsv = True):
+        """ Advance to the next frame. """
         if self.dt is not None:
             number = self.number + int(self.dt * self.fps)
         else:
@@ -243,8 +274,8 @@ class VideoAnalyzer:
             self.get_frame(number, to_hsv)
             return float(number) / self.fps
 
-
     def areas(self, frame = None):
+        """ Calculate the areas for all of the masks. """
         if frame is None:
             frame = self.frame
 
@@ -252,6 +283,11 @@ class VideoAnalyzer:
 
 
 class Mask:
+
+    """
+        Video mask object.
+    """
+
     __hue_radius__ = 10
     __sat_window__ = [50, 255]
     __val_window__ = [50, 255]
@@ -280,39 +316,44 @@ class Mask:
             self.choose_color()
 
     def choose_color(self, color=None):
+        """ Choose a ue to filter at. """
         if color is None:
-            self.I = self.mask(self.video.get_frame())
+            frame = self.video.get_frame(do_warp = True)
+            self.I = self.mask(frame)
             MaskFilterWindow(self)
         else:
             self.set_filter(color)
 
     def set_filter(self, color):
+        """ Set the filtering hue. """
         hue = color[0]
         self.filter_from = np.array(
             [hue - self.__hue_radius__, self.__sat_window__[0], self.__val_window__[0]])
         self.filter_to = np.array(
             [hue + self.__hue_radius__, self.__sat_window__[1], self.__val_window__[1]])
 
-        print(f"Filter at H = {hue}")
-
         self.video.set_color(self, color)
 
     def get_images(self):
+        """ Return masked & filtered images. """
         self.I = self.mask(self.video.frame)
-        return (self.I, self.filter(self.I))
+        return self.I, self.filter(self.I)
 
     def pick(self, coo):
+        """ Callback - set filtering hue. """
         self.set_filter(self.I[coo.y,coo.x])
 
-
     def track(self, value):
+        """ Get a specific frame from the video (callback for UI scrollbar). """
         self.I = self.mask(self.video.get_frame(value))
 
     def filter(self, image):
+        """ Filter an image with the current filter. """
         filtermask = cv2.inRange(image, self.filter_from, self.filter_to)
         return filtermask
 
     def mask(self, image, do_crop = True):
+        """ Mask off an image. """
         if do_crop:
             partial_image = image[
                             self.position[0]:self.position[1],
@@ -326,10 +367,13 @@ class Mask:
         return frame
 
     def mask_filter(self, image):
+        """ Mask & filter an image. """
         frame = self.mask(image)
         filtered =  self.filter(frame)
 
         return filtered
 
     def area(self, image):
+        """ Calculate the detected area in the masked & filtered image. """
         return np.sum(self.mask_filter(image) > 1)
+

@@ -2,3 +2,7 @@
 .idea/
 render/
 *.png
+__pycache__/
+source/__pycache__/
+*.pyc
+source/*.pyc
