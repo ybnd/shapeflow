@@ -8,10 +8,10 @@ if __name__ == '__main__':
     areas = []
 
     va = VideoAnalyzer(
-        video_path='francesco1.mp4',
-        overlay_path='fabday.svg',
-        dt = 5,
-        h = 0.153,
+        video_path='examples/shuttle.mp4',
+        overlay_path='examples/shuttle.svg',
+        dt=20,
+        h=0.153,
     )
     va.reset()
 
@@ -27,4 +27,4 @@ if __name__ == '__main__':
             pw.plot(t=t, areas=areas)
             pw.update()
 
-    pw.keepopen()
+    pw.mainloop()

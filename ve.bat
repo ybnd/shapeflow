@@ -1,1 +1,1 @@
-D:\Code\SIMPLE\_py\Scripts\activate
+_py\Scripts\activate
