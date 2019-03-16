@@ -1,5 +1,3 @@
-import argparse
-
 from source.videodata import *
 
 if __name__ == '__main__':
@@ -8,8 +6,10 @@ if __name__ == '__main__':
     areas = []
 
     va = VideoAnalyzer(
-        video_path='examples/shuttle.mp4',
-        overlay_path='examples/shuttle.svg',
+        # video_path='lorenz190117.mp4',
+        # overlay_path='lorenz190117.svg',
+        video_path='lorenz190117.mp4',
+        overlay_path='lorenz190117.svg',
         dt=20,
         h=0.153,
     )
@@ -27,4 +27,4 @@ if __name__ == '__main__':
             pw.plot(t=t, areas=areas)
             pw.update()
 
-    pw.mainloop()
+    pw.keepopen()

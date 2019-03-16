@@ -689,9 +689,9 @@ class ProgressWindow(ScriptWindow):
             # todo: no need to do this calculation at every time step!
             self.ax.plot(
                 t, curve,
-                label = self.video.masks[i].name,
-                color = tuple(color),
-                linewidth = 2
+                label=self.video.masks[i].name,
+                color=tuple(color),
+                linewidth=2
             )
 
         # todo: is it necessary to re-do all of the plot legend/axis stuff for every time step?

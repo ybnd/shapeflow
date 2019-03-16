@@ -4,16 +4,16 @@ from source.videodata import *
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    'video', help = 'Path to video file', type = str
+    'video', help='Path to video file', type=str
 )
 parser.add_argument(
-    'design', help = 'Path to design file (.svg)', type = str
+    'design', help='Path to design file (.svg)', type=str
 )
 parser.add_argument(
-    '-dt', help = 'Time interval in seconds', type = float, default = 5
+    '-dt', help='Time interval in seconds', type=float, default=5
 )
 parser.add_argument(
-    '-hc', help = 'Channel height in millimetres', type = float, default = 0.153
+    '-hc', help='Channel height in millimetres', type=float, default=0.153
 )
 
 if __name__ == '__main__':
@@ -23,7 +23,7 @@ if __name__ == '__main__':
     areas = []
 
     va = VideoAnalyzer(
-        args.video, args.design, dt = args.dt, h = args.hc
+        args.video, args.design, dt=args.dt, h=args.hc
     )
     va.reset()
 

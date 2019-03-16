@@ -8,3 +8,5 @@ source/__pycache__/
 source/*.pyc
 *.csv
 examples/
+*.xlsx
+*.xls
