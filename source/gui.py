@@ -1,7 +1,6 @@
 import tkinter as tk
 import tkinter.messagebox as tkMessageBox
 from collections import namedtuple
-from itertools import permutations
 from PIL import Image, ImageTk
 import numpy as np
 import cv2

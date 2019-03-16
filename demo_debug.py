@@ -9,7 +9,7 @@ if __name__ == '__main__':
 
     va = VideoAnalyzer(
         video_path='francesco1.mp4',
-        overlay_path='fabday.svg',
+        overlay_path='francesco1.svg',
         dt = 5,
         h = 0.153,
     )

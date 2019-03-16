@@ -1,6 +1,6 @@
 import re
 
-from source.gui import *
+from source.gui import *        # todo: would make more sense the other way around
 from OnionSVG import OnionSVG
 
 
