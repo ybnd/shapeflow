@@ -8,6 +8,7 @@ import time
 import pandas as pd
 import os
 from math import ceil, floor
+import sys
 
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
@@ -49,10 +50,12 @@ class ScriptWindow(tk.Tk):
         if self.done:
             # Finished!
             self.destroy()
+            sys.exit()  # todo: this is a temporary solution... why doesn't self.destroy() "let the mainloop go?"
         else:
             # Not finished yet!
             if tkMessageBox.askokcancel("Quit", "The script is still running. Really quit?"):
-                self.destroy()              
+                self.destroy()
+                sys.exit()
 
 
 class ReshapeSelection:
@@ -685,9 +688,9 @@ class ProgressWindow(ScriptWindow):
             # todo: no need to do this calculation at every time step!
             self.ax.plot(
                 t, curve,
-                label = self.video.masks[i].name,
-                color = tuple(color),
-                linewidth = 2
+                label=self.video.masks[i].name,
+                color=tuple(color),
+                linewidth=2
             )
 
         # todo: is it necessary to re-do all of the plot legend/axis stuff for every time step?
@@ -704,10 +707,11 @@ class ProgressWindow(ScriptWindow):
             data = np.stack([np.array(t)] + [curve for curve in areas], 1),
             columns = ['t'] + [m.name for m in self.video.masks]
         )
-        df.to_csv(os.path.splitext(self.video.name)[0] + '.csv', ';')
+        df.to_excel(os.path.splitext(self.video.name)[0] + '.xlsx', index=False)
 
-        if ceil(t[-1]) >= floor(self.tmax):
+        if t[-1]/self.tmax > 0.95:  # todo: this is a bit backwards, the VideoAnalyzer object should know how many steps it will take at a given dt and say it's done at the last step.
             self.done = True
+            self.quit()
 
     def keepopen(self):
         """ Called to keep the window open after the script has run. """

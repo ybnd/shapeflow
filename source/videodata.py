@@ -33,7 +33,7 @@ def to_mask(image, kernel):
 
     # Apparently that's not it, do the arithmetic in float & convert to uint8 afterwards!
 
-    if  image[0,0] == 255:
+    if image[0,0] == 255:
         return np.array(np.abs(np.subtract(255,np.array(image, dtype=np.float))), dtype = np.uint8)
     else:
         return image

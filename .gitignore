@@ -7,3 +7,6 @@ source/__pycache__/
 *.pyc
 source/*.pyc
 *.csv
+examples/
+*.xlsx
+*.xls
