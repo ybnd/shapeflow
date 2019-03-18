@@ -8,9 +8,9 @@ if __name__ == '__main__':
     areas = []
 
     va = VideoAnalyzer(
-        video_path='francesco1.mp4',
-        overlay_path='fabday.svg',
-        dt = 5,
+        video_path='SIMPLEchar-video.mp4',
+        overlay_path='SIMPLEchar-analysis.svg',
+        dt = 0.5,
         h = 0.153,
     )
     va.reset()

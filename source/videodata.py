@@ -1,5 +1,6 @@
 import re
 
+from source.analysis import *
 from source.gui import *        # todo: would make more sense the other way around
 from OnionSVG import OnionSVG
 
@@ -377,5 +378,5 @@ class Mask:
 
     def area(self, image):
         """ Calculate the detected area in the masked & filtered image. """
-        return np.sum(self.mask_filter(image) > 1)
+        return area_pixelsum(self.mask_filter(image))
 
