@@ -1,5 +1,6 @@
 import re
 
+import source.metadata as metadata
 from source.analysis import *
 from source.gui import *        # todo: would make more sense the other way around
 from OnionSVG import OnionSVG
@@ -86,7 +87,7 @@ class VideoAnalyzer:
         else:
             self.h = h
 
-        self.transform = None
+        self.transform = np.eye(3)
         self.shape = None
 
         self.number = 1
@@ -101,12 +102,15 @@ class VideoAnalyzer:
 
         self.render_svg()
         self.load_overlay()
+
+        self.import_metadata()
         self.prompt_transform()
 
         self.masks = []
         self.colors = dict()
 
         self.load_masks()
+        self.export_metadata()
 
     def render_svg(self):
         """ Render out the .svg design file. """
@@ -275,6 +279,28 @@ class VideoAnalyzer:
 
         return [mask.area(frame) for mask in self.masks]
 
+    def export_metadata(self):
+        colors = {
+            mask.name: {'from': mask.filter_from.tolist(), 'to': mask.filter_to.tolist()}
+            for mask in self.masks
+        }
+
+        metadata.save(self.path, self.overlay_path, self.transform.tolist(), colors)
+
+    def import_metadata(self):
+        try:
+            meta = metadata.load(self.path)
+
+            self.transform = np.array(meta['transform'])
+            self.colors = meta['colors']
+
+            for mask in self.colors.keys():
+                for color in self.colors[mask].keys():
+                    self.colors[mask][color] = np.array(self.colors[mask][color])
+        except:  # todo: this
+            return
+
+        print(f"Loaded metadata from {os.path.splitext(self.path)[0]+'.meta'}")
 
 class Mask:
 
@@ -282,7 +308,7 @@ class Mask:
         Video mask object.
     """
 
-    __hue_radius__ = 10
+    __hue_radius__ = 10             # todo: better to save filter interval like this...
     __sat_window__ = [50, 255]
     __val_window__ = [50, 255]
 
@@ -300,13 +326,22 @@ class Mask:
         self.video.shape = self.full.shape  # todo: should be the same for all files...
         self.partial, self.position = crop_mask(self.full)
 
-        self.filter_from = np.array([90, 50, 50])
-        self.filter_to = np.array([110, 255, 255])
-        self.color = np.array([100, 255, 200])
+        if self.name in self.video.colors:
+            # Try to load color from metadata file
+            self.filter_from = self.video.colors[self.name]['filter_from']
+            self.filter_to = self.video.colors[self.name]['filter_to']
+        else:
+            # Default to blue
+            self.filter_from = np.array([90, 50, 50])
+            self.filter_to = np.array([110, 255, 255])
+
+        self.color = np.array(
+            [np.mean([self.filter_from[0], self.filter_to[0]]), 255, 200]
+        )
 
         self.video.set_color(self, self.color)
 
-        if filter_color is None:
+        if filter_color is None:  # todo: this filter_color thing is not really implemented
             self.choose_color()
 
     def choose_color(self, color=None):
