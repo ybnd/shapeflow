@@ -25,7 +25,7 @@ def ckernel(size):
 def to_mask(image, kernel):
     """ Convert a .png image to a binary mask """
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    ret, image = cv2.threshold(image, 200, 255, cv2.THRESH_BINARY)
+    ret, image = cv2.threshold(image, 254, 255, cv2.THRESH_BINARY)
     image = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
 
     # The binary threshold does not always map the same binary value to the center of the mask (should be the darker tone)
@@ -38,13 +38,6 @@ def to_mask(image, kernel):
         return np.array(np.abs(np.subtract(255,np.array(image, dtype=np.float))), dtype = np.uint8)
     else:
         return image
-
-
-def gray_to_mask(image, kernel):
-    """ Convert a grayscale image to a binary mask. """
-    ret, image = cv2.threshold(image, 200, 255, cv2.THRESH_BINARY)
-    image = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
-    return np.abs(np.subtract(np.array(image, dtype=np.uint8), 255))
 
 
 def crop_mask(mask: np.ndarray) -> (np.ndarray, np.ndarray):

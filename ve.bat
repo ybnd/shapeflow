@@ -1,1 +1,1 @@
-_py\Scripts\activate
+..\_py\Scripts\activate
