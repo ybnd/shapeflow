@@ -189,12 +189,12 @@ class VideoAnalyzer:
         """ Generate a 'state' image for the current frame.
                 i.e.: show the detected regions for each mask (in the corresponding filtering hue) on the overlay image.
         """
-        state_image = np.zeros(self.frame.shape, dtype = np.uint8)
+        state_image = np.zeros(self.frame.shape, dtype=np.uint8)
 
         for mask in self.masks:
             _, filter = mask.get_images()
 
-            full = np.ones((filter.shape[0], filter.shape[1], 3), dtype = np.uint8)
+            full = np.ones((filter.shape[0], filter.shape[1], 3), dtype=np.uint8)
 
             fullcolor = np.multiply(
                 full, self.colors[mask]

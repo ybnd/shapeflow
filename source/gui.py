@@ -18,7 +18,7 @@ import screeninfo
 __monitor_w__ = min(m.width for m in screeninfo.get_monitors())
 __monitor_h__ = min(m.height for m in screeninfo.get_monitors())
 
-
+from source.visualization import *
 
 import asyncio
 import threading
