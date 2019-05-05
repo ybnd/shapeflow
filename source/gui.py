@@ -18,7 +18,7 @@ import screeninfo
 __monitor_w__ = min(m.width for m in screeninfo.get_monitors())
 __monitor_h__ = min(m.height for m in screeninfo.get_monitors())
 
-
+from source.visualization import *
 
 import asyncio
 import threading
@@ -132,7 +132,7 @@ class ReshapeSelection:
         co = [co[i] for i in self.order]
 
         # print(f"Coordinates: {co}")
-        self.transform.update_dynamic(co)
+        self.transform.get_new_transform(co)
 
     def redraw(self):
         """ Redraw selection rectangle on the canvas. """
@@ -238,7 +238,7 @@ class ImageDisplay:
     __ratio__ = __ratio__ * __monitor_w__
     __rotations__ = {str(p): p for p in rotations(list(range(4)))}
 
-    def __init__(self, window: ScriptWindow, image: np.ndarray, overlay: np.ndarray):
+    def __init__(self, window: ScriptWindow, image: np.ndarray, overlay: np.ndarray, transform: np.ndarray):
         self.window = window # todo: some of this should actually be in an 'app' or 'window' object
         self.shape = image.shape
 
@@ -276,7 +276,8 @@ class ImageDisplay:
             overlay,
             self.scaled_shape,
             self.window.transform_callback,
-            self.__ratio__
+            self.__ratio__,
+            transform
         )
         self.selection = ReshapeSelection(
             self,
@@ -381,7 +382,7 @@ class TransformImage:
     coordinates = np.float32([[200,200],[300,200],[200,300],[300,300]]) # todo: this should be ~ the shape of the overlay
     alpha = 0.1
 
-    def __init__(self, canvas, image, overlay_img, co, callback, ratio):
+    def __init__(self, canvas, image, overlay_img, co, callback, ratio, initial_transform):
         self.overlay = overlay_img
         self.original = image
         self.image = None
@@ -401,22 +402,32 @@ class TransformImage:
             ]
         )
 
-        self.post_transform = np.eye(3)
+        self.post_transform = initial_transform
         self.pre_transform = np.eye(3)
         self.show_overlay()
 
-    def update_dynamic(self, from_coordinates):
+        if np.array_equal(self.post_transform, np.eye(3)):
+            self.update()
+
+    def get_new_transform(self, from_coordinates):
         """ Recalculate transform and show overlay. """
         self.post_transform = cv2.getPerspectiveTransform(
             np.float32(from_coordinates)/self.__ratio__,
             np.float32(self.to_coordinates)
         )
-        Y0,X0,C0 = self.original.shape
-        Y,X,C = self.overlay.shape
+
         # pret = cv2.warpPerspective(self.original, self.pre_transform, (X0,Y0))
+
+        self.update()
+        self.callback(self.post_transform)
+
+    def update(self):
+        """ Update image based  """
+        Y0, X0, C0 = self.original.shape
+        Y, X, C = self.overlay.shape
         self.image = cv2.warpPerspective(self.original, self.post_transform, (X, Y))
 
-        cv2.addWeighted(self.overlay, self.alpha, self.image, 1-self.alpha, 0, self.image)
+        cv2.addWeighted(self.overlay, self.alpha, self.image, 1 - self.alpha, 0, self.image)
 
         height, width, channels = self.overlay.shape
         img = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
@@ -426,10 +437,6 @@ class TransformImage:
         self.canvas.create_image(self.co[0], 0, image=self.img, anchor=tk.NW)
 
         self.callback(self.post_transform)
-
-    # def update_static(self, transform: str):
-    #     """ Update self.pre_transform """
-    #     self.pre_transform = transform
 
     def show_overlay(self):
         """ Show overlay """
@@ -566,12 +573,13 @@ class OverlayAlignWindow(ScriptWindow):
 
         self.image = ImageDisplay(
             self,
-            self.data.get_frame_at(self.__default_frame__, do_warp = False, to_hsv = False),
-            self.data.overlay
+            self.data.get_frame_at(self.__default_frame__, do_warp=False, to_hsv=False),
+            self.data.overlay,
+            self.data.transform
         )
 
-    def transform_callback(self, transform): # todo: this is not type safe!
-        self.data.transform = transform
+    def transform_callback(self, transform):  # todo: this is not type safe!
+        self.data.transform = np.around(transform, decimals=4)
         self.done = True
 
 
