@@ -10,3 +10,5 @@ source/*.pyc
 examples/
 *.xlsx
 *.xls
+.history
+*.meta

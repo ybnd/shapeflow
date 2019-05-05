@@ -3,7 +3,9 @@ import re
 import source.metadata as metadata
 from source.analysis import *
 from source.gui import *        # todo: would make more sense the other way around
-from OnionSVG import OnionSVG
+from OnionSVG import OnionSVG, check_svg
+
+import magic
 
 
 DPI = 400               # todo: this is a workaround
@@ -88,6 +90,8 @@ class VideoAnalyzer:
             self.h = h
 
         self.transform = np.eye(3)
+        self.coordinates = None
+        self.order = (0,1,2,3)
         self.shape = None
 
         self.number = 1
@@ -95,10 +99,16 @@ class VideoAnalyzer:
         self.frame = None
         self.done = False
 
+        self.masks = []
+        self.colors = dict()
+        self.plot_colors = dict()
+
         self.capture = cv2.VideoCapture(os.path.join(os.getcwd(), self.path))
         # todo: failure should be more verbose!
         self.frameN = int(self.capture.get(cv2.CAP_PROP_FRAME_COUNT))
         self.fps = self.capture.get(cv2.CAP_PROP_FPS)
+
+        self.check_files()
 
         self.render_svg()
         self.load_overlay()
@@ -106,11 +116,17 @@ class VideoAnalyzer:
         self.import_metadata()
         self.prompt_transform()
 
-        self.masks = []
-        self.colors = dict()
-
         self.load_masks()
         self.export_metadata()
+
+    def check_files(self):
+        """ Check that the files exist and are of the correct type """
+        check_svg(self.overlay_path)
+        ok,_ = self.capture.read()
+
+        if not ok:
+            raise IOError('Invalid video file.')
+
 
     def render_svg(self):
         """ Render out the .svg design file. """
@@ -168,18 +184,19 @@ class VideoAnalyzer:
         for path in sorted_files:
             self.masks.append(Mask(self, os.path.join(self.__render_folder__, path), kernel=self.kernel))
 
-    def set_color(self, mask, color):
-        """ Set the filtering hue for a mask. """
+    def set_as_plot_color(self, mask, color):
+        """ Set filtering color as plot color & space colors for readable plot """
         tolerance = 15
         increment = 60
 
         repetition = 0
 
-        for m in self.colors.keys():
-            if abs(float(color[0]) - float(self.colors[m][0])) < tolerance and m != mask:
+        for m in self.plot_colors.keys():
+            if abs(float(color[0]) - float(self.plot_colors[m][0])) < tolerance  and m != mask:
                 repetition = repetition + 1
 
-        self.colors.update(
+
+        self.plot_colors.update(
             {mask: (color[0], 220, 255 - repetition * increment)}
         )
 
@@ -197,7 +214,7 @@ class VideoAnalyzer:
             full = np.ones((filter.shape[0], filter.shape[1], 3), dtype=np.uint8)
 
             fullcolor = np.multiply(
-                full, self.colors[mask]
+                full, self.plot_colors[mask]
             )
 
             mask_state = cv2.bitwise_and(fullcolor, fullcolor, mask = filter)
@@ -273,7 +290,7 @@ class VideoAnalyzer:
             return float(number) / self.fps
 
     def areas(self, frame = None):
-        """ Calculate the areas for all of the masks. """
+        """ Calculate the areas for all of the masks. """  # todo: abstract away from VideoAnalyzer
         if frame is None:
             frame = self.frame
 
@@ -285,22 +302,23 @@ class VideoAnalyzer:
             for mask in self.masks
         }
 
-        metadata.save(self.path, self.overlay_path, self.transform.tolist(), colors)
+        metadata.save(self.path, self.overlay_path, self.coordinates, self.transform.tolist(),
+                      self.order, colors)
 
     def import_metadata(self):
-        try:
-            meta = metadata.load(self.path)
+        meta = metadata.load(self.path)
 
+        if meta is not None:
             self.transform = np.array(meta['transform'])
             self.colors = meta['colors']
+            self.order = meta['order']
+            self.coordinates = meta['coordinates']
 
             for mask in self.colors.keys():
                 for color in self.colors[mask].keys():
                     self.colors[mask][color] = np.array(self.colors[mask][color])
-        except:  # todo: this
-            return
 
-        print(f"Loaded metadata from {os.path.splitext(self.path)[0]+'.meta'}")
+            print(f"Loaded metadata from {os.path.splitext(self.path)[0]+'.meta'}")
 
 class Mask:
 
@@ -312,13 +330,13 @@ class Mask:
     __sat_window__ = [50, 255]
     __val_window__ = [50, 255]
 
-    def __init__(self, video, path, filter_color=None, kernel=ckernel(7)):
+    def __init__(self, video, path, kernel=ckernel(7)):
         self.video = video
         self.path = path
 
         pattern = re.compile('(\d+)[?\-=_#/\\\ ]+([?\w\-=_#/\\\ ]+)')
         fullname = os.path.splitext(os.path.basename(path))[0]
-        self.name = pattern.search(fullname).groups()[1]
+        self.name = pattern.search(fullname).groups()[1].strip()
 
         self.kernel = kernel
 
@@ -328,8 +346,8 @@ class Mask:
 
         if self.name in self.video.colors:
             # Try to load color from metadata file
-            self.filter_from = self.video.colors[self.name]['filter_from']
-            self.filter_to = self.video.colors[self.name]['filter_to']
+            self.filter_from = self.video.colors[self.name]['from']
+            self.filter_to = self.video.colors[self.name]['to']
         else:
             # Default to blue
             self.filter_from = np.array([90, 50, 50])
@@ -339,10 +357,9 @@ class Mask:
             [np.mean([self.filter_from[0], self.filter_to[0]]), 255, 200]
         )
 
-        self.video.set_color(self, self.color)
+        self.video.set_as_plot_color(self, self.color)
 
-        if filter_color is None:  # todo: this filter_color thing is not really implemented
-            self.choose_color()
+        self.choose_color()
 
     def choose_color(self, color=None):
         """ Choose a ue to filter at. """
@@ -361,7 +378,7 @@ class Mask:
         self.filter_to = np.array(
             [hue + self.__hue_radius__, self.__sat_window__[1], self.__val_window__[1]])
 
-        self.video.set_color(self, color)
+        self.video.set_as_plot_color(self, color)
 
     def get_images(self):
         """ Return masked & filtered images. """
@@ -405,6 +422,6 @@ class Mask:
         return filtered
 
     def area(self, image):
-        """ Calculate the detected area in the masked & filtered image. """
+        """ Calculate the detected area in the masked & filtered image. """ # todo: abstract away form Mask
         return area_pixelsum(self.mask_filter(image))
 

@@ -1,4 +1,5 @@
 import tkinter as tk
+import tkinter.ttk as ttk
 import tkinter.messagebox as tkMessageBox
 from collections import namedtuple
 from PIL import Image, ImageTk
@@ -14,6 +15,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
 import screeninfo
+import json
 
 __monitor_w__ = min(m.width for m in screeninfo.get_monitors())
 __monitor_h__ = min(m.height for m in screeninfo.get_monitors())
@@ -62,7 +64,7 @@ class ReshapeSelection:
     """
         Reshape-able rectangle ROI selection for tkinter canvases
     """
-    def __init__(self, window, transform):
+    def __init__(self, window, transform, initial_coordinates = None):
         self.imagedisplay = window
         self.window = window.window  # todo: confusing!!!
         self.canvas = window.canvas
@@ -80,9 +82,30 @@ class ReshapeSelection:
         self.start = None
         self.stop = None
         self.corners = None
-        self.coordinates = None
+        self.coordinates = initial_coordinates
 
-        self.order = (0,1,2,3)
+        self.order = self.transform.order
+        self.initialize()
+
+    def initialize(self):
+        # if not np.array_equal(self.transform.transform, np.eye(3)):
+            ## Get from transform
+
+            # # Get & permute output coordinate list
+            # to = [self.transform.to_coordinates[i] for i in self.order]
+            #
+            # self.coordinates = []
+            #
+            # inverse_transform = np.linalg.inv(self.transform.transform)
+            # for co in to:
+            #     co_to_fuckoff = [co[0], co[1], 1]
+            #     fr = np.matmul(inverse_transform, co_to_fuckoff) * self.transform.__ratio__
+            #
+            #     self.coordinates.append(__coo__(x = fr[0], y = fr[1]))
+            #
+            # self.get_corners()
+        if self.coordinates is not None:
+            self.get_corners()
 
     def undo(self, event):
         """ Callback to clear selection rectangle """
@@ -110,18 +133,20 @@ class ReshapeSelection:
                 __coo__(self.stop.x, self.start.y)      # Top    Right
             ]
 
+            self.get_corners()
 
-            self.corners = []
-            names = ['BL', '?1', '?2', 'TR']
+    def get_corners(self):
+        self.corners = []
+        names = ['BL', '?1', '?2', 'TR']
 
-            # Initialize corner objects
-            for i, coordinate in enumerate(self.coordinates):
-                self.corners.append(
-                    Corner(self, coordinate, name = names[i])
-                )
+        # Initialize corner objects
+        for i, coordinate in enumerate(self.coordinates):
+            self.corners.append(
+                Corner(self, coordinate, name=names[i])
+            )
 
-            self.has_rectangle = True
-            self.update()
+        self.has_rectangle = True
+        self.update()
 
     def update(self):
         """ Update selection rectangle and transform matrix. """
@@ -132,7 +157,7 @@ class ReshapeSelection:
         co = [co[i] for i in self.order]
 
         # print(f"Coordinates: {co}")
-        self.transform.get_new_transform(co)
+        self.transform.get_new_transform(co, self.order)
 
     def redraw(self):
         """ Redraw selection rectangle on the canvas. """
@@ -180,8 +205,10 @@ class Corner:
             #     compound=tk.CENTER
             # )
             # self.label.place(x = co.x, y = co.y)
-
-        self.id = self.canvas.create_image(co.x, co.y, image = self.handle, anchor ='center')
+        if isinstance(co, __coo__):
+            self.id = self.canvas.create_image(co.x, co.y, image = self.handle, anchor ='center')
+        else:
+            self.id = self.canvas.create_image(co[0], co[1], image=self.handle, anchor='center')
 
 
         self.canvas.tag_bind(self.id, "<ButtonPress-1>", self.press)
@@ -238,7 +265,7 @@ class ImageDisplay:
     __ratio__ = __ratio__ * __monitor_w__
     __rotations__ = {str(p): p for p in rotations(list(range(4)))}
 
-    def __init__(self, window: ScriptWindow, image: np.ndarray, overlay: np.ndarray, transform: np.ndarray):
+    def __init__(self, window: ScriptWindow, image: np.ndarray, overlay: np.ndarray, transform: np.ndarray, order: set = (0,1,2,3), initial_coordinates = None):
         self.window = window # todo: some of this should actually be in an 'app' or 'window' object
         self.shape = image.shape
 
@@ -259,8 +286,6 @@ class ImageDisplay:
         self.canvas.pack()
         self.scaled_shape = (int(self.shape[1]*self.__ratio__), int(self.shape[0]*self.__ratio__))
 
-        self.pre_transform = np.eye(3)
-
         self.original = image
         height, width, channels = image.shape
         img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -277,13 +302,16 @@ class ImageDisplay:
             self.scaled_shape,
             self.window.transform_callback,
             self.__ratio__,
-            transform
+            transform,
+            order
         )
         self.selection = ReshapeSelection(
             self,
-            self.transform
+            self.transform,
+            initial_coordinates,
         )
 
+        self.order = order
         self.rotation = tk.StringVar(self.canvas.master)
         self.option = tk.OptionMenu(
             self.canvas.master,
@@ -291,7 +319,7 @@ class ImageDisplay:
             *set(self.__rotations__.keys()),
             command = self.permute
         )
-        self.rotation.set('(0,1,2,3)')
+        self.rotation.set(str(self.order))
         self.option.pack()
 
         # b1 = tk.Button(
@@ -382,7 +410,7 @@ class TransformImage:
     coordinates = np.float32([[200,200],[300,200],[200,300],[300,300]]) # todo: this should be ~ the shape of the overlay
     alpha = 0.1
 
-    def __init__(self, canvas, image, overlay_img, co, callback, ratio, initial_transform):
+    def __init__(self, canvas, image, overlay_img, co, callback, ratio, initial_transform, initial_order = (0,1,2,3)):
         self.overlay = overlay_img
         self.original = image
         self.image = None
@@ -402,30 +430,33 @@ class TransformImage:
             ]
         )
 
-        self.post_transform = initial_transform
-        self.pre_transform = np.eye(3)
+        self.transform = initial_transform
+        self.order = initial_order
         self.show_overlay()
 
-        if np.array_equal(self.post_transform, np.eye(3)):
+        if np.array_equal(self.transform, np.eye(3)):
             self.update()
 
-    def get_new_transform(self, from_coordinates):
+    def get_new_transform(self, from_coordinates, order):
         """ Recalculate transform and show overlay. """
-        self.post_transform = cv2.getPerspectiveTransform(
+        self.transform = cv2.getPerspectiveTransform(
             np.float32(from_coordinates)/self.__ratio__,
             np.float32(self.to_coordinates)
         )
 
+        # Round to remove unnecessary precision
+        # self.transform = np.around(self.transform, decimals=3)
+
         # pret = cv2.warpPerspective(self.original, self.pre_transform, (X0,Y0))
 
         self.update()
-        self.callback(self.post_transform)
+        self.callback(self.transform, from_coordinates)
 
     def update(self):
         """ Update image based  """
         Y0, X0, C0 = self.original.shape
         Y, X, C = self.overlay.shape
-        self.image = cv2.warpPerspective(self.original, self.post_transform, (X, Y))
+        self.image = cv2.warpPerspective(self.original, self.transform, (X, Y))
 
         cv2.addWeighted(self.overlay, self.alpha, self.image, 1 - self.alpha, 0, self.image)
 
@@ -436,7 +467,7 @@ class TransformImage:
         self.img = ImageTk.PhotoImage(image=img)
         self.canvas.create_image(self.co[0], 0, image=self.img, anchor=tk.NW)
 
-        self.callback(self.post_transform)
+        # self.callback(self.transform)
 
     def show_overlay(self):
         """ Show overlay """
@@ -575,11 +606,14 @@ class OverlayAlignWindow(ScriptWindow):
             self,
             self.data.get_frame_at(self.__default_frame__, do_warp=False, to_hsv=False),
             self.data.overlay,
-            self.data.transform
+            self.data.transform,
+            self.data.order,
+            self.data.coordinates,
         )
 
-    def transform_callback(self, transform):  # todo: this is not type safe!
-        self.data.transform = np.around(transform, decimals=4)
+    def transform_callback(self, transform, coordinates):  # todo: this is not type safe!
+        self.data.transform = transform
+        self.data.coordinates = coordinates
         self.done = True
 
 
@@ -690,7 +724,7 @@ class ProgressWindow(ScriptWindow):
 
         for i, curve in enumerate(areas):
             color = cv2.cvtColor(
-                np.array([[np.array(self.video.colors[self.video.masks[i]], dtype = np.uint8)]]),
+                np.array([[np.array(self.video.plot_colors[self.video.masks[i]], dtype = np.uint8)]]),
                 cv2.COLOR_HSV2RGB
             )[0, 0] / 255
             # todo: no need to do this calculation at every time step!

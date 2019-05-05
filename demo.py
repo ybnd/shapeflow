@@ -16,14 +16,12 @@ parser.add_argument(
     '-hc', help='Channel height in millimetres', type=float, default=0.153
 )
 
-if __name__ == '__main__':
-    args = parser.parse_args()
-
+def demo(video, design, timestep, height):
     t = []
     areas = []
 
     va = VideoAnalyzer(
-        args.video, args.design, dt=args.dt, h=args.hc
+        video, design, dt=timestep, h=height
     )
     va.reset()
 
@@ -40,6 +38,12 @@ if __name__ == '__main__':
             pw.update()
 
     pw.keepopen()
+
+if __name__ == '__main__':
+    args = parser.parse_args()
+    demo(args.video, args.design, args.dt, args.hc)
+
+
 
 
 

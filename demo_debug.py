@@ -10,7 +10,7 @@ if __name__ == '__main__':
     va = VideoAnalyzer(
         video_path='dries.mp4',
         overlay_path='dries.svg',
-        dt = 0.5,
+        dt = 20,
         h = 0.153,
     )
     va.reset()
