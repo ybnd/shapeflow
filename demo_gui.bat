@@ -1,0 +1,1 @@
+..\_py\Scripts\python.exe demo_gui.py

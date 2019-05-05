@@ -5,9 +5,6 @@ from source.analysis import *
 from source.gui import *        # todo: would make more sense the other way around
 from OnionSVG import OnionSVG, check_svg
 
-import magic
-
-
 DPI = 400               # todo: this is a workaround
 DPmm = 400 / 25.4
 
