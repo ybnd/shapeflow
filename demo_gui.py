@@ -100,11 +100,21 @@ class FileSelectWindow:
         height = self.height_box.get()
         timestep = self.timestep_box.get()
 
-        self.history['video_path'].append(video)
-        self.history['design_path'].append(design)
+        try:
+            self.history['video_path'].remove(video)
+        except ValueError:
+            pass
+
+        try:
+            self.history['design_path'].remove(design)
+        except ValueError:
+            pass
 
         self.history['video_path'] = list(set(self.history['video_path']))
         self.history['design_path'] = list(set(self.history['design_path']))
+
+        self.history['video_path'].append(video)
+        self.history['design_path'].append(design)
 
         self.history['previous_height'] = height
         self.history['previous_timestep'] = timestep
