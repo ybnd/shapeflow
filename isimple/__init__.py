@@ -5,6 +5,7 @@ from tkinter import messagebox, Tk
 
 
 def find_repo() -> git.Repo:
+
     folder = os.path.dirname(__file__)  # Start looking in folder containing __file__
     steps_back = 0
 
@@ -17,20 +18,18 @@ def find_repo() -> git.Repo:
 
 
 def update(force=False):
-    '''
+    """
     Auto-updating method for applications intended for "end-users".
 
     Usage:
         Include
-            ```
-                import isimple
-                isimple.update()
-            ```
-            in script to check for updates before running.
+            ``` import isimple
+                isimple.update() ```
+            in scripts to check for updates before running.
 
         :param force:
         :return:
-    '''
+    """
 
     # Start a tkinter window & hide it, otherwise messagebox spawns one anyway (annoying)
     root = Tk()
@@ -45,8 +44,9 @@ def update(force=False):
     if repo.active_branch.name == 'master' or force:
         # Check if origin/master is ahead -> dialog: update?
         # https://stackoverflow.com/questions/17224134/check-status-of-local-python-relative-to-remote-with-gitpython
-
         # ASSUMES THAT origin IS SET CORRECTLY!
+
+        repo.remote('origin').fetch()   # Fetch remote changes
         commits_behind = len([commit for commit in repo.iter_commits('master..origin/master')])
         if commits_behind > 0 or force:
             # Check if any changes have been made -> dialog: discard changes?
@@ -77,4 +77,4 @@ def update(force=False):
 
 
 if __name__ == '__main__':
-    update(True)  # Force checks (but not repo-level changes) - for debugging purposes
+    update()  # For debugging purposes
