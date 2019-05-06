@@ -16,6 +16,9 @@ class FileSelectWindow:
     __path_width__ = 60
     __num_width__ = 12
 
+    full_history = {}
+    history = {}
+
     video_path_history = ['']
     design_path_history = ['']
     previous_height = 0.153
@@ -62,22 +65,20 @@ class FileSelectWindow:
         run.pack()
         self.window.mainloop()
 
-    def read_history(self): # todo: this can be pulled up to a 'isimpleApp' class to share history in only the one .history file
-        if os.path.isfile(self.__history_path__):
-            try:
-                with open(self.__history_path__, 'r') as f:
-                    self.full_history = json.load(f)
-                    self.history = self.full_history[__file__]
-            except json.decoder.JSONDecodeError:
-                raise IOError('Invalid .history file -- delete it to reset the history')
+    def read_history(self):  # todo: this can be pulled up to a 'isimpleApp' class to share history in only the one .history file
+        try:
+            with open(self.__history_path__, 'r') as file:
+                self.full_history = json.load(file)
+                self.history = self.full_history[__file__]
 
             self.video_path_history = self.history['video_path'][::-1]
             self.design_path_history = self.history['design_path'][::-1]
             self.previous_timestep = self.history['previous_timestep']
             self.previous_height = self.history['previous_height']
 
-            self.__path_width__ = max([len(path) for path in self.video_path_history + self.design_path_history]) - 5
-        else:
+            self.__path_width__ = max(
+                [len(path) for path in self.video_path_history + self.design_path_history]) - 5
+        except json.decoder.JSONDecodeError:
             self.history = {
                 'video_path': self.video_path_history,
                 'design_path': self.design_path_history,
