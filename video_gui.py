@@ -27,7 +27,6 @@ class FileSelectWindow(isimple.HistoryApp):
     previous_timestep = 5
 
     def __init__(self):
-        self.output = ()
         isimple.HistoryApp.__init__(self, __file__)
 
         self.window = ScriptWindow()
