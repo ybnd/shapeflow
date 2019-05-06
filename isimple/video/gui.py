@@ -47,6 +47,9 @@ class ScriptWindow(tk.Tk):
         tk.Tk.__init__(self)
         self.protocol("WM_DELETE_WINDOW", self.close)
 
+    def focus(self):
+        self.focus_force()
+
     def close(self):
         """ Called when user tries to close the window. """
         if self.done:
@@ -168,7 +171,7 @@ class ReshapeSelection:
             self.lines.append(self.canvas.create_line(self.corners[i-1].co, corner.co))
 
         for corner in self.corners:
-            self.canvas.lift(corner)
+            self.canvas.focus(corner)
 
     def quit(self, _):
         """ Close the window. """
@@ -343,6 +346,7 @@ class ImageDisplay:
         # for button in buttons:
         #     button.pack()
 
+        self.window.focus()
         self.canvas.mainloop()
 
     def permute(self, id):
@@ -553,6 +557,7 @@ class ColorPicker:
         self.canvas.master.bind("<Escape>", self.quit)
 
         self.update()
+        self.window.focus()
         self.canvas.mainloop()
 
     def update(self):
@@ -757,6 +762,7 @@ class ProgressWindow(ScriptWindow):
 
     def keepopen(self):
         """ Called to keep the window open after the script has run. """
+        self.focus()
         self.mainloop()
 
       

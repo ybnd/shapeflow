@@ -34,6 +34,7 @@ class FileSelectWindow(isimple.HistoryApp):
         self.window.option_add('*Font', '48')
 
         self.canvas = tk.Canvas(self.window)
+        self.window.bind("<Return>", self.run)
 
         self.video_path = tk.StringVar(value=self.video_path_history[0])
         self.design_path = tk.StringVar(value=self.design_path_history[0])
@@ -50,7 +51,7 @@ class FileSelectWindow(isimple.HistoryApp):
 
         browse_video = tk.Button(self.canvas, text='Browse...', command=self.browse_video, font='System 11', pady=1, padx=3)
         browse_design = tk.Button(self.canvas, text='Browse...', command=self.browse_design, font='System 11', pady=1, padx=3)
-        run = tk.Button(self.window, text='Run', command=self.run)
+        run_button = tk.Button(self.window, text='Run', command=self.run)
 
         self.video_path_box.grid(column=1, row=1)
         self.design_path_box.grid(column=1, row=3)
@@ -65,7 +66,7 @@ class FileSelectWindow(isimple.HistoryApp):
         timestep_label = tk.Label(self.canvas, text="Timestep (s): ", width=self.__num_width__, anchor='w').grid(column=2, row=2)
 
         self.canvas.pack(anchor='w', padx=5, pady=5)
-        run.pack()
+        run_button.pack()
         self.window.mainloop()
 
     def reset_history(self):
@@ -99,7 +100,7 @@ class FileSelectWindow(isimple.HistoryApp):
     def browse_design(self):
         self.design_path.set(tkfd.askopenfilename(filetypes=[('SVG files', '*.svg')]))
 
-    def run(self):
+    def run(self, _=None):
         video = self.video_path_box.get()
         design = self.design_path_box.get()
         height = float(self.height_box.get())
