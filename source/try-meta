@@ -1,6 +1,0 @@
-video: this-video.mp4
-design: this-design.svg
-transform: '[[0,0,0],[0,0,0],[0,0,0]]'
-color-intervals:
-  mask1: blablabla
-  mask2: blablabla

@@ -1,6 +1,4 @@
-import argparse
-
-from source.videodata import *
+from isimple.video.videodata import *
 
 if __name__ == '__main__':
 

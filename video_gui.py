@@ -1,7 +1,7 @@
-from source.gui import *
+from isimple.video.gui import *
 from io import StringIO
 import tkinter.filedialog as tkfd
-from demo import demo
+from video_cli import demo
 
 
 class FileSelectWindow:
@@ -125,7 +125,6 @@ class FileSelectWindow:
             json.dump({'v': video, 'd': design, 'h': float(height), 't': float(timestep)}, f) # todo: lame workaround
 
         self.window.destroy()
-
 
 
 if __name__ == '__main__':
