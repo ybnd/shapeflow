@@ -132,6 +132,7 @@ def update(force=False):
                     # Pull from default remote
                     # ASSUMES THAT origin IS SET CORRECTLY, AND AS THE DEFAULT REMOTE!
                     repo.git.pull()
+                    sys.exit()
 
     # Abort caller script (i.e. don't try to execute a script if it's out of date)
 
