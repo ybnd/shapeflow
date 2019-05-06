@@ -1,4 +1,5 @@
 import re
+import warnings
 
 import isimple.video.metadata as metadata
 from isimple.video.analysis import *
@@ -203,34 +204,35 @@ class VideoAnalyzer:
         """ Generate a 'state' image for the current frame.
                 i.e.: show the detected regions for each mask (in the corresponding filtering hue) on the overlay image.
         """
-        state_image = np.zeros(self.frame.shape, dtype=np.uint8)
+        if self.frame is not None:
+            state_image = np.zeros(self.frame.shape, dtype=np.uint8)
 
-        for mask in self.masks:
-            _, filter = mask.get_images()
+            for mask in self.masks:
+                _, filter = mask.get_images()
 
-            full = np.ones((filter.shape[0], filter.shape[1], 3), dtype=np.uint8)
+                full = np.ones((filter.shape[0], filter.shape[1], 3), dtype=np.uint8)
 
-            fullcolor = np.multiply(
-                full, self.plot_colors[mask]
-            )
+                fullcolor = np.multiply(
+                    full, self.plot_colors[mask]
+                )
 
-            mask_state = cv2.bitwise_and(fullcolor, fullcolor, mask = filter)
+                mask_state = cv2.bitwise_and(fullcolor, fullcolor, mask = filter)
 
-            state_image[
-                mask.position[0]:mask.position[1],
-                mask.position[2]:mask.position[3]
-            ] = state_image[
-                mask.position[0]:mask.position[1],
-                mask.position[2]:mask.position[3]
-            ] + mask_state
+                state_image[
+                    mask.position[0]:mask.position[1],
+                    mask.position[2]:mask.position[3]
+                ] = state_image[
+                    mask.position[0]:mask.position[1],
+                    mask.position[2]:mask.position[3]
+                ] + mask_state
 
-            state_image = cv2.cvtColor(state_image, cv2.COLOR_HSV2BGR)
-            state_image[state_image == 0] = 255
+                state_image = cv2.cvtColor(state_image, cv2.COLOR_HSV2BGR)
+                state_image[state_image == 0] = 255
 
-            state_image = cv2.addWeighted(self.overlay, 0.05, state_image, 1-0.05, 0, state_image)
-            state_image = cv2.cvtColor(state_image, cv2.COLOR_BGR2HSV)
+                state_image = cv2.addWeighted(self.overlay, 0.05, state_image, 1-0.05, 0, state_image)
+                state_image = cv2.cvtColor(state_image, cv2.COLOR_BGR2HSV)
 
-        return state_image
+            return state_image
 
     def warp(self, frame):
         """ Apply a perspective transform. """
@@ -252,20 +254,28 @@ class VideoAnalyzer:
         self.capture.set(cv2.CAP_PROP_POS_FRAMES, number)
         ret, self.frame = self.capture.read()
 
-        if to_hsv:
-            self.frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2HSV)
+        if self.frame is not None and ret:
+            if to_hsv:
+                try:
+                    frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2HSV)
+                except cv2.error as e:
+                    warnings.warn(str(e), stacklevel=3)
+                    frame = self.previous_frame
 
-        if do_warp:
-            self.raw_frame = self.frame.copy()
-            self.frame = self.warp(self.frame)
+                self.frame = frame
 
-        self.number = number
-        self.previous_frame = self.frame
-        # else:
-            # There's no way to know if previous frame was warped or not!!
-            # self.frame = self.previous_frame
 
-        return self.frame
+            if do_warp:
+                self.raw_frame = self.frame.copy()
+                self.frame = self.warp(self.frame)
+
+            self.number = number
+            self.previous_frame = self.frame
+            # else:
+                # There's no way to know if previous frame was warped or not!!
+                # self.frame = self.previous_frame
+
+            return self.frame
 
     def get_frame_at(self, position: float = 0.5, do_warp = True, to_hsv=True):
         """ Get the frame at a relative position ~ [0,1] """
@@ -279,12 +289,16 @@ class VideoAnalyzer:
         else:
             number = self.number + 1
 
-        if number > self.frameN:
+        if number >= self.frameN:
             self.done = True
             self.frame = None
         else:
             self.get_frame(number, to_hsv)
-            return float(number) / self.fps
+            if self.frame is None:
+                self.done = True
+                return None
+            else:
+                return float(number) / self.fps
 
     def areas(self, frame = None):
         """ Calculate the areas for all of the masks. """  # todo: abstract away from VideoAnalyzer
@@ -392,24 +406,26 @@ class Mask:
 
     def filter(self, image):
         """ Filter an image with the current filter. """
-        filtermask = cv2.inRange(image, self.filter_from, self.filter_to)
-        # todo: some kind of plugin functionality to do more involved filtering?
-          # i.e.: startup option to set a self._filter method (image -> image)
-        return filtermask
+        if image is not None:
+            filtermask = cv2.inRange(image, self.filter_from, self.filter_to)
+            # todo: some kind of plugin functionality to do more involved filtering?
+              # i.e.: startup option to set a self._filter method (image -> image)
+            return filtermask
 
     def mask(self, image, do_crop = True):
         """ Mask off an image. """
-        if do_crop:
-            partial_image = image[
-                            self.position[0]:self.position[1],
-                            self.position[2]:self.position[3],
-                            ].copy()
-        else:
-            partial_image = image
+        if image is not None:
+            if do_crop:
+                partial_image = image[
+                                self.position[0]:self.position[1],
+                                self.position[2]:self.position[3],
+                                ].copy()
+            else:
+                partial_image = image
 
-        frame = cv2.bitwise_and(partial_image, partial_image, mask=self.partial)
+            frame = cv2.bitwise_and(partial_image, partial_image, mask=self.partial)
 
-        return frame
+            return frame
 
     def mask_filter(self, image):
         """ Mask & filter an image. """

@@ -4,14 +4,13 @@ import time
 import json
 
 
-__update_interval__ = 30
+__update_interval__ = 60*60*24
 __last_update__ = os.path.join(os.path.dirname(__file__), '.last-update')
 __isimple__ = os.path.dirname(__file__)
+__history_path__ = os.path.join(__isimple__, '.history')
 
 
 class HistoryApp:
-    __history_path__ = os.path.join(__isimple__, '.history')
-
     def __init__(self, file):
         self.full_history = {}
         self.history = {}
@@ -24,7 +23,7 @@ class HistoryApp:
 
     def load_history(self):
         try:
-            with open(self.__history_path__, 'r') as f:
+            with open(__history_path__, 'r') as f:
                 self.full_history = json.load(f)
 
         except (json.decoder.JSONDecodeError, FileNotFoundError, KeyError) as e:
@@ -38,7 +37,7 @@ class HistoryApp:
 
     def save_history(self):
         self.pack_history()
-        with open(self.__history_path__, 'w+') as f:
+        with open(__history_path__, 'w+') as f:
             json.dump(self.full_history, f, indent=2)
 
     def get_own_history(self):
@@ -49,6 +48,19 @@ class HistoryApp:
 
     def pack_history(self):
         pass
+
+
+def read_last_update_time():
+    try:
+        with open(__last_update__, 'r') as f:
+            return float(f.read())
+    except FileNotFoundError:
+        return 0
+
+
+def write_last_update_time():
+    with open(__last_update__, 'w+') as f:
+        f.write(str(time.time()))
 
 
 def update(force=False):
@@ -65,13 +77,8 @@ def update(force=False):
         :return:
     """
 
-    try:
-        with open(__last_update__, 'r') as f:
-            last_update = float(f.read())
-    except FileNotFoundError:
-        last_update = 0
 
-    if time.time() - last_update > __update_interval__ or force:
+    if time.time() - read_last_update_time() > __update_interval__ or force:
         import git
         import warnings
         from distutils.util import strtobool
@@ -138,4 +145,4 @@ def update(force=False):
 
 
 if __name__ == '__main__':
-    update(True)  # For debugging purposes
+    update()  # For debugging purposes

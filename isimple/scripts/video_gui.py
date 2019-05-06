@@ -2,7 +2,7 @@ import isimple
 from isimple.video.gui import *
 from isimple.utils import restrict
 import tkinter.filedialog as tkfd
-from video_cli import demo
+from isimple.scripts.video_cli import demo
 
 
 class FileSelectWindow(isimple.HistoryApp):
@@ -31,7 +31,7 @@ class FileSelectWindow(isimple.HistoryApp):
 
         self.window = ScriptWindow()
         self.window.title('isimple-video')
-        self.window.option_add('*Font', '48')
+        self.window.option_add('*Font', '12')
 
         self.canvas = tk.Canvas(self.window)
         self.window.bind("<Return>", self.run)
@@ -49,8 +49,8 @@ class FileSelectWindow(isimple.HistoryApp):
         self.height_box = ttk.Entry(self.canvas, textvariable=self.height, width=self.__num_width__)
         self.timestep_box = ttk.Entry(self.canvas, textvariable=self.timestep, width=self.__num_width__)
 
-        browse_video = tk.Button(self.canvas, text='Browse...', command=self.browse_video, font='System 11', pady=1, padx=3)
-        browse_design = tk.Button(self.canvas, text='Browse...', command=self.browse_design, font='System 11', pady=1, padx=3)
+        browse_video = tk.Button(self.canvas, text='Browse...', command=self.browse_video, font='Arial 10', pady=1, padx=3)
+        browse_design = tk.Button(self.canvas, text='Browse...', command=self.browse_design, font='Arial 10', pady=1, padx=3)
         run_button = tk.Button(self.window, text='Run', command=self.run)
 
         self.video_path_box.grid(column=1, row=1)
@@ -90,9 +90,9 @@ class FileSelectWindow(isimple.HistoryApp):
         self.previous_height = self.history['previous_height']
 
         self.__path_width__ = max(
-            [len(path) for path in self.video_path_history + self.design_path_history]) - 5
+            [len(path) for path in self.video_path_history + self.design_path_history])
 
-        self.__path_width__ = restrict(self.__path_width__, 20, 100)
+        self.__path_width__ = restrict(self.__path_width__, 10, 200)
 
     def browse_video(self):
         self.video_path.set(tkfd.askopenfilename(filetypes=[('Video files', '*.mp4 *.mkv *.avi *.mpg *.mov')]))

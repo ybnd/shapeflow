@@ -1,3 +1,5 @@
+import scripts
+
 import isimple
 from isimple.video.videodata import *
 

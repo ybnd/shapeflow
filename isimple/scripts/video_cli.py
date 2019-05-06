@@ -1,6 +1,7 @@
 import isimple
 import argparse
 from isimple.video.videodata import *
+from datetime import datetime
 
 
 parser = argparse.ArgumentParser()
@@ -29,16 +30,18 @@ def demo(video, design, timestep, height):
 
     pw = ProgressWindow(va)
 
+    df = pd.DataFrame()
     while not va.done:  # todo: do this at the VideoAnalyzer level.
         ct = va.get_next_frame()
 
-        if not va.done:
-            areas.append(va.areas())
-            t.append(ct)
+        areas.append(va.areas())
+        t.append(ct)
 
-            pw.plot(t=t, areas=areas)
-            pw.update()
+        df = pw.plot(t=t, areas=areas)
+        pw.update()
 
+    df.to_excel(os.path.splitext(pw.video.name)[0] + ' ' + datetime.now().strftime("%Y-%m-%d %H-%M-%S") + '.xlsx', index=False)
+    pw.done = True
     pw.keepopen()
 
 

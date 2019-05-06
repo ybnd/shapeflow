@@ -1,1 +1,3 @@
-cmd \k
+@echo off
+cmd /k
+@echo on

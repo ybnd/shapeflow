@@ -699,18 +699,19 @@ class ProgressWindow(ScriptWindow):
 
     def update_image(self):
         """ Show the current video frame in the UI """
-        self.img = hsvimg2tk(self.video.raw_frame, ratio = \
-            self.canvas_height / self.video.raw_frame.shape[0])
-        self.state = hsvimg2tk(self.video.get_state_image(), ratio = \
-            self.canvas_height / self.video.frame.shape[0])
-        self.canvas.create_image(
-            0, 0, image=self.img, anchor=tk.NW
-        )
+        if self.video.frame is not None:
+            self.img = hsvimg2tk(self.video.raw_frame, ratio = \
+                self.canvas_height / self.video.raw_frame.shape[0])
+            self.state = hsvimg2tk(self.video.get_state_image(), ratio = \
+                self.canvas_height / self.video.frame.shape[0])
+            self.canvas.create_image(
+                0, 0, image=self.img, anchor=tk.NW
+            )
 
-        self.canvas.create_image(
-            self.__raw_width__ + self.__pad__, 1,
-            image = self.state, anchor = tk.NW
-        )
+            self.canvas.create_image(
+                self.__raw_width__ + self.__pad__, 1,
+                image = self.state, anchor = tk.NW
+            )
 
     def update(self):
         self.update_image()
@@ -720,45 +721,53 @@ class ProgressWindow(ScriptWindow):
 
     def plot(self, t, areas):
         """ Update the plot. """
-        self.t = t
-        elapsed = time.time() - self.t0
-        self.ax.clear()
+        if areas is not None:
+            try:
+                self.t = t
+                elapsed = time.time() - self.t0
 
-        areas = np.transpose(areas) / (self.video.__overlay_DPI__ / 25.4)**2 * self.video.h
-        # todo: do this at the VideoAnalyzer level!
+                areas = np.transpose(areas) / (self.video.__overlay_DPI__ / 25.4)**2 * self.video.h
+                # todo: do this at the VideoAnalyzer level!
 
-        for i, curve in enumerate(areas):
-            color = cv2.cvtColor(
-                np.array([[np.array(self.video.plot_colors[self.video.masks[i]], dtype = np.uint8)]]),
-                cv2.COLOR_HSV2RGB
-            )[0, 0] / 255
-            # todo: no need to do this calculation at every time step!
-            self.ax.plot(
-                t, curve,
-                label=self.video.masks[i].name,
-                color=tuple(color),
-                linewidth=2
-            )
+                self.ax.clear()
+                for i, curve in enumerate(areas):
+                    color = cv2.cvtColor(
+                        np.array([[np.array(self.video.plot_colors[self.video.masks[i]], dtype = np.uint8)]]),
+                        cv2.COLOR_HSV2RGB
+                    )[0, 0] / 255
+                    # todo: no need to do this calculation at every time step!
+                    self.ax.plot(
+                        t, curve,
+                        label=self.video.masks[i].name,
+                        color=tuple(color),
+                        linewidth=2
+                    )
 
-        # todo: is it necessary to re-do all of the plot legend/axis stuff for every time step?
-        self.ax.legend(loc = 'center right')
-        self.ax.set_title(
-            f"{t[-1]/self.tmax * 100:.0f}%  ({elapsed:.0f} s elapsed "
-            f" @ {t[-1]/elapsed:.1f} x)", size = 18, weight = 'bold'
-        )
-        self.ax.set_ylabel('Volume (µL)', size = 12)
-        self.ax.set_xlabel('Time (s)', size = 12)
-        self.ax.set_xlim(0, self.tmax)
-        
-        df = pd.DataFrame(
-            data = np.stack([np.array(t)] + [curve for curve in areas], 1),
-            columns = ['t'] + [m.name for m in self.video.masks]
-        )
-        df.to_excel(os.path.splitext(self.video.name)[0] + '.xlsx', index=False)
+                # todo: is it necessary to re-do all of the plot legend/axis stuff for every time step?
+                self.ax.legend(loc = 'center right')
+                self.ax.set_title(
+                    f"{t[-1]/self.tmax * 100:.0f}%  ({elapsed:.0f} s elapsed "
+                    f" @ {t[-1]/elapsed:.1f} x)", size = 18, weight = 'bold'
+                )
+                self.ax.set_ylabel('Volume (µL)', size = 12)
+                self.ax.set_xlabel('Time (s)', size = 12)
+                self.ax.set_xlim(0, self.tmax)
 
-        if t[-1]/self.tmax > 0.95:  # todo: this is a bit backwards, the VideoAnalyzer object should know how many steps it will take at a given dt and say it's done at the last step.
-            self.done = True
-            self.quit()
+                self.df = pd.DataFrame(
+                    data=np.stack([np.array(t)] + [curve for curve in areas], 1),
+                    columns=['t'] + [m.name for m in self.video.masks]
+                )
+
+                if t[-1]/self.tmax > 0.95:  # todo: this is a bit backwards, the VideoAnalyzer object should know how many steps it will take at a given dt and say it's done at the last step.
+                    self.done = True
+                    self.quit()
+
+            except TypeError:
+                pass
+
+            if isinstance(self.df, pd.DataFrame):
+                return self.df
+
 
     def keepopen(self):
         """ Called to keep the window open after the script has run. """
