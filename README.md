@@ -16,7 +16,7 @@
 
 ### General usage
 
-To just use the contents of this repository, make sure the [master](/ybnd/isimple/tree/master) branch is checked out. 
+To just use the contents of this repository, make sure the `master` branch is checked out. 
 Upon import, the [isimple](isimple/__init__.py) package will check if it's being run from the master branch, and pull the latest updates. 
 In this way you won't have to worry about staying up to date.
 
