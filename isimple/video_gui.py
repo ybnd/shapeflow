@@ -1,6 +1,9 @@
+import isimple
 from isimple.video.gui import *
 import tkinter.filedialog as tkfd
 from isimple.video_cli import demo
+
+isimple.update()
 
 
 class FileSelectWindow:

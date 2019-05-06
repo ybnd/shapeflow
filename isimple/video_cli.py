@@ -1,5 +1,8 @@
+import isimple
 import argparse
 from isimple.video.videodata import *
+
+isimple.update()
 
 
 parser = argparse.ArgumentParser()

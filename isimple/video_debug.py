@@ -1,4 +1,7 @@
+import isimple
 from isimple.video.videodata import *
+
+isimple.update()
 
 if __name__ == '__main__':
 
