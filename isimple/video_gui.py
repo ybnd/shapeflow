@@ -1,7 +1,6 @@
 from isimple.video.gui import *
-from io import StringIO
 import tkinter.filedialog as tkfd
-from video_cli import demo
+from isimple.video_cli import demo
 
 
 class FileSelectWindow:
