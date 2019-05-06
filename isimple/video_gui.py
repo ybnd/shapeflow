@@ -16,6 +16,11 @@ class FileSelectWindow:
     __path_width__ = 60
     __num_width__ = 12
 
+    video_path_history = ['']
+    design_path_history = ['']
+    previous_height = 0.153
+    previous_timestep = 5
+
     def __init__(self):
         self.window = ScriptWindow()
         self.window.title('isimple-video')
@@ -57,11 +62,12 @@ class FileSelectWindow:
         run.pack()
         self.window.mainloop()
 
-    def read_history(self):
+    def read_history(self): # todo: this can be pulled up to a 'isimpleApp' class to share history in only the one .history file
         if os.path.isfile(self.__history_path__):
             try:
                 with open(self.__history_path__, 'r') as f:
-                    self.history = json.load(f)
+                    self.full_history = json.load(f)
+                    self.history = self.full_history[__file__]
             except json.decoder.JSONDecodeError:
                 raise IOError('Invalid .history file -- delete it to reset the history')
 
@@ -72,20 +78,17 @@ class FileSelectWindow:
 
             self.__path_width__ = max([len(path) for path in self.video_path_history + self.design_path_history]) - 5
         else:
-            self.video_path_history = ['']
-            self.design_path_history = ['']
-            self.previous_height = 0.153
-            self.previous_timestep = 5
             self.history = {
                 'video_path': self.video_path_history,
                 'design_path': self.design_path_history,
                 'previous_height': self.previous_height,
                 'previous_timestep': self.previous_timestep
             }
+            self.full_history = {__file__: self.history}
 
     def save_history(self):
         with open(self.__history_path__, 'w+') as f:
-            json.dump(self.history, f, indent=2)
+            json.dump(self.full_history, f, indent=2)
 
     def browse_video(self):
         self.video_path.set(tkfd.askopenfilename(filetypes=[('Video files', '*.mp4 *.mkv *.avi *.mpg *.mov')]))

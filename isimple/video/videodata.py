@@ -60,7 +60,7 @@ class VideoAnalyzer:
     __default_dt__ = 60
     __default_h__ = 0.153
 
-    __render_folder__ = os.path.join(os.getcwd(), 'render')
+    __render_folder__ = os.path.join(os.getcwd(), '.render')
 
     __overlay_DPI__ = 400
 

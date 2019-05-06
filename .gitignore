@@ -10,5 +10,8 @@ source/*.pyc
 examples/
 *.xlsx
 *.xls
+*.docx
+*.doc
 .history
+isimple/.history
 *.meta

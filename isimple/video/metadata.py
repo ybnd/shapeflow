@@ -73,18 +73,3 @@ def load(video_path):
         return meta
     except FileNotFoundError:
         return None
-
-
-
-try_dict = {
-    'video': 'this-video.mp4',
-    'design': 'this-design.svg',
-    'transform': '[[0,0,0],[0,0,0],[0,0,0]]',
-    'colors': {
-        'mask1': 'blablabla',
-        'mask2': 'blablabla'
-    }
-}
-
-with open('try-meta', 'w') as f:
-    f.write(yaml.dump(try_dict))
