@@ -23,6 +23,19 @@ def demo(video, design, timestep, height):
         df = pw.plot(t=t, areas=areas)
         pw.update()
 
-    df.to_excel(os.path.splitext(pw.video.name)[0] + ' ' + datetime.now().strftime("%Y-%m-%d %H-%M-%S") + '.xlsx', index=False)
+    xlsx = os.path.splitext(pw.video.name)[0] + ' ' + datetime.now().strftime("%Y-%m-%d %H-%M-%S") + '.xlsx';
+
+    writer = pd.ExcelWriter(xlsx)
+    df.to_excel(
+        writer, index=False, sheet_name='data'
+    )
+    meta = va.get_meta()
+    df = pd.DataFrame.from_dict(meta)
+    df.to_excel(
+        writer, index=False, sheet_name='metadata'
+    )
+    writer.save()
+    writer.close()
+
     pw.done = True
     pw.keepopen()

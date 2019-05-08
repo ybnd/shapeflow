@@ -307,6 +307,15 @@ class VideoAnalyzer:
 
         return [mask.area(frame) for mask in self.masks]
 
+    def get_meta(self) -> dict:
+        colors = {
+            mask.name: {'from': mask.filter_from.tolist(), 'to': mask.filter_to.tolist()}
+            for mask in self.masks
+        }
+
+        return metadata.bundle(self.path, self.overlay_path, self.coordinates, self.transform.tolist(),
+                      self.order, colors)
+
     def export_metadata(self):
         colors = {
             mask.name: {'from': mask.filter_from.tolist(), 'to': mask.filter_to.tolist()}
