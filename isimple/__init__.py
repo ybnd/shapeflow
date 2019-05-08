@@ -147,10 +147,12 @@ def update(force=False):
                     # ASSUMES THAT origin IS SET CORRECTLY, AND AS THE DEFAULT REMOTE!
                     print(f"Updating...")
                     repo.git.pull()
+                    write_last_update_time()
                     print(f"\t\tDone.")
                     sys.exit()
             else:
                 print(f"You are up to date.")
+                write_last_update_time()
 
     # Abort caller script (i.e. don't try to execute a script if it's out of date)
 
