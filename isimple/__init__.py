@@ -55,12 +55,15 @@ def read_last_update_time():
         with open(__last_update__, 'r') as f:
             return float(f.read())
     except FileNotFoundError:
-        return 0
+        write_last_update_time(0.0)
+        return 0.0
 
 
-def write_last_update_time():
+def write_last_update_time(t=None):
+    if t is None:
+        t = time.time()
     with open(__last_update__, 'w+') as f:
-        f.write(str(time.time()))
+        f.write(str(t))
 
 
 def update(force=False):
@@ -77,8 +80,9 @@ def update(force=False):
         :return:
     """
 
+    time_since_update = time.time() - read_last_update_time()
+    if time_since_update > __update_interval__ or force:
 
-    if time.time() - read_last_update_time() > __update_interval__ or force:
         import git
         import warnings
         from distutils.util import strtobool
@@ -106,6 +110,7 @@ def update(force=False):
         # Check if on master branch -> if not, return.
         # ASSUMES THAT master BRANCH IS NAMED MASTER!
         if repo.active_branch.name == 'master' or force:
+            print(f"Last update was {round(time_since_update/3600)} hours ago. Checking for updates...")
             # Check if origin/master is ahead -> dialog: update?
             # https://stackoverflow.com/questions/17224134/check-status-of-local-python-relative-to-remote-with-gitpython
             # ASSUMES THAT origin IS SET CORRECTLY!
@@ -119,6 +124,8 @@ def update(force=False):
                 warnings.warn(f"Failed to fetch: {e.stderr} \n", stacklevel=3)
 
             if commits_behind > 0 or force:
+                print(f"You are {commits_behind} {'commit' if commits_behind == 1 else 'commits'} behind.")
+
                 # Check if any changes have been made -> dialog: discard changes?
                 changes = [item.a_path for item in repo.index.diff(None)] + repo.untracked_files
                 changes = [change for change in changes if os.path.isfile(os.path.join(repo.working_dir, change))]  # todo: is this necessary?
@@ -126,7 +133,7 @@ def update(force=False):
                 if len(changes) > 0 or force:
                     changes = ' \n '.join(changes)  # Format changes line-per-line
                     discard_changes = strtobool(input(
-                        f"Changes to the following files will be discarded in order to update: \n \n {changes} \n \n Continue? "
+                        f"Changes to the following files will be discarded in order to update: \n \n {changes} \n \n \t Continue? (y/n) \n"
                     ))
 
                     if discard_changes:
@@ -135,14 +142,18 @@ def update(force=False):
                     else:
                         return
 
-                if strtobool(input('\n Update the isimple repository? ')):
+                if strtobool(input('\n Update? (y/n) \n')):
                     # Pull from default remote
                     # ASSUMES THAT origin IS SET CORRECTLY, AND AS THE DEFAULT REMOTE!
+                    print(f"Updating...")
                     repo.git.pull()
+                    print(f"\t\tDone.")
                     sys.exit()
+            else:
+                print(f"You are up to date.")
 
     # Abort caller script (i.e. don't try to execute a script if it's out of date)
 
 
 if __name__ == '__main__':
-    update()  # For debugging purposes
+    update(True)  # For debugging purposes
