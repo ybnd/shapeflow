@@ -60,10 +60,10 @@ class FileSelectWindow(isimple.HistoryApp):
         browse_video.grid(column=0, row=1)
         browse_design.grid(column=0, row=3)
 
-        video_label = tk.Label(self.canvas, text="Video file: ", width=self.__path_width__, anchor='w').grid(column=1, row=0)
-        design_label = tk.Label(self.canvas, text="Design file: ", width=self.__path_width__, anchor='w').grid(column=1, row=2)
-        height_label = tk.Label(self.canvas, text="Height (mm): ", width=self.__num_width__, anchor='w').grid(column=2, row=0)
-        timestep_label = tk.Label(self.canvas, text="Timestep (s): ", width=self.__num_width__, anchor='w').grid(column=2, row=2)
+        tk.Label(self.canvas, text="Video file: ", width=self.__path_width__, anchor='w').grid(column=1, row=0)
+        tk.Label(self.canvas, text="Design file: ", width=self.__path_width__, anchor='w').grid(column=1, row=2)
+        tk.Label(self.canvas, text="Height (mm): ", width=self.__num_width__, anchor='w').grid(column=2, row=0)
+        tk.Label(self.canvas, text="Timestep (s): ", width=self.__num_width__, anchor='w').grid(column=2, row=2)
 
         self.canvas.pack(anchor='w', padx=5, pady=5)
         run_button.pack()
@@ -77,10 +77,9 @@ class FileSelectWindow(isimple.HistoryApp):
             'previous_height': 0.153
         }
 
-    def unpack_history(self):  # todo: this can be pulled up to a 'isimpleApp' class to share history in only the one .history file
+    def unpack_history(self):
         self.video_path_history = self.history['video_path'][::-1]
         self.design_path_history = self.history['design_path'][::-1]
-
         if len(self.video_path_history) > 20:
             self.video_path_history = self.video_path_history[0:19]
         if len(self.design_path_history) > 20:

@@ -55,7 +55,7 @@ class ScriptWindow(tk.Tk):
         if self.done:
             # Finished!
             self.destroy()
-            sys.exit()  # todo: this is a temporary solution... why doesn't self.destroy() "let the mainloop go?"
+            sys.exit()  # todo: this is a temporary solution... why doesn't self.destroy() "let the mainloop go?" -> maybe a mainloop is created elsewhere also?...
         else:
             # Not finished yet!
             if tkMessageBox.askokcancel("Quit", "The script is still running. Really quit?"):
@@ -325,27 +325,6 @@ class ImageDisplay:
         self.rotation.set(str(self.order))
         self.option.pack()
 
-        # b1 = tk.Button(
-        #     self.canvas.master, text='Rotate right',
-        #     command=self.rotate_right_90
-        # )
-        # b2 = tk.Button(
-        #     self.canvas.master, text='Rotate left',
-        #     command=self.rotate_left_90
-        # )
-        # b3 = tk.Button(
-        #     self.canvas.master, text='Flip horizontal',
-        #     command=self.flip_horizontal
-        # )
-        # b4 = tk.Button(
-        #     self.canvas.master, text='Flip vertical',
-        #     command=self.flip_vertical
-        # )
-        #
-        # buttons = [b1, b2, b3, b4]
-        # for button in buttons:
-        #     button.pack()
-
         self.window.focus()
         self.canvas.mainloop()
 
@@ -353,65 +332,10 @@ class ImageDisplay:
         self.selection.order = self.__rotations__[id]
         self.selection.update()
 
-    # def update(self):
-    #     Y, X, C = self.shape
-    #     # try:
-    #     #     image = cv2.warpPerspective(
-    #     #         self.original, self.pre_transform, (X,Y)
-    #     #     )
-    #     # except Exception:
-    #     #     image = cv2.warpPerspective(
-    #     #         self.original, self.pre_transform, (Y,X)
-    #     #     )
-    #
-    #     # height, width, channels = image.shape
-    #     # img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    #     # img = Image.fromarray(img)
-    #     # img.thumbnail(
-    #     #     (int(width * self.__ratio__), int(height * self.__ratio__)))
-    #     # self.display_image = img
-    #     # self.tkimage = ImageTk.PhotoImage(image=img)
-    #     # self.canvas.create_image(0, 0, image=self.tkimage, anchor=tk.NW)
-    #     self.transform.pre_transform = self.pre_transform
-    #     # todo: lazy don't do this why are you doing this :(
-    #
-    #
-    # def reset_transform(self):
-    #     self.pre_transform = np.eye(3)
-    #     self.update()
-    #
-    # def rotate_right_90(self):
-    #     self.pre_transform = np.matmul(
-    #         np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]]), self.pre_transform
-    #     )
-    #     self.update()
-    #
-    # def rotate_left_90(self):
-    #     self.pre_transform = np.matmul(
-    #         np.array([[0, 1, 0], [-1, 0, 0], [0, 0, 1]]), self.pre_transform
-    #     )
-    #     self.update()
-    #
-    # def flip_horizontal(self):
-    #     self.pre_transform = np.matmul(
-    #         np.array([[-1, 0, 0], [0, 1, 0], [0, 0, 1]]), self.pre_transform
-    #     )
-    #     self.update()
-    #
-    # def flip_vertical(self):
-    #     self.pre_transform = np.matmul(
-    #         np.array([[1, 0, 0], [0, -1, 0], [0, 0, 1]]), self.pre_transform
-    #     )
-    #     self.update()
-
-
 class TransformImage:
     """
         OpenCV perspective transform, overlay alpha blending and display with tkinter
     """
-
-
-    coordinates = np.float32([[200,200],[300,200],[200,300],[300,300]]) # todo: this should be ~ the shape of the overlay
     alpha = 0.1
 
     def __init__(self, canvas, image, overlay_img, co, callback, ratio, initial_transform, initial_order = (0,1,2,3)):
@@ -616,7 +540,7 @@ class OverlayAlignWindow(ScriptWindow):
             self.data.coordinates,
         )
 
-    def transform_callback(self, transform, coordinates):  # todo: this is not type safe!
+    def transform_callback(self, transform, coordinates):
         self.data.transform = transform
         self.data.coordinates = coordinates
         self.done = True
@@ -719,7 +643,7 @@ class ProgressWindow(ScriptWindow):
         self.figcanvas.draw()
         ScriptWindow.update(self)
 
-    def plot(self, t, areas):
+    def plot(self, t, areas):  # todo: this should call a method in isimple.video.visualization
         """ Update the plot. """
         if areas is not None:
             try:
@@ -735,7 +659,7 @@ class ProgressWindow(ScriptWindow):
                         np.array([[np.array(self.video.plot_colors[self.video.masks[i]], dtype = np.uint8)]]),
                         cv2.COLOR_HSV2RGB
                     )[0, 0] / 255
-                    # todo: no need to do this calculation at every time step!
+                    # todo: shouldn't need to do this calculation at every time step!
                     self.ax.plot(
                         t, curve,
                         label=self.video.masks[i].name,

@@ -331,6 +331,7 @@ class VideoAnalyzer:
 
             print(f"Loaded metadata from {os.path.splitext(self.path)[0]+'.meta'}")
 
+
 class Mask:
 
     """
@@ -408,8 +409,6 @@ class Mask:
         """ Filter an image with the current filter. """
         if image is not None:
             filtermask = cv2.inRange(image, self.filter_from, self.filter_to)
-            # todo: some kind of plugin functionality to do more involved filtering?
-              # i.e.: startup option to set a self._filter method (image -> image)
             return filtermask
 
     def mask(self, image, do_crop = True):
@@ -435,6 +434,6 @@ class Mask:
         return filtered
 
     def area(self, image):
-        """ Calculate the detected area in the masked & filtered image. """ # todo: abstract away form Mask
+        """ Calculate the detected area in the masked & filtered image. """ # todo: abstract away form Mask into isimple.video.analysis
         return area_pixelsum(self.mask_filter(image))
 
