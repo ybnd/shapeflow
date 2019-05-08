@@ -1,33 +1,12 @@
-import scripts
-
 import isimple
-from isimple.video.videodata import *
-
+from isimple.video import demo
 
 if __name__ == '__main__':
     isimple.update()
 
-    t = []
-    areas = []
-
-    va = VideoAnalyzer(
-        video_path='dries.mp4',
-        overlay_path='dries.svg',
-        dt=20,
-        h=0.153,
+    demo(
+        video='D:/temp/SIMPLE/dries.mp4',
+        design='D:/temp/SIMPLE/dries.svg',
+        timestep=5,
+        height=0.153
     )
-    va.reset()
-
-    pw = ProgressWindow(va)
-
-    while not va.done:
-        ct = va.get_next_frame()
-
-        if not va.done:
-            areas.append(va.areas())
-            t.append(ct)
-
-            pw.plot(t=t, areas=areas)
-            pw.update()
-
-    pw.keepopen()

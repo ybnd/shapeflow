@@ -6,7 +6,7 @@ from isimple.video.analysis import *
 from isimple.video.gui import *        # todo: would make more sense the other way around
 from OnionSVG import OnionSVG, check_svg
 
-DPI = 400               # todo: this is a workaround
+DPI = 400               # todo: should make this a setting for VideoAnalyzer instead
 DPmm = 400 / 25.4
 
 

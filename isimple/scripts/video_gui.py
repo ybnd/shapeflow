@@ -28,6 +28,7 @@ class FileSelectWindow(isimple.HistoryApp):
 
     def __init__(self):
         isimple.HistoryApp.__init__(self, __file__)
+        self.output = (None, None, None, None)
 
         self.window = ScriptWindow()
         self.window.title('isimple-video')
