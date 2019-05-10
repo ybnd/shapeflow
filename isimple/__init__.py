@@ -118,12 +118,17 @@ def update(force=False):
 
             try:
                 repo.remote('origin').fetch()   # Fetch remote changes
-                commits_behind = len([commit for commit in repo.iter_commits('master..origin/master')])
+                current = repo.head.commit
+                commits_to_pull = [commit for commit in repo.iter_commits('master..origin/master')]
+                commits_behind = len(commits_to_pull)
             except git.exc.GitCommandError as e:
+                commits_to_pull = []
                 commits_behind = 0
+                repo = None
+                current = None
                 warnings.warn(f"Failed to fetch: {e.stderr} \n", stacklevel=3)
 
-            if commits_behind > 0 or force:
+            if (repo is not None and commits_behind > 0) or force:
                 print(f"You are {commits_behind} {'commit' if commits_behind == 1 else 'commits'} behind.")
 
                 # Check if any changes have been made -> dialog: discard changes?
@@ -148,6 +153,13 @@ def update(force=False):
                     print(f"Updating...")
                     repo.git.pull()
                     write_last_update_time()
+
+                    changed_files = [file for commit in commits_to_pull for file in commit.stats.files.keys()]
+                    if 'requirements.txt' in changed_files:
+                        print(f"\tProject requirements have been updated. Please execute 'pip install --upgrade -r requirements.txt' \n")
+
+                    repo.close()
+
                     print(f"\t\tDone.")
                     sys.exit()
             else:
