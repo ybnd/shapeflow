@@ -5,14 +5,33 @@
 ### Contents
 
 * [isimple/video](isimple/video): Automated video analysis
-* ...
 
 ### Installation
 
-* Make sure you have the latest version of [Python 3](https://www.python.org/downloads/) installed
-* Make sure you have `git` installed (via the KUL Software center or [git-scm.com](https://git-scm.com/downloads))
-* Clone this repository: `git clone https:/github.com/ybnd/isimple`
-* Install the required packages: `pip install -r requirements.txt`
+1. Install [Python 3](https://www.python.org/downloads/)
+   * Make sure to **enable** the option "add Python to path"
+
+2. Install `git` via the KUL Software center or from [git-scm.com](https://git-scm.com/downloads)
+
+3. Clone this repository
+   1. Open Command Prompt
+   2. Navigate to the folder where you want to put this repository: `cd ...`
+   3. Execute  `git clone https:/github.com/ybnd/isimple` 
+   4. A folder named `isimple` should appear
+
+4. Install the required packages: 
+
+   1.Navigate to the newly created `isimple` folder: `cd isimple`
+
+   2.Execute `pip install -r requirements.txt`
+
+   
+
+* This project uses the `cairo` library is rendering .svg images. The easiest way to install this for Windows is as follows:
+  1. Make sure you have administrator privileges on your computer
+  2. Download the `cairo` binaries from [preshing/cairo-windows](https://github.com/preshing/cairo-windows/releases/download/1.15.12/cairo-windows-1.15.12.zip)
+  3. Extract the .zip file
+  4. Copy `lib/x64/cairo.dll` and `lib/x64/cairo.lib` to `C:\Windows\System32`
 
 ### General usage
 
