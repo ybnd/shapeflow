@@ -35,7 +35,8 @@
 
 ### General usage
 
-To just use the contents of this repository, make sure the `master` branch is checked out. 
+To just use the contents of this repository, make sure the `master` branch is checked out. This is by default, and you can double check it by navigating to `isimple` in Command Prompt and executing `git branch`.
+
 Upon import, the [isimple](isimple/__init__.py) package will check if it's being run from the master branch, and pull the latest updates. 
 In this way you won't have to worry about staying up to date.
 
