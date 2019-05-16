@@ -3,7 +3,7 @@
 @echo off
 set PYTHONPATH=%cd%;%PYTHONPATH%
 rem Enter the prefill value in the keyboard buffer
-CScript //nologo //E:JScript "%~F0" "python %*"
+CScript //nologo //E:JScript "%~F0" "py %*"
 cmd
 goto :EOF
 

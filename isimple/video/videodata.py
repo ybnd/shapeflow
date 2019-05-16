@@ -10,7 +10,7 @@ DPI = 400               # todo: should make this a setting for VideoAnalyzer ins
 DPmm = 400 / 25.4
 
 
-def ckernel(size):
+def ckernel(size: int) -> np.ndarray:
     """ Circular filter kernel """
     if not size % 2: size = size - 1
     index = int(size / 2)
@@ -23,26 +23,9 @@ def ckernel(size):
     return array
 
 
-def to_mask(image, kernel):
-    """ Convert a .png image to a binary mask """
-    image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    ret, image = cv2.threshold(image, 254, 255, cv2.THRESH_BINARY)
-    image = cv2.morphologyEx(image, cv2.MORPH_OPEN, kernel)
-
-    # The binary threshold does not always map the same binary value to the center of the mask (should be the darker tone)
-    # To circumvent this, we assume that the outer edge is not included in the mask (should be ok in normal cases)
-    #   We want to end up with the mask as 255, the background as 0
-
-    # Apparently that's not it, do the arithmetic in float & convert to uint8 afterwards!
-
-    if image[0,0] == 255:
-        return np.array(np.abs(np.subtract(255,np.array(image, dtype=np.float))), dtype = np.uint8)
-    else:
-        return image
-
-
 def crop_mask(mask: np.ndarray) -> (np.ndarray, np.ndarray):
     """ Crop a binary mask image to its minimal size (to exclude unnecessary regions) """
+
     nz = np.nonzero(mask)
     row_0 = nz[0].min()
     row_1 = nz[0].max()
@@ -124,7 +107,6 @@ class VideoAnalyzer:
 
         if not ok:
             raise IOError('Invalid video file.')
-
 
     def render_svg(self):
         """ Render out the .svg design file. """
@@ -208,15 +190,15 @@ class VideoAnalyzer:
             state_image = np.zeros(self.frame.shape, dtype=np.uint8)
 
             for mask in self.masks:
-                _, filter = mask.get_images()
+                _, masked_filtered = mask.get_images()
 
-                full = np.ones((filter.shape[0], filter.shape[1], 3), dtype=np.uint8)
+                full = np.ones((masked_filtered.shape[0], masked_filtered.shape[1], 3), dtype=np.uint8)
 
                 fullcolor = np.multiply(
                     full, self.plot_colors[mask]
                 )
 
-                mask_state = cv2.bitwise_and(fullcolor, fullcolor, mask = filter)
+                mask_state = cv2.bitwise_and(fullcolor, fullcolor, mask=masked_filtered)
 
                 state_image[
                     mask.position[0]:mask.position[1],
@@ -264,7 +246,6 @@ class VideoAnalyzer:
 
                 self.frame = frame
 
-
             if do_warp:
                 self.raw_frame = self.frame.copy()
                 self.frame = self.warp(self.frame)
@@ -272,12 +253,12 @@ class VideoAnalyzer:
             self.number = number
             self.previous_frame = self.frame
             # else:
-                # There's no way to know if previous frame was warped or not!!
-                # self.frame = self.previous_frame
+            # There's no way to know if previous frame was warped or not!!
+            # self.frame = self.previous_frame
 
             return self.frame
 
-    def get_frame_at(self, position: float = 0.5, do_warp = True, to_hsv=True):
+    def get_frame_at(self, position: float = 0.5, do_warp=True, to_hsv=True):
         """ Get the frame at a relative position ~ [0,1] """
         number = int(self.frameN * position)
         return self.get_frame(number, do_warp, to_hsv)
@@ -300,7 +281,7 @@ class VideoAnalyzer:
             else:
                 return float(number) / self.fps
 
-    def areas(self, frame = None):
+    def areas(self, frame=None):
         """ Calculate the areas for all of the masks. """  # todo: abstract away from VideoAnalyzer
         if frame is None:
             frame = self.frame
@@ -351,6 +332,9 @@ class Mask:
     __sat_window__ = [50, 255]
     __val_window__ = [50, 255]
 
+    __to_mask__ = to_mask
+    __area__ = area_pixelsum
+
     def __init__(self, video, path, kernel=ckernel(7)):
         self.video = video
         self.path = path
@@ -361,7 +345,7 @@ class Mask:
 
         self.kernel = kernel
 
-        self.full = to_mask(cv2.imread(path), self.kernel)
+        self.full = self.__to_mask__(cv2.imread(path), self.kernel)
         self.video.shape = self.full.shape  # todo: should be the same for all files...
         self.partial, self.position = crop_mask(self.full)
 
@@ -443,6 +427,6 @@ class Mask:
         return filtered
 
     def area(self, image):
-        """ Calculate the detected area in the masked & filtered image. """ # todo: abstract away form Mask into isimple.video.analysis
-        return area_pixelsum(self.mask_filter(image))
+        """ Calculate the detected area in the masked & filtered image. """
+        return self.__area__(self.mask_filter(image))
 

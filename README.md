@@ -9,8 +9,9 @@
 ### Installation
 
 1. Install [Python 3](https://www.python.org/downloads/)
-   * Make sure to **enable** the option "add Python to path"
-
+   
+* Make sure to **enable** the option "add Python to path"
+   
 2. Install `git` via the KUL Software center or from [git-scm.com](https://git-scm.com/downloads)
 
 3. Clone this repository
@@ -23,7 +24,7 @@
 
    1.Navigate to the newly created `isimple` folder: `cd isimple`
 
-   2.Execute `pip install -r requirements.txt`
+   2.Execute `pip install --upgrade -r requirements.txt`
 
    
 
@@ -31,7 +32,7 @@
   1. Make sure you have administrator privileges on your computer
   2. Download the `cairo` binaries from [preshing/cairo-windows](https://github.com/preshing/cairo-windows/releases/download/1.15.12/cairo-windows-1.15.12.zip)
   3. Extract the .zip file
-  4. Copy `lib/x64/cairo.dll` and `lib/x64/cairo.lib` to `C:\Windows\System32`
+  4. Copy `lib/x64/cairo.dll` to `C:\Windows\System32` and `lib/x86/cairo.dll` to `C:\Windows\SysWOW64`
 
 ### General usage
 
