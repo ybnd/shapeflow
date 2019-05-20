@@ -147,7 +147,7 @@ def update(force=False):
                     else:
                         return
 
-                if strtobool(input('\n Update? (y/n) ')):
+                if strtobool(input('\nUpdate? (y/n) ')):
                     # Pull from default remote
                     # ASSUMES THAT origin IS SET CORRECTLY, AND AS THE DEFAULT REMOTE!
                     print(f"\nUpdating...")
@@ -156,7 +156,7 @@ def update(force=False):
 
                     changed_files = [file for commit in commits_to_pull for file in commit.stats.files.keys()]
                     if 'requirements.txt' in changed_files:
-                        print(f"\x1b[31mProject requirements have been updated. Please execute 'pip install --upgrade -r requirements.txt'\x1b[0m \n")
+                        print(f"Project requirements have been updated. Please execute 'pip install --upgrade -r requirements.txt'")
 
                     repo.close()
 
