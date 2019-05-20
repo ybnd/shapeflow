@@ -5,8 +5,8 @@ if __name__ == '__main__':
     isimple.update()
 
     demo(
-        video='D:/temp/SIMPLE/dries.mp4',
-        design='D:/temp/SIMPLE/dries.svg',
+        video='D:/temp/SIMPLE/pressure.mp4',
+        design='D:/temp/SIMPLE/pressure.svg',
         timestep=20,
         height=0.153
     )
