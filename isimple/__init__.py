@@ -150,17 +150,17 @@ def update(force=False):
                 if strtobool(input('\n Update? (y/n) \n')):
                     # Pull from default remote
                     # ASSUMES THAT origin IS SET CORRECTLY, AND AS THE DEFAULT REMOTE!
-                    print(f"Updating...")
+                    print(f"\nUpdating...")
                     repo.git.pull()
                     write_last_update_time()
 
                     changed_files = [file for commit in commits_to_pull for file in commit.stats.files.keys()]
                     if 'requirements.txt' in changed_files:
-                        print(f"\tProject requirements have been updated. Please execute 'pip install --upgrade -r requirements.txt' \n")
+                        print(f"\x1b[31mProject requirements have been updated. Please execute 'pip install --upgrade -r requirements.txt'\x1b[0m \n")
 
                     repo.close()
 
-                    print(f"\t\tDone.")
+                    print(f"Done.")
                     sys.exit()
             else:
                 print(f"You are up to date.")
