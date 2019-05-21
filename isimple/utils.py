@@ -4,8 +4,10 @@ import time
 
 def restrict(val, minval, maxval):
     """ https://stackoverflow.com/questions/4092528/how-to-clamp-an-integer-to-some-range """
-    if val < minval: return minval
-    if val > maxval: return maxval
+    if val < minval:
+        return minval
+    if val > maxval:
+        return maxval
     return val
 
 

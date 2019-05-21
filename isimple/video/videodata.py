@@ -1,38 +1,12 @@
+import os
 import re
 import warnings
 
-import isimple.video.metadata as metadata
-from isimple.video.analysis import *
-from isimple.video.gui import *        # todo: would make more sense the other way around
 from OnionSVG import OnionSVG, check_svg
 
-DPI = 400               # todo: should make this a setting for VideoAnalyzer instead
-DPmm = 400 / 25.4
-
-
-def ckernel(size: int) -> np.ndarray:
-    """ Circular filter kernel """
-    if not size % 2: size = size - 1
-    index = int(size / 2)
-
-    y, x = np.ogrid[-index:size - index, -index:size - index]
-    r = int(size / 2)
-    mask = x * x + y * y <= r * r
-    array = np.zeros([size, size], dtype=np.uint8)
-    array[mask] = 255
-    return array
-
-
-def crop_mask(mask: np.ndarray) -> (np.ndarray, np.ndarray):
-    """ Crop a binary mask image to its minimal size (to exclude unnecessary regions) """
-
-    nz = np.nonzero(mask)
-    row_0 = nz[0].min()
-    row_1 = nz[0].max()
-    col_0 = nz[1].min()
-    col_1 = nz[1].max()
-    cropped_mask = mask[row_0:row_1, col_0:col_1]
-    return cropped_mask, np.array([row_0, row_1, col_0, col_1])
+import isimple.utility.images
+from isimple.video.analysis import *
+from isimple.video.gui import *  # todo: would make more sense the other way around
 
 
 class VideoAnalyzer:
@@ -40,18 +14,18 @@ class VideoAnalyzer:
         Main video handling class
     """
 
-    __default_kernel__ = ckernel(7)
+    __default_kernel__ = isimple.utility.images.ckernel(7)
     __default_dt__ = 60
     __default_h__ = 0.153
+    __overlay_DPI__ = 400
 
     __render_folder__ = os.path.join(os.getcwd(), '.render')
 
-    __overlay_DPI__ = 400
-
-    def __init__(self, video_path, overlay_path, dt=None, h=None, kernel=None):
+    def __init__(self, video_path, overlay_path, dt=None, h=None, kernel=None, dpi=__overlay_DPI__):
         self.path = video_path
         self.name = video_path.split('\\')[-1].split('.png')[0]
         self.overlay_path = overlay_path
+        self.overlay_dpi = dpi
 
         if kernel is None:
             self.kernel = self.__default_kernel__
@@ -72,12 +46,14 @@ class VideoAnalyzer:
 
         self.transform = np.eye(3)
         self.coordinates = None
-        self.order = (0,1,2,3)
+        self.order = (0, 1, 2, 3)
         self.shape = None
 
         self.number = 1
         self.previous_frame = None
+        self.raw_frame = None
         self.frame = None
+        self.overlay = None
         self.done = False
 
         self.masks = []
@@ -103,7 +79,7 @@ class VideoAnalyzer:
     def check_files(self):
         """ Check that the files exist and are of the correct type """
         check_svg(self.overlay_path)
-        ok,_ = self.capture.read()
+        ok, _ = self.capture.read()
 
         if not ok:
             raise IOError('Invalid video file.')
@@ -118,9 +94,8 @@ class VideoAnalyzer:
             for f in fl: os.remove(os.path.join(self.__render_folder__, f))
 
         OnionSVG(
-            self.overlay_path,
-            dpi = self.__overlay_DPI__
-        ).peel('all', to = self.__render_folder__)
+            self.overlay_path, dpi=self.overlay_dpi
+        ).peel('all', to=self.__render_folder__)
 
         print("\n")
 
@@ -137,8 +112,6 @@ class VideoAnalyzer:
         files = os.listdir(self.__render_folder__)
         files.remove('overlay.png')
 
-        # todo: sort! ~ '(\d+)[?\-=_#/\\\ ]+([?\w\-=_#/\\\ ]+)'
-
         pattern = re.compile('(\d+)[?\-=_#/\\\ ]+([?\w\-=_#/\\\ ]+)')
 
         sorted_files = []
@@ -151,7 +124,7 @@ class VideoAnalyzer:
 
             if match:
                 matched.update(
-                    {int(match.groups()[0]):path}
+                    {int(match.groups()[0]): path}
                 )
             else:
                 mismatched.append(path)
@@ -172,9 +145,8 @@ class VideoAnalyzer:
         repetition = 0
 
         for m in self.plot_colors.keys():
-            if abs(float(color[0]) - float(self.plot_colors[m][0])) < tolerance  and m != mask:
+            if abs(float(color[0]) - float(self.plot_colors[m][0])) < tolerance and m != mask:
                 repetition = repetition + 1
-
 
         self.plot_colors.update(
             {mask: (color[0], 220, 255 - repetition * increment)}
@@ -201,17 +173,17 @@ class VideoAnalyzer:
                 mask_state = cv2.bitwise_and(fullcolor, fullcolor, mask=masked_filtered)
 
                 state_image[
-                    mask.position[0]:mask.position[1],
-                    mask.position[2]:mask.position[3]
+                mask.position[0]:mask.position[1],
+                mask.position[2]:mask.position[3]
                 ] = state_image[
                     mask.position[0]:mask.position[1],
                     mask.position[2]:mask.position[3]
-                ] + mask_state
+                    ] + mask_state
 
                 state_image = cv2.cvtColor(state_image, cv2.COLOR_HSV2BGR)
                 state_image[state_image == 0] = 255
 
-                state_image = cv2.addWeighted(self.overlay, 0.05, state_image, 1-0.05, 0, state_image)
+                state_image = cv2.addWeighted(self.overlay, 0.05, state_image, 1 - 0.05, 0, state_image)
                 state_image = cv2.cvtColor(state_image, cv2.COLOR_BGR2HSV)
 
             return state_image
@@ -225,7 +197,7 @@ class VideoAnalyzer:
         self.number = 0
         self.capture.set(cv2.CAP_PROP_POS_FRAMES, 1)
 
-    def get_frame(self, number=None, do_warp = True, to_hsv=True):
+    def get_frame(self, number=None, do_warp=True, to_hsv=True):
         """ Get a specific frame from the video file. """
         if number is None:
             if self.number is None:
@@ -263,7 +235,7 @@ class VideoAnalyzer:
         number = int(self.frameN * position)
         return self.get_frame(number, do_warp, to_hsv)
 
-    def get_next_frame(self, to_hsv = True):
+    def get_next_frame(self, to_hsv=True):
         """ Advance to the next frame. """
         if self.dt is not None:
             number = self.number + int(self.dt * self.fps)
@@ -325,23 +297,22 @@ class VideoAnalyzer:
                 for color in self.colors[mask].keys():
                     self.colors[mask][color] = np.array(self.colors[mask][color])
 
-            print(f"Loaded metadata from {os.path.splitext(self.path)[0]+metadata.__ext__}")
+            print(f"Loaded metadata from {os.path.splitext(self.path)[0] + metadata.__ext__}")
 
 
 class Mask:
-
     """
         Video mask object.
     """
 
-    __hue_radius__ = 10             # todo: better to save filter interval like this...
+    __hue_radius__ = 10  # todo: better to save filter interval like this...
     __sat_window__ = [50, 255]
     __val_window__ = [50, 255]
 
     __to_mask__ = staticmethod(to_mask)
     __area__ = staticmethod(area_pixelsum)
 
-    def __init__(self, video, path, kernel=ckernel(7)):
+    def __init__(self, video, path, kernel=isimple.utility.images.ckernel(7)):
         self.video = video
         self.path = path
 
@@ -350,10 +321,11 @@ class Mask:
         self.name = pattern.search(fullname).groups()[1].strip()
 
         self.kernel = kernel
+        self.frame = None
 
         self.full = self.__to_mask__(cv2.imread(path), self.kernel)
         self.video.shape = self.full.shape  # todo: should be the same for all files...
-        self.partial, self.position = crop_mask(self.full)
+        self.partial, self.position = isimple.utility.images.crop_mask(self.full)
 
         if self.name in self.video.colors:
             # Try to load color from metadata file
@@ -376,7 +348,7 @@ class Mask:
         """ Choose a ue to filter at. """
         if color is None:
             frame = self.video.get_frame(do_warp=True)
-            self.I = self.mask(frame)
+            self.frame = self.mask(frame)
             MaskFilterWindow(self)
         else:
             self.set_filter(color)
@@ -393,16 +365,16 @@ class Mask:
 
     def get_images(self):
         """ Return masked & filtered images. """
-        self.I = self.mask(self.video.frame)
-        return self.I, self.filter(self.I)
+        self.frame = self.mask(self.video.frame)
+        return self.frame, self.filter(self.frame)
 
     def pick(self, coo):
         """ Callback - set filtering hue. """
-        self.set_filter(self.I[coo.y, coo.x])
+        self.set_filter(self.frame[coo.y, coo.x])
 
     def track(self, value):
         """ Get a specific frame from the video (callback for UI scrollbar). """
-        self.I = self.mask(self.video.get_frame(value))
+        self.frame = self.mask(self.video.get_frame(value))
 
     def filter(self, image):
         """ Filter an image with the current filter. """
@@ -410,7 +382,7 @@ class Mask:
             filtermask = cv2.inRange(image, self.filter_from, self.filter_to)
             return filtermask
 
-    def mask(self, image, do_crop = True):
+    def mask(self, image, do_crop=True):
         """ Mask off an image. """
         if image is not None:
             if do_crop:
@@ -435,4 +407,3 @@ class Mask:
     def area(self, image):
         """ Calculate the detected area in the masked & filtered image. """
         return self.__area__(self.mask_filter(image))
-

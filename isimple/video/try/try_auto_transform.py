@@ -17,15 +17,13 @@
         * Maybe play around with other keypoint detection & matching schemes...
 """
 
-
-import numpy as np
-import cv2
+import itertools as itt
 import os
 from copy import copy
 
+import cv2
 import matplotlib.pyplot as plt
 from OnionSVG import OnionSVG
-import itertools as itt
 
 plt.close('all')
 os.chdir("/home/ybnd/code/SIMPLE/isimple-video")

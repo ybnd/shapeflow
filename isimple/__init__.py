@@ -3,8 +3,7 @@ import sys
 import time
 import json
 
-
-__update_interval__ = 60*60*24
+__update_interval__ = 60 * 60 * 24
 __last_update__ = os.path.join(os.path.dirname(__file__), '.last-update')
 __isimple__ = os.path.dirname(__file__)
 __history_path__ = os.path.join(__isimple__, '.history')
@@ -15,7 +14,7 @@ class HistoryApp:
         self.full_history = {}
         self.history = {}
 
-        self.key = __file__
+        self.key = file
         self.load_history()
 
     def reset_history(self):
@@ -110,22 +109,19 @@ def update(force=False):
         # Check if on master branch -> if not, return.
         # ASSUMES THAT master BRANCH IS NAMED MASTER!
         if repo.active_branch.name == 'master' or force:
-            print(f"Last update was {round(time_since_update/3600)} hours ago. Checking for updates...")
+            print(f"Last update was {round(time_since_update / 3600)} hours ago. Checking for updates...")
             # Check if origin/master is ahead -> dialog: update?
             # https://stackoverflow.com/questions/17224134/check-status-of-local-python-relative-to-remote-with-gitpython
             # ASSUMES THAT origin IS SET CORRECTLY!
 
-
             try:
-                repo.remote('origin').fetch()   # Fetch remote changes
-                current = repo.head.commit
+                repo.remote('origin').fetch()  # Fetch remote changes
                 commits_to_pull = [commit for commit in repo.iter_commits('master..origin/master')]
                 commits_behind = len(commits_to_pull)
             except git.exc.GitCommandError as e:
                 commits_to_pull = []
                 commits_behind = 0
                 repo = None
-                current = None
                 warnings.warn(f"Failed to fetch: {e.stderr} \n", stacklevel=3)
 
             if (repo is not None and commits_behind > 0) or force:
@@ -133,12 +129,15 @@ def update(force=False):
 
                 # Check if any changes have been made -> dialog: discard changes?
                 changes = [item.a_path for item in repo.index.diff(None)] + repo.untracked_files
-                changes = [change for change in changes if os.path.isfile(os.path.join(repo.working_dir, change))]  # todo: is this necessary?
+                changes = [change for change in changes if
+                           os.path.isfile(os.path.join(repo.working_dir, change))]
+                # todo: is this necessary?
 
                 if len(changes) > 0 or force:
                     changes = ' \n '.join(changes)  # Format changes line-per-line
                     discard_changes = strtobool(input(
-                        f"Changes to the following files will be discarded in order to update: \n \n {changes} \n \n \t Continue? (y/n) "
+                        f"Changes to the following files will be discarded in order to update: "
+                        f"\n \n {changes} \n \n \t Continue? (y/n) "
                     ))
 
                     if discard_changes:
@@ -156,7 +155,9 @@ def update(force=False):
 
                     changed_files = [file for commit in commits_to_pull for file in commit.stats.files.keys()]
                     if 'requirements.txt' in changed_files:
-                        print(f"Project requirements have been updated. Please execute 'pip install --upgrade -r requirements.txt'")
+                        print(
+                            f"Project requirements have been updated. "
+                            f"Please execute 'pip install --upgrade -r requirements.txt'")
 
                     repo.close()
 

@@ -1,8 +1,10 @@
+import tkinter.ttk as ttk
+import tkinter.filedialog as tkfd
+
 import isimple
 from isimple.video.gui import *
 from isimple.utils import restrict
-import tkinter.filedialog as tkfd
-from isimple.scripts.video_cli import video_analysis_demo
+from isimple.video import video_analysis_demo
 
 
 class FileSelectWindow(isimple.HistoryApp):
@@ -45,14 +47,28 @@ class FileSelectWindow(isimple.HistoryApp):
         video_list = list(filter(None, self.video_path_history))
         design_list = list(filter(None, self.design_path_history))
 
-        self.video_path_box = ttk.Combobox(self.canvas, values=video_list, textvariable=self.video_path, width=self.__path_width__)
-        self.design_path_box = ttk.Combobox(self.canvas, values=design_list, textvariable=self.design_path, width=self.__path_width__)
-        self.height_box = ttk.Entry(self.canvas, textvariable=self.height, width=self.__num_width__)
-        self.timestep_box = ttk.Entry(self.canvas, textvariable=self.timestep, width=self.__num_width__)
+        self.video_path_box = ttk.Combobox(
+            self.canvas, values=video_list, textvariable=self.video_path, width=self.__path_width__
+        )
+        self.design_path_box = ttk.Combobox(
+            self.canvas, values=design_list, textvariable=self.design_path, width=self.__path_width__
+        )
+        self.height_box = ttk.Entry(
+            self.canvas, textvariable=self.height, width=self.__num_width__
+        )
+        self.timestep_box = ttk.Entry(
+            self.canvas, textvariable=self.timestep, width=self.__num_width__
+        )
 
-        browse_video = tk.Button(self.canvas, text='Browse...', command=self.browse_video, font='Arial 10', pady=1, padx=3)
-        browse_design = tk.Button(self.canvas, text='Browse...', command=self.browse_design, font='Arial 10', pady=1, padx=3)
-        run_button = tk.Button(self.window, text='Run', command=self.run)
+        browse_video = tk.Button(
+            self.canvas, text='Browse...', command=self.browse_video, font='Arial 10', pady=1, padx=3
+        )
+        browse_design = tk.Button(
+            self.canvas, text='Browse...', command=self.browse_design, font='Arial 10', pady=1, padx=3
+        )
+        run_button = tk.Button(
+            self.window, text='Run', command=self.run
+        )
 
         self.video_path_box.grid(column=1, row=1)
         self.design_path_box.grid(column=1, row=3)
