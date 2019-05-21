@@ -656,7 +656,7 @@ class ProgressWindow(ScriptWindow):
                 self.ax.clear()
                 for i, curve in enumerate(areas):
                     color = cv2.cvtColor(
-                        np.array([[np.array(self.video.plot_colors[self.video.masks[i]], dtype = np.uint8)]]),
+                        np.array([[np.array(self.video.plot_colors[self.video.masks[i]], dtype=np.uint8)]]),
                         cv2.COLOR_HSV2RGB
                     )[0, 0] / 255
                     # todo: shouldn't need to do this calculation at every time step!
@@ -668,13 +668,13 @@ class ProgressWindow(ScriptWindow):
                     )
 
                 # todo: is it necessary to re-do all of the plot legend/axis stuff for every time step?
-                self.ax.legend(loc = 'center right')
+                self.ax.legend(loc='center right')
                 self.ax.set_title(
                     f"{t[-1]/self.tmax * 100:.0f}%  ({elapsed:.0f} s elapsed "
-                    f" @ {t[-1]/elapsed:.1f} x)", size = 18, weight = 'bold'
+                    f" @ {t[-1]/elapsed:.1f} x)", size=18, weight='bold'
                 )
-                self.ax.set_ylabel('Volume (µL)', size = 12)
-                self.ax.set_xlabel('Time (s)', size = 12)
+                self.ax.set_ylabel('Volume (µL)', size=12)
+                self.ax.set_xlabel('Time (s)', size=12)
                 self.ax.set_xlim(0, self.tmax)
 
                 self.df = pd.DataFrame(

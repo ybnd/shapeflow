@@ -48,7 +48,7 @@ class VideoAnalyzer:
 
     __overlay_DPI__ = 400
 
-    def __init__(self, video_path, overlay_path, dt = None, h = None, kernel = None):
+    def __init__(self, video_path, overlay_path, dt=None, h=None, kernel=None):
         self.path = video_path
         self.name = video_path.split('\\')[-1].split('.png')[0]
         self.overlay_path = overlay_path
@@ -289,37 +289,43 @@ class VideoAnalyzer:
         return [mask.area(frame) for mask in self.masks]
 
     def get_meta(self) -> dict:
-        colors = {
-            mask.name: {'from': mask.filter_from.tolist(), 'to': mask.filter_to.tolist()}
-            for mask in self.masks
-        }
-
-        return metadata.bundle(self.path, self.overlay_path, self.coordinates, self.transform.tolist(),
-                      self.order, colors)
+        return metadata.bundle(
+            self.path,
+            self.overlay_path,
+            self.coordinates,
+            self.transform.tolist(),
+            self.order,
+            metadata.colors_from_masks(self.masks),
+            self.h,
+            self.dt
+        )
 
     def export_metadata(self):
-        colors = {
-            mask.name: {'from': mask.filter_from.tolist(), 'to': mask.filter_to.tolist()}
-            for mask in self.masks
-        }
-
-        metadata.save(self.path, self.overlay_path, self.coordinates, self.transform.tolist(),
-                      self.order, colors)
+        metadata.save(
+            self.path,
+            self.overlay_path,
+            self.coordinates,
+            self.transform.tolist(),
+            self.order,
+            metadata.colors_from_masks(self.masks),
+            self.h,
+            self.dt
+        )
 
     def import_metadata(self):
         meta = metadata.load(self.path)
 
         if meta is not None:
-            self.transform = np.array(meta['transform'])
-            self.colors = meta['colors']
-            self.order = meta['order']
-            self.coordinates = meta['coordinates']
+            self.transform = np.array(meta[metadata.__transform__])
+            self.colors = meta[metadata.__colors__]
+            self.order = meta[metadata.__order__]
+            self.coordinates = meta[metadata.__coordinates__]
 
             for mask in self.colors.keys():
                 for color in self.colors[mask].keys():
                     self.colors[mask][color] = np.array(self.colors[mask][color])
 
-            print(f"Loaded metadata from {os.path.splitext(self.path)[0]+'.meta'}")
+            print(f"Loaded metadata from {os.path.splitext(self.path)[0]+metadata.__ext__}")
 
 
 class Mask:
@@ -332,8 +338,8 @@ class Mask:
     __sat_window__ = [50, 255]
     __val_window__ = [50, 255]
 
-    __to_mask__ = to_mask
-    __area__ = area_pixelsum
+    __to_mask__ = staticmethod(to_mask)
+    __area__ = staticmethod(area_pixelsum)
 
     def __init__(self, video, path, kernel=ckernel(7)):
         self.video = video
@@ -369,7 +375,7 @@ class Mask:
     def choose_color(self, color=None):
         """ Choose a ue to filter at. """
         if color is None:
-            frame = self.video.get_frame(do_warp = True)
+            frame = self.video.get_frame(do_warp=True)
             self.I = self.mask(frame)
             MaskFilterWindow(self)
         else:
@@ -392,7 +398,7 @@ class Mask:
 
     def pick(self, coo):
         """ Callback - set filtering hue. """
-        self.set_filter(self.I[coo.y,coo.x])
+        self.set_filter(self.I[coo.y, coo.x])
 
     def track(self, value):
         """ Get a specific frame from the video (callback for UI scrollbar). """
@@ -422,7 +428,7 @@ class Mask:
     def mask_filter(self, image):
         """ Mask & filter an image. """
         frame = self.mask(image)
-        filtered =  self.filter(frame)
+        filtered = self.filter(frame)
 
         return filtered
 

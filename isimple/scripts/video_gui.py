@@ -2,7 +2,7 @@ import isimple
 from isimple.video.gui import *
 from isimple.utils import restrict
 import tkinter.filedialog as tkfd
-from isimple.scripts.video_cli import demo
+from isimple.scripts.video_cli import video_analysis_demo
 
 
 class FileSelectWindow(isimple.HistoryApp):
@@ -136,4 +136,4 @@ if __name__ == '__main__':
 
     fs = FileSelectWindow()
     v, d, t, h = fs.output
-    demo(v, d, t, h)
+    video_analysis_demo(v, d, t, h)
