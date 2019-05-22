@@ -3,7 +3,7 @@ import tkinter.filedialog as tkfd
 
 import isimple
 from isimple.video.gui import *
-from isimple.utils import restrict
+from isimple.utility import restrict
 from isimple.video import video_analysis_demo
 
 
@@ -28,9 +28,9 @@ class FileSelectWindow(isimple.HistoryApp):
     previous_height = 0.153
     previous_timestep = 5
 
-    def __init__(self):
-        isimple.HistoryApp.__init__(self, __file__)
-        self.output = (None, None, None, None)
+    def __init__(self, file=__file__):
+        isimple.HistoryApp.__init__(self, file)
+        self.args = (None, None, None, None)
 
         self.window = ScriptWindow()
         self.window.title('isimple-video')
@@ -142,7 +142,7 @@ class FileSelectWindow(isimple.HistoryApp):
         self.history['previous_timestep'] = timestep
 
         self.save_history()
-        self.output = (video, design, timestep, height)
+        self.args = (video, design, timestep, height)
 
         self.window.destroy()
 
@@ -151,5 +151,4 @@ if __name__ == '__main__':
     isimple.update()
 
     fs = FileSelectWindow()
-    v, d, t, h = fs.output
-    video_analysis_demo(v, d, t, h)
+    video_analysis_demo(*fs.args)

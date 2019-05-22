@@ -40,7 +40,11 @@ class HistoryApp:
             json.dump(self.full_history, f, indent=2)
 
     def get_own_history(self):
-        self.history = self.full_history[self.key]
+        try:
+            self.history = self.full_history[self.key]
+        except KeyError:
+            self.reset_history()
+            self.full_history[self.key] = self.history
 
     def unpack_history(self):
         pass

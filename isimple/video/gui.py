@@ -44,20 +44,22 @@ class ScriptWindow(tk.Tk):
     def focus(self):
         self.focus_force()
 
-    def close(self):
+    def close(self, do_exit=True):
         """ Called when user tries to close the window. """
         if self.done:
             # Finished!
             self.destroy()
-            sys.exit()
-            # todo: this is a temporary solution...
-            #  why doesn't self.destroy() "let the mainloop go?"
-            #  -> maybe a mainloop is created elsewhere also?...
+            if do_exit:
+                sys.exit()
+                # todo: this is a temporary solution...
+                #  why doesn't self.destroy() "let the mainloop go?"
+                #  -> maybe a mainloop is created elsewhere also?...
         else:
             # Not finished yet!
             if tkinter.messagebox.askokcancel("Quit", "The script is still running. Really quit?"):
                 self.destroy()
-                sys.exit()
+                if do_exit:
+                    sys.exit()
 
 
 class ReshapeSelection:

@@ -107,6 +107,14 @@ class VideoAnalyzer:
         """ Open the overlay transform selection window. """
         OverlayAlignWindow(self)
 
+    def export_frame_overlay(self, path):
+        __alpha__ = 0.1
+        self.get_frame(to_hsv=False)
+
+        cv2.addWeighted(self.overlay, __alpha__, self.frame, 1 - __alpha__, 0, self.frame)
+        cv2.imwrite(path, self.frame)
+
+
     def load_masks(self):
         """ Load the rendered mask images. """
         files = os.listdir(self.__render_folder__)

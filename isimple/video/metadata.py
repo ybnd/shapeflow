@@ -119,7 +119,7 @@ def save(video_path, design_path, coordinates, transform, order, colors, height,
         f.write(history)
 
 
-def save_to_excel(meta, writer):
+def save_to_excel(meta, writer, sheet=__meta_sheet__):
     __gap__ = 1
     __file_r__ = 2
     __series_r__ = 2
@@ -139,22 +139,22 @@ def save_to_excel(meta, writer):
     df_colors = pd.DataFrame(meta[__colors__]).transpose()
 
     df_files.to_excel(
-        writer, sheet_name=__meta_sheet__, header=False,
+        writer, sheet_name=sheet, header=False,
     )
     df_series.to_excel(
-        writer, sheet_name=__meta_sheet__, header=False,
+        writer, sheet_name=sheet, header=False,
         startrow=__file_r__+__gap__
     )
     df_coordinates.to_excel(
-        writer, sheet_name=__meta_sheet__, index=True,
+        writer, sheet_name=sheet, index=True,
         startrow=__file_r__+__series_r__+2*__gap__
     )
     df_transform.to_excel(
-        writer, sheet_name=__meta_sheet__,
+        writer, sheet_name=sheet,
         startrow=__file_r__+__series_r__+2*__gap__, startcol=__points_c__ + __gap__
     )
     df_colors.to_excel(
-        writer, sheet_name=__meta_sheet__,
+        writer, sheet_name=sheet,
         startrow=__file_r__+__series_r__+__points_r__+3*__gap__
     )
 
