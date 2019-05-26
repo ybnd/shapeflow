@@ -30,50 +30,7 @@ should work out-of-the-box on a windows system, but if that is not the case I
 can help out. if you want to run this on a different OS you would need to
 install Python yourself. Please contact me with any questions.
 
-### Installation (Windows)
-
-- Activate local admin
-
-- Extract the .zip file somewhere
-
-- Download and install Python 3.7 from https://www.python.org/downloads/
-
-  **Please make sure you select the option to “add Python to PATH”!**
-
--   Open `start.bat`. This will open a Command Prompt window and navigate it to
-    the demo folder.
-
-Type the following instructions in the command line.
-
--   Create and launch a virtual environment
-
->   py –m venv \_py
-
->   ve
-
--   Install the required packages
-
->   pip install –r requirements.txt
-
--   Add the appropriate cairo.dll binary from [preshing/cairo-windows](https://github.com/preshing/cairo-windows/releases) to C:\\Windows\\System32
-
-### Usage
-
--   Open `start.bat`. This will open a Command Prompt window and navigate it to
-    the demo folder.
-
-Type the following instructions in the command line.
-
--   Launch the Python virtual environment.
-
->   `ve`
-
--   Launch the demo script. The file shuttle_video.mp4 is provided in the shared Box folder.
-
->   `demo shuttle_video.mp4 shuttle_design.svg`
-
-You can also provide the time interval (in s, default is 5 s) and the height of
-the channel (in mm, default is 0.153 mm):
+### Usage (video_gui.bat)
 
 >   `demo shuttle_video.mp4 shuttle_design.svg -dt 10 -hc 0.127`
 
