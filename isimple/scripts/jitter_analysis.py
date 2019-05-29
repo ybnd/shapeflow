@@ -7,7 +7,6 @@ file = 'D:/temp/SIMPLE/jitter/shuttle jitterD 2019-05-21 19-38-16.xlsx'
 df_avg = pd.read_excel(file, sheet_name='data-avg')
 df_std = pd.read_excel(file, sheet_name='data-std')
 
-
 series = df_avg.columns.to_list()
 series.remove('t')
 
