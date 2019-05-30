@@ -24,4 +24,4 @@ def crop_mask(mask: np.ndarray) -> (np.ndarray, np.ndarray):
     col_0 = nz[1].min()
     col_1 = nz[1].max()
     cropped_mask = mask[row_0:row_1, col_0:col_1]
-    return cropped_mask, np.array([row_0, row_1, col_0, col_1])
+    return cropped_mask, np.array([row_0, row_1, col_0, col_1]), ((row_0+row_1)/2, (col_0+col_1)/2)

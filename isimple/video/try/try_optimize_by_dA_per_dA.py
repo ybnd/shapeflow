@@ -13,12 +13,12 @@ import cv2
 video = "/home/ybnd/code/SIMPLE/data/shuttle.mp4"
 design = "/home/ybnd/code/SIMPLE/data/shuttle.svg"
 
-va = VideoAnalyzer(video, design, prompt_color=False)  # todo: "accept" metadata instead of showing screens
+va = VideoAnalyzer(video, design, prompt_color=False, prompt_transform=False)  # todo: "accept" metadata instead of showing screens
 print('\n')
 
 transform_og = copy.copy(va.transform)
 
-area_og = copy.copy(np.sum(va.areas()))
+area_og = copy.copy(np.sum(va.areas(va.get_frame_at(0.5))))
 
 Nf = va.number
 frames = [ va.get_frame_at(i, do_warp=False) for i in [0.5] ]
@@ -31,26 +31,32 @@ def target(x, args):
     va_opt = args[0]
     frames_opt = args[1]
 
-    transform = np.array([x[0:3], x[3:6], x[6:9]])
+    # transform = np.array([x[0:3], x[3:6], x[6:9]])
+    transform = np.array([x[0:3], x[3:6], [0,0,1]])
 
-    total_area = 0
+    area_ratio = 0
+    Ao = 0
+    Ai = 0
 
     # va.get_frame(do_warp=False)
     for frame in frames_opt:
-        total_area -= np.sum(
-            va_opt.areas(
-                cv2.warpPerspective(frame, transform, (va_opt.shape[1], va_opt.shape[0]))
-            )
-        )
+        fr = cv2.warpPerspective(frame, transform, (va_opt.shape[1], va_opt.shape[0]))
+        for mask in va_opt.masks:
+            Ao += mask.neg_area(fr)
+            Ai += mask.area(fr)
+            area_ratio += Ao - Ai
+    sys.stdout.write(
+        '\r' + f"T(0,0) = {transform[0, 0]}, Ao = {Ao}, Ai = {Ai}; Ao-Ai = {area_ratio}"
+    )
+
 
     # total_area = 0
     # for frame in frames:
     #     total_area -= np.sum(va.areas(va.warp(frame)))
 
-    sys.stdout.write('\r'+f"T(0,0) = {transform[0,0]}, A = {total_area}")
     sys.stdout.flush()
 
-    return total_area
+    return area_ratio
 
 
 IterPoints = 3
@@ -60,7 +66,7 @@ dts = []
 
 maxiters = 1+np.linspace(0, IterPoints-1, IterPoints)**2
 
-maxiter = 15
+maxiter = 5
 
 t = time.time()
 result = scipy.optimize.minimize(
@@ -68,8 +74,11 @@ result = scipy.optimize.minimize(
     method='Powell', options={'maxiter': maxiter})
 x = result.x
 
-transforms.append(np.array([x[0:3], x[3:6], x[6:9]]))
-va.transform = np.array([x[0:3], x[3:6], x[6:9]])
+# transforms.append(np.array([x[0:3], x[3:6], x[6:9]]))
+# va.transform = np.array([x[0:3], x[3:6], x[6:9]])
+transforms.append(np.array([x[0:3], x[3:6], [0,0,1]]))
+va.transform = np.array([x[0:3], x[3:6], [0,0,1]])
+
 opt_areas.append(np.sum(va.areas()))
 
 dt = time.time() - t

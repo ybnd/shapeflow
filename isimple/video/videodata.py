@@ -21,7 +21,7 @@ class VideoAnalyzer:
 
     __render_folder__ = os.path.join(os.getcwd(), '.render')
 
-    def __init__(self, video_path, overlay_path, dt=None, h=None, kernel=None, dpi=__overlay_DPI__):
+    def __init__(self, video_path, overlay_path, dt=None, h=None, kernel=None, dpi=__overlay_DPI__, prompt_transform=True, prompt_color=True):
         self.path = video_path
         self.name = video_path.split('\\')[-1].split('.png')[0]
         self.overlay_path = overlay_path
@@ -71,9 +71,12 @@ class VideoAnalyzer:
         self.load_overlay()
 
         self.import_metadata()
-        self.prompt_transform()
 
-        self.load_masks()
+        if prompt_transform:
+            self.prompt_transform()
+
+        self.load_masks(prompt_color=prompt_color)
+
         self.export_metadata()
 
     def check_files(self):
@@ -115,7 +118,7 @@ class VideoAnalyzer:
         cv2.imwrite(path, self.frame)
 
 
-    def load_masks(self):
+    def load_masks(self, prompt_color=True):
         """ Load the rendered mask images. """
         files = os.listdir(self.__render_folder__)
         files.remove('overlay.png')
@@ -143,7 +146,7 @@ class VideoAnalyzer:
         sorted_files = sorted_files + mismatched
 
         for path in sorted_files:
-            self.masks.append(Mask(self, os.path.join(self.__render_folder__, path), kernel=self.kernel))
+            self.masks.append(Mask(self, os.path.join(self.__render_folder__, path), kernel=self.kernel, prompt_color=prompt_color))
 
     def set_as_plot_color(self, mask, color):
         """ Set filtering color as plot color & space colors for readable plot """
@@ -195,6 +198,15 @@ class VideoAnalyzer:
                 state_image = cv2.cvtColor(state_image, cv2.COLOR_BGR2HSV)
 
             return state_image
+
+    def get_overlayed_frame(self, alpha=0.1):
+        if self.frame is not None:
+            cv2.addWeighted(self.overlay, alpha, self.frame,
+                            1 - alpha, 0, self.frame)
+            overlayed_frame = cv2.cvtColor(self.frame, cv2.COLOR_BGR2RGB)
+
+            return overlayed_frame
+
 
     def warp(self, frame):
         """ Apply a perspective transform. """
@@ -305,7 +317,7 @@ class VideoAnalyzer:
                 for color in self.colors[mask].keys():
                     self.colors[mask][color] = np.array(self.colors[mask][color])
 
-            print(f"Loaded metadata from {os.path.splitext(self.path)[0] + metadata.__ext__}")
+            print(f"Loaded metadata from {os.path.splitext(self.path)[0] + metadata.__ext__}\n")
 
 
 class Mask:
@@ -320,7 +332,7 @@ class Mask:
     __to_mask__ = staticmethod(to_mask)
     __area__ = staticmethod(area_pixelsum)
 
-    def __init__(self, video, path, kernel=isimple.utility.images.ckernel(7)):
+    def __init__(self, video, path, kernel=isimple.utility.images.ckernel(7), prompt_color=True):
         self.video = video
         self.path = path
 
@@ -333,7 +345,7 @@ class Mask:
 
         self.full = self.__to_mask__(cv2.imread(path), self.kernel)
         self.video.shape = self.full.shape  # todo: should be the same for all files...
-        self.partial, self.position = isimple.utility.images.crop_mask(self.full)
+        self.partial, self.rectangle, self.center = isimple.utility.images.crop_mask(self.full)
 
         if self.name in self.video.colors:
             # Try to load color from metadata file
@@ -350,7 +362,8 @@ class Mask:
 
         self.video.set_as_plot_color(self, self.color)
 
-        self.choose_color()
+        if prompt_color:
+            self.choose_color()
 
     def choose_color(self, color=None):
         """ Choose a ue to filter at. """
@@ -395,13 +408,36 @@ class Mask:
         if image is not None:
             if do_crop:
                 partial_image = image[
-                                self.position[0]:self.position[1],
-                                self.position[2]:self.position[3],
+                                self.rectangle[0]:self.rectangle[1],
+                                self.rectangle[2]:self.rectangle[3],
                                 ].copy()
             else:
                 partial_image = image
 
             frame = cv2.bitwise_and(partial_image, partial_image, mask=self.partial)
+
+            return frame
+
+    def not_mask(self, image, do_crop=True, kernel=isimple.utility.images.ckernel(27)):
+        """ Mask off missed pixels in the cropped region """  # todo: what to do with portions of the mask flush to the walls?
+        if image is not None:
+            if do_crop:
+                partial_image = image[
+                                self.rectangle[0]:self.rectangle[1],
+                                self.rectangle[2]:self.rectangle[3],
+                                ].copy()
+
+                negative_mask = cv2.dilate(partial_image, kernel,
+                                           iterations=2) - self.partial
+                frame = cv2.bitwise_and(partial_image, partial_image,
+                                        mask=negative_mask)
+
+            else:
+                partial_image = image.copy()
+
+                negative_mask = cv2.dilate(self.full, kernel,
+                                           iterations=2) - self.full
+                frame = cv2.bitwise_and(partial_image, partial_image,mask=negative_mask)
 
             return frame
 
@@ -415,3 +451,8 @@ class Mask:
     def area(self, image):
         """ Calculate the detected area in the masked & filtered image. """
         return self.__area__(self.mask_filter(image))
+
+    def neg_area(self, image, kernel = isimple.utility.images.ckernel(27), do_crop=False):
+        """ Calculate the detected area outside of the masked & filtered image. """
+        return self.__area__(self.filter(self.not_mask(image, do_crop=do_crop, kernel=kernel)))
+

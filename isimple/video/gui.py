@@ -368,7 +368,7 @@ class TransformImage:
         self.callback(self.transform, from_coordinates)
 
     def update(self):
-        """ Update image based  """
+        """ Update image based  """  # todo: transformed + overlay should be a VideoAnalyzer method
         y, x, c = self.overlay.shape
         self.image = cv2.warpPerspective(self.original, self.transform, (x, y))
 
