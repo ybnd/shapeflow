@@ -106,6 +106,23 @@ class VideoAnalyzer:
         """ Load the rendered overlay image. """
         self.overlay = cv2.imread(os.path.join(self.__render_folder__, 'overlay.png'))
 
+    def get_transform(self, coordinates):
+        self.transform = cv2.getPerspectiveTransform(
+            np.float32(coordinates),
+            np.float32(
+                np.array(  # selection rectangle: bottom left to top right
+                    [
+                        [0, self.shape[0]],
+                        [0, 0],
+                        [self.shape[1], 0],
+                        [self.shape[1], self.shape[0]]
+                    ]
+                )
+            )
+        )
+
+        return self.transform
+
     def prompt_transform(self):
         """ Open the overlay transform selection window. """
         OverlayAlignWindow(self)
@@ -116,7 +133,6 @@ class VideoAnalyzer:
 
         cv2.addWeighted(self.overlay, __alpha__, self.frame, 1 - __alpha__, 0, self.frame)
         cv2.imwrite(path, self.frame)
-
 
     def load_masks(self, prompt_color=True):
         """ Load the rendered mask images. """
@@ -207,7 +223,6 @@ class VideoAnalyzer:
 
             return overlayed_frame
 
-
     def warp(self, frame):
         """ Apply a perspective transform. """
         return cv2.warpPerspective(frame, self.transform, (self.shape[1], self.shape[0]))
@@ -279,6 +294,13 @@ class VideoAnalyzer:
             frame = self.frame
 
         return [mask.area(frame) for mask in self.masks]
+
+    def ratios(self, frame=None):
+        """ Calculate the relative areas for all of the masks. """  # todo: abstract away from VideoAnalyzer
+        if frame is None:
+            frame = self.frame
+
+        return [mask.ratio(frame) for mask in self.masks]
 
     def get_meta(self) -> dict:
         return metadata.bundle(
@@ -451,6 +473,9 @@ class Mask:
     def area(self, image):
         """ Calculate the detected area in the masked & filtered image. """
         return self.__area__(self.mask_filter(image))
+
+    def ratio(self, image):
+        return self.area(image) / self.__area__(self.partial)
 
     def neg_area(self, image, kernel = isimple.utility.images.ckernel(27), do_crop=False):
         """ Calculate the detected area outside of the masked & filtered image. """

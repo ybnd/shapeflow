@@ -35,18 +35,18 @@ def target(x, args):
     transform = np.array([x[0:3], x[3:6], [0, 0, 1]])
 
     area_ratio = 0
-    Ao = 0
-    Ai = 0
+    A = []
 
     # va.get_frame(do_warp=False)
     for frame in frames_opt:
         fr = cv2.warpPerspective(frame, transform, (va_opt.shape[1], va_opt.shape[0]))
         for mask in va_opt.masks:
-            Ao += mask.neg_area(fr)
-            Ai += mask.area(fr)
-            area_ratio += Ao - Ai
+            A.append(mask.neg_area(fr) / (mask.area(fr)+1))
+
+    area_ratio = np.mean(A)
+
     sys.stdout.write(
-        '\r' + f"T(0,0) = {transform[0, 0]}, Ao = {Ao}, Ai = {Ai}; Ao-Ai = {area_ratio}"
+        '\r' + f"T(0,0) = {transform[0, 0]}, avg dA = {area_ratio}"
     )
 
 

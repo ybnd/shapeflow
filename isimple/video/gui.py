@@ -266,6 +266,8 @@ class ImageDisplay:
             self.__width__ = __monitor_w__ * 0.98
             self.__ratio__ = self.__width__ / (self.shape[1] + overlay.shape[1])
 
+        print(f'Ratio = {self.__ratio__}')
+
         self.canvas = tk.Canvas(
             self.window,
             width=self.__width__,

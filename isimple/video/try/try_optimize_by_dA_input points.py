@@ -13,12 +13,10 @@ import cv2
 video = "D:/temp/SIMPLE/shuttle.mp4"
 design = "D:/temp/SIMPLE/shuttle.svg"
 
-va = VideoAnalyzer(video, design, prompt_color=False, prompt_transform=False)  # todo: "accept" metadata instead of showing screens
+va = VideoAnalyzer(video, design, prompt_color=False, prompt_transform=True)  # todo: "accept" metadata instead of showing screens
 print('\n')
 
 transform_og = copy.copy(va.transform)
-
-area_og = copy.copy(np.sum(va.areas(va.get_frame_at(0.5))))
 
 Nf = va.number
 frames = [ va.get_frame_at(i, do_warp=False) for i in [0.5] ]
@@ -31,32 +29,25 @@ def target(x, args):
     va_opt = args[0]
     frames_opt = args[1]
 
-    # transform = np.array([x[0:3], x[3:6], x[6:9]])
-    transform = np.array([x[0:3], x[3:6], [0, 0, 1]])
-
-    area_ratio = 0
-    Ao = 0
-    Ai = 0
+    transform = va.get_transform(x.reshape(4,2) / 0.6)  # todo: VideoAnalyzer class should not care about the 'not real' coordinates.
+    total_area = 0
 
     # va.get_frame(do_warp=False)
     for frame in frames_opt:
-        fr = cv2.warpPerspective(frame, transform, (va_opt.shape[1], va_opt.shape[0]))
-        for mask in va_opt.masks:
-            Ao += mask.neg_area(fr)
-            Ai += mask.area(fr)
-            area_ratio += Ao - Ai
-    sys.stdout.write(
-        '\r' + f"T(0,0) = {transform[0, 0]}, Ao = {Ao}, Ai = {Ai}; Ao-Ai = {area_ratio}"
-    )
-
+        total_area -= np.mean(   # Maximize average ratio
+            va_opt.ratios(
+                cv2.warpPerspective(frame, transform, (va_opt.shape[1], va_opt.shape[0]))
+            )
+        )
 
     # total_area = 0
     # for frame in frames:
     #     total_area -= np.sum(va.areas(va.warp(frame)))
 
+    sys.stdout.write('\r'+f"T(0,0) = {transform[0,0]}, A = {total_area}")
     sys.stdout.flush()
 
-    return area_ratio
+    return total_area
 
 
 IterPoints = 3
@@ -66,18 +57,15 @@ dts = []
 
 maxiters = 1+np.linspace(0, IterPoints-1, IterPoints)**2
 
-maxiter = 5
+maxiter = 15
 
 t = time.time()
 result = scipy.optimize.minimize(
-    target, transform_og.tolist(), [va, frames],
+    target, np.array(va.coordinates).flatten(), [va, frames],
     method='Powell', options={'maxiter': maxiter})
-x = result.x
 
-# transforms.append(np.array([x[0:3], x[3:6], x[6:9]]))
-# va.transform = np.array([x[0:3], x[3:6], x[6:9]])
-transforms.append(np.array([x[0:3], x[3:6], [0, 0, 1]]))
-va.transform = np.array([x[0:3], x[3:6], [0, 0, 1]])
+x = result.x
+transform = va.get_transform(x.reshape(4, 2) / 0.6)
 
 opt_areas.append(np.sum(va.areas()))
 
@@ -100,13 +88,13 @@ plt.figure()
 va.get_frame_at(0.5, to_hsv=False)
 plt.imshow(va.get_overlayed_frame())
 
-va.transform = transforms[0]
+va.transform = transform
 plt.figure()
 va.get_frame_at(0.5, to_hsv=False)
 plt.imshow(va.get_overlayed_frame())
 
 plt.show()
 
-print(f"Transform: {transforms[0]}")
+print(f"Coordinates: {x}")
 
 print('Done.')

@@ -10,8 +10,8 @@ import sys
 import cv2
 
 
-video = "/home/ybnd/code/SIMPLE/data/shuttle.mp4"
-design = "/home/ybnd/code/SIMPLE/data/shuttle.svg"
+video = "D:/temp/SIMPLE/shuttle.mp4"
+design = "D:/temp/SIMPLE/shuttle.svg"
 
 va = VideoAnalyzer(video, design, prompt_color=False)  # todo: "accept" metadata instead of showing screens
 print('\n')
@@ -37,8 +37,8 @@ def target(x, args):
 
     # va.get_frame(do_warp=False)
     for frame in frames_opt:
-        total_area -= np.sum(
-            va_opt.areas(
+        total_area -= np.mean(   # Maximize average ratio
+            va_opt.ratios(
                 cv2.warpPerspective(frame, transform, (va_opt.shape[1], va_opt.shape[0]))
             )
         )
