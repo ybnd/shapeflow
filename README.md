@@ -12,12 +12,14 @@
    
 * Make sure to **enable** the option "add Python to path"
    
-2. Install `git` via the KUL Software center or from [git-scm.com](https://git-scm.com/downloads)
+2. Install `git` 
+   a) From the KUL Software center
+   b) From [git-scm.com](https://git-scm.com/downloads) (just use all of the default settings in the installer)
 
 3. Clone this repository
    1. Open Command Prompt
    2. Navigate to the folder where you want to put this repository: `cd ...`
-   3. Execute  `git clone https:/github.com/ybnd/isimple` 
+   3. Execute  `git clone https://github.com/ybnd/isimple` 
    4. A folder named `isimple` should appear
 
 4. Install the required packages: 
