@@ -12,9 +12,7 @@
    
 * Make sure to **enable** the option "add Python to path"
    
-2. Install `git` 
-   a) From the KUL Software center
-   b) From [git-scm.com](https://git-scm.com/downloads) (just use all of the default settings in the installer)
+2. Install `git` from the KUL Software center or from [git-scm.com](https://git-scm.com/downloads) (just use all of the default settings in the installer)
 
 3. Clone this repository
    1. Open Command Prompt
