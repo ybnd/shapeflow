@@ -2,7 +2,7 @@ from isimple.video.videodata import *
 from datetime import datetime
 
 
-def demo(video, design, timestep, height):
+def demo(video, design, timestep, height): # todo: method name should be more descriptive
     t = []
     areas = []
 
@@ -14,7 +14,7 @@ def demo(video, design, timestep, height):
     pw = ProgressWindow(va)
 
     df = pd.DataFrame()
-    while not va.done:  # todo: do this at the VideoAnalyzer level.
+    while not va.done:  # todo: do this at the VideoAnalyzer level!
         ct = va.get_next_frame()
 
         areas.append(va.areas())
