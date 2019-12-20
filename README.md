@@ -49,3 +49,7 @@ If you intend to contribute, please do so on a separate branch.
 Make sure that you don't push broken code to the master branch, as master commits will be automatically pulled. Once you do, make sure you add any new requirements to [requirements.txt](requirements.txt).
 
 For questions & comments, please contact me at [yura.bondarenko@kuleuven.be](yura.bondarenko@kuleuven.be) or [ybnd@tuta.io](ybnd@tuta.io). 
+
+### Licensing
+
+As of now, an appropriate license for this repository has not been determined yet. All rights are held by KU Leuven.
