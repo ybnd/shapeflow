@@ -28,7 +28,7 @@
 
    
 
-* This project uses the `cairo` library is rendering .svg images. The easiest way to install this for Windows is as follows:
+* This project uses the `cairo` library to render .svg images. The easiest way to install this library for Windows is as follows:
   1. Make sure you have administrator privileges on your computer
   2. Download the `cairo` binaries from [preshing/cairo-windows](https://github.com/preshing/cairo-windows/releases/download/1.15.12/cairo-windows-1.15.12.zip)
   3. Extract the .zip file
