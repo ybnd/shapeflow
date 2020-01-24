@@ -85,6 +85,7 @@ def update(force=False):
 
         import git
         import warnings
+        import subprocess # todo: should be able to run pip within this script with subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "-r", "requirements.txt"])
         from distutils.util import strtobool
 
         def find_repo() -> git.Repo:
@@ -155,7 +156,7 @@ def update(force=False):
                     write_last_update_time()
 
                     changed_files = [file for commit in commits_to_pull for file in commit.stats.files.keys()]
-                    if 'requirements.txt' in changed_files:
+                    if 'requirements.txt' in changed_files: # todo: only checks the last commit, should check complete diff; get og commit hash & current commit hash and diff here to check if there are changes
                         print(f"Project requirements have been updated. Please execute 'pip install --upgrade -r requirements.txt'")
 
                     repo.close()
