@@ -48,7 +48,7 @@ If something breaks because of an update, please harass the person(s) responsibl
 If you intend to contribute, please do so on a separate branch. 
 Make sure that you don't push broken code to the master branch, as master commits will be automatically pulled. Once you do, make sure you add any new requirements to [requirements.txt](requirements.txt).
 
-For questions & comments, please contact me at [yura.bondarenko@kuleuven.be](yura.bondarenko@kuleuven.be) or [ybnd@tuta.io](ybnd@tuta.io). 
+For questions & comments, please contact me.
 
 ### Licensing
 
