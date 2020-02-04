@@ -86,6 +86,7 @@ def update(force=False):
 
         import git
         import warnings
+        import subprocess # todo: should be able to run pip within this script with subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "-r", "requirements.txt"])
         from distutils.util import strtobool
 
         def find_repo() -> git.Repo:
