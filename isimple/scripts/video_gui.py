@@ -45,14 +45,34 @@ class FileSelectWindow(isimple.HistoryApp):
         video_list = list(filter(None, self.video_path_history))
         design_list = list(filter(None, self.design_path_history))
 
-        self.video_path_box = ttk.Combobox(self.canvas, values=video_list, textvariable=self.video_path, width=self.__path_width__)
-        self.design_path_box = ttk.Combobox(self.canvas, values=design_list, textvariable=self.design_path, width=self.__path_width__)
-        self.height_box = ttk.Entry(self.canvas, textvariable=self.height, width=self.__num_width__)
-        self.timestep_box = ttk.Entry(self.canvas, textvariable=self.timestep, width=self.__num_width__)
+        self.video_path_box = ttk.Combobox(
+            self.canvas, values=video_list,
+            textvariable=self.video_path, width=self.__path_width__
+        )
+        self.design_path_box = ttk.Combobox(
+            self.canvas, values=design_list,
+            textvariable=self.design_path, width=self.__path_width__
+        )
+        self.height_box = ttk.Entry(
+            self.canvas,
+            textvariable=self.height, width=self.__num_width__
+        )
+        self.timestep_box = ttk.Entry(
+            self.canvas,
+            textvariable=self.timestep, width=self.__num_width__
+        )
 
-        browse_video = tk.Button(self.canvas, text='Browse...', command=self.browse_video, font='Arial 10', pady=1, padx=3)
-        browse_design = tk.Button(self.canvas, text='Browse...', command=self.browse_design, font='Arial 10', pady=1, padx=3)
-        run_button = tk.Button(self.window, text='Run', command=self.run)
+        browse_video = tk.Button(
+            self.canvas, text='Browse...',
+            command=self.browse_video, font='Arial 10', pady=1, padx=3
+        )
+        browse_design = tk.Button(
+            self.canvas, text='Browse...',
+            command=self.browse_design, font='Arial 10', pady=1, padx=3
+        )
+        run_button = tk.Button(
+            self.window, text='Run', command=self.run
+        )
 
         self.video_path_box.grid(column=1, row=1)
         self.design_path_box.grid(column=1, row=3)
@@ -61,10 +81,22 @@ class FileSelectWindow(isimple.HistoryApp):
         browse_video.grid(column=0, row=1)
         browse_design.grid(column=0, row=3)
 
-        tk.Label(self.canvas, text="Video file: ", width=self.__path_width__, anchor='w').grid(column=1, row=0)
-        tk.Label(self.canvas, text="Design file: ", width=self.__path_width__, anchor='w').grid(column=1, row=2)
-        tk.Label(self.canvas, text="Height (mm): ", width=self.__num_width__, anchor='w').grid(column=2, row=0)
-        tk.Label(self.canvas, text="Timestep (s): ", width=self.__num_width__, anchor='w').grid(column=2, row=2)
+        tk.Label(
+            self.canvas, text="Video file: ",
+            width=self.__path_width__, anchor='w'
+        ).grid(column=1, row=0)
+        tk.Label(
+            self.canvas, text="Design file: ",
+            width=self.__path_width__, anchor='w'
+        ).grid(column=1, row=2)
+        tk.Label(
+            self.canvas, text="Height (mm): ",
+            width=self.__num_width__, anchor='w'
+        ).grid(column=2, row=0)
+        tk.Label(
+            self.canvas, text="Timestep (s): ",
+            width=self.__num_width__, anchor='w'
+        ).grid(column=2, row=2)
 
         self.canvas.pack(anchor='w', padx=5, pady=5)
         run_button.pack()
@@ -90,15 +122,21 @@ class FileSelectWindow(isimple.HistoryApp):
         self.previous_height = self.history['previous_height']
 
         self.__path_width__ = max(
-            [len(path) for path in self.video_path_history + self.design_path_history])
+            [len(path) for path
+             in self.video_path_history + self.design_path_history]
+        )
 
         self.__path_width__ = restrict(self.__path_width__, 10, 200)
 
     def browse_video(self):
-        self.video_path.set(tkfd.askopenfilename(filetypes=[('Video files', '*.mp4 *.mkv *.avi *.mpg *.mov')]))
+        self.video_path.set(tkfd.askopenfilename(
+            filetypes=[('Video files', '*.mp4 *.mkv *.avi *.mpg *.mov')])
+        )
 
     def browse_design(self):
-        self.design_path.set(tkfd.askopenfilename(filetypes=[('SVG files', '*.svg')]))
+        self.design_path.set(tkfd.askopenfilename(
+            filetypes=[('SVG files', '*.svg')])
+        )
 
     def run(self, _=None):
         video = self.video_path_box.get()

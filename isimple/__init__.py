@@ -26,7 +26,9 @@ class HistoryApp:
             with open(__history_path__, 'r') as f:
                 self.full_history = json.load(f)
 
-        except (json.decoder.JSONDecodeError, FileNotFoundError, KeyError) as e:
+        except (
+                json.decoder.JSONDecodeError, FileNotFoundError, KeyError
+        ) as e:
             self.reset_history()
             if e is KeyError:
                 self.full_history[self.key] = self.history
@@ -67,17 +69,16 @@ def write_last_update_time(t=None):
 
 
 def update(force=False):
-    """
-    Auto-updating method for applications intended for "end-users".
+    """Auto-updating method for applications intended for "end-users".
 
-    Usage:
-        Include
-            ``` import isimple
-                isimple.update() ```
-            in scripts to check for updates before running.
+        Usage:
+            Include
+                ``` import isimple
+                    isimple.update() ```
+                in scripts to check for updates before running.
 
-        :param force:
-        :return:
+    :param force:
+    :return:
     """
 
     time_since_update = time.time() - read_last_update_time()
@@ -88,18 +89,21 @@ def update(force=False):
         from distutils.util import strtobool
 
         def find_repo() -> git.Repo:
-
-            folder = os.path.dirname(__file__)  # Start looking in folder containing __file__
+            # Start looking in folder containing __file__
+            folder = os.path.dirname(__file__)
             steps_back = 0
 
             while steps_back < 20:
                 try:
                     return git.Repo(folder)
                 except git.exc.InvalidGitRepositoryError:
+                    # If this folder is not a git repo, step back and retry
                     steps_back += 1
-                    folder = os.path.dirname(folder)  # If this folder doesn't contain a repo, step back and retry
 
-        # Start a tkinter window & hide it, otherwise messagebox spawns one anyway (annoying)
+                    folder = os.path.dirname(folder)
+
+        # Start a tkinter window & hide it,
+        #  otherwise messagebox spawns one anyway (annoying)
         # root = Tk()
         # root.withdraw()
 
@@ -110,16 +114,19 @@ def update(force=False):
         # Check if on master branch -> if not, return.
         # ASSUMES THAT master BRANCH IS NAMED MASTER!
         if repo.active_branch.name == 'master' or force:
-            print(f"Last update was {round(time_since_update/3600)} hours ago. Checking for updates...")
+            print(f"Last update was {round(time_since_update/3600)} "
+                  f"hours ago. Checking for updates...")
             # Check if origin/master is ahead -> dialog: update?
-            # https://stackoverflow.com/questions/17224134/check-status-of-local-python-relative-to-remote-with-gitpython
-            # ASSUMES THAT origin IS SET CORRECTLY!
-
+            # https://stackoverflow.com/questions/17224134/
+            # ASSUMES THAT `origin` IS SET CORRECTLY!
 
             try:
                 repo.remote('origin').fetch()   # Fetch remote changes
                 current = repo.head.commit
-                commits_to_pull = [commit for commit in repo.iter_commits('master..origin/master')]
+                commits_to_pull = [
+                    commit for commit
+                    in repo.iter_commits('master..origin/master')
+                ]
                 commits_behind = len(commits_to_pull)
             except git.exc.GitCommandError as e:
                 commits_to_pull = []
@@ -129,16 +136,28 @@ def update(force=False):
                 warnings.warn(f"Failed to fetch: {e.stderr} \n", stacklevel=3)
 
             if (repo is not None and commits_behind > 0) or force:
-                print(f"You are {commits_behind} {'commit' if commits_behind == 1 else 'commits'} behind.")
+                print(f"You are {commits_behind} "
+                      f"{'commit' if commits_behind == 1 else 'commits'} "
+                      f"behind.")
 
                 # Check if any changes have been made -> dialog: discard changes?
-                changes = [item.a_path for item in repo.index.diff(None)] + repo.untracked_files
-                changes = [change for change in changes if os.path.isfile(os.path.join(repo.working_dir, change))]  # todo: is this necessary?
+                changes = [item.a_path for item in repo.index.diff(None)] \
+                          + repo.untracked_files
+                changes = [
+                    change for change
+                    in changes
+                    if os.path.isfile(os.path.join(repo.working_dir, change))
+                ]  # todo: is this necessary?
+                # todo: make sure we're checking for changes
+                #  in ALL of the missed commits!
 
                 if len(changes) > 0 or force:
-                    changes = ' \n '.join(changes)  # Format changes line-per-line
+                    # Format changes line-per-line
+                    changes = ' \n '.join(changes)
                     discard_changes = strtobool(input(
-                        f"Changes to the following files will be discarded in order to update: \n \n {changes} \n \n \t Continue? (y/n) "
+                        f"Changes to the following files will be discarded "
+                        f"in order to update: \n \n {changes} \n \n \t "
+                        f"Continue? (y/n)"
                     ))
 
                     if discard_changes:
@@ -149,14 +168,21 @@ def update(force=False):
 
                 if strtobool(input('\nUpdate? (y/n) ')):
                     # Pull from default remote
-                    # ASSUMES THAT origin IS SET CORRECTLY, AND AS THE DEFAULT REMOTE!
+                    # ASSUMES THAT `origin` IS SET CORRECTLY,
+                    # AND AS THE DEFAULT REMOTE! todo: need additional checks?
                     print(f"\nUpdating...")
                     repo.git.pull()
                     write_last_update_time()
 
-                    changed_files = [file for commit in commits_to_pull for file in commit.stats.files.keys()]
+                    changed_files = [
+                        file for commit in commits_to_pull
+                        for file in commit.stats.files.keys()
+                    ]
                     if 'requirements.txt' in changed_files:
-                        print(f"Project requirements have been updated. Please execute 'pip install --upgrade -r requirements.txt'")
+                        print(f"Project requirements have been updated. "
+                              f"Please execute "
+                              f"`pip install --upgrade -r requirements.txt`")
+                        # todo: try to upgrade pip from python instead
 
                     repo.close()
 
@@ -166,8 +192,8 @@ def update(force=False):
                 print(f"You are up to date.")
                 write_last_update_time()
 
-    # Abort caller script (i.e. don't try to execute a script if it's out of date)
-
+    # todo: if out of date, maybe abort caller script
+    #  (i.e. don't try to execute a script if it's out of date)
 
 if __name__ == '__main__':
     update(True)  # For debugging purposes

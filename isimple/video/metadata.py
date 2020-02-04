@@ -1,13 +1,19 @@
 import yaml
+from yaml.representer import SafeRepresenter
 import json
 import os
 import time
 
-# https://stackoverflow.com/questions/16782112/can-pyyaml-dump-dict-items-in-non-alphabetical-order
-yaml.add_representer(dict, lambda self, data: yaml.representer.SafeRepresenter.represent_dict(self, data.items()))
+# dict to YAML in non-alphabetical order
+# https://stackoverflow.com/questions/16782112/
+yaml.add_representer(
+    dict,
+    lambda self, data: SafeRepresenter.represent_dict(self, data.items())
+)
 
 
-def bundle(video_path, design_path, coordinates, transform, order, colors) -> dict:
+def bundle(video_path, design_path,
+           coordinates, transform, order, colors) -> dict:
     return {
         'video': video_path,
         'design': design_path,
@@ -18,7 +24,8 @@ def bundle(video_path, design_path, coordinates, transform, order, colors) -> di
     }
 
 
-def bundle_readable(video_path, design_path, coordinates, transform, order, colors) -> dict:
+def bundle_readable(video_path, design_path,
+                    coordinates, transform, order, colors) -> dict:
 
     # Make coordinates 'readable' in YAML
     coordinates = json.dumps(coordinates)
@@ -42,7 +49,8 @@ def bundle_readable(video_path, design_path, coordinates, transform, order, colo
     }
 
 
-def save(video_path, design_path, coordinates, transform, order, colors):
+def save(video_path, design_path,
+         coordinates, transform, order, colors):
     # Keep metadata history in .meta file
 
     path = os.path.splitext(video_path)[0] + '.meta'
@@ -60,7 +68,9 @@ def save(video_path, design_path, coordinates, transform, order, colors):
     else:
         history = ''
 
-    meta = bundle_readable(path, design_path, coordinates, transform, order, colors)
+    meta = bundle_readable(
+        path, design_path, coordinates, transform, order, colors
+    )
 
     with open(path, 'w+') as f:
         f.write(

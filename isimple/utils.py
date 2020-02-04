@@ -3,15 +3,15 @@ import time
 
 
 def restrict(val, minval, maxval):
-    """ https://stackoverflow.com/questions/4092528/how-to-clamp-an-integer-to-some-range """
+    """https://stackoverflow.com/questions/4092528
+    """
     if val < minval: return minval
     if val > maxval: return maxval
     return val
 
 
 def timing(f):
-    """
-    Function decorator to measure elapsed time.
+    """Function decorator to measure elapsed time.
     :param f: function
     """
     @wraps(f)
