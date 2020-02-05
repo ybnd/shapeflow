@@ -10,12 +10,14 @@ __isimple__ = os.path.dirname(__file__)
 __history_path__ = os.path.join(__isimple__, '.history')
 
 
-class HistoryApp:
+class HistoryApp(object):
+    """Applications with history stored in JSON format in isimple/.history
+    """
     def __init__(self, file):
         self.full_history = {}
         self.history = {}
 
-        self.key = __file__
+        self.key = file or __file__
         self.load_history()
 
     def reset_history(self):
