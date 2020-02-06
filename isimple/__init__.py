@@ -3,8 +3,7 @@ import sys
 import time
 import json
 
-
-__update_interval__ = 60*60*24
+__update_interval__ = 60 * 60 * 24
 __last_update__ = os.path.join(os.path.dirname(__file__), '.last-update')
 __isimple__ = os.path.dirname(__file__)
 __history_path__ = os.path.join(__isimple__, '.history')
@@ -45,7 +44,11 @@ class HistoryApp(object):
             json.dump(self.full_history, f, indent=2)
 
     def get_own_history(self):
-        self.history = self.full_history[self.key]
+        try:
+            self.history = self.full_history[self.key]
+        except KeyError:
+            self.reset_history()
+            self.full_history[self.key] = self.history
 
     def unpack_history(self):
         pass
@@ -125,7 +128,6 @@ def update(force=False):
 
             try:
                 repo.remote('origin').fetch()   # Fetch remote changes
-                current = repo.head.commit
                 commits_to_pull = [
                     commit for commit
                     in repo.iter_commits('master..origin/master')
@@ -135,7 +137,6 @@ def update(force=False):
                 commits_to_pull = []
                 commits_behind = 0
                 repo = None
-                current = None
                 warnings.warn(f"Failed to fetch: {e.stderr} \n", stacklevel=3)
 
             if (repo is not None and commits_behind > 0) or force:

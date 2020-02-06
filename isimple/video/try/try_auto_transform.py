@@ -17,21 +17,21 @@
         * Maybe play around with other keypoint detection & matching schemes...
 """
 
-
-import numpy as np
-import cv2
+import itertools as itt
 import os
 from copy import copy
 
+import cv2
 import matplotlib.pyplot as plt
 from OnionSVG import OnionSVG
-import itertools as itt
 
 plt.close('all')
 os.chdir("/home/ybnd/code/SIMPLE/isimple-video")
 
+
 def invert(img):
     return cv2.bitwise_not(img)
+
 
 total_pts = 1000000
 best_pts = 100
@@ -41,7 +41,7 @@ best_pts = 100
 OnionSVG(
     os.path.join(os.getcwd(), "shuttle_overlay_edges.svg"),
     dpi = 400,
-).peel('all', to = "render")
+).peel('all', to="render")
 
 # Load overlay (grayscale)
 overlay = cv2.cvtColor(

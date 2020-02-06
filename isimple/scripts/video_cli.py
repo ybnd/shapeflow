@@ -1,6 +1,6 @@
 import isimple
 import argparse
-from isimple.video import demo
+from isimple.video import video_analysis_demo
 
 
 parser = argparse.ArgumentParser()
@@ -21,8 +21,7 @@ if __name__ == '__main__':
     isimple.update()
 
     args = parser.parse_args()
-    # todo: if no arguments passed, maybe just call video_gui.py
-    demo(args.video, args.design, args.dt, args.hc)
+    video_analysis_demo(args.video, args.design, args.dt, args.hc)
 
 
 
