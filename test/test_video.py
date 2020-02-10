@@ -15,8 +15,8 @@ __DESIGN__ = 'test.svg'
 
 # Point to right files in Travis CI build
 if os.getcwd() == '/home/travis/build/ybnd/isimple':
-    __VIDEO__ = 'isimple/test/' + __VIDEO__
-    __DESIGN__ = 'isimple/test/' + __DESIGN__
+    __VIDEO__ = 'test/' + __VIDEO__
+    __DESIGN__ = 'test/' + __DESIGN__
 
 
 __FRAMES__ = [1, 20, 50]
