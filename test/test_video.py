@@ -29,7 +29,7 @@ __TEST_TRANSFORMED_FRAME__ = {}
 if os.path.isfile(__VIDEO__):
     capture = cv2.VideoCapture(__VIDEO__)
 else:
-    raise FileNotFoundError
+    raise FileNotFoundError(f'No file at {os.getcwd()}/{__VIDEO__}')
 
 for frame_number in __FRAMES__:
     capture.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
