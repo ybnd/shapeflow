@@ -1,0 +1,19 @@
+# Cheated off of https://github.com/beetbox/beets/blob/master/.travis.yml
+language: python
+
+matrix:
+  include:
+    - python: 3.6
+      env: {TOX_ENV: py36-cov}
+    - python: 3.6
+      env: {TOX_ENV: py36-test}
+    - python: 3.7
+      env: {TOX_ENV: py37-test}
+    - python: 3.8
+      env: {TOX_ENV: py38-test}
+
+# Report coverage to codecov.io.
+before_install:
+    - "[ ! -z $COVERAGE ] && travis_retry pip install codecov || true"
+after_success:
+    - "[ ! -z $COVERAGE ] && codecov || true"
