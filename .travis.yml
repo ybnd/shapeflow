@@ -12,6 +12,9 @@ matrix:
     - python: 3.8
       env: {TOX_ENV: py38-test}
 
+script:
+  - tox -e $TOX_ENV $SITE_PACKAGES
+
 # Report coverage to codecov.io.
 before_install:
     - "[ ! -z $COVERAGE ] && travis_retry pip install codecov || true"
