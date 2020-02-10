@@ -61,10 +61,6 @@ class VideoInterface(object):
             # Deposit a temporary entry into the cache
             self._cache.set(key, 'in progress')
 
-            # Hack to propagate cache to other threads todo: ok like this?
-            # self._cache.close()  todo: doesn't seem to be needed anyways...
-            # self.__enter__()
-
             # Get frame from OpenCV capture
             if frame_number is None:
                 frame_number = int(self.Nframes / 2)
@@ -112,7 +108,7 @@ class VideoAnalyzer(VideoInterface):
         pass
 
     def get_frame(self, frame_number=0.5,
-                  do_transform=True, to_hsv=True, cache=True):
+                  do_transform=True, to_hsv=True):
         super(VideoAnalyzer, self).get_frame(frame_number, to_hsv)
         # transform
         pass
