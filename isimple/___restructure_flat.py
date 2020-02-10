@@ -14,11 +14,18 @@ logging.basicConfig(
 )
 
 
+class VideoFileTypeError(Exception):
+    pass
+
+
 class VideoInterface(object):
     """Interface to video files ~ OpenCV
     """
 
     def __init__(self, video_path):
+        if not os.path.isfile(video_path):
+            raise FileNotFoundError
+
         self.path = video_path
         self.name = video_path.split('\\')[-1].split('.png')[0]
         self._cache = None
@@ -29,7 +36,10 @@ class VideoInterface(object):
 
         self.Nframes = int(self._capture.get(cv2.CAP_PROP_FRAME_COUNT))
         self.fps = self._capture.get(cv2.CAP_PROP_FPS)
-        self.frame_number = None
+        self.frame_number = int(self._capture.get(cv2.CAP_PROP_POS_FRAMES))
+
+        if self.Nframes == 0:
+            raise VideoFileTypeError
 
     def _get_key(self, frame_number, to_hsv) -> int:
         return hash(f"{self.path} {frame_number} {to_hsv}")
