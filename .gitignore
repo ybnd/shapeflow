@@ -19,3 +19,4 @@ isimple/.last-update
 .cache/
 test/.cache/
 test/.log
+*.log

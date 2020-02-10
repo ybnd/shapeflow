@@ -1,12 +1,19 @@
 from diskcache import Cache
 import cv2
 import os
+import re
 import time
 import logging
 import traceback
+from typing import Tuple, List
+import numpy as np
+from OnionSVG import OnionSVG, check_svg
+
+from isimple.utility.images import ckernel, crop_mask
+from isimple.utility import describe_function
 
 
-__CACHE_DIRECTORY__ = '.cache'
+__CACHE_DIRECTORY__ = os.path.join(os.getcwd(), '.cache')
 __CACHE_SIZE_LIMIT__ = 2 ** 32
 
 logging.basicConfig(
@@ -18,11 +25,48 @@ class VideoFileTypeError(Exception):
     pass
 
 
-class VideoInterface(object):
+class VideoAnalysisElement(object):  # todo: more descriptive name
+    __default__ = {
+    }
+
+    def __init__(self, config: dict):
+        self._config = self.handle_config(config)
+
+    def handle_config(self, config: dict = None) -> dict:
+        if config is None:
+            config = {}
+
+        # Gather __default__ from all parents
+        __default__ = {}
+        for base_class in self.__class__.__bases__:
+            if hasattr(base_class, '__default__'):
+                __default__.update(base_class.__default__)
+        __default__.update(self.__default__)
+
+        _config = {}
+        for key, default in __default__.items():
+            if key in config:
+                _config[key] = config[key]
+            else:
+                _config[key] = default
+
+        return _config
+
+    def __getitem__(self, item):
+        return self._config[item]
+
+
+class VideoInterface(VideoAnalysisElement):
     """Interface to video files ~ OpenCV
     """
+    __default__ = {
+        'cache_dir': os.path.join(os.getcwd(), '.cache'),
+        'cache_size_limit': 2 ** 32,  # cache size limit
+    }
 
-    def __init__(self, video_path):
+    def __init__(self, video_path, config: dict = None):
+        super(VideoInterface, self).__init__(config)
+
         if not os.path.isfile(video_path):
             raise FileNotFoundError
 
@@ -41,8 +85,11 @@ class VideoInterface(object):
         if self.Nframes == 0:
             raise VideoFileTypeError
 
-    def _get_key(self, frame_number, to_hsv) -> int:
-        return hash(f"{self.path} {frame_number} {to_hsv}")
+    def _get_key(self, method, *args, **kwargs) -> int:
+        # key should be instance-independent to handle multithreading
+        #  and caching between application runs
+        #  i.e. hash __name__ instead of bound method
+        return hash(f"{self.path} {describe_function(method)} {args} {kwargs}")
 
     def _set_position(self, frame_number: int):
         self._capture.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
@@ -54,7 +101,7 @@ class VideoInterface(object):
 
     def get_frame(self, frame_number: int = None,
                   to_hsv: bool = True, from_cache = False):
-        key = self._get_key(frame_number, to_hsv)
+        key = self._get_key(self.get_frame, frame_number, to_hsv)
         # Check cache
         if key in self._cache:
             # Get frame from cache
@@ -89,8 +136,8 @@ class VideoInterface(object):
 
     def __enter__(self):
         self._cache = Cache(
-            directory=__CACHE_DIRECTORY__,
-            size_limit=__CACHE_SIZE_LIMIT__,
+            directory=self['cache_dir'],
+            size_limit=self['cache_size_limit'],
         )
         return self
 
@@ -101,27 +148,97 @@ class VideoInterface(object):
         else:
             return True
 
+
 class VideoAnalyzer(VideoInterface):
     """Main video handling class
         * Load frames from video files
         * Load mask files
         * Load/save measurement metadata
     """
-    def __init__(self, video_path, svg_path, dt, h, kernel):
+
+    __default__ = {
+        'dt': 5,  # time interval in seconds
+        'dpi': 400,  # DPI to render .svg at
+        'render_dir': os.path.join(os.getcwd(), '.render'),
+        'keep_renders': False,
+        'transform': None,
+    }
+
+    def __init__(self, video_path: str, design_path: str, config: dict = None):
         super(VideoAnalyzer, self).__init__(video_path)
-        pass
 
-    def check_files(self):
-        pass
+        self._config = self.handle_config(config)
 
-    def handle_svg(self):
-        pass
+        if not os.path.isfile(design_path):
+            raise FileNotFoundError
 
-    def get_frame(self, frame_number=0.5,
-                  do_transform=True, to_hsv=True):
+        self._overlay, self._masks = self.handle_design(design_path)
+        self._transform = Transform(self._config)
+
+    def clear_renders(self):
+        renders = [f for f in os.listdir(self['render_dir'])]
+        for f in renders:
+            os.remove(os.path.join(self['render_dir'], f))
+
+    def handle_design(self, design_path) \
+            -> Tuple[np.ndarray, List[VideoAnalysisElement]]:
+
+        if not os.path.isdir(self['render_dir']):
+            os.mkdir(self['render_dir'])
+        else:
+            self.clear_renders()
+
+        check_svg(design_path)
+        OnionSVG(design_path, dpi=self['dpi']).peel(
+            'all', to=self['render_dir']
+        )
+
+        print("\n")
+
+        overlay = cv2.imread(
+            os.path.join(self['render_dir'], 'overlay.png')
+        )
+
+        files = os.listdir(self['render_dir'])
+        files.remove('overlay.png')
+
+        # todo: explain this stuff
+        pattern = re.compile('(\d+)[?\-=_#/\\\ ]+([?\w\-=_#/\\\ ]+)')
+
+        sorted_files = []
+        matched = {}
+        mismatched = []
+
+        for path in files:
+            name = os.path.splitext(path)[0]
+            match = pattern.search(name)
+
+            if match:
+                matched.update(
+                    {int(match.groups()[0]): path}
+                )
+            else:
+                mismatched.append(path)
+
+        for index in sorted(matched.keys()):
+            sorted_files.append(matched[index])
+
+        sorted_files = sorted_files + mismatched
+
+        masks = []
+        for path in sorted_files:
+            masks.append(Mask(path, self, self._config))
+
+        if not self['keep_renders']:
+            self.clear_renders()
+
+        return overlay, masks
+
+    def get_frame(self, frame_number=None, do_transform=True, to_hsv=True):
         super(VideoAnalyzer, self).get_frame(frame_number, to_hsv)
         # transform
-        pass
+        if do_transform:
+            pass
 
     def get_next_frame(self, to_hsv = True):
         pass
@@ -130,15 +247,20 @@ class VideoAnalyzer(VideoInterface):
         pass
 
 
-class Transform(object):
+class Transform(VideoAnalysisElement):
     """Handles coordinate transforms.
         Transform objects can point to a parent transform
         -- the transform is applied in sequence!
     """
-    pass
+    __default__ = {
+        'transform': None
+    }
+
+    def __init__(self, config):
+        super(Transform, self).__init__(config)
 
 
-class Filter(object):
+class Filter(VideoAnalysisElement):
     """Handles pixel filtering operations
     """
     pass
@@ -150,12 +272,18 @@ class HueRangeFilter(Filter):
     pass
 
 
-class Mask(object):
+class Mask(VideoAnalysisElement):
     """Handles masks in the context of a video file
     """
-    pass
 
+    __default__ = {
+        'render_dir': os.path.join(os.getcwd(), '.render'),
+        'kernel': ckernel(7),  # mask smoothing kernel
+    }
 
+    def __init__(self, path: str, va: VideoAnalyzer, config: dict):
+        super(Mask, self).__init__(config)
+        self._va = va
 
 
 
