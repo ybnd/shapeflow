@@ -25,3 +25,4 @@ openpyxl>=2.5.12
 pyyaml
 GitPython
 scipy
+nose
