@@ -332,7 +332,8 @@ class VideoAnalyzer:
         return [mask.area(frame) for mask in self.masks]
 
     def ratios(self, frame=None):
-        """ Calculate the relative areas for all of the masks. """  # todo: abstract away from VideoAnalyzer
+        """Calculate the relative areas for all of the masks.
+        """  # todo: abstract away from VideoAnalyzer
         if frame is None:
             frame = self.frame
 

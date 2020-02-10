@@ -16,3 +16,5 @@ examples/
 isimple/.history
 *.meta
 isimple/.last-update
+.cache/
+test/.cache/
