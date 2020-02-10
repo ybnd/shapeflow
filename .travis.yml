@@ -12,6 +12,10 @@ matrix:
     - python: 3.8
       env: {TOX_ENV: py38-test}
 
+install:
+    - travis_retry pip install tox sphinx
+    - travis_retry tox -e $TOX_ENV --notest
+
 script:
   - tox -e $TOX_ENV $SITE_PACKAGES
 
