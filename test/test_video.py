@@ -13,9 +13,10 @@ import time
 __VIDEO__ = 'test.mp4'
 __DESIGN__ = 'test.svg'
 
-if os.getcwd().split()[-1:] == 'isimple':
-    __VIDEO__ = 'test/' + __VIDEO__
-    __DESIGN__ = 'test/' + __DESIGN__
+if os.getcwd().split()[-1:] == 'isimple' \
+        and os.getcwd().split()[-2:] != 'isimple':
+    __VIDEO__ = 'isimple/test/' + __VIDEO__
+    __DESIGN__ = 'isimple/test/' + __DESIGN__
 
 
 __FRAMES__ = [1, 20, 50]
