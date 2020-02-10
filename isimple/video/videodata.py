@@ -48,13 +48,14 @@ class VideoAnalyzer:
     __default_kernel__ = isimple.utility.images.ckernel(7)
     __default_dt__ = 60
     __default_h__ = 0.153
-    __overlay_DPI__ = 400
 
     __render_folder__ = os.path.join(os.getcwd(), '.render')
 
     __overlay_DPI__ = 400
 
-    def __init__(self, video_path, overlay_path, dt=None, h=None, kernel=None, dpi=__overlay_DPI__, prompt_transform=True, prompt_color=True):
+    def __init__(self, video_path, overlay_path,
+                 dt=None, h=None, kernel=None, dpi=__overlay_DPI__,
+                 prompt_transform=True, prompt_color=True):
         self.path = video_path
         self.name = video_path.split('\\')[-1].split('.png')[0]
         self.overlay_path = overlay_path

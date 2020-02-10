@@ -5,7 +5,7 @@ import os
 import time
 import pandas as pd
 
-# https://stackoverflow.com/questions/16782112/can-pyyaml-dump-dict-items-in-non-alphabetical-order
+# https://stackoverflow.com/questions/16782112
 yaml.add_representer(
     dict, lambda self,
     data: yaml.representer.SafeRepresenter.represent_dict(self, data.items())
