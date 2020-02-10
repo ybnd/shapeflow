@@ -5,8 +5,10 @@ from functools import wraps
 def restrict(val, minval, maxval):
     """https://stackoverflow.com/questions/4092528
     """
-    if val < minval: return minval
-    if val > maxval: return maxval
+    if val < minval:
+        return minval
+    if val > maxval:
+        return maxval
     return val
 
 

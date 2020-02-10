@@ -15,7 +15,8 @@ def video_analysis_demo(video, design, timestep, height):
     )
     va.reset()
 
-    xlsx = os.path.splitext(va.name)[0] + ' ' + datetime.now().strftime("%Y-%m-%d %H-%M-%S") + '.xlsx'
+    xlsx = os.path.splitext(va.name)[0] \
+        + ' ' + datetime.now().strftime("%Y-%m-%d %H-%M-%S") + '.xlsx'
     writer = pd.ExcelWriter(xlsx)
 
     pd.DataFrame().to_excel(writer, sheet_name='data')
@@ -43,7 +44,8 @@ def video_analysis_demo(video, design, timestep, height):
     pw.keepopen()
 
 
-def video_analysis_demo_jitter_transform(video, design, timestep, height, jitter_list):
+def video_analysis_demo_jitter_transform(
+        video, design, timestep, height, jitter_list):
     t = []
     areas = [[] for _ in jitter_list]
 
@@ -57,7 +59,8 @@ def video_analysis_demo_jitter_transform(video, design, timestep, height, jitter
 
     # alter the transform matrix by adding a specified jitter matrix
 
-    xlsx = os.path.splitext(va.name)[0] + f' jitterD ' + datetime.now().strftime("%Y-%m-%d %H-%M-%S") + '.xlsx'
+    xlsx = os.path.splitext(va.name)[0] \
+        + f' jitterD ' + datetime.now().strftime("%Y-%m-%d %H-%M-%S") + '.xlsx'
     writer = pd.ExcelWriter(xlsx)
 
     df = []
@@ -66,7 +69,9 @@ def video_analysis_demo_jitter_transform(video, design, timestep, height, jitter
     for i, jitter in enumerate(jitter_list):
         va.transform = og_transform * (1+jitter)
         va.export_frame_overlay(f'{va.name} jitterD-{i}.png')
-        isimple.video.metadata.save_to_excel(va.get_meta(), writer, sheet=f'metadata-jitterD-{i}')
+        isimple.video.metadata.save_to_excel(
+            va.get_meta(), writer, sheet=f'metadata-jitterD-{i}'
+        )
         va.transform = og_transform
 
         df.append(pd.DataFrame())

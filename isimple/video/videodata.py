@@ -12,35 +12,6 @@ DPI = 400               # todo: should make this a setting for VideoAnalyzer ins
 DPmm = 400 / 25.4
 
 
-def ckernel(size: int) -> np.ndarray:
-    """Circular filter kernel
-    """
-    if not size % 2: size = size - 1
-    index = int(size / 2)
-
-    y, x = np.ogrid[-index:size - index, -index:size - index]
-    r = int(size / 2)
-    mask = x * x + y * y <= r * r
-    array = np.zeros([size, size], dtype=np.uint8)
-    array[mask] = 255
-    return array
-
-
-def crop_mask(mask: np.ndarray) -> (np.ndarray, np.ndarray):
-    """Crop a binary mask image to its minimal size
-        (to exclude unnecessary regions)
-    """
-
-    nz = np.nonzero(mask)
-    row_0 = nz[0].min()
-    row_1 = nz[0].max()
-    col_0 = nz[1].min()
-    col_1 = nz[1].max()
-    cropped_mask = mask[row_0:row_1, col_0:col_1]
-    return cropped_mask, np.array([row_0, row_1, col_0, col_1])
-
-
-
 class VideoAnalyzer:
     """Main video handling class
     """
@@ -171,7 +142,9 @@ class VideoAnalyzer:
         __alpha__ = 0.1
         self.get_frame(to_hsv=False)
 
-        cv2.addWeighted(self.overlay, __alpha__, self.frame, 1 - __alpha__, 0, self.frame)
+        cv2.addWeighted(
+            self.overlay, __alpha__, self.frame, 1 - __alpha__, 0, self.frame
+        )
         cv2.imwrite(path, self.frame)
 
     def load_masks(self, prompt_color=True):
@@ -419,7 +392,8 @@ class Mask:
     __to_mask__ = staticmethod(to_mask)
     __area__ = staticmethod(area_pixelsum)
 
-    def __init__(self, video, path, kernel=isimple.utility.images.ckernel(7), prompt_color=True):
+    def __init__(self, video, path,
+                 kernel=isimple.utility.images.ckernel(7), prompt_color=True):
         self.video = video
         self.path = path
 
@@ -432,7 +406,8 @@ class Mask:
 
         self.full = self.__to_mask__(cv2.imread(path), self.kernel)
         self.video.shape = self.full.shape  # todo: should be the same for all files...
-        self.partial, self.rectangle, self.center = isimple.utility.images.crop_mask(self.full)
+        self.partial, self.rectangle, self.center \
+            = isimple.utility.images.crop_mask(self.full)
 
         if self.name in self.video.colors:
             # Try to load color from metadata file
@@ -453,7 +428,7 @@ class Mask:
             self.choose_color()
 
     def choose_color(self, color=None):
-        """Choose a ue to filter at.
+        """Choose a hue to filter at.
         """
         if color is None:
             frame = self.video.get_frame(do_warp=True)
@@ -524,7 +499,8 @@ class Mask:
 
             return frame
 
-    def not_mask(self, image, do_crop=True, kernel=isimple.utility.images.ckernel(27)):
+    def not_mask(self, image, do_crop=True,
+                 kernel=isimple.utility.images.ckernel(27)):
         """ Mask off missed pixels in the cropped region """  # todo: what to do with portions of the mask flush to the walls?
         if image is not None:
             if do_crop:
@@ -533,17 +509,19 @@ class Mask:
                                 self.rectangle[2]:self.rectangle[3],
                                 ].copy()
 
-                negative_mask = cv2.dilate(partial_image, kernel,
-                                           iterations=2) - self.partial
-                frame = cv2.bitwise_and(partial_image, partial_image,
-                                        mask=negative_mask)
+                negative_mask = cv2.dilate(
+                    partial_image, kernel, iterations=2) - self.partial
+                frame = cv2.bitwise_and(
+                    partial_image, partial_image, mask=negative_mask)
 
             else:
                 partial_image = image.copy()
 
                 negative_mask = cv2.dilate(self.full, kernel,
                                            iterations=2) - self.full
-                frame = cv2.bitwise_and(partial_image, partial_image,mask=negative_mask)
+                frame = cv2.bitwise_and(
+                    partial_image, partial_image, mask=negative_mask
+                )
 
             return frame
 
@@ -563,7 +541,15 @@ class Mask:
     def ratio(self, image):
         return self.area(image) / self.__area__(self.partial)
 
-    def neg_area(self, image, kernel = isimple.utility.images.ckernel(27), do_crop=False):
-        """ Calculate the detected area outside of the masked & filtered image. """
-        return self.__area__(self.filter(self.not_mask(image, do_crop=do_crop, kernel=kernel)))
+    def neg_area(self, image,
+                 kernel=isimple.utility.images.ckernel(27), do_crop=False):
+        """Calculate the detected area outside of the masked & filtered image.
+        """
+        return self.__area__(
+            self.filter(
+                self.not_mask(
+                    image, do_crop=do_crop, kernel=kernel
+                )
+            )
+        )
 

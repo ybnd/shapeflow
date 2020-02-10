@@ -23,7 +23,8 @@ __ratio__ = 0.6
 
 
 def rotations(sequence) -> list:  # todo: clean up
-    """ Returns all rotations of a list. """
+    """Returns all rotations of a list.
+    """
 
     def rotate(seq, n: int) -> list:
         return seq[n:] + seq[:n]
@@ -45,7 +46,8 @@ class ScriptWindow(tk.Tk):
         self.focus_force()
 
     def close(self, do_exit=True):
-        """ Called when user tries to close the window. """
+        """Called when user tries to close the window.
+        """
         if self.done:
             # Finished!
             self.destroy()
@@ -56,15 +58,16 @@ class ScriptWindow(tk.Tk):
                 #  -> maybe a mainloop is created elsewhere also?...
         else:
             # Not finished yet!
-            if tkinter.messagebox.askokcancel("Quit", "The script is still running. Really quit?"):
+            if tkinter.messagebox.askokcancel(
+                    "Quit", "The script is still running. Really quit?"
+            ):
                 self.destroy()
                 if do_exit:
                     sys.exit()
 
 
 class ReshapeSelection:
-    """
-        Reshape-able rectangle ROI selection for tkinter canvases
+    """Reshape-able rectangle ROI selection for tkinter canvases
     """
 
     def __init__(self, window, transform, initial_coordinates=None):
@@ -95,7 +98,8 @@ class ReshapeSelection:
             self.get_corners()
 
     def undo(self, _):
-        """ Callback to clear selection rectangle """
+        """Callback to clear selection rectangle
+        """
         self.initialized = False
         self.has_rectangle = False
         for button in self.corners:
@@ -104,13 +108,15 @@ class ReshapeSelection:
             self.canvas.delete(line)
 
     def press(self, event):
-        """ Mouse press callback. Initializes rectangle dragging. """
+        """Mouse press callback. Initializes rectangle dragging.
+        """
         if not self.initialized:
             self.start = __coo__(x=event.x, y=event.y)
             self.initialized = True
 
     def release(self, event):
-        """ Mouse release callback. Commits rectangle dragging result. """
+        """Mouse release callback. Commits rectangle dragging result.
+        """
         if not self.has_rectangle:
             self.stop = __coo__(x=event.x, y=event.y)
 
@@ -138,7 +144,8 @@ class ReshapeSelection:
         self.update()
 
     def update(self):
-        """ Update selection rectangle and transform matrix. """
+        """Update selection rectangle and transform matrix.
+        """
         self.redraw()
         co = [corner.co for corner in self.corners]
 
@@ -149,24 +156,27 @@ class ReshapeSelection:
         self.transform.get_new_transform(co, self.order)
 
     def redraw(self):
-        """ Redraw selection rectangle on the canvas. """
+        """Redraw selection rectangle on the canvas.
+        """
         for line in self.lines:
             self.canvas.delete(line)
 
         for i, corner in enumerate(self.corners):
-            self.lines.append(self.canvas.create_line(self.corners[i - 1].co, corner.co))
+            self.lines.append(
+                self.canvas.create_line(self.corners[i - 1].co, corner.co)
+            )
 
         for corner in self.corners:
             self.canvas.focus(corner)
 
     def quit(self, _):
-        """ Close the window. """
+        """Close the window.
+        """
         self.canvas.master.destroy()
 
 
 class Corner:
-    """
-        Draggable corner for ROI selection rectangle
+    """Draggable corner for ROI selection rectangle
     """
 
     __side__ = 35
@@ -178,14 +188,20 @@ class Corner:
         self.canvas = selection.canvas
         self.selection = selection
         self.co = co
-        # self.id = self.canvas.create_oval(co.x-r, co.y-r, co.x+r, co.y+r, fill = 'LightGray')
+        # self.id = self.canvas.create_oval(
+        #     co.x-r, co.y-r, co.x+r, co.y+r, fill='LightGray'
+        # )
         self.name = name
 
         self.previous = None
         self.drag_binding = None
 
         if self.handle is None:
-            pim = Image.new('RGBA', (self.__side__, self.__side__), (255, 0, 0, int(self.alpha * 255)))
+            pim = Image.new(
+                'RGBA',
+                (self.__side__, self.__side__),
+                (255, 0, 0, int(self.alpha * 255))
+            )
 
             self.handle = ImageTk.PhotoImage(image=pim)
 
@@ -195,9 +211,13 @@ class Corner:
             # )
             # self.label.place(x = co.x, y = co.y)
         if isinstance(co, __coo__):
-            self.id = self.canvas.create_image(co.x, co.y, image=self.handle, anchor='center')
+            self.id = self.canvas.create_image(
+                co.x, co.y, image=self.handle, anchor='center'
+            )
         else:
-            self.id = self.canvas.create_image(co[0], co[1], image=self.handle, anchor='center')
+            self.id = self.canvas.create_image(
+                co[0], co[1], image=self.handle, anchor='center'
+            )
 
         self.canvas.tag_bind(self.id, "<ButtonPress-1>", self.press)
         self.canvas.tag_bind(self.id, "<ButtonRelease-1>", self.release)
@@ -207,13 +227,15 @@ class Corner:
         self.dragging = False
 
     def press(self, event):
-        """ Callback for mouse click """
+        """Callback for mouse click
+        """
         self.previous = __coo__(event.x, event.y)
         self.drag_binding = self.canvas.bind("<Motion>", self.drag)
         self.dragging = True
 
     def drag(self, event):
-        """ Callback for mouse movement after click """
+        """Callback for mouse movement after click
+        """
         self.canvas.move(
             self.id, event.x - self.previous.x, event.y - self.previous.y
         )
@@ -224,7 +246,8 @@ class Corner:
         self.previous = self.co
 
     def release(self, event):
-        """ Callback for mouse release """
+        """Callback for mouse release
+        """
         self.canvas.unbind("<Motion>", self.drag_binding)
         co = self.canvas.coords(self.id)
         self.co = __coo__(co[0], co[1])
@@ -237,50 +260,63 @@ class Corner:
         self.canvas.delete(self.id)
 
     def enter(self, _):
-        """ Callback - mouse is hovering over object """
+        """Callback - mouse is hovering over object
+        """
         self.canvas.configure(cursor='hand2')
 
     def leave(self, _):
-        """ Callback - mouse is not hovering over object anymore """
+        """Callback - mouse is not hovering over object anymore
+        """
         if not self.dragging:
             self.canvas.configure(cursor='left_ptr')
 
 
 class ImageDisplay:
-    """
-        OpenCV image display in tkinter canvas with link to ROI selection and coordinate transform.
+    """OpenCV image display in tkinter canvas with link to ROI selection
+        and coordinate transform.
     """
     __ratio__ = __ratio__ * __monitor_w__
     __rotations__ = {str(p): p for p in rotations(list(range(4)))}
 
-    def __init__(self, window: ScriptWindow, image: np.ndarray, overlay: np.ndarray, transform: np.ndarray,
+    def __init__(self, window: ScriptWindow, image: np.ndarray,
+                 overlay: np.ndarray, transform: np.ndarray,
                  order: set = (0, 1, 2, 3), initial_coordinates=None):
         self.window = window  # todo: some of this should actually be in an 'app' or 'window' object
         self.shape = image.shape
 
         self.__ratio__ = self.__ratio__ / self.shape[1]
 
-        self.__width__ = int(self.shape[1] * self.__ratio__) + overlay.shape[1] * self.__ratio__
+        self.__width__ = int(self.shape[1] * self.__ratio__) + \
+            overlay.shape[1] * self.__ratio__
 
         if self.__width__ >= __monitor_w__:
             self.__width__ = __monitor_w__ * 0.98
-            self.__ratio__ = self.__width__ / (self.shape[1] + overlay.shape[1])
+            self.__ratio__ = self.__width__ \
+                / (self.shape[1] + overlay.shape[1])
 
         print(f'Ratio = {self.__ratio__}')
 
         self.canvas = tk.Canvas(
             self.window,
             width=self.__width__,
-            height=max(int(self.shape[0] * self.__ratio__), int(overlay.shape[0] * self.__ratio__))
+            height=max(
+                int(self.shape[0] * self.__ratio__),
+                int(overlay.shape[0] * self.__ratio__)
+            )
         )
         self.canvas.pack()
-        self.scaled_shape = (int(self.shape[1] * self.__ratio__), int(self.shape[0] * self.__ratio__))
+        self.scaled_shape = (
+            int(self.shape[1] * self.__ratio__),
+            int(self.shape[0] * self.__ratio__)
+        )
 
         self.original = image
         height, width, channels = image.shape
         img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         img = Image.fromarray(img)
-        img.thumbnail((int(width * self.__ratio__), int(height * self.__ratio__)))
+        img.thumbnail(
+            (int(width * self.__ratio__), int(height * self.__ratio__))
+        )
         self.display_image = img
         self.tkimage = ImageTk.PhotoImage(image=img)
         self.canvas.create_image(0, 0, image=self.tkimage, anchor=tk.NW)
@@ -321,12 +357,13 @@ class ImageDisplay:
 
 
 class TransformImage:
-    """
-        OpenCV perspective transform, overlay alpha blending and display with tkinter
+    """OpenCV perspective transform
+        overlay alpha blending and display with tkinter
     """
     alpha = 0.1
 
-    def __init__(self, canvas, image, overlay_img, co, callback, ratio, initial_transform, initial_order=(0, 1, 2, 3)):
+    def __init__(self, canvas, image, overlay_img, co, callback, ratio,
+                 initial_transform, initial_order=(0, 1, 2, 3)):
         self.overlay = overlay_img
         self.original = image
         self.image = None
@@ -341,7 +378,8 @@ class TransformImage:
         self.height = co[1]
         self.width = int(shape[0] * co[1] / shape[1])
 
-        self.to_coordinates = np.array(  # selection rectangle: bottom left to top right
+        # selection rectangle: bottom left to top right
+        self.to_coordinates = np.array(
             [
                 [0, shape[0]], [0, 0], [shape[1], 0], [shape[1], shape[0]]
             ]
@@ -355,7 +393,8 @@ class TransformImage:
             self.update()
 
     def get_new_transform(self, from_coordinates, order):  # todo: don't need order here?
-        """ Recalculate transform and show overlay. """
+        """Recalculate transform and show overlay.
+        """
         self.transform = cv2.getPerspectiveTransform(
             np.float32(from_coordinates) / self.__ratio__,
             np.float32(self.to_coordinates)
@@ -364,39 +403,50 @@ class TransformImage:
         # Round to remove unnecessary precision
         # self.transform = np.around(self.transform, decimals=3)
 
-        # pret = cv2.warpPerspective(self.original, self.pre_transform, (X0,Y0))
+        # pret = cv2.warpPerspective(
+        #     self.original, self.pre_transform, (X0,Y0)
+        # )
 
         self.update()
         self.callback(self.transform, from_coordinates)
 
     def update(self):
-        """ Update image based  """  # todo: transformed + overlay should be a VideoAnalyzer method
+        """Update image based
+        """  # todo: transformed + overlay should be a VideoAnalyzer method
         y, x, c = self.overlay.shape
         self.image = cv2.warpPerspective(self.original, self.transform, (x, y))
 
-        cv2.addWeighted(self.overlay, self.alpha, self.image, 1 - self.alpha, 0, self.image)
+        cv2.addWeighted(
+            self.overlay, self.alpha, self.image, 1 - self.alpha, 0, self.image
+        )
 
         height, width, channels = self.overlay.shape
         img = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
         img = Image.fromarray(img)
-        img.thumbnail((int(width * self.__ratio__), int(height * self.__ratio__)))
+        img.thumbnail(
+            (int(width * self.__ratio__), int(height * self.__ratio__))
+        )
         self.img = ImageTk.PhotoImage(image=img)
         self.canvas.create_image(self.co[0], 0, image=self.img, anchor=tk.NW)
 
         # self.callback(self.transform)
 
     def show_overlay(self):
-        """ Show overlay """
+        """Show overlay
+        """
         height, width, channels = self.overlay.shape
         img = cv2.cvtColor(self.overlay, cv2.COLOR_BGR2RGB)
         img = Image.fromarray(img)
-        img.thumbnail((int(width * self.__ratio__), int(height * self.__ratio__)))
+        img.thumbnail(
+            (int(width * self.__ratio__), int(height * self.__ratio__))
+        )
         img = ImageTk.PhotoImage(image=img)
         self.canvas.create_image(self.co[0], 0, image=img, anchor=tk.NW)
 
 
 def hsvimg2tk(image, ratio=1.0):
-    """ Convert OpenCV HSV image to PhotoImage object """
+    """Convert OpenCV HSV image to PhotoImage object
+    """
     img = cv2.cvtColor(image, cv2.COLOR_HSV2RGB)
     shape = img.shape
     img = Image.fromarray(img)
@@ -408,7 +458,8 @@ def hsvimg2tk(image, ratio=1.0):
 
 
 def binimg2tk(image, ratio=1.0):
-    """ Convert OpenCV binary image to PhotoImage object """
+    """Convert OpenCV binary image to PhotoImage object
+    """
     img = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
     shape = img.shape
     img = Image.fromarray(img)
@@ -420,8 +471,7 @@ def binimg2tk(image, ratio=1.0):
 
 
 class ColorPicker:
-    """
-        Select colours by clicking image pixels.
+    """Select colours by clicking image pixels.
     """
     __w_spacing__ = 3
     __h_scale__ = 25
@@ -445,7 +495,8 @@ class ColorPicker:
 
         if self.__width__ >= __monitor_w__:
             self.__width__ = __monitor_w__ * 0.98
-            self.__ratio__ = self.__width__ / (image.shape[1] * 2 + self.__w_spacing__)
+            self.__ratio__ = \
+                self.__width__ / (image.shape[1] * 2 + self.__w_spacing__)
         else:
             self.__ratio__ = 1
 
@@ -476,7 +527,8 @@ class ColorPicker:
         self.canvas.mainloop()
 
     def update(self):
-        """ Update UI """
+        """Update UI
+        """
         masked, filtered = self.mask.get_images()
 
         self.im_masked = hsvimg2tk(masked, ratio=self.__ratio__)
@@ -492,22 +544,26 @@ class ColorPicker:
         )
 
         self.window.selection_callback(
-            {metadata.__from__: self.mask.filter_from, metadata.__to__: self.mask.filter_to}
+            {metadata.__from__: self.mask.filter_from,
+             metadata.__to__: self.mask.filter_to}
         )
 
     def pick(self, event):
-        """ Pick a colour """
+        """Pick a colour
+        """
         self.coo = __coo__(x=event.x, y=event.y)
         self.mask.pick(self.coo)
         self.update()
 
     def track(self, value):
-        """ Scrollbar callback - track through the video. """
+        """Scrollbar callback - track through the video.
+        """
         self.mask.track(int(value))
         self.update()
 
     def quit(self, _):
-        """ Close the window. """
+        """Close the window.
+        """
         self.window.destroy()
 
 
@@ -522,7 +578,8 @@ class OverlayAlignWindow(ScriptWindow):
 
         self.image = ImageDisplay(
             self,
-            self.data.get_frame_at(self.__default_frame__, do_warp=False, to_hsv=False),
+            self.data.get_frame_at(
+                self.__default_frame__, do_warp=False, to_hsv=False),
             self.data.overlay,
             self.data.transform,
             self.data.order,
@@ -581,7 +638,8 @@ class ProgressWindow(ScriptWindow):
         self.t = None
         self.size = frame.shape
 
-        self.canvas_width = self.__raw_width__ + self.__processed__ + self.__pad__
+        self.canvas_width = \
+            self.__raw_width__ + self.__processed__ + self.__pad__
 
         self.canvas = tk.Canvas(
             self,
@@ -609,18 +667,23 @@ class ProgressWindow(ScriptWindow):
 
         self.toolbar = NavigationToolbar2Tk(self.figcanvas, window=self)
         self.toolbar.update()
-        self.figcanvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=1)
+        self.figcanvas.get_tk_widget().pack(
+            side=tk.BOTTOM, fill=tk.BOTH, expand=1
+        )
 
         self.figcanvas.get_tk_widget().pack()
 
     def update_image(self):
-        """ Show the current video frame in the UI """
+        """Show the current video frame in the UI
+        """
         if self.video.frame is not None:
             self.img = hsvimg2tk(
-                self.video.raw_frame, ratio=self.canvas_height / self.video.raw_frame.shape[0]
+                self.video.raw_frame,
+                ratio=self.canvas_height / self.video.raw_frame.shape[0]
             )
             self.state = hsvimg2tk(
-                self.video.get_state_image(), ratio=self.canvas_height / self.video.frame.shape[0]
+                self.video.get_state_image(),
+                ratio=self.canvas_height / self.video.frame.shape[0]
             )
             self.canvas.create_image(
                 0, 0, image=self.img, anchor=tk.NW
@@ -637,19 +700,27 @@ class ProgressWindow(ScriptWindow):
         ScriptWindow.update(self)
 
     def plot(self, t, areas):  # todo: this should call a method in isimple.video.visualization
-        """ Update the plot. """
+        """Update the plot.
+        """
         if areas is not None:
             try:
                 self.t = t
                 elapsed = time.time() - self.t0
 
-                areas = np.transpose(areas) / (self.video.__overlay_DPI__ / 25.4) ** 2 * self.video.h
+                areas = np.transpose(areas) / (
+                        self.video.__overlay_DPI__ / 25.4
+                ) ** 2 * self.video.h
                 # todo: do this at the VideoAnalyzer level!
 
                 self.ax.clear()
                 for i, curve in enumerate(areas):
                     color = cv2.cvtColor(
-                        np.array([[np.array(self.video.plot_colors[self.video.masks[i]], dtype=np.uint8)]]),
+                        np.array([[
+                            np.array(
+                                self.video.plot_colors[self.video.masks[i]],
+                                dtype=np.uint8
+                            )
+                        ]]),
                         cv2.COLOR_HSV2RGB
                     )[0, 0] / 255
                     # todo: shouldn't need to do this calculation at every time step!
@@ -663,7 +734,7 @@ class ProgressWindow(ScriptWindow):
                 # todo: is it necessary to re-do all of the plot legend/axis stuff for every time step?
                 self.ax.legend(loc='center right')
                 self.ax.set_title(
-                    f"{t[-1] / self.tmax * 100:.0f}%  ({elapsed:.0f} s elapsed "
+                    f"{t[-1] / self.tmax * 100:.0f}% ({elapsed:.0f} s elapsed "
                     f" @ {t[-1] / elapsed:.1f} x)", size=18, weight='bold'
                 )
                 self.ax.set_ylabel('Volume (µL)', size=12)
@@ -671,7 +742,8 @@ class ProgressWindow(ScriptWindow):
                 self.ax.set_xlim(0, self.tmax)
 
                 self.df = pd.DataFrame(
-                    data=np.stack([np.array(t)] + [curve for curve in areas], 1),
+                    data=np.stack(
+                        [np.array(t)] + [curve for curve in areas], 1),
                     columns=['t'] + [m.name for m in self.video.masks]
                 )
 
@@ -688,6 +760,7 @@ class ProgressWindow(ScriptWindow):
                 return self.df
 
     def keepopen(self):
-        """ Called to keep the window open after the script has run. """
+        """Called to keep the window open after the script has run.
+        """
         self.focus()
         self.mainloop()

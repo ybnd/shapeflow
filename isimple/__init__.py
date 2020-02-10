@@ -91,7 +91,6 @@ def update(force=False):
 
         import git
         import warnings
-        import subprocess # todo: should be able to run pip within this script with subprocess.check_call([sys.executable, "-m", "pip", "install", "--upgrade", "-r", "requirements.txt"])
         from distutils.util import strtobool
 
         def find_repo() -> git.Repo:
@@ -144,7 +143,8 @@ def update(force=False):
                       f"{'commit' if commits_behind == 1 else 'commits'} "
                       f"behind.")
 
-                # Check if any changes have been made -> dialog: discard changes?
+                # Check if any changes have been made
+                #  -> dialog: discard changes?
                 changes = [item.a_path for item in repo.index.diff(None)] \
                           + repo.untracked_files
                 changes = [
@@ -198,6 +198,7 @@ def update(force=False):
 
     # todo: if out of date, maybe abort caller script
     #  (i.e. don't try to execute a script if it's out of date)
+
 
 if __name__ == '__main__':
     update(True)  # For debugging purposes
