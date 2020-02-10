@@ -13,9 +13,10 @@ import time
 __VIDEO__ = 'test.mp4'
 __DESIGN__ = 'test.svg'
 
-if not 'isimple' in os.getcwd().split('/'):
-    __VIDEO__ = 'isimple/isimple/test/' + __VIDEO__
-    __DESIGN__ = 'isimple/isimple/test/' + __DESIGN__
+# Point to right files in Travis CI build
+if os.getcwd() == '/home/travis/build/ybnd/isimple':
+    __VIDEO__ = 'isimple/test/' + __VIDEO__
+    __DESIGN__ = 'isimple/test/' + __DESIGN__
 
 
 __FRAMES__ = [1, 20, 50]
