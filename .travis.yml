@@ -13,6 +13,7 @@ matrix:
       env: {TOX_ENV: py38-test}
 
 install:
+    - "pip install --upgrade pip && pip install -r requirements.txt"
     - travis_retry pip install tox sphinx
     - travis_retry tox -e $TOX_ENV --notest
 

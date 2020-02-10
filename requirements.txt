@@ -26,3 +26,4 @@ pyyaml
 GitPython
 scipy
 nose
+coverage

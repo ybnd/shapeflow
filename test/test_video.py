@@ -10,8 +10,8 @@ import time
 
 
 # Get validation frames from test video ~ OpenCV
-__VIDEO__ = 'test.mp4'
-__DESIGN__ = 'test.svg'
+__VIDEO__ = 'test/test.mp4'
+__DESIGN__ = 'test/test.svg'
 __FRAMES__ = [1, 20, 50]
 __TRANSFORM__ = np.random.rand(3,3)
 
