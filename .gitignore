@@ -16,3 +16,8 @@ examples/
 isimple/.history
 *.meta
 isimple/.last-update
+.cache/
+test/.cache/
+test/.log
+*.log
+.mypy_cache/
