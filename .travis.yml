@@ -4,19 +4,19 @@ language: python
 matrix:
   include:
     - python: 3.6
-      env: {TOX_ENV: py36-cov, COVERAGE: 1}
-    - python: 3.6
-      env: {TOX_ENV: py36-typing}
+      env: {TOX_ENV: py36-type}
     - python: 3.6
       env: {TOX_ENV: py36-test}
     - python: 3.7
       env: {TOX_ENV: py37-test}
     - python: 3.8
       env: {TOX_ENV: py38-test}
+    - python: 3.6
+      env: {TOX_ENV: py36-cover, COVERAGE: 1}
 
 install:
     - "pip install --upgrade pip && pip install -r requirements.txt"
-    - travis_retry pip install tox sphinx
+    - travis_retry pip install tox
     - travis_retry tox -e $TOX_ENV --notest
 
 script:
