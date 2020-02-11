@@ -1,4 +1,8 @@
 # KUL Biosensors team - iSIMPLE
+[![travis-ci](https://travis-ci.org/ybnd/isimple.svg?branch=master)](https://travis-ci.org/ybnd/isimple)
+[![travis-ci](https://travis-ci.org/ybnd/isimple.svg?branch=develop)](https://travis-ci.org/ybnd/isimple)
+[![codecov](https://codecov.io/gh/ybnd/isimple/branch/develop/graph/badge.svg)](https://codecov.io/gh/ybnd/isimple)
+
 
 >**CURRENTLY, THIS REPOSITORY IS PUBLIC, BUT MAYBE IT SHOULDN'T BE**
 
