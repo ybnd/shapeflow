@@ -20,3 +20,4 @@ isimple/.last-update
 test/.cache/
 test/.log
 *.log
+.mypy_cache/

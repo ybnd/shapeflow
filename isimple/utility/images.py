@@ -1,6 +1,7 @@
 import numpy as np
 import cv2
 
+from typing import Tuple
 
 def ckernel(size: int) -> np.ndarray:
     """Circular filter kernel
@@ -16,7 +17,7 @@ def ckernel(size: int) -> np.ndarray:
     return array
 
 
-def crop_mask(mask: np.ndarray) -> (np.ndarray, np.ndarray, np.ndarray):
+def crop_mask(mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Crop a binary mask image to its minimal size
         (to exclude unnecessary regions)
     """

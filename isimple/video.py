@@ -4,12 +4,11 @@ import os
 import re
 import time
 import logging
-import traceback
 from typing import Tuple, List
 import numpy as np
 from OnionSVG import OnionSVG, check_svg
 
-from isimple.utility.images import ckernel, crop_mask
+from isimple.utility.images import ckernel
 from isimple.utility import describe_function
 from isimple.gui import guiPane
 
@@ -27,25 +26,26 @@ class VideoFileTypeError(Exception):
 
 
 class VideoAnalysisElement(object):  # todo: more descriptive name
+    __default__: dict
     __default__ = {
     }
 
-    def __init__(self, config: dict):
+    def __init__(self, config: dict = None):
         self._config = self.handle_config(config)
 
     def handle_config(self, config: dict = None) -> dict:
         if config is None:
             config = {}
 
-        # Gather __default__ from all parents
-        __default__ = {}
+        # Gather default config from all parents
+        default_config: dict = {}
         for base_class in self.__class__.__bases__:
             if hasattr(base_class, '__default__'):
-                __default__.update(base_class.__default__)
-        __default__.update(self.__default__)
+                default_config.update(base_class.__default__)  #type: ignore
+        default_config.update(self.__default__)
 
         _config = {}
-        for key, default in __default__.items():
+        for key, default in default_config.items():
             if key in config:
                 _config[key] = config[key]
             else:
@@ -60,9 +60,11 @@ class VideoAnalysisElement(object):  # todo: more descriptive name
         raise NotImplementedError
 
 
-class VideoInterface(VideoAnalysisElement):
+class VideoFileInterface(VideoAnalysisElement):
     """Interface to video files ~ OpenCV
     """
+    _cache: Cache
+
     cache_dir: str
     cache_size_limit: int
 
@@ -72,7 +74,7 @@ class VideoInterface(VideoAnalysisElement):
     }
 
     def __init__(self, video_path, config: dict = None):
-        super(VideoInterface, self).__init__(config)
+        super(VideoFileInterface, self).__init__(config)
 
         if not os.path.isfile(video_path):
             raise FileNotFoundError
@@ -110,8 +112,8 @@ class VideoInterface(VideoAnalysisElement):
         self.frame_number = self._capture.get(cv2.CAP_PROP_POS_FRAMES)
         return self.frame_number
 
-    def get_frame(self, frame_number: int = None,
-                  to_hsv: bool = True, from_cache = False):
+    def read_frame(self, frame_number: int = None,
+                   to_hsv: bool = True, from_cache = False):
         key = self._get_key(self.get_frame, frame_number, to_hsv)
         # Check cache
         if key in self._cache:
@@ -158,133 +160,11 @@ class VideoInterface(VideoAnalysisElement):
             return True
 
 
-class VideoAnalyzer(VideoInterface):
-    """Main video handling class
-        * Load frames from video files
-        * Load mask files
-        * Load/save measurement metadata
+class FrameAnalyzerInterface(object):
+    """Interface for classes that retreive frames for analysis
     """
-    _overlay: np.ndarray
-    _masks: List[VideoAnalysisElement]
-    _transform: VideoAnalysisElement
-
-    dt: float
-    dpi: int
-    render_dir: str
-    keep_renders: bool
-    transform_type: str
-    transform_matrix: np.ndarray
-
-    __default__ = {
-        'dt': 5,  # time interval in seconds
-        'dpi': 400,  # DPI to render .svg at
-        'render_dir': os.path.join(os.getcwd(), '.render'),
-        'keep_renders': False,
-        'transform_type': 'perspective',
-        'transform_matrix': None,
-    }
-
-    def __init__(self, video_path: str, design_path: str, config: dict = None):
-        super(VideoAnalyzer, self).__init__(video_path)
-
-        self._config = self.handle_config(config)
-
-        if not os.path.isfile(design_path):
-            raise FileNotFoundError
-
-        self._overlay, self._masks = self.handle_design(design_path)
-        self._transform = self._get_transform(self.transform_type)(
-            self.shape, self._config
-        )
-
-    def clear_renders(self):
-        renders = [f for f in os.listdir(self.render_dir)]
-        for f in renders:
-            os.remove(os.path.join(self.render_dir, f))
-
-    def handle_design(self, design_path) \
-            -> Tuple[np.ndarray, List[VideoAnalysisElement]]:
-
-        if not os.path.isdir(self.render_dir):
-            os.mkdir(self.render_dir)
-        else:
-            self.clear_renders()
-
-        check_svg(design_path)
-        OnionSVG(design_path, dpi=self.dpi).peel(
-            'all', to=self.render_dir
-        )
-
-        print("\n")
-
-        overlay = cv2.imread(
-            os.path.join(self.render_dir, 'overlay.png')
-        )
-
-        files = os.listdir(self.render_dir)
-        files.remove('overlay.png')
-
-        # todo: explain this stuff
-        pattern = re.compile('(\d+)[?\-=_#/\\\ ]+([?\w\-=_#/\\\ ]+)')
-
-        sorted_files = []
-        matched = {}
-        mismatched = []
-
-        for path in files:
-            name = os.path.splitext(path)[0]
-            match = pattern.search(name)
-
-            if match:
-                matched.update(
-                    {int(match.groups()[0]): path}
-                )
-            else:
-                mismatched.append(path)
-
-        for index in sorted(matched.keys()):
-            sorted_files.append(matched[index])
-
-        sorted_files = sorted_files + mismatched
-
-        masks = []
-        for path in sorted_files:
-            masks.append(Mask(path, self, self._config))
-
-        if not self.keep_renders:
-            self.clear_renders()
-
-        return overlay, masks
-
-    def get_frame(self, frame_number=None, do_transform=True, to_hsv=True) \
-            -> np.ndarray:
-        frame = super(VideoAnalyzer, self).get_frame(frame_number, to_hsv)
-        if do_transform:
-            self._transform(frame)
-
-        return frame
-
-    def get_next_frame(self, *args, **kwargs) -> np.ndarray:
-        if self.dt is not None:
-            frame_number = self.frame_number + int(self.dt * self.fps)
-        else:
-            frame_number = self.frame_number + 1
-
-        if frame_number <= self.Nframes:
-            return self.get_frame(frame_number, *args, **kwargs)
-
-    @staticmethod
-    def _get_transform(type: str):
-        transform_types = {
-            'perspective': PerspectiveTransform,
-        }
-        if type in transform_types:
-            return transform_types[type]
-        else:
-            raise ValueError(
-                f"Invalid transform type '{type}' \n"
-                f"Valid types: {list(transform_types.keys())}"
-            )
+    def get_frame(self):
+        raise NotImplementedError
 
 
 class Transform(VideoAnalysisElement):
@@ -384,8 +264,9 @@ class Mask(VideoAnalysisElement):
         'kernel': ckernel(7),  # mask smoothing kernel
     }
 
-    def __init__(self, path: str, va: VideoAnalyzer, config: dict):
+    def __init__(self, path: str, va: FrameAnalyzerInterface, config: dict):
         super(Mask, self).__init__(config)
+        self._path = path
         self._va = va
 
     def __call__(self, frame: np.ndarray) -> np.ndarray:
@@ -394,6 +275,135 @@ class Mask(VideoAnalysisElement):
             If caller needs the original value, they should copy explicitly
         """
         raise NotImplementedError
+
+
+class VideoAnalyzer(VideoFileInterface, FrameAnalyzerInterface):
+    """Main video handling class
+        * Load frames from video files
+        * Load mask files
+        * Load/save measurement metadata
+    """
+    _overlay: np.ndarray
+    _masks: List[Mask]
+    _transform: Transform
+
+    dt: float
+    dpi: int
+    render_dir: str
+    keep_renders: bool
+    transform_type: str
+    transform_matrix: np.ndarray
+
+    __default__ = {
+        'dt': 5,  # time interval in seconds
+        'dpi': 400,  # DPI to render .svg at
+        'render_dir': os.path.join(os.getcwd(), '.render'),
+        'keep_renders': False,
+        'transform_type': 'perspective',
+        'transform_matrix': None,
+    }
+
+    def __init__(self, video_path: str, design_path: str, config: dict = None):
+        super(VideoAnalyzer, self).__init__(video_path)
+
+        self._config = self.handle_config(config)
+
+        if not os.path.isfile(design_path):
+            raise FileNotFoundError
+
+        self._overlay, self._masks = self.handle_design(design_path)
+        self._transform = self._get_transform(self.transform_type)(
+            self.shape, self._config
+        )
+
+    def clear_renders(self):
+        renders = [f for f in os.listdir(self.render_dir)]
+        for f in renders:
+            os.remove(os.path.join(self.render_dir, f))
+
+    def handle_design(self, design_path) \
+            -> Tuple[np.ndarray, List[Mask]]:
+
+        if not os.path.isdir(self.render_dir):
+            os.mkdir(self.render_dir)
+        else:
+            self.clear_renders()
+
+        check_svg(design_path)
+        OnionSVG(design_path, dpi=self.dpi).peel(
+            'all', to=self.render_dir
+        )
+
+        print("\n")
+
+        overlay = cv2.imread(
+            os.path.join(self.render_dir, 'overlay.png')
+        )
+
+        files = os.listdir(self.render_dir)
+        files.remove('overlay.png')
+
+        # todo: explain this stuff
+        pattern = re.compile('(\d+)[?\-=_#/\\\ ]+([?\w\-=_#/\\\ ]+)')
+
+        sorted_files = []
+        matched = {}
+        mismatched = []
+
+        for path in files:
+            name = os.path.splitext(path)[0]
+            match = pattern.search(name)
+
+            if match:
+                matched.update(
+                    {int(match.groups()[0]): path}
+                )
+            else:
+                mismatched.append(path)
+
+        for index in sorted(matched.keys()):
+            sorted_files.append(matched[index])
+
+        sorted_files = sorted_files + mismatched
+
+        masks = []
+        for path in sorted_files:
+            masks.append(Mask(path, self, self._config))
+
+        if not self.keep_renders:
+            self.clear_renders()
+
+        return overlay, masks
+
+    def get_frame(self, frame_number=None, do_transform=True, to_hsv=True) \
+            -> np.ndarray:
+        frame = self.read_frame(frame_number, to_hsv)
+        if do_transform:
+            self._transform(frame)
+
+        return frame
+
+    def get_next_frame(self, *args, **kwargs) -> np.ndarray:
+        if self.dt is not None:
+            frame_number = self.frame_number + int(self.dt * self.fps)
+        else:
+            frame_number = self.frame_number + 1
+
+        if frame_number <= self.Nframes:
+            return self.get_frame(frame_number, *args, **kwargs)
+
+    @staticmethod
+    def _get_transform(type: str):
+        transform_types = {
+            'perspective': PerspectiveTransform,
+        }
+        if type in transform_types:
+            return transform_types[type]
+        else:
+            raise ValueError(
+                f"Invalid transform type '{type}' \n"
+                f"Valid types: {list(transform_types.keys())}"
+            )
 
 
 class guiTransform(guiPane):
