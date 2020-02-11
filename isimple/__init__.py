@@ -13,7 +13,7 @@ class HistoryApp(object):
     """Applications with history stored in JSON format in isimple/.history
     """
     def __init__(self, file):
-        self.full_history = {}
+        self.full_history = {}  # todo: should interact with isimple.video.VideoAnalysisElement._config
         self.history = {}
 
         self.key = file or __file__
@@ -73,7 +73,7 @@ def write_last_update_time(t=None):
         f.write(str(t))
 
 
-def update(force=False):
+def update(force=False, do_discard=None, do_pull=None, do_reqs=None):
     """Auto-updating method for applications intended for "end-users".
 
         Usage:
@@ -90,6 +90,7 @@ def update(force=False):
     if time_since_update > __update_interval__ or force:
 
         import git
+        import subprocess
         import warnings
         from distutils.util import strtobool
 
@@ -104,8 +105,9 @@ def update(force=False):
                 except git.exc.InvalidGitRepositoryError:
                     # If this folder is not a git repo, step back and retry
                     steps_back += 1
-
                     folder = os.path.dirname(folder)
+
+            raise git.exc.InvalidGitRepositoryError
 
         # Start a tkinter window & hide it,
         #  otherwise messagebox spawns one anyway (annoying)
@@ -117,7 +119,7 @@ def update(force=False):
         repo = find_repo()
 
         # Check if on master branch -> if not, return.
-        # ASSUMES THAT master BRANCH IS NAMED MASTER!
+        # ASSUMES THAT master BRANCH IS NAMED master!
         if repo.active_branch.name == 'master' or force:
             print(f"Last update was {round(time_since_update/3600)} "
                   f"hours ago. Checking for updates...")
@@ -126,7 +128,11 @@ def update(force=False):
             # ASSUMES THAT `origin` IS SET CORRECTLY!
 
             try:
-                repo.remote('origin').fetch()   # Fetch remote changes
+                try:
+                    repo.remote('origin').fetch()   # Fetch remote changes
+                except UserWarning:
+                    raise git.exc.InvalidGitRepositoryError
+
                 commits_to_pull = [
                     commit for commit
                     in repo.iter_commits('master..origin/master')
@@ -151,26 +157,27 @@ def update(force=False):
                     change for change
                     in changes
                     if os.path.isfile(os.path.join(repo.working_dir, change))
-                ]  # todo: is this necessary?
-                # todo: make sure we're checking for changes
-                #  in ALL of the missed commits!
+                ]
 
                 if len(changes) > 0 or force:
                     # Format changes line-per-line
                     changes = ' \n '.join(changes)
-                    discard_changes = strtobool(input(
-                        f"Changes to the following files will be discarded "
-                        f"in order to update: \n \n {changes} \n \n \t "
-                        f"Continue? (y/n)"
-                    ))
 
-                    if discard_changes:
+                    print(f"Changes to the following files will be discarded "
+                            f"in order to update: \n \n {changes} \n \n")
+                    if do_discard is None:
+                        do_discard = strtobool(input(f"\tDiscard? (y/n)"))
+
+                    if do_discard:
                         # Hard reset head to discard changes
                         repo.git.reset('--hard')
                     else:
                         return
 
-                if strtobool(input('\nUpdate? (y/n) ')):
+                if do_pull is None:
+                    do_pull = strtobool(input('\nUpdate? (y/n) '))
+
+                if do_pull:
                     # Pull from default remote
                     # ASSUMES THAT `origin` IS SET CORRECTLY,
                     # AND AS THE DEFAULT REMOTE! todo: need additional checks?
@@ -182,16 +189,30 @@ def update(force=False):
                         file for commit in commits_to_pull
                         for file in commit.stats.files.keys()
                     ]
+
                     if 'requirements.txt' in changed_files:
-                        print(f"Project requirements have been updated. "
-                              f"Please execute "
-                              f"`pip install --upgrade -r requirements.txt`")
-                        # todo: try to upgrade pip from python instead
+                        print(f"Project requirements have been updated.")
+                        if do_reqs is None:
+                            do_reqs = strtobool(input(f"\tInstall? (y/n)"))
+
+                        if do_reqs:
+                            print(f"Installing...")
+                            cwd = os.getcwd()  # todo: this can be a context, maybe?
+                            os.chdir(repo.working_dir)
+                            # https://stackoverflow.com/questions/12332975
+                            subprocess.check_call(
+                                [
+                                    sys.executable, '-m', 'pip',
+                                    'install', '--upgrade',
+                                    '-r', 'requirements.txt'
+                                ]
+                            )
+                            os.chdir(cwd)
 
                     repo.close()
 
                     print(f"Done.")
-                    sys.exit()
+                    # sys.exit()
             else:
                 print(f"You are up to date.")
                 write_last_update_time()
