@@ -63,7 +63,16 @@ class updateTest(unittest.TestCase):
 
         # Switch to self.branch
         #  Will abort in case of uncommitted changes
-        subprocess.check_call(['git', 'checkout', self.branch])
+        try:
+            subprocess.check_call(['git', 'checkout', self.branch])
+        except subprocess.CalledProcessError as e:
+            # todo: temporary -- remove once it's clear how to distinguish git errors
+            print(f"Command failed with "
+                  f"stdout=`{e.stdout}` and stderr=`{e.stderr}`")
+
+            # todo: assuming the branch doesn't exist (i.e. the CI case)
+            subprocess.check_call(['git', 'branch', self.branch])
+            subprocess.check_call(['git', 'checkout', self.branch])
 
         # Remember self.branch actual commit
         self.original_commit = self.get_output(['git', 'rev-parse', 'HEAD'])
