@@ -11,6 +11,7 @@ from OnionSVG import OnionSVG, check_svg
 
 from isimple.utility.images import ckernel, crop_mask
 from isimple.utility import describe_function
+from isimple.gui import guiPane
 
 
 __CACHE_DIRECTORY__ = os.path.join(os.getcwd(), '.cache')
@@ -52,13 +53,19 @@ class VideoAnalysisElement(object):  # todo: more descriptive name
 
         return _config
 
-    def __getitem__(self, item):
+    def __getattr__(self, item):
         return self._config[item]
+
+    def __call__(self, frame: np.ndarray) -> np.ndarray:
+        raise NotImplementedError
 
 
 class VideoInterface(VideoAnalysisElement):
     """Interface to video files ~ OpenCV
     """
+    cache_dir: str
+    cache_size_limit: int
+
     __default__ = {
         'cache_dir': os.path.join(os.getcwd(), '.cache'),
         'cache_size_limit': 2 ** 32,  # cache size limit
@@ -81,6 +88,10 @@ class VideoInterface(VideoAnalysisElement):
         self.Nframes = int(self._capture.get(cv2.CAP_PROP_FRAME_COUNT))
         self.fps = self._capture.get(cv2.CAP_PROP_FPS)
         self.frame_number = int(self._capture.get(cv2.CAP_PROP_POS_FRAMES))
+        self.shape = (
+            int(self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)),
+            int(self._capture.get(cv2.CAP_PROP_FRAME_WIDTH))
+        )
 
         if self.Nframes == 0:
             raise VideoFileTypeError
@@ -131,13 +142,11 @@ class VideoInterface(VideoAnalysisElement):
 
                 self._cache.set(key, frame)
                 return frame
-            else:
-                return None  # todo: what do when no frame? cases?
 
     def __enter__(self):
         self._cache = Cache(
-            directory=self['cache_dir'],
-            size_limit=self['cache_size_limit'],
+            directory=self.cache_dir,
+            size_limit=self.cache_size_limit,
         )
         return self
 
@@ -155,13 +164,24 @@ class VideoAnalyzer(VideoInterface):
         * Load mask files
         * Load/save measurement metadata
     """
+    _overlay: np.ndarray
+    _masks: List[VideoAnalysisElement]
+    _transform: VideoAnalysisElement
+
+    dt: float
+    dpi: int
+    render_dir: str
+    keep_renders: bool
+    transform_type: str
+    transform_matrix: np.ndarray
 
     __default__ = {
         'dt': 5,  # time interval in seconds
         'dpi': 400,  # DPI to render .svg at
         'render_dir': os.path.join(os.getcwd(), '.render'),
         'keep_renders': False,
-        'transform': None,
+        'transform_type': 'perspective',
+        'transform_matrix': None,
     }
 
     def __init__(self, video_path: str, design_path: str, config: dict = None):
@@ -173,33 +193,35 @@ class VideoAnalyzer(VideoInterface):
             raise FileNotFoundError
 
         self._overlay, self._masks = self.handle_design(design_path)
-        self._transform = Transform(self._config)
+        self._transform = self._get_transform(self.transform_type)(
+            self.shape, self._config
+        )
 
     def clear_renders(self):
-        renders = [f for f in os.listdir(self['render_dir'])]
+        renders = [f for f in os.listdir(self.render_dir)]
         for f in renders:
-            os.remove(os.path.join(self['render_dir'], f))
+            os.remove(os.path.join(self.render_dir, f))
 
     def handle_design(self, design_path) \
             -> Tuple[np.ndarray, List[VideoAnalysisElement]]:
 
-        if not os.path.isdir(self['render_dir']):
-            os.mkdir(self['render_dir'])
+        if not os.path.isdir(self.render_dir):
+            os.mkdir(self.render_dir)
         else:
             self.clear_renders()
 
         check_svg(design_path)
-        OnionSVG(design_path, dpi=self['dpi']).peel(
-            'all', to=self['render_dir']
+        OnionSVG(design_path, dpi=self.dpi).peel(
+            'all', to=self.render_dir
         )
 
         print("\n")
 
         overlay = cv2.imread(
-            os.path.join(self['render_dir'], 'overlay.png')
+            os.path.join(self.render_dir, 'overlay.png')
         )
 
-        files = os.listdir(self['render_dir'])
+        files = os.listdir(self.render_dir)
         files.remove('overlay.png')
 
         # todo: explain this stuff
@@ -229,22 +251,40 @@ class VideoAnalyzer(VideoInterface):
         for path in sorted_files:
             masks.append(Mask(path, self, self._config))
 
-        if not self['keep_renders']:
+        if not self.keep_renders:
             self.clear_renders()
 
         return overlay, masks
 
-    def get_frame(self, frame_number=None, do_transform=True, to_hsv=True):
-        super(VideoAnalyzer, self).get_frame(frame_number, to_hsv)
-        # transform
+    def get_frame(self, frame_number=None, do_transform=True, to_hsv=True) \
+            -> np.ndarray:
+        frame = super(VideoAnalyzer, self).get_frame(frame_number, to_hsv)
         if do_transform:
-            pass
+            self._transform(frame)
 
-    def get_next_frame(self, to_hsv = True):
-        pass
+        return frame
 
-    def get_state_image(self):
-        pass
+    def get_next_frame(self, *args, **kwargs) -> np.ndarray:
+        if self.dt is not None:
+            frame_number = self.frame_number + int(self.dt * self.fps)
+        else:
+            frame_number = self.frame_number + 1
+
+        if frame_number <= self.Nframes:
+            return self.get_frame(frame_number, *args, **kwargs)
+
+    @staticmethod
+    def _get_transform(type: str):
+        transform_types = {
+            'perspective': PerspectiveTransform,
+        }
+        if type in transform_types:
+            return transform_types[type]
+        else:
+            raise ValueError(
+                f"Invalid transform type '{type}' \n"
+                f"Valid types: {list(transform_types.keys())}"
+            )
 
 
 class Transform(VideoAnalysisElement):
@@ -252,12 +292,75 @@ class Transform(VideoAnalysisElement):
         Transform objects can point to a parent transform
         -- the transform is applied in sequence!
     """
+    _shape: tuple
+    _transform: np.ndarray
+
+    transform_matrix: np.ndarray
+
     __default__ = {
-        'transform': None
+        'transform_matrix': None
     }
 
-    def __init__(self, config):
+    def __init__(self, shape, config):
         super(Transform, self).__init__(config)
+        self._shape = shape
+
+        self._transfrom = None
+        if self.transform_matrix is not None:
+            self.set(self.transform_matrix)
+        else:
+            self.set(np.eye(3))
+
+    def set(self, transform: np.ndarray):
+        """Set the transform matrix
+        """
+        raise NotImplementedError
+
+    def estimate(self, coordinates):
+        """Estimate the transform matrix from a set of coordinates
+            coordinates should correspond to the corners of the outline of
+            the design, ordered from the bottom left to the top right
+        """
+        raise NotImplementedError
+
+    def __call__(self, frame: np.ndarray) -> np.ndarray:
+        """Transform a frame.
+            Writes to the provided variable!
+            If caller needs the original value, they should copy explicitly
+        """
+        raise NotImplementedError
+
+
+class PerspectiveTransform(Transform):
+    def set(self, transform: np.ndarray):
+        pass
+
+    def estimate(self, coordinates):
+        # todo: sanity check the coordinates!
+        #        * array size
+        #        * ensure bottom left to top right order
+        # todo: corner order should be handled by coordinates
+        #        ordered @ gui if needed, supplied in the correct order
+        self.set(
+            cv2.getPerspectiveTransform(
+                np.float32(coordinates),
+                np.float32(
+                    np.array(  # selection rectangle: bottom left to top right
+                        [
+                            [0, self._shape[0]],
+                            [0, 0],
+                            [self._shape[1], 0],
+                            [self._shape[1], self._shape[0]]
+                        ]
+                    )
+                )
+            )
+        )
+
+    def __call__(self, frame: np.ndarray) -> np.ndarray:
+        return cv2.warpPerspective(
+            frame, self._transform, self._shape
+        )
 
 
 class Filter(VideoAnalysisElement):
@@ -285,39 +388,27 @@ class Mask(VideoAnalysisElement):
         super(Mask, self).__init__(config)
         self._va = va
 
+    def __call__(self, frame: np.ndarray) -> np.ndarray:
+        """Mask a frame.
+            Writes to the provided variable!
+            If caller needs the original value, they should copy explicitly
+        """
+        raise NotImplementedError
 
 
-class guiElement(object):
-    """Abstract class for GUI elements
+class guiTransform(guiPane):
+    """A manual transform selection pane
     """
     pass
 
 
-class guiInteractiveMethod(guiElement):
-    """GUI representation of an interactive method
+class guiFilter(guiPane):
+    """A manual filter selection pane
     """
     pass
 
 
-class guiWindow(object):
-    """Abstract class for a GUI window
-    """
-    pass
-
-
-class guiTransform(guiWindow):
-    """A manual transform selection window
-    """
-    pass
-
-
-class guiFilter(guiWindow):
-    """A manual filter selection window
-    """
-    pass
-
-
-class guiProgress(guiWindow):
-    """A progress window
+class guiProgress(guiPane):
+    """A progress pane
     """
     pass

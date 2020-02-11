@@ -2,7 +2,7 @@ import unittest
 
 import os
 import numpy as np
-from isimple.___restructure_flat import \
+from isimple.video import \
     VideoInterface, VideoAnalyzer, VideoFileTypeError
 import cv2
 from threading import Thread
@@ -158,7 +158,7 @@ class VideoAnalyzerTest(unittest.TestCase):
         # Not testing cache, don't need with statement
         va = VideoAnalyzer(__VIDEO__, __DESIGN__, self.config)
         self.assertListEqual(
-            sorted(list(os.listdir(va['render_dir']))),
+            sorted(list(os.listdir(va.render_dir))),
             sorted([
                 '1 - WLC_SIMPLE.png',
                 '2 - PM_SIMPLE.png',
@@ -177,7 +177,7 @@ class VideoAnalyzerTest(unittest.TestCase):
         self.assertTrue(hasattr(va, '_masks'))
         self.assertEqual(len(va._masks), 9)
         self.assertTrue(
-            np.equal(va['transform'], va._transform['transform']).all()
+            np.equal(va.transform_matrix, va._transform.transform_matrix).all()
         )
 
     def test_loading_path_problems(self):
