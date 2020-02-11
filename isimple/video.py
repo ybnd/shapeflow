@@ -114,7 +114,7 @@ class VideoFileInterface(VideoAnalysisElement):
 
     def read_frame(self, frame_number: int = None,
                    to_hsv: bool = True, from_cache = False):
-        key = self._get_key(self.get_frame, frame_number, to_hsv)
+        key = self._get_key(self.read_frame, frame_number, to_hsv)
         # Check cache
         if key in self._cache:
             # Get frame from cache
