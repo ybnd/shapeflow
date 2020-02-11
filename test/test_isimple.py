@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 from typing import List
+import warnings
 
 import isimple
 
@@ -37,10 +38,13 @@ class updateTest(unittest.TestCase):
         if cls.root.split('/')[-1] == 'test':  # handle call from PyCharm
             cls.root = '/'.join(os.getcwd().split('/')[:-1])
 
-        # Remember our actual origin url
-        cls.original_url = cls.get_output(
-            ['git', 'config', '--get', 'remote.origin.url']
-        )
+        # Remember our actual origin url, if we have one
+        try:
+            cls.original_url = cls.get_output(
+                ['git', 'config', '--get', 'remote.origin.url']
+            )
+        except subprocess.CalledProcessError:
+            cls.original_url = ''
 
         # Remember our actual branch
         cls.original_branch = cls.get_output(
@@ -71,24 +75,44 @@ class updateTest(unittest.TestCase):
         super(updateTest, self).setUp()
         self._commit_messages = []
 
-        # Switch to self.branch
-        #  Will abort in case of uncommitted changes
+        # Remove our real remote, if it exists
         try:
-            subprocess.check_call(['git', 'checkout', self.branch])
+            subprocess.check_call(['git', 'remote', 'remove', 'origin'])
         except subprocess.CalledProcessError as e:
-            # todo: temporary -- remove once it's clear how to distinguish git errors
-            print(f"Command failed with "
-                  f"stdout=`{e.stdout}` and stderr=`{e.stderr}`")
+            pass
 
-            # todo: assuming the branch doesn't exist (i.e. the CI case)
-            subprocess.check_call(['git', 'branch', self.branch])
-            subprocess.check_call(['git', 'checkout', self.branch])
+        # If original branch is not master, try to check out the master branch
+        if self.original_branch != 'master':
+            try:
+                subprocess.check_call(['git', 'checkout', 'master'])
+            except subprocess.CalledProcessError:
+                # If it doesn't exist, make it
+                subprocess.check_call(['git', 'checkout', '-b', 'master'])
 
-        # Remember self.branch actual commit
-        self.original_commit = self.get_output(['git', 'rev-parse', 'HEAD'])
+        # Remember what commit the master branch was on
+        self.original_commit = self.get_output(
+            ['git', 'rev-parse', 'HEAD']
+        )
 
-        # Clone the repo
+        # Clone this repo to a mock remote
         subprocess.check_call(['git', 'clone', self.root, self.origin])
+
+        # Remove this remote as the mock remote's origin
+        cwd = os.getcwd()
+        os.chdir(self.origin)
+        subprocess.check_call(['git', 'remote', 'remove', 'origin'])
+        os.chdir(cwd)
+
+        # Add the mock remote as this repo's origin
+        subprocess.check_call(['git', 'remote', 'add', 'origin', self.origin])
+
+        # Fetch
+        subprocess.check_call(['git', 'fetch', 'origin'])
+
+        # Track the master branch of the mock remote
+        subprocess.check_call(
+            ['git', 'branch', '-u', 'origin/master', 'master']
+        )
 
         # Set name & email if not specified (e.g. on CI server)
         cwd = os.getcwd()
@@ -102,11 +126,6 @@ class updateTest(unittest.TestCase):
             )
         os.chdir(cwd)
 
-        # Set this temporary clone as the url for origin (!)
-        subprocess.check_call(
-            ['git', 'config', 'remote.origin.url', self.origin]
-        )
-
     def tearDown(self) -> None:
         super(updateTest, self).tearDown()
 
@@ -114,18 +133,19 @@ class updateTest(unittest.TestCase):
         shutil.rmtree(self.origin)
         print(f"Deleted {self.origin}")
 
-        # Reset to our actual origin url
-        subprocess.check_call(
-            ['git', 'config', 'remote.origin.url', self.original_url]
-        )
+        # Remove mock origin from repo
+        subprocess.check_call(['git', 'remote', 'remove', 'origin'])
 
-        # Fetch
-        try:
+        # Set our actual origin back to what it should be, if we had one
+        if self.original_url:
             subprocess.check_call(
-                ['git', 'fetch']
+                ['git', 'remote', 'add', 'origin', self.original_url]
             )
-        except subprocess.CalledProcessError:
-            pass
+
+        # Fetch  # todo: is this necessary though?
+        subprocess.check_call(
+            ['git', 'fetch', 'origin']
+        )
 
         # Reset to our actual commit
         subprocess.check_call(
@@ -142,35 +162,55 @@ class updateTest(unittest.TestCase):
             ['git', 'reset', '--hard', self.original_branch_original_commit]
         )
 
+        # Set up our original branch to track origin, if we had one
+        if self.original_url:
+            subprocess.check_call(
+                ['git', 'branch', '-u', 'origin/master', 'master']
+            )
 
     def test(self):
-        isimple.update(
-            force=False, do_discard=False, do_pull=False, do_reqs=False
-        )
+        try:
+            isimple.update(
+                force=False, do_discard=False, do_pull=False, do_reqs=False
+            )
+        except SystemExit:
+            pass
         self.assertRepoState()
 
     def test_force(self):
-        isimple.update(
-            force=True, do_discard=False, do_pull=False, do_reqs=False
-        )
+        try:
+            isimple.update(
+                force=True, do_discard=False, do_pull=False, do_reqs=False
+            )
+        except SystemExit:
+            pass
         self.assertRepoState()
 
     def test_force_pull_reqs(self):
-        isimple.update(
-            force=True, do_discard=False, do_pull=True, do_reqs=True
-        )
+        try:
+            isimple.update(
+                force=True, do_discard=False, do_pull=True, do_reqs=True
+            )
+        except SystemExit:
+            pass
         self.assertRepoState()
 
     def test_force_discard_pull(self):
-        isimple.update(
-            force=True, do_discard=True, do_pull=True, do_reqs=False
-        )
+        try:
+            isimple.update(
+                force=True, do_discard=True, do_pull=True, do_reqs=False
+            )
+        except SystemExit:
+            pass
         self.assertRepoState()
 
     def test_force_discard_pull_reqs(self):
-        isimple.update(
-            force=True, do_discard=True, do_pull=True, do_reqs=True
-        )
+        try:
+            isimple.update(
+                force=True, do_discard=True, do_pull=True, do_reqs=True
+            )
+        except SystemExit:
+            pass
         self.assertRepoState()
 
     def commit_origin(self, message: str):

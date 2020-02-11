@@ -112,7 +112,7 @@ def update(force=False, do_discard=None, do_pull=None, do_reqs=None):
         # Start a tkinter window & hide it,
         #  otherwise messagebox spawns one anyway (annoying)
         # root = Tk()
-        # root.withdraw()
+        # root.withdraw()  # todo: is this a Windows thing?
 
         # Open an interface to the git repository at cwd
         # Will fail if called from a file outside of the repository
@@ -128,10 +128,7 @@ def update(force=False, do_discard=None, do_pull=None, do_reqs=None):
             # ASSUMES THAT `origin` IS SET CORRECTLY!
 
             try:
-                try:
-                    repo.remote('origin').fetch()   # Fetch remote changes
-                except UserWarning:
-                    raise git.exc.InvalidGitRepositoryError
+                repo.remote('origin').fetch()   # Fetch remote changes
 
                 commits_to_pull = [
                     commit for commit
@@ -143,6 +140,8 @@ def update(force=False, do_discard=None, do_pull=None, do_reqs=None):
                 commits_behind = 0
                 repo = None
                 warnings.warn(f"Failed to fetch: {e.stderr} \n", stacklevel=3)
+            except UserWarning as w:
+                warnings.warn('FAILED TO FETCH YO')
 
             if (repo is not None and commits_behind > 0) or force:
                 print(f"You are {commits_behind} "
@@ -212,7 +211,7 @@ def update(force=False, do_discard=None, do_pull=None, do_reqs=None):
                     repo.close()
 
                     print(f"Done.")
-                    # sys.exit()
+                    sys.exit()
             else:
                 print(f"You are up to date.")
                 write_last_update_time()
