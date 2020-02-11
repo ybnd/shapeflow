@@ -29,6 +29,7 @@ class updateTest(unittest.TestCase):
     original_branch_original_commit: str = ''
     original_commit: str = ''
 
+
     @classmethod
     def setUpClass(cls) -> None:
         super(updateTest, cls).setUpClass()
@@ -50,6 +51,15 @@ class updateTest(unittest.TestCase):
         cls.original_branch_original_commit = cls.get_output(
             ['git', 'rev-parse', 'HEAD']
         )
+
+        # Set name & email if not specified (e.g. on CI server)
+        if not cls.get_output(['git', 'config', '--get', 'user.name']):
+            subprocess.check_call(
+                ['git', 'config', 'user.name', 'temp']
+            )
+            subprocess.check_call(
+                ['git', 'config', 'user.email', 'temp@temp.temp']
+            )
 
         # Delete the clone
         try:
@@ -79,6 +89,18 @@ class updateTest(unittest.TestCase):
 
         # Clone the repo
         subprocess.check_call(['git', 'clone', self.root, self.origin])
+
+        # Set name & email if not specified (e.g. on CI server)
+        cwd = os.getcwd()
+        os.chdir(self.origin)
+        if not self.get_output(['git', 'config', '--get', 'user.name']):
+            subprocess.check_call(
+                ['git', 'config', 'user.name', 'temp']
+            )
+            subprocess.check_call(
+                ['git', 'config', 'user.email', 'temp@temp.temp']
+            )
+        os.chdir(cwd)
 
         # Set this temporary clone as the url for origin (!)
         subprocess.check_call(
