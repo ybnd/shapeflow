@@ -7,6 +7,7 @@ from typing import List
 import warnings
 
 import isimple
+import git
 
 
 # class HistoryAppTest(unittest.TestCase):
@@ -29,7 +30,6 @@ class updateTest(unittest.TestCase):
     original_branch: str = ''
     original_branch_original_commit: str = ''
     original_commit: str = ''
-
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -59,6 +59,15 @@ class updateTest(unittest.TestCase):
         cls.original_branch_original_commit = cls.get_output(
             ['git', 'rev-parse', 'HEAD']
         )
+
+    def __init__(self, *args, **kwargs):
+        super(updateTest, self).__init__(*args, **kwargs)
+
+        if not hasattr(self, '_commit_messages'):
+            self._commit_messages = []
+        if not hasattr(self, '_new_requirements'):
+            self._new_requirements = []
+
 
     def setUp(self) -> None:
         """Set up a mock remote repository
@@ -129,9 +138,6 @@ class updateTest(unittest.TestCase):
         """
         super(updateTest, self).tearDown()
 
-        self._commit_messages = []
-        self._new_requirements = []
-
         # Delete the clone
         shutil.rmtree(self.origin)
         print(f"Deleted {self.origin}")
@@ -178,9 +184,7 @@ class updateTest(unittest.TestCase):
             )
         except SystemExit:
             pass
-        self.assertRepoState(
-            force=False, discard=False, pull=False, install=False
-        )
+        self.assertRepoState(discard=False, pull=False, install=False)
 
     def test_force(self):
         try:
@@ -189,9 +193,7 @@ class updateTest(unittest.TestCase):
             )
         except SystemExit:
             pass
-        self.assertRepoState(
-            force=False, discard=False, pull=False, install=False
-        )
+        self.assertRepoState(discard=False, pull=False, install=False)
 
     def test_force_pull_reqs(self):
         try:
@@ -200,9 +202,7 @@ class updateTest(unittest.TestCase):
             )
         except SystemExit:
             pass
-        self.assertRepoState(
-            force=False, discard=False, pull=False, install=False
-        )
+        self.assertRepoState(discard=False, pull=True, install=True)
 
     def test_force_discard_pull(self):
         try:
@@ -211,9 +211,7 @@ class updateTest(unittest.TestCase):
             )
         except SystemExit:
             pass
-        self.assertRepoState(
-            force=False, discard=False, pull=False, install=False
-        )
+        self.assertRepoState(discard=True, pull=True, install=False)
 
     def test_force_discard_pull_reqs(self):
         try:
@@ -222,9 +220,7 @@ class updateTest(unittest.TestCase):
             )
         except SystemExit:
             pass
-        self.assertRepoState(
-            force=False, discard=False, pull=False, install=False
-        )
+        self.assertRepoState(discard=True, pull=True, install=True)
 
     def commit_origin(self, message: str):
         """Commit changes to mock upstream repository
@@ -236,9 +232,6 @@ class updateTest(unittest.TestCase):
         subprocess.check_call(['git', 'commit', '-m', message])
         os.chdir(cwd)
 
-        if not hasattr(self, '_commit_massages'):
-            self._commit_messages = []  # todo: for some reason, updateTestChanges has no _commit_messages?
-
         self._commit_messages.append(message)
 
     @classmethod  # todo: maybe put a more general version of this in isimple.utility instead?
@@ -248,14 +241,19 @@ class updateTest(unittest.TestCase):
             stdout=subprocess.PIPE
         ).communicate()[0].decode('utf-8').strip(' \t\n\r')
 
-    def assertRepoState(self, force=True, discard=True, pull=True, install=True):
-        # Assert that the correct changes have been made
-        if len(self._commit_messages):
-            pass  # todo: assert that changes have been made
+    def assertRepoState(self, discard, pull, install):
+        # If local changes haven't been discarded, no changes were pulled
+        if discard:
+            # Assert that the correct changes have been made
+            if len(self._commit_messages) and pull:
+                for m, c in zip(self._commit_messages[::-1],
+                                git.Repo(self.root).iter_commits()):  # todo: consider replacing all subprocess calls with GitPython instead
+                    self.assertEqual(
+                        m.strip(' \t\n\r'), c.message.strip(' \t\n\r')
+                    )
 
-        # Assert that the correct packages have been installed
-        if len(self._new_requirements):
-            if install:
+            # Assert that the correct packages have been installed
+            if len(self._new_requirements) and install:
                 freeze = self.get_output(
                     [sys.executable, '-m', 'pip', 'freeze']
                 )
@@ -292,7 +290,7 @@ class updateTestChanges(updateTest):
                 if not 'isimple' in line.lower():
                     f.write(line)
             f.truncate()
-            self.commit_origin('Remove from a file')
+        self.commit_origin('Remove from a file')
 
 
 class updateTestReqs(updateTest):
