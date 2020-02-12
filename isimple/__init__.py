@@ -73,7 +73,7 @@ def write_last_update_time(t=None):
         f.write(str(t))
 
 
-def update(force=False, do_discard=None, do_pull=None, do_reqs=None):
+def update(force=False, discard=None, pull=None, install=None):
     """Auto-updating method for applications intended for "end-users".
 
         Usage:
@@ -164,19 +164,19 @@ def update(force=False, do_discard=None, do_pull=None, do_reqs=None):
 
                     print(f"Changes to the following files will be discarded "
                             f"in order to update: \n \n {changes} \n \n")
-                    if do_discard is None:
-                        do_discard = strtobool(input(f"\tDiscard? (y/n)"))
+                    if discard is None:
+                        discard = strtobool(input(f"\tDiscard? (y/n)"))
 
-                    if do_discard:
+                    if discard:
                         # Hard reset head to discard changes
                         repo.git.reset('--hard')
                     else:
                         return
 
-                if do_pull is None:
-                    do_pull = strtobool(input('\nUpdate? (y/n) '))
+                if pull is None:
+                    pull = strtobool(input('\nUpdate? (y/n) '))
 
-                if do_pull:
+                if pull:
                     # Pull from default remote
                     # ASSUMES THAT `origin` IS SET CORRECTLY,
                     # AND AS THE DEFAULT REMOTE! todo: need additional checks?
@@ -191,10 +191,10 @@ def update(force=False, do_discard=None, do_pull=None, do_reqs=None):
 
                     if 'requirements.txt' in changed_files:
                         print(f"Project requirements have been updated.")
-                        if do_reqs is None:
-                            do_reqs = strtobool(input(f"\tInstall? (y/n)"))
+                        if install is None:
+                            install = strtobool(input(f"\tInstall? (y/n)"))
 
-                        if do_reqs:
+                        if install:
                             print(f"Installing...")
                             cwd = os.getcwd()  # todo: this can be a context, maybe?
                             os.chdir(repo.working_dir)

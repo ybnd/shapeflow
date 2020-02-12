@@ -64,7 +64,6 @@ class updateTest(unittest.TestCase):
         """Set up a mock remote repository
         """
         super(updateTest, self).setUp()
-        self._commit_messages = []
 
         # Remove our real remote, if it exists
         try:
@@ -114,21 +113,24 @@ class updateTest(unittest.TestCase):
                 ['git', 'config', 'user.email', 'temp@temp.temp']
             )
 
-            cwd = os.getcwd()
-            os.chdir(self.origin)
-            if not self.get_output(['git', 'config', '--get', 'user.name']):
-                subprocess.check_call(
-                    ['git', 'config', 'user.name', 'temp']
-                )
-                subprocess.check_call(
-                    ['git', 'config', 'user.email', 'temp@temp.temp']
-                )
-            os.chdir(cwd)
+        cwd = os.getcwd()
+        os.chdir(self.origin)
+        if not self.get_output(['git', 'config', '--get', 'user.name']):
+            subprocess.check_call(
+                ['git', 'config', 'user.name', 'temp']
+            )
+            subprocess.check_call(
+                ['git', 'config', 'user.email', 'temp@temp.temp']
+            )
+        os.chdir(cwd)
 
     def tearDown(self) -> None:
         """Remove mock remote and reset repo to original state
         """
         super(updateTest, self).tearDown()
+
+        self._commit_messages = []
+        self._new_requirements = []
 
         # Delete the clone
         shutil.rmtree(self.origin)
@@ -143,10 +145,10 @@ class updateTest(unittest.TestCase):
                 ['git', 'remote', 'add', 'origin', self.original_url]
             )
 
-        # Fetch  # todo: is this necessary though?
-        subprocess.check_call(
-            ['git', 'fetch', 'origin']
-        )
+            # Fetch
+            subprocess.check_call(
+                ['git', 'fetch', 'origin']
+            )
 
         # Reset to our actual commit
         subprocess.check_call(
@@ -172,47 +174,57 @@ class updateTest(unittest.TestCase):
     def test(self):
         try:
             isimple.update(
-                force=False, do_discard=False, do_pull=False, do_reqs=False
+                force=False, discard=False, pull=False, install=False
             )
         except SystemExit:
             pass
-        self.assertRepoState()
+        self.assertRepoState(
+            force=False, discard=False, pull=False, install=False
+        )
 
     def test_force(self):
         try:
             isimple.update(
-                force=True, do_discard=False, do_pull=False, do_reqs=False
+                force=True, discard=False, pull=False, install=False
             )
         except SystemExit:
             pass
-        self.assertRepoState()
+        self.assertRepoState(
+            force=False, discard=False, pull=False, install=False
+        )
 
     def test_force_pull_reqs(self):
         try:
             isimple.update(
-                force=True, do_discard=False, do_pull=True, do_reqs=True
+                force=True, discard=False, pull=True, install=True
             )
         except SystemExit:
             pass
-        self.assertRepoState()
+        self.assertRepoState(
+            force=False, discard=False, pull=False, install=False
+        )
 
     def test_force_discard_pull(self):
         try:
             isimple.update(
-                force=True, do_discard=True, do_pull=True, do_reqs=False
+                force=True, discard=True, pull=True, install=False
             )
         except SystemExit:
             pass
-        self.assertRepoState()
+        self.assertRepoState(
+            force=False, discard=False, pull=False, install=False
+        )
 
     def test_force_discard_pull_reqs(self):
         try:
             isimple.update(
-                force=True, do_discard=True, do_pull=True, do_reqs=True
+                force=True, discard=True, pull=True, install=True
             )
         except SystemExit:
             pass
-        self.assertRepoState()
+        self.assertRepoState(
+            force=False, discard=False, pull=False, install=False
+        )
 
     def commit_origin(self, message: str):
         """Commit changes to mock upstream repository
@@ -224,6 +236,9 @@ class updateTest(unittest.TestCase):
         subprocess.check_call(['git', 'commit', '-m', message])
         os.chdir(cwd)
 
+        if not hasattr(self, '_commit_massages'):
+            self._commit_messages = []  # todo: for some reason, updateTestChanges has no _commit_messages?
+
         self._commit_messages.append(message)
 
     @classmethod  # todo: maybe put a more general version of this in isimple.utility instead?
@@ -233,13 +248,20 @@ class updateTest(unittest.TestCase):
             stdout=subprocess.PIPE
         ).communicate()[0].decode('utf-8').strip(' \t\n\r')
 
-    def assertRepoState(self):
-        if self.changes:
+    def assertRepoState(self, force=True, discard=True, pull=True, install=True):
+        # Assert that the correct changes have been made
+        if len(self._commit_messages):
             pass  # todo: assert that changes have been made
-            # message of HEAD should match self._commits[-1]
 
-        if self.requirements_changes:
-            pass  # todo: assert that requirements have been installed
+        # Assert that the correct packages have been installed
+        if len(self._new_requirements):
+            if install:
+                freeze = self.get_output(
+                    [sys.executable, '-m', 'pip', 'freeze']
+                )
+                self.assertTrue(
+                    all([req in freeze for req in self._new_requirements])
+                )
 
 
 class updateTestChanges(updateTest):
@@ -275,20 +297,32 @@ class updateTestChanges(updateTest):
 
 class updateTestReqs(updateTest):
     changes = True
-    requirements_changes = True
-    # use nose & coverage since we already depend on them in CI
-    _new_requirements = ['nose', 'coverage']
-
+    # choose packages that are small, pure-python and well-maintained
+    #  and *not* in requirements.txt
+    _new_requirements = ['uncertainties']
 
     def setUp(self) -> None:
+        """Modify requirements.txt
+        """
         super(updateTestReqs, self).setUp()
 
         # In the mock remote repository...
-        # ...add requirements to requirements.txt & commit
-        with open(self.origin + '/requirements.txt', 'a+') as f:
+        os.remove(self.origin + '/requirements.txt')
+
+        # ...and add some new requirements to requirements.txt & commit
+        with open(self.origin + '/requirements.txt', 'w+') as f:
             for req in self._new_requirements:
-                f.write('\n' + req + '\n')  # make sure not to mangle lines
+                f.write(req + '\n')
         self.commit_origin('Add requirements')
+
+    def tearDown(self) -> None:
+        """Uninstall self._new_requirements
+        """
+        super(updateTestReqs, self).tearDown()
+
+        subprocess.check_call(
+            ['pip', 'uninstall', *self._new_requirements, '-y']
+        )
 
 
 class updateTestDevelop(updateTest):
