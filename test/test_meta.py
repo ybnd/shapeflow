@@ -12,15 +12,21 @@ from isimple.meta import (
 from isimple.video import VideoAnalyzer, Mask
 
 
-video = 'test.mp4'
-design = 'test.svg'
+__VIDEO__ = 'test.mp4'
+__DESIGN__ = 'test.svg'
+
+# Point to right files in Travis CI build
+if os.getcwd() == '/home/travis/build/ybnd/isimple':
+    __VIDEO__ = 'test/' + __VIDEO__
+    __DESIGN__ = 'test/' + __DESIGN__
+
 height = 1e-3
 timestep = 5
 coordinates = [[0,0] for i in range(4)]
 transform = np.eye(3).tolist()
 order = [0,1,2,3]
 
-va = VideoAnalyzer(video, design)
+va = VideoAnalyzer(__VIDEO__, __DESIGN__)
 masks = va._masks
 
 
@@ -44,8 +50,8 @@ class MetaTest(unittest.TestCase):
             })
 
         cls.meta = {
-            __video__: video,
-            __design__: design,
+            __video__: __VIDEO__,
+            __design__: __DESIGN__,
             __height__: height,
             __timestep__: timestep,
             __coordinates__: coordinates,
@@ -61,7 +67,7 @@ class MetaTest(unittest.TestCase):
         self.assertEqual(
             self.meta,
             bundle(
-                video, design, coordinates, transform,
+                __VIDEO__, __DESIGN__, coordinates, transform,
                 order, self.colors, height, timestep
             )
         )
@@ -78,7 +84,7 @@ class MetaTest(unittest.TestCase):
         ]
 
         readable = bundle_readable(
-            video, design, coordinates, transform,
+            __VIDEO__, __DESIGN__, coordinates, transform,
             order, self.colors, height, timestep
         )
         for key in self.meta:

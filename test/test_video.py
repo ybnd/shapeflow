@@ -3,7 +3,7 @@ import unittest
 import os
 import numpy as np
 from isimple.video import \
-    VideoFileInterface, VideoAnalyzer, VideoFileTypeError
+    VideoFileHandler, VideoAnalyzer, VideoFileTypeError
 import cv2
 from threading import Thread
 import time
@@ -44,7 +44,7 @@ for frame_number in __FRAMES__:
 
 
 # Clear cache
-with VideoFileInterface(__VIDEO__) as vi:
+with VideoFileHandler(__VIDEO__) as vi:
     vi._cache.clear()
 
 
@@ -59,14 +59,14 @@ class VideoInterfaceTest(unittest.TestCase):
 
     def test_path_problems(self):
         self.assertRaises(
-            FileNotFoundError, VideoFileInterface, 'non-existent'
+            FileNotFoundError, VideoFileHandler, 'non-existent'
         )
         self.assertRaises(
-            VideoFileTypeError, VideoFileInterface, __DESIGN__
+            VideoFileTypeError, VideoFileHandler, __DESIGN__
         )
 
     def test_get_frame_hsv(self):
-        with VideoFileInterface(__VIDEO__) as vi:
+        with VideoFileHandler(__VIDEO__) as vi:
             for frame_number, frame in __TEST_FRAME_HSV__.items():
                 self.assertEqualFrames(
                     frame, vi.read_frame(frame_number, True)
@@ -74,7 +74,7 @@ class VideoInterfaceTest(unittest.TestCase):
                 self.assertInCache(vi, vi.read_frame, frame_number, True)
 
     def test_get_frame(self):
-        with VideoFileInterface(__VIDEO__) as vi:
+        with VideoFileHandler(__VIDEO__) as vi:
             for frame_number, frame in __TEST_FRAME__.items():
                 self.assertTrue(
                     np.equal(
@@ -84,7 +84,7 @@ class VideoInterfaceTest(unittest.TestCase):
                 self.assertInCache(vi, vi.read_frame, frame_number, False)
 
     def test_get_cached_frame(self):
-        with VideoFileInterface(__VIDEO__) as vi:
+        with VideoFileHandler(__VIDEO__) as vi:
             for frame_number in __TEST_FRAME_HSV__.keys():
                 # Read frames, which are cached
                 vi.read_frame(frame_number, to_hsv=True)
@@ -105,7 +105,7 @@ class VideoInterfaceTest(unittest.TestCase):
         __INTERVAL__ = 0.1
 
         def read_frames():
-            with VideoFileInterface(__VIDEO__) as vi_source:
+            with VideoFileHandler(__VIDEO__) as vi_source:
                 for frame_number in __TEST_FRAME__.keys():
                     time.sleep(__INTERVAL__)
                     vi_source.read_frame(frame_number, to_hsv=True)
@@ -113,7 +113,7 @@ class VideoInterfaceTest(unittest.TestCase):
         # Start timing main thread executin time
         t0 = time.time()
 
-        with VideoFileInterface(__VIDEO__) as vi_sink:
+        with VideoFileHandler(__VIDEO__) as vi_sink:
             # Disconnect VideoInterface from OpenCV capture
             #  to ensure frames are read from cache
             vi_sink._capture = None

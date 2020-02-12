@@ -4,11 +4,12 @@ import os
 import re
 import time
 import logging
-from typing import Tuple, List, Union
+from typing import Tuple, List, Union, NewType
 import numpy as np
 from OnionSVG import OnionSVG, check_svg
+import abc
 
-from isimple.maths.images import ckernel
+from isimple.maths.images import ckernel, to_mask, crop_mask
 from isimple.util import describe_function
 from isimple.gui import guiPane
 
@@ -54,16 +55,18 @@ class VideoAnalysisElement(object):  # todo: more descriptive name
         return _config
 
     def __getattr__(self, item):
+        """Get attribute value from self._config
+        """  # todo: interface with metadata -> should raise an exception if unexpected attribute is got
         return self._config[item]
 
     def __call__(self, frame: np.ndarray) -> np.ndarray:
         raise NotImplementedError
 
 
-class VideoFileInterface(VideoAnalysisElement):
+class VideoFileHandler(VideoAnalysisElement):
     """Interface to video files ~ OpenCV
     """
-    _cache: Union[Cache, None]
+    _cache: Union[Cache]
 
     cache_dir: str
     cache_size_limit: int
@@ -74,7 +77,7 @@ class VideoFileInterface(VideoAnalysisElement):
     }
 
     def __init__(self, video_path, config: dict = None):
-        super(VideoFileInterface, self).__init__(config)
+        super(VideoFileHandler, self).__init__(config)
 
         if not os.path.isfile(video_path):
             raise FileNotFoundError
@@ -90,10 +93,6 @@ class VideoFileInterface(VideoAnalysisElement):
         self.Nframes = int(self._capture.get(cv2.CAP_PROP_FRAME_COUNT))
         self.fps = self._capture.get(cv2.CAP_PROP_FPS)
         self.frame_number = int(self._capture.get(cv2.CAP_PROP_POS_FRAMES))
-        self.shape = (
-            int(self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)),
-            int(self._capture.get(cv2.CAP_PROP_FRAME_WIDTH))
-        )
 
         if self.Nframes == 0:
             raise VideoFileTypeError
@@ -114,6 +113,9 @@ class VideoFileInterface(VideoAnalysisElement):
 
     def read_frame(self, frame_number: int = None,
                    to_hsv: bool = True, from_cache = False):
+        if frame_number is None:
+            frame_number = self.frame_number
+
         key = self._get_key(self.read_frame, frame_number, to_hsv)
         # Check cache
         if key in self._cache:
@@ -160,9 +162,10 @@ class VideoFileInterface(VideoAnalysisElement):
             return True
 
 
-class FrameAnalyzerInterface(object):
+class FrameAnalyzerInterface(abc.ABC):
     """Interface for classes that retreive frames for analysis
     """
+    @abc.abstractmethod
     def get_frame(self):
         raise NotImplementedError
 
@@ -246,13 +249,47 @@ class PerspectiveTransform(Transform):
 class Filter(VideoAnalysisElement):
     """Handles pixel filtering operations
     """
-    pass
+    def __init__(self, config: dict):
+        super(Filter, self).__init__(config)
+
+    @abc.abstractmethod
+    def mean_color(self) -> np.ndarray:  # todo: add custom np.ndarray type 'hsvcolor'
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def __call__(self, image: np.ndarray) -> np.ndarray:  # todo: add custom np.ndarray type 'image'
+        raise NotImplementedError
 
 
-class HueRangeFilter(Filter):
+class HsvRangeFilter(Filter):
     """Filters by a range of hues ~ HSV representation
     """
-    pass
+    __default__ = {
+        'hue_radius': 10,           # Radius to determine range from one color
+        'sat_window': [50, 255],
+        'val_window': [50, 255],
+        'c0': [90, 50, 50],         # Start of filtering range (in HSV space)
+        'c1':   [110, 255, 255],    # End of filtering range (in HSV space)
+    }
+
+    def __init__(self, config: dict):
+        super(HsvRangeFilter, self).__init__(config)
+
+    def mean_color(self) -> np.ndarray:
+        # todo: S and V are arbitrary for now
+        return np.array([np.mean(self.c0[0], self.c1[0]), 255, 200])
+
+    def set_filter(self, clr):
+        hue = clr[0]
+        self.c0 = np.array([
+            hue - self.hue_rad, self.sat_window[0], self.val_window[0]
+        ])
+        self.c1 = np.array([
+            hue - self.hue_rad, self.sat_window[1], self.val_window[1]
+        ])  # todo: plot color was set from here originally, but Filter shouldn't care about that
+
+    def __call__(self, img: np.ndarray) -> np.ndarray:
+        return cv2.inRange(img, self.c0, self.c1, img)
 
 
 class Mask(VideoAnalysisElement):
@@ -261,28 +298,43 @@ class Mask(VideoAnalysisElement):
 
     __default__ = {
         'render_dir': os.path.join(os.getcwd(), '.render'),
-        'kernel': ckernel(7),  # mask smoothing kernel
+        'kernel': ckernel(7),   # mask smoothing kernel
     }
 
-    def __init__(self, path: str, va: FrameAnalyzerInterface, config: dict = None):
+    def __init__(self, path: str, config: dict = None):
         super(Mask, self).__init__(config)
         self._path = path
-        self._va = va
+        self.name = os.path.splitext(os.path.basename(path))[0]
 
         # todo: explain this!
         pattern = re.compile('(\d+)[?\-=_#/\\\ ]+([?\w\-=_#/\\\ ]+)')
-        fullname = os.path.splitext(os.path.basename(path))[0]
-        self.name = pattern.search(fullname).groups()[1].strip()
+        match = pattern.search(self.name)
+        if match:
+            self.name = match.groups()[1].strip()
 
-    def __call__(self, frame: np.ndarray) -> np.ndarray:
-        """Mask a frame.
+
+        self._full = to_mask(cv2.imread(path), self.kernel)
+        self._part, self._rect, self._center = crop_mask(self._full)
+
+    def __call__(self, img: np.ndarray) -> np.ndarray:
+        """Mask an image.
             Writes to the provided variable!
             If caller needs the original value, they should copy explicitly
         """
-        raise NotImplementedError
+
+        img = self._crop(img)
+        return cv2.bitwise_and(img, img, mask=self._part)
 
 
-class VideoAnalyzer(VideoFileInterface, FrameAnalyzerInterface):
+    def _crop(self, img: np.ndarray) -> np.ndarray:
+        """Crop an image to fit self._part
+            Writes to the provided variable!
+            If caller needs the original value, they should copy explicitly
+        """
+        return img[self._rect[0]:self._rect[1], self._rect[2]:self._rect[3]]
+
+
+class VideoAnalyzer(VideoFileHandler, FrameAnalyzerInterface):
     """Main video handling class
         * Load frames from video files
         * Load mask files
@@ -317,8 +369,9 @@ class VideoAnalyzer(VideoFileInterface, FrameAnalyzerInterface):
             raise FileNotFoundError
 
         self._overlay, self._masks = self.handle_design(design_path)
+        self._shape = self._overlay.shape
         self._transform = self._get_transform(self.transform_type)(
-            self.shape, self._config
+            self._shape, self._config
         )
 
     def clear_renders(self):
@@ -348,7 +401,7 @@ class VideoAnalyzer(VideoFileInterface, FrameAnalyzerInterface):
         files = os.listdir(self.render_dir)
         files.remove('overlay.png')
 
-        # todo: explain this stuff
+        # Catch file names of numbered layers
         pattern = re.compile('(\d+)[?\-=_#/\\\ ]+([?\w\-=_#/\\\ ]+)')
 
         sorted_files = []
@@ -356,24 +409,26 @@ class VideoAnalyzer(VideoFileInterface, FrameAnalyzerInterface):
         mismatched = []
 
         for path in files:
-            name = os.path.splitext(path)[0]
-            match = pattern.search(name)
+            match = pattern.search(os.path.splitext(path)[0])
+            path = os.path.join(self.render_dir, path)
 
             if match:
-                matched.update(
-                    {int(match.groups()[0]): path}
+                matched.update(                     # numbered layer
+                    {int(match.groups()[0]): path}  #  keep track of index
                 )
             else:
-                mismatched.append(path)
+                mismatched.append(path)             # not a numbered layer
 
+        # Sort numbered layers
         for index in sorted(matched.keys()):
             sorted_files.append(matched[index])
 
+        # Append unnumbered layers to the end of the list
         sorted_files = sorted_files + mismatched
 
         masks = []
         for path in sorted_files:
-            masks.append(Mask(path, self, self._config))
+            masks.append(Mask(path, self._config))
 
         if not self.keep_renders:
             self.clear_renders()
