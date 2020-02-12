@@ -50,16 +50,6 @@ def area_pixelsum(image):
         return np.sum(image > 1)
 
 
-def filter_hsv_interval_fixed(color):
-    """Get filtering interval based on selected color value.
-
-    :param color:   HSV Color
-    :return:        from, to: lower and upper bound of the filter (in HSV)
-    """
-    if color is not None:
-        pass
-
-
 def to_mask(image: np.ndarray, kernel: np.ndarray) -> np.ndarray:
     """Convert a .png image to a binary mask
     """
