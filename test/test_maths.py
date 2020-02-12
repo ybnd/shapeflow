@@ -186,5 +186,13 @@ class crop_maskTest(unittest.TestCase):
         )
 
 
+class area_pixelsumTest(unittest.TestCase):
+    def test_zeros(self):
+        self.assertEqual(0, area_pixelsum(np.zeros(5)))
+
+    def test_kernel5(self):
+        self.assertEqual(13, area_pixelsum(ckernel_5))
+
+
 if __name__ == '__main__':
     unittest.main()
