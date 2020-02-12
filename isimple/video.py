@@ -9,7 +9,7 @@ import numpy as np
 from OnionSVG import OnionSVG, check_svg
 
 from isimple.maths.images import ckernel
-from isimple.utility import describe_function
+from isimple.util import describe_function
 from isimple.gui import guiPane
 
 
@@ -264,10 +264,15 @@ class Mask(VideoAnalysisElement):
         'kernel': ckernel(7),  # mask smoothing kernel
     }
 
-    def __init__(self, path: str, va: FrameAnalyzerInterface, config: dict):
+    def __init__(self, path: str, va: FrameAnalyzerInterface, config: dict = None):
         super(Mask, self).__init__(config)
         self._path = path
         self._va = va
+
+        # todo: explain this!
+        pattern = re.compile('(\d+)[?\-=_#/\\\ ]+([?\w\-=_#/\\\ ]+)')
+        fullname = os.path.splitext(os.path.basename(path))[0]
+        self.name = pattern.search(fullname).groups()[1].strip()
 
     def __call__(self, frame: np.ndarray) -> np.ndarray:
         """Mask a frame.
