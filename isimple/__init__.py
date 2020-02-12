@@ -73,6 +73,19 @@ def write_last_update_time(t=None):
         f.write(str(t))
 
 
+def deploy(branch='master'):
+    """To be run after cloning or updating the repo
+        todo: should be in an easy-to-execute form in the root directory of the master branch
+               -> new users clone the repo and run it
+        todo: different use case: repo just lives in an archive, disconnected from remotes
+               * with an initialized .git folder in it
+               * with a deploy script
+               * deploy script tries to install git (feasible?), connects to an upstream and deploys
+        todo: should hide confusing files in root directory when deplyed on Windows
+    """
+    pass
+
+
 def update(force=False, discard=None, pull=None, install=None):
     """Auto-updating method for applications intended for "end-users".
 
