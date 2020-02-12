@@ -33,6 +33,10 @@ class updateTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
+        """Remember repo setup
+            ! this is crucial, since these test will work with the actual repo
+              and need to reset it to its original state each time
+        """
         super(updateTest, cls).setUpClass()
         cls.root = os.getcwd()
         if cls.root.split('/')[-1] == 'test':  # handle call from PyCharm
@@ -56,22 +60,9 @@ class updateTest(unittest.TestCase):
             ['git', 'rev-parse', 'HEAD']
         )
 
-        # Set name & email if not specified (e.g. on CI server)
-        if not cls.get_output(['git', 'config', '--get', 'user.name']):
-            subprocess.check_call(
-                ['git', 'config', 'user.name', 'temp']
-            )
-            subprocess.check_call(
-                ['git', 'config', 'user.email', 'temp@temp.temp']
-            )
-
-        # Delete the clone
-        try:
-            shutil.rmtree(cls.origin)
-        except FileNotFoundError:
-            pass
-
     def setUp(self) -> None:
+        """Set up a mock remote repository
+        """
         super(updateTest, self).setUp()
         self._commit_messages = []
 
@@ -115,8 +106,6 @@ class updateTest(unittest.TestCase):
         )
 
         # Set name & email if not specified (e.g. on CI server)
-        cwd = os.getcwd()
-        os.chdir(self.origin)
         if not self.get_output(['git', 'config', '--get', 'user.name']):
             subprocess.check_call(
                 ['git', 'config', 'user.name', 'temp']
@@ -124,9 +113,21 @@ class updateTest(unittest.TestCase):
             subprocess.check_call(
                 ['git', 'config', 'user.email', 'temp@temp.temp']
             )
-        os.chdir(cwd)
+
+            cwd = os.getcwd()
+            os.chdir(self.origin)
+            if not self.get_output(['git', 'config', '--get', 'user.name']):
+                subprocess.check_call(
+                    ['git', 'config', 'user.name', 'temp']
+                )
+                subprocess.check_call(
+                    ['git', 'config', 'user.email', 'temp@temp.temp']
+                )
+            os.chdir(cwd)
 
     def tearDown(self) -> None:
+        """Remove mock remote and reset repo to original state
+        """
         super(updateTest, self).tearDown()
 
         # Delete the clone
@@ -237,11 +238,8 @@ class updateTest(unittest.TestCase):
             pass  # todo: assert that changes have been made
             # message of HEAD should match self._commits[-1]
 
-
-
         if self.requirements_changes:
             pass  # todo: assert that requirements have been installed
-            #
 
 
 class updateTestChanges(updateTest):
