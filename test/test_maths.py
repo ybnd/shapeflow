@@ -1,6 +1,6 @@
 import unittest
 
-from isimple.utility.images import *
+from isimple.maths.images import *
 import numpy as np
 
 
@@ -184,9 +184,6 @@ class crop_maskTest(unittest.TestCase):
                 self.mask2, mask2
             ).all()
         )
-
-
-
 
 
 if __name__ == '__main__':

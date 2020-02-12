@@ -4,11 +4,11 @@ import os
 import re
 import time
 import logging
-from typing import Tuple, List
+from typing import Tuple, List, Union
 import numpy as np
 from OnionSVG import OnionSVG, check_svg
 
-from isimple.utility.images import ckernel
+from isimple.maths.images import ckernel
 from isimple.utility import describe_function
 from isimple.gui import guiPane
 
@@ -63,7 +63,7 @@ class VideoAnalysisElement(object):  # todo: more descriptive name
 class VideoFileInterface(VideoAnalysisElement):
     """Interface to video files ~ OpenCV
     """
-    _cache: Cache
+    _cache: Union[Cache, None]
 
     cache_dir: str
     cache_size_limit: int
