@@ -172,8 +172,6 @@ class FrameAnalyzerInterface(abc.ABC):
 
 class Transform(VideoAnalysisElement):
     """Handles coordinate transforms.
-        Transform objects can point to a parent transform
-        -- the transform is applied in sequence!
     """
     _shape: tuple
     _transform: np.ndarray
@@ -206,12 +204,26 @@ class Transform(VideoAnalysisElement):
         """
         raise NotImplementedError
 
-    def __call__(self, frame: np.ndarray) -> np.ndarray:
+    def __call__(self, img: np.ndarray) -> np.ndarray:
         """Transform a frame.
             Writes to the provided variable!
             If caller needs the original value, they should copy explicitly
         """
         raise NotImplementedError
+
+
+class IdentityTransform(Transform):
+    """Looks like a Transform, but doesn't transform
+    """
+
+    def set(self, transform: np.ndarray):
+        pass
+
+    def estimate(self, coordinates):
+        pass
+
+    def __call__(self, img: np.ndarray) -> np.ndarray:
+        return img
 
 
 class PerspectiveTransform(Transform):
@@ -238,7 +250,7 @@ class PerspectiveTransform(Transform):
                     )
                 )
             )
-        )
+        )   # todo: this is messy :(
 
     def __call__(self, frame: np.ndarray) -> np.ndarray:
         return cv2.warpPerspective(
