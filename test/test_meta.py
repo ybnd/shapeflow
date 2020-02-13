@@ -27,13 +27,10 @@ transform = np.eye(3).tolist()
 order = [0,1,2,3]
 
 va = VideoAnalyzer(__VIDEO__, __DESIGN__)
-masks = va._masks
+masks = va.design._masks
 
 
 class MetaTest(unittest.TestCase):
-    va: VideoAnalyzer
-    masks = List[Mask]
-
     colors: dict
     meta: dict
 

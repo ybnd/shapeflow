@@ -9,6 +9,7 @@ import numpy as np
 from OnionSVG import OnionSVG, check_svg
 import abc
 import threading
+from _collections import defaultdict
 
 from isimple.maths.images import ckernel, to_mask, crop_mask
 from isimple.util import describe_function
@@ -27,12 +28,12 @@ class VideoFileTypeError(Exception):
     pass
 
 
-class VideoAnalysisElement(object):  # todo: more descriptive name
+class VideoAnalysisElement(abc.ABC):  # todo: more descriptive name
     __default__: dict
-    __default__ = {
+    __default__ = {                  # todo: interface with isimple.meta
     }
 
-    def __init__(self, config: dict = None):
+    def __init__(self, config):
         self._config = self.handle_config(config)
 
     def handle_config(self, config: dict = None) -> dict:
@@ -441,50 +442,94 @@ class DesignFileHandler(VideoAnalysisElement):
         return self._shape
 
 
-class VideoAnalyzer(VideoAnalysisElement):
-    """Main video handling class
-        * Load frames from video files
-        * Load mask files
-        * Load/save measurement metadata
-    """
+class VideoAnalysis(abc.ABC):
+    _config: dict
+    _elements: List[VideoAnalysisElement]
+    _element_types: dict = {
+        'element': {
+            'type': VideoAnalysisElement
+        }
+    }
 
-    _transform: Transform
+    def __init__(self, config):
+        self._config = config
+
+    def _add_elements(self, elements: List[VideoAnalysisElement]):
+        """Add VideoAnalysisElement instances to VideoAnalyzer
+        """
+        for e in elements:
+            if True:   # todo: add sanity check here
+                self._elements.append(e)
+
+    def get_element(self, element, type):
+        if element in self._element_types:
+            if type in self._element_types[element]:
+                return self._element_types[element][type]
+            else:
+                raise ValueError(
+                    f"Invalid {element} type '{type}' \n"
+                    f"Valid types: {list(self._element_types[element].keys())}"
+                )
+        else:
+            raise ValueError(
+                f"Invalid element type '{element}' \n"
+                f"Valid element types: {list(self._element_types.keys())}"
+            )
+
+
+class VideoAnalyzer(VideoAnalysis):
+    """Main video handling class
+            * Load frames from video files
+            * Load mask files
+            * Load/save measurement metadata
+    """
+    video: VideoFileHandler
+    design: DesignFileHandler
+    transform: Transform
+
+    _element_types: dict = {
+        'video': {
+            'opencv': VideoFileHandler,
+        },
+        'design': {
+            'svg': DesignFileHandler,
+        },
+        'transform': {
+            'perspective': PerspectiveTransform,
+        },
+    }
 
     dt: float
     transform_type: str
     transform_matrix: np.ndarray
 
     __default__ = {
-        'dt': 5,        # time interval in seconds  # todo: switch between dt/Nf options?
-        'Nf': 100,      # number of frames to analyze
+        'dt': 5,
+        # time interval in seconds  # todo: switch between dt/Nf options?
+        'Nf': 100,  # number of frames to analyze
+        'video_type': 'opencv',
+        'design_type': 'svg',
         'transform_type': 'perspective',
-        'transform_matrix': None,
     }
 
-    def __init__(self, video_path: str, design_path: str, config: dict = None):
+    def __init__(self, video_path, design_path, config: dict = None):
         super(VideoAnalyzer, self).__init__(config)
 
-        self._video = VideoFileHandler(video_path, config)
-        self._design = DesignFileHandler(design_path, config)
+        video = self.get_element('video', self.video_type)
+        design = self.get_element('design', self.design_type)
+        transform = self.get_element('transform', self.transform_type)
 
-        self._transform = self._get_transform(self.transform_type)(
-            self._design.shape,  # todo: cleaner way to do this?
-            self._config
-        )
+        assert isinstance(video, type(VideoFileHandler))  # todo: annoying that we have to do this... but do we?
+        assert isinstance(design, type(DesignFileHandler))
+        assert isinstance(transform, type(Transform))
+
+        self.video = video(video_path, config)
+        self.design = design(design_path, config)
+        self.transform = transform(self.design.shape, config)
 
 
-    @staticmethod
-    def _get_transform(type: str):
-        transform_types = {
-            'perspective': PerspectiveTransform,
-        }
-        if type in transform_types:
-            return transform_types[type]
-        else:
-            raise ValueError(
-                f"Invalid transform type '{type}' \n"
-                f"Valid types: {list(transform_types.keys())}"
-            )
+class MultiVideoAnalyzer(VideoAnalysis):
+    pass
 
 
 class guiTransform(guiPane):
