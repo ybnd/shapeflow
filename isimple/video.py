@@ -64,10 +64,6 @@ class VideoAnalysisElement(abc.ABC):  # todo: more descriptive name
         """  # todo: interface with metadata -> should raise an exception if unexpected attribute is got
         return self._config[item]
 
-    def __len__(self):
-        pass # todo: this is a workaround, PyCharm debugger keeps polling __len__ for some reason
-
-
     def __call__(self, frame: np.ndarray) -> np.ndarray:
         raise NotImplementedError
 
