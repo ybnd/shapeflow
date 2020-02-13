@@ -3,7 +3,7 @@ import unittest
 import os
 import numpy as np
 from isimple.video import \
-    VideoFileHandler, VideoAnalyzer, VideoFileTypeError
+    VideoFileHandler, VideoAnalyzer, VideoFileTypeError, Area
 import cv2
 from threading import Thread
 import time
@@ -186,8 +186,8 @@ class VideoAnalyzerTest(unittest.TestCase):
         )
 
         # Not testing cache, don't need with statement
-        va1 = VideoAnalyzer(__VIDEO__, __VIDEO__, self.config)
-        va2 = VideoAnalyzer(__VIDEO__, __DESIGN__)
+        va1 = VideoAnalyzer(__VIDEO__, __VIDEO__, [Area], self.config)
+        va2 = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area])
         self.assertTrue(np.equal(va1.design._overlay, va2.design._overlay).all())
         self.assertEqual(len(va1.design._masks), len(va2.design._masks))
 
