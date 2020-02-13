@@ -4,7 +4,7 @@ import os
 import re
 import time
 import logging
-from typing import Tuple, List, Union, NewType
+from typing import Tuple, List, Optional
 import numpy as np
 from OnionSVG import OnionSVG, check_svg
 import abc
@@ -53,7 +53,6 @@ class VideoAnalysisElement(abc.ABC):  # todo: more descriptive name
                 _config[key] = config[key]
             else:
                 _config[key] = default
-
         return _config
 
     def __getattr__(self, item):
@@ -68,8 +67,8 @@ class VideoAnalysisElement(abc.ABC):  # todo: more descriptive name
 class VideoFileHandler(VideoAnalysisElement):
     """Interface to video files ~ OpenCV
     """
-    _cache: Union[Cache]
-    _background: threading.Thread
+    _cache: Optional[Cache]
+    _background: Optional[threading.Thread]
 
     cache_dir: str
     cache_size_limit: int
@@ -124,34 +123,35 @@ class VideoFileHandler(VideoAnalysisElement):
 
         key = self._get_key(self.read_frame, frame_number, to_hsv)
         # Check cache
-        if key in self._cache:
-            # Get frame from cache
-            frame = self._cache.get(key)
-
-            while isinstance(frame, str) and frame == 'in progress':
-                # Some other thread is currently reading the same frame
-                # Wait a bit and try to get from cache again
-                time.sleep(0.01)  # todo: DiskCache-level events?
+        if self._cache is not None:
+            if key in self._cache:
+                # Get frame from cache
                 frame = self._cache.get(key)
 
-            return frame
-        elif not from_cache:
-            # Deposit a temporary entry into the cache
-            self._cache.set(key, 'in progress')
+                while isinstance(frame, str) and frame == 'in progress':
+                    # Some other thread is currently reading the same frame
+                    # Wait a bit and try to get from cache again
+                    time.sleep(0.01)  # todo: DiskCache-level events?
+                    frame = self._cache.get(key)
 
-            # Get frame from OpenCV capture
-            if frame_number is None:
-                frame_number = int(self.Nframes / 2)
-
-            self._set_position(frame_number)
-            ret, frame = self._capture.read()
-
-            if ret:
-                if to_hsv:
-                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-
-                self._cache.set(key, frame)
                 return frame
+            elif not from_cache:
+                # Deposit a temporary entry into the cache
+                self._cache.set(key, 'in progress')
+
+                # Get frame from OpenCV capture
+                if frame_number is None:
+                    frame_number = int(self.Nframes / 2)
+
+                self._set_position(frame_number)
+                ret, frame = self._capture.read()
+
+                if ret:
+                    if to_hsv:
+                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+                    self._cache.set(key, frame)
+                    return frame
 
     def __enter__(self):
         self._cache = Cache(
@@ -442,7 +442,7 @@ class DesignFileHandler(VideoAnalysisElement):
         return self._shape
 
 
-class VideoAnalysis(abc.ABC):
+class VideoAnalysis(VideoAnalysisElement):
     _config: dict
     _elements: List[VideoAnalysisElement]
     _element_types: dict = {
@@ -450,9 +450,6 @@ class VideoAnalysis(abc.ABC):
             'type': VideoAnalysisElement
         }
     }
-
-    def __init__(self, config):
-        self._config = config
 
     def _add_elements(self, elements: List[VideoAnalysisElement]):
         """Add VideoAnalysisElement instances to VideoAnalyzer
@@ -500,8 +497,10 @@ class VideoAnalyzer(VideoAnalysis):
     }
 
     dt: float
+    Nf: int
+    video_type: str
+    design_type: str
     transform_type: str
-    transform_matrix: np.ndarray
 
     __default__ = {
         'dt': 5,
