@@ -158,7 +158,7 @@ class VideoAnalyzerTest(unittest.TestCase):
         # Not testing cache, don't need with statement
         va = VideoAnalyzer(__VIDEO__, __DESIGN__, self.config)
         self.assertListEqual(
-            sorted(list(os.listdir(va.render_dir))),
+            sorted(list(os.listdir(va._design.render_dir))),
             sorted([
                 '1 - WLC_SIMPLE.png',
                 '2 - PM_SIMPLE.png',
@@ -172,10 +172,10 @@ class VideoAnalyzerTest(unittest.TestCase):
                 'overlay.png'
             ])
         )
-        va.clear_renders()
+        va._design._clear_renders()
 
-        self.assertTrue(hasattr(va, '_masks'))
-        self.assertEqual(len(va._masks), 9)
+        self.assertTrue(hasattr(va._design, '_masks'))
+        self.assertEqual(len(va._design._masks), 9)
         self.assertTrue(
             np.equal(va.transform_matrix, va._transform.transform_matrix).all()
         )
@@ -188,10 +188,10 @@ class VideoAnalyzerTest(unittest.TestCase):
         # Not testing cache, don't need with statement
         va1 = VideoAnalyzer(__VIDEO__, __VIDEO__, self.config)
         va2 = VideoAnalyzer(__VIDEO__, __DESIGN__)
-        self.assertTrue(np.equal(va1._overlay, va2._overlay).all())
-        self.assertEqual(len(va1._masks), len(va2._masks))
+        self.assertTrue(np.equal(va1._design._overlay, va2._design._overlay).all())
+        self.assertEqual(len(va1._design._masks), len(va2._design._masks))
 
-        va1.clear_renders()
+        va1._design._clear_renders()
 
 
 if __name__ == '__main__':
