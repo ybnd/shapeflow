@@ -31,7 +31,7 @@ def describe_function(f):
     name = f.__name__
 
     if inspect.ismethod(f):
-        if f.__self__:
+        if hasattr(f, '__self__'):
             classes = [f.__self__.__class__]
         else:
             #unbound method or regular function

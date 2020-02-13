@@ -87,7 +87,7 @@ class VideoInterfaceTest(unittest.TestCase):
         with VideoFileHandler(__VIDEO__) as vi:
             for frame_number in __TEST_FRAME_HSV__.keys():
                 # Read frames, which are cached
-                vi.read_frame(frame_number, to_hsv=True)
+                vi.read_frame(frame_number)
                 self.assertInCache(vi, vi.read_frame, frame_number, True)
 
             # Disconnect VideoInterface from OpenCV capture
@@ -108,7 +108,7 @@ class VideoInterfaceTest(unittest.TestCase):
             with VideoFileHandler(__VIDEO__) as vi_source:
                 for frame_number in __TEST_FRAME__.keys():
                     time.sleep(__INTERVAL__)
-                    vi_source.read_frame(frame_number, to_hsv=True)
+                    vi_source.read_frame(frame_number)
 
         # Start timing main thread executin time
         t0 = time.time()
@@ -130,9 +130,7 @@ class VideoInterfaceTest(unittest.TestCase):
                 while frame is None:
                     # Can't get frame while not in cache
                     if key in vi_sink._cache:
-                        frame = vi_sink.read_frame(
-                            frame_number, True, from_cache=True
-                        )
+                        frame = vi_sink.read_frame(frame_number, True)
                 subthread_frames.append(frame)
 
             subthread.join()
@@ -156,7 +154,7 @@ class VideoAnalyzerTest(unittest.TestCase):
 
     def test_loading(self):
         # Not testing cache, don't need with statement
-        va = VideoAnalyzer(__VIDEO__, __DESIGN__, self.config)
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], self.config)
         self.assertListEqual(
             sorted(list(os.listdir(va.design.render_dir))),
             sorted([
@@ -182,7 +180,7 @@ class VideoAnalyzerTest(unittest.TestCase):
 
     def test_loading_path_problems(self):
         self.assertRaises(
-            FileNotFoundError, VideoAnalyzer, __VIDEO__, 'non-existent'
+            FileNotFoundError, VideoAnalyzer, __VIDEO__, 'non-existent', [Area]
         )
 
         # Not testing cache, don't need with statement

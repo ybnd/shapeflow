@@ -68,6 +68,10 @@ class VideoAnalysisElement(abc.ABC):  # todo: more descriptive name
         """  # todo: interface with metadata -> should raise an exception if unexpected attribute is got
         return self._config[item]
 
+    def __len__(self):
+        pass # todo: this is a workaround, PyCharm debugger keeps polling __len__ for some reason
+
+
     def __call__(self, frame: np.ndarray) -> np.ndarray:
         raise NotImplementedError
 
@@ -164,7 +168,7 @@ class VideoFileHandler(VideoAnalysisElement):
             directory=self.cache_dir,
             size_limit=self.cache_size_limit,
         )
-        if self.background_caching:
+        if self.do_background:
             pass  # todo: can start caching frames in background thread here
 
         return self
@@ -301,7 +305,7 @@ class HsvRangeFilter(Filter):
 
     def mean_color(self) -> np.ndarray:
         # todo: S and V are arbitrary for now
-        return np.array([np.mean(self.c0[0], self.c1[0]), 255, 200])
+        return np.array([np.mean([self.c0[0], self.c1[0]]), 255, 200])
 
     def set_filter(self, clr):
         hue = clr[0]
@@ -519,14 +523,14 @@ class Feature(abc.ABC):
 
 class FeatureSet(object):
     _features: List[Feature]
-    _colors: Optional[List[np.ndarray]]
+    _colors: List[np.ndarray]
 
     def __init__(self, features: List[Feature]):
         self._features = features
         self._colors = self.get_colors()
 
     def get_colors(self) -> List[np.ndarray]:
-        if self._colors is None:
+        if not hasattr(self, '_colors'):
             # Get guideline colors for all features
             colors = [f._guideline_color() for f in self._features]
 
@@ -565,6 +569,10 @@ class SimpleFeature(Feature):  # todo: Simple and SIMPLE are a bad fit (:
 
     def value(self, frame) -> Any:
         return self._function(self.filter(self.mask(frame)))
+
+    def state(self, frame: np.ndarray, state: np.ndarray = None) -> np.ndarray:
+        if state is not None:
+            return state
 
 
 class Area(SimpleFeature):
@@ -669,12 +677,11 @@ class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
         self.design = design(design_path, config)
         self.transform = transform(self.design.shape, config)
 
-        for feature_type in feature_types:
-            self.featuresets.append(
-                FeatureSet(
+        self.featuresets = [
+            FeatureSet(
                     [feature_type(mask) for mask in self.design.masks]
-                )
-            )
+                ) for feature_type in feature_types
+        ]
 
     def get_next_frame_number(self):
         pass
