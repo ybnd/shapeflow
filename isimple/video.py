@@ -4,14 +4,14 @@ import os
 import re
 import time
 import logging
-from typing import Tuple, List, Optional
+from typing import Tuple, List, Optional, Any, Type
 import numpy as np
 from OnionSVG import OnionSVG, check_svg
 import abc
 import threading
 from _collections import defaultdict
 
-from isimple.maths.images import ckernel, to_mask, crop_mask
+from isimple.maths.images import ckernel, to_mask, crop_mask, area_pixelsum
 from isimple.util import describe_function
 from isimple.gui import guiPane
 
@@ -24,7 +24,15 @@ logging.basicConfig(
 )
 
 
-class VideoFileTypeError(Exception):
+class AnalysisSetupError(Exception):
+    pass
+
+
+class VideoFileTypeError(AnalysisSetupError):
+    pass
+
+
+class AnalysisError(Exception):
     pass
 
 
@@ -70,14 +78,16 @@ class VideoFileHandler(VideoAnalysisElement):
     _cache: Optional[Cache]
     _background: Optional[threading.Thread]
 
+    do_cache: bool
+    do_background: bool
     cache_dir: str
     cache_size_limit: int
-    background_caching: bool
 
     __default__ = {
+        'do_cache': False,
+        'do_background': False, # True -> start background caching thread along with cache
         'cache_dir': os.path.join(os.getcwd(), '.cache'),
         'cache_size_limit': 2 ** 32,                        # cache size limit
-        'background_caching': False,                        # True -> start background caching thread along with cache
     }
 
     def __init__(self, video_path, config: dict = None):
@@ -116,12 +126,11 @@ class VideoFileHandler(VideoAnalysisElement):
         self.frame_number = self._capture.get(cv2.CAP_PROP_POS_FRAMES)
         return self.frame_number
 
-    def read_frame(self, frame_number: int = None,
-                   to_hsv: bool = True, from_cache = False):
+    def read_frame(self, frame_number: int = None, from_cache = False):
         if frame_number is None:
             frame_number = self.frame_number
 
-        key = self._get_key(self.read_frame, frame_number, to_hsv)
+        key = self._get_key(self.read_frame, frame_number)
         # Check cache
         if self._cache is not None:
             if key in self._cache:
@@ -147,9 +156,6 @@ class VideoFileHandler(VideoAnalysisElement):
                 ret, frame = self._capture.read()
 
                 if ret:
-                    if to_hsv:
-                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-
                     self._cache.set(key, frame)
                     return frame
 
@@ -314,12 +320,15 @@ class Mask(VideoAnalysisElement):
     """Handles masks in the context of a video file
     """
 
+    filter: Filter
+
     __default__ = {
         'render_dir': os.path.join(os.getcwd(), '.render'),
-        'kernel': ckernel(7),   # mask smoothing kernel
+        'kernel': ckernel(7),           # mask smoothing kernel
+        'filter_type': HsvRangeFilter,  # class of filter  # todo: should interface with factory
     }
 
-    def __init__(self, path: str, config: dict = None):
+    def __init__(self, path: str, config: dict = None, filter: Filter = None):
         super(Mask, self).__init__(config)
         self._path = path
         self.name = os.path.splitext(os.path.basename(path))[0]
@@ -333,6 +342,11 @@ class Mask(VideoAnalysisElement):
 
         self._full = to_mask(cv2.imread(path), self.kernel)
         self._part, self._rect, self._center = crop_mask(self._full)
+
+        if filter is None:
+            filter = self.filter_type(config)
+            assert isinstance(filter, Filter), AnalysisSetupError
+        self.filter = filter
 
     def __call__(self, img: np.ndarray) -> np.ndarray:
         """Mask an image.
@@ -359,11 +373,13 @@ class DesignFileHandler(VideoAnalysisElement):
     dpi: int
     render_dir: str
     keep_renders: bool
+    overlay_alpha: float
 
     __default__ = {
         'dpi': 400,  # DPI to render .svg at
         'render_dir': os.path.join(os.getcwd(), '.render'),
         'keep_renders': False,
+        'overlay_alpha': 0.1,
     }
 
     def __init__(self, path: str, config: dict = None):
@@ -441,9 +457,121 @@ class DesignFileHandler(VideoAnalysisElement):
     def shape(self):
         return self._shape
 
+    def overlay(self, frame: np.ndarray) -> np.ndarray:
+        cv2.addWeighted(
+            self._overlay, self.overlay_alpha,
+            frame, 1 - self.overlay_alpha,
+            gamma=0, dst=frame
+        )  # todo: could cause issues since frame is HSV by default
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB, dst=frame)
+        return frame
 
-class VideoAnalysis(VideoAnalysisElement):
-    _config: dict
+    @property
+    def masks(self):
+        return self._masks
+
+
+class Feature(abc.ABC):
+    _color: Optional[np.ndarray]
+    _state: Optional[np.ndarray]
+
+    def __init__(self, _: Mask, *args, **kwargs):
+        pass
+
+    def calculate(self, frame: np.ndarray, state: np.ndarray = None) \
+            -> Tuple[Any, np.ndarray]:
+        """Calculate Feature for given frame
+            and update state image (optional)
+        """
+        if state is not None:
+            state = self.state(frame, state)
+        return self.value(frame), state
+
+    @property
+    def color(self) -> np.ndarray:
+        """Color of the Feature in figures.
+
+            A Feature's color must be set as not to overlap with
+            other Features in the same FeatureSet.
+            Therefore, <Feature>._color must be determined by FeatureSet!
+        """
+        return self._color
+
+    @abc.abstractmethod
+    def _guideline_color(self) -> np.ndarray:
+        """Returns the 'guideline color' of a Feature instance
+            Used by FeatureSet to determine the actual _color
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def state(self, frame: np.ndarray, state: np.ndarray = None) -> np.ndarray:
+        """Return the Feature instance's state image for a given frame
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def value(self, frame: np.ndarray) -> Any:
+        """Compute the value of the Feature instance for a given frame
+        """
+        raise NotImplementedError
+
+
+class FeatureSet(object):
+    _features: List[Feature]
+    _colors: Optional[List[np.ndarray]]
+
+    def __init__(self, features: List[Feature]):
+        self._features = features
+        self._colors = self.get_colors()
+
+    def get_colors(self) -> List[np.ndarray]:
+        if self._colors is None:
+            # Get guideline colors for all features
+            colors = [f._guideline_color() for f in self._features]
+
+            # todo: dodge colors
+
+            # Set the _color for all features
+            for feature, color in zip(self._features, colors):
+                feature._color = color
+        else:
+            colors = self._colors
+
+        return colors
+
+
+def frame_to_none(frame: np.ndarray) -> None:
+    return None
+
+
+class SimpleFeature(Feature):  # todo: Simple and SIMPLE are a bad fit (:
+    _function = staticmethod(frame_to_none)  # Override in child classes
+
+    mask: Mask
+    filter: Filter
+
+    def __init__(self, mask: Mask, filter: Filter = None):
+        super(SimpleFeature, self).__init__(mask, filter)
+        if filter is None:
+            assert isinstance(mask.filter, Filter), AnalysisSetupError
+            filter = mask.filter
+
+        self.mask = mask
+        self.filter = filter
+
+    def _guideline_color(self) -> np.ndarray:
+        return self.filter.mean_color()
+
+    def value(self, frame) -> Any:
+        return self._function(self.filter(self.mask(frame)))
+
+
+class Area(SimpleFeature):
+    _function = staticmethod(area_pixelsum)
+
+
+class VideoAnalysis(abc.ABC):
     _elements: List[VideoAnalysisElement]
     _element_types: dict = {
         'element': {
@@ -473,8 +601,14 @@ class VideoAnalysis(VideoAnalysisElement):
                 f"Valid element types: {list(self._element_types.keys())}"
             )
 
+    @abc.abstractmethod
+    def calculate(self, frame_number: int = None):
+        """Perform analysis for a given frame number
+        """
+        raise NotImplementedError
 
-class VideoAnalyzer(VideoAnalysis):
+
+class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
     """Main video handling class
             * Load frames from video files
             * Load mask files
@@ -483,6 +617,14 @@ class VideoAnalyzer(VideoAnalysis):
     video: VideoFileHandler
     design: DesignFileHandler
     transform: Transform
+
+    featuresets: List[FeatureSet]
+
+    frame: Optional[np.ndarray]
+    value: List[List[Any]]
+    state: List[np.ndarray]
+
+    frame_number: int
 
     _element_types: dict = {
         'video': {
@@ -511,10 +653,11 @@ class VideoAnalyzer(VideoAnalysis):
         'transform_type': 'perspective',
     }
 
-    def __init__(self, video_path, design_path, config: dict = None):
+    def __init__(self, video_path: str, design_path: str,
+                 feature_types: List[Type[Feature]], config: dict = None):
         super(VideoAnalyzer, self).__init__(config)
 
-        video = self.get_element('video', self.video_type)
+        video = self.get_element('video', self.video_type)  # todo: can call context now as `with va.video:` ?
         design = self.get_element('design', self.design_type)
         transform = self.get_element('transform', self.transform_type)
 
@@ -525,6 +668,53 @@ class VideoAnalyzer(VideoAnalysis):
         self.video = video(video_path, config)
         self.design = design(design_path, config)
         self.transform = transform(self.design.shape, config)
+
+        for feature_type in feature_types:
+            self.featuresets.append(
+                FeatureSet(
+                    [feature_type(mask) for mask in self.design.masks]
+                )
+            )
+
+    def get_next_frame_number(self):
+        pass
+
+    def get_frame(self, frame_number: int = None) -> np.ndarray:
+        if frame_number is None:   # todo: depending on self.frame is dangerous in case we want to run this in a different thread
+            frame_number = self.frame_number
+        else:
+            self.frame_number = frame_number
+
+        self.frame = self.transform(self.video.read_frame(frame_number))
+        return self.frame
+
+    def get_frame_overlay(self, frame_number: int = None) -> np.ndarray:
+        if self.frame is None:   # todo: depending on self.frame is dangerous in case we want to run this in a different thread
+            self.frame = self.get_frame(frame_number)
+        # don't overwrite self.frame with the overlaid frame!
+        return self.design.overlay(self.frame.copy())
+
+    def calculate(self, frame_number: int = None):
+        """Return a state image for each FeatureSet
+        """
+        if self.frame is None:  # todo: depending on self.frame is dangerous in case we want to run this in a different thread
+            self.frame = self.get_frame(frame_number)
+
+        self.value = []
+        self.state = []
+        for fs in self.featuresets:
+            values = []
+            state = np.zeros(self.frame.shape, dtype=np.uint8) # todo: can't just set it to self.frame.dtype?
+            # todo: may be faster / more memory-efficient to keep state[i] and set it to 0
+
+            for feature in fs._features:  # todo: make featureset iterable maybe
+                value, state = feature.calculate(
+                    self.frame.copy(),  # don't overwrite self.frame ~ cv2 dst parameter  # todo: better to let OpenCV handle copying, or not?
+                    state               # additive; each feature adds to state
+                )
+                values.append(value)
+            self.value.append(values)   # todo value values value ugh
+            self.state.append(state)
 
 
 class MultiVideoAnalyzer(VideoAnalysis):
