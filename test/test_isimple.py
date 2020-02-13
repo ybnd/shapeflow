@@ -26,8 +26,16 @@ class gitTest(unittest.TestCase):
         # Fail automatically if the git index is not empt
         #  e.g.: test is run locally, but changes haven't been committed yet
         #  ~ https://unix.stackexchange.com/questions/155046
+        changes = ''
+        for line in get_output(['git', 'status', '--porcelain']).splitlines():
+            # Ignore changes marked as '??'
+            #  e.g. '?? .tox/' shows up when testing with tox,
+            #       but it's actually ok to go ahead with the tests
+            if '??' not in line:
+                changes += line + '\n'
+
         self.assertEqual(
-            '', get_output(['git', 'status', '--porcelain']),
+            '', changes,
             msg="Unstaged changes in repository"
         )
 
