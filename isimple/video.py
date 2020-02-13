@@ -4,7 +4,7 @@ import os
 import re
 import time
 import logging
-from typing import Tuple, List, Optional, Any, Type
+from typing import Tuple, List, Optional, Any, Type, NamedTuple, Callable
 import numpy as np
 from OnionSVG import OnionSVG, check_svg
 import abc
@@ -592,7 +592,17 @@ class Area(SimpleFeature):
     _function = staticmethod(area_pixelsum)
 
 
+class AnalysisCallbacks(NamedTuple):
+    setup: List[Callable]  # todo: some standardized way to communicate configuration (colors, amount of plots, ranges, sizes)
+    value: List[Callable[[Any], None]]
+    state: List[Callable[[np.ndarray], None]]
+
+
 class VideoAnalysis(abc.ABC):
+    value: Optional[List[Any]]
+    state: Optional[List[np.ndarray]]
+
+
     _elements: List[VideoAnalysisElement]
     _element_types: dict = {
         'element': {
@@ -600,12 +610,17 @@ class VideoAnalysis(abc.ABC):
         }
     }
 
+    _callbacks: AnalysisCallbacks
+
     def _add_elements(self, elements: List[VideoAnalysisElement]):
         """Add VideoAnalysisElement instances to VideoAnalyzer
         """
         for e in elements:
             if True:   # todo: add sanity check here
                 self._elements.append(e)
+
+    def set_callbacks(self, callbacks: AnalysisCallbacks):
+        self._callbacks = callbacks
 
     def get_element(self, element, type):
         if element in self._element_types:
@@ -622,11 +637,18 @@ class VideoAnalysis(abc.ABC):
                 f"Valid element types: {list(self._element_types.keys())}"
             )
 
-    @abc.abstractmethod
     def calculate(self, frame_number: int = None):
         """Perform analysis for a given frame number
         """
-        raise NotImplementedError
+        if self.__class__.__name__ == 'VideoAnalysis':  # todo cleaner way to check for this?
+            raise NotImplementedError
+
+        if self.value is not None:
+            for callback in self._callbacks.value:
+                callback(self.value)
+        if self.value is not None:
+            for callback in self._callbacks.value:
+                callback(self.state)
 
 
 class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
@@ -733,8 +755,14 @@ class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
                     state               # additive; each feature adds to state
                 )
                 values.append(value)
+
+            # Add overlay on top of state
+            state = self.design.overlay(state)
+
             self.value.append(values)   # todo value values value ugh
             self.state.append(state)
+
+        super(VideoAnalyzer, self).calculate()
 
 
 class MultiVideoAnalyzer(VideoAnalysis):
