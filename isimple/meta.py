@@ -4,6 +4,76 @@ import json
 import os
 import time
 import pandas as pd
+import warnings
+from typing import Union, Any, List, Optional
+
+
+class EnforcedStr(object):
+    _options: List[str] = ['']
+    _str: str
+
+    def __init__(self, string: str):
+            if string not in self.options:
+                warnings.warn(f"Illegal {self.__class__.__name__} '{string}', "
+                              f"should be one of {self.options}. "
+                              f"Defaulting to '{self.default}'.")
+                self._str = self.default
+            else:
+                self._str = string
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} '{self._str}'>"
+
+    def __str__(self):
+        return self.__repr__()
+
+    def __eq__(self, other):
+        if hasattr(other, '_str'):
+            return self._str == self._str
+        elif isinstance(other, str):
+            return self._str == other
+        else:
+            return False
+
+    @property
+    def options(self):
+        return self._options
+
+    @property
+    def default(self):
+        return self._options[0]
+
+
+class Factory(EnforcedStr):
+    _mapping: dict = {}
+    _default: Optional[str] = None
+
+    def get(self):
+        if self._str in self._mapping:
+            return self._mapping[self._str]
+        else:
+            raise ValueError(f"Factory {self.__class__.__name__} doesn't map"
+                             f"{self._str} to a class.")
+
+    @property
+    def options(self):
+        return list(self._mapping.keys())
+
+    @property
+    def default(self):
+        if self._default is not None:
+            return self._default
+        else:
+            return list(self._mapping.keys())[0]
+
+class ColorSpace(EnforcedStr):
+    _options = ['hsv', 'bgr', 'rgb']
+
+
+
+
+
+
 
 # https://stackoverflow.com/questions/16782112
 yaml.add_representer(

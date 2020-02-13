@@ -9,7 +9,7 @@ from isimple.meta import (
     __transform__, __order__, __colors__, __from__, __to__, __meta_sheet__,
 )
 
-from isimple.video import VideoAnalyzer, Area
+from isimple.video import VideoAnalyzer, Area, FilterType, HsvRangeFilter
 
 
 __VIDEO__ = 'test.mp4'
@@ -30,7 +30,38 @@ va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area])
 masks = va.design._masks
 
 
-class MetaTest(unittest.TestCase):
+class EnforcedStrTest(unittest.TestCase):
+    def test_definitions(self):
+        ColorSpace('rgb')
+        FilterType('hsv range')
+
+    def test_comparisons(self):
+        self.assertEqual('hsv', ColorSpace('hsv'))
+        self.assertEqual('hsv', ColorSpace('nope'))
+
+    def test_factory(self):
+        self.assertEqual(HsvRangeFilter, FilterType('hsv range').get())
+
+    def test_subclassing(self):
+        class TestEnfStr(EnforcedStr):
+            _options = ['1', '2', '3']
+
+        class TestFactory1(Factory):
+            _mapping = {'z': 1, 'b': 2, 'a': 7}
+            _default = 'b'
+
+        class TestFactory2(Factory):
+            _mapping = {'z': 1, 'b': 2, 'a': 7}
+
+        self.assertEqual('3', TestEnfStr('3'))
+        self.assertEqual('1', TestEnfStr('7'))
+
+        self.assertEqual(7, TestFactory1('a').get())
+        self.assertEqual(2, TestFactory1('').get())
+
+        self.assertEqual(1, TestFactory2('').get())
+
+class OgMetaTest(unittest.TestCase):
     colors: dict
     meta: dict
 

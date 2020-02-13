@@ -67,7 +67,7 @@ class VideoInterfaceTest(unittest.TestCase):
 
     def test_get_frame(self):
         with VideoFileHandler(__VIDEO__) as vi:
-            for frame_number, frame in __TEST_FRAME__.items():
+            for frame_number, frame in __TEST_FRAME_HSV__.items():
                 self.assertTrue(
                     np.equal(
                         frame, vi.read_frame(frame_number)
@@ -77,10 +77,10 @@ class VideoInterfaceTest(unittest.TestCase):
 
     def test_get_cached_frame(self):
         with VideoFileHandler(__VIDEO__) as vi:
-            for frame_number in __TEST_FRAME__.keys():
+            for frame_number in __TEST_FRAME_HSV__.keys():
                 # Read frames, which are cached
                 self.assertEqualFrames(
-                    __TEST_FRAME__[frame_number],
+                    __TEST_FRAME_HSV__[frame_number],
                     vi.read_frame(frame_number)
                 )
                 self.assertInCache(vi, vi.read_frame, frame_number)
@@ -91,7 +91,7 @@ class VideoInterfaceTest(unittest.TestCase):
             vi._capture = None
 
             # Read frames
-            for frame_number, frame in __TEST_FRAME__.items():
+            for frame_number, frame in __TEST_FRAME_HSV__.items():
                 self.assertInCache(vi, vi.read_frame, frame_number)
                 self.assertEqualFrames(
                         frame, vi.read_frame(frame_number)
@@ -102,7 +102,7 @@ class VideoInterfaceTest(unittest.TestCase):
 
         def read_frames():
             with VideoFileHandler(__VIDEO__) as vi_source:
-                for frame_number in __TEST_FRAME__.keys():
+                for frame_number in __TEST_FRAME_HSV__.keys():
                     time.sleep(__INTERVAL__)
                     vi_source.read_frame(frame_number)
 
@@ -118,7 +118,7 @@ class VideoInterfaceTest(unittest.TestCase):
             subthread.start()
 
             subthread_frames = []
-            for frame_number in __TEST_FRAME__.keys():
+            for frame_number in __TEST_FRAME_HSV__.keys():
                 frame = None
                 key = vi_sink._get_key(
                     vi_sink.read_frame, frame_number
@@ -138,8 +138,8 @@ class VideoInterfaceTest(unittest.TestCase):
             len(__FRAMES__) * __INTERVAL__
         )
 
-        for frame1, fn in zip(subthread_frames, __TEST_FRAME__.keys()):
-            self.assertEqualFrames(frame1, __TEST_FRAME__[fn])
+        for frame1, fn in zip(subthread_frames, __TEST_FRAME_HSV__.keys()):
+            self.assertEqualFrames(frame1, __TEST_FRAME_HSV__[fn])
 
 
 class VideoAnalyzerTest(unittest.TestCase):

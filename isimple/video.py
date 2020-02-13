@@ -9,19 +9,12 @@ import numpy as np
 from OnionSVG import OnionSVG, check_svg
 import abc
 import threading
-from _collections import defaultdict
+from collections import namedtuple
 
 from isimple.maths.images import ckernel, to_mask, crop_mask, area_pixelsum
 from isimple.util import describe_function
 from isimple.gui import guiPane
-
-
-__CACHE_DIRECTORY__ = os.path.join(os.getcwd(), '.cache')
-__CACHE_SIZE_LIMIT__ = 2 ** 32
-
-logging.basicConfig(
-    filename='.log', level=logging.DEBUG
-)
+from isimple.meta import EnforcedStr, Factory, ColorSpace
 
 
 class AnalysisSetupError(Exception):
@@ -38,8 +31,8 @@ class AnalysisError(Exception):
 
 class VideoAnalysisElement(abc.ABC):  # todo: more descriptive name
     __default__: dict
-    __default__ = {                  # todo: interface with isimple.meta
-    }
+    __default__ = {                   # todo: interface with isimple.meta
+    }                                 # todo: define legal values for strings so config can be validated at this level
 
     def __init__(self, config):
         self._config = self.handle_config(config)
@@ -58,13 +51,16 @@ class VideoAnalysisElement(abc.ABC):  # todo: more descriptive name
         _config = {}
         for key, default in default_config.items():
             if key in config:
-                _config[key] = config[key]
+                if isinstance(default, EnforcedStr):
+                    pass
+                else:
+                    _config[key] = config[key]
             else:
                 _config[key] = default
         return _config
 
-    def __getattr__(self, item):
-        """Get attribute value from self._config
+    def __getattr__(self, item):  # todo: relatively annoying as this can't be linted...
+        """Get attribute value from self._config  
         """  # todo: interface with metadata -> should raise an exception if unexpected attribute is got
         return self._config[item]
 
@@ -86,12 +82,14 @@ class VideoFileHandler(VideoAnalysisElement):
     do_background: bool
     cache_dir: str
     cache_size_limit: int
+    colorspace: str
 
     __default__ = {
         'do_cache': False,
         'do_background': False, # True -> start background caching thread along with cache
         'cache_dir': os.path.join(os.getcwd(), '.cache'),
         'cache_size_limit': 2 ** 32,                        # cache size limit
+        'colorspace': ColorSpace('hsv'),
     }
 
     def __init__(self, video_path, config: dict = None):
@@ -131,6 +129,8 @@ class VideoFileHandler(VideoAnalysisElement):
         return self.frame_number
 
     def read_frame(self, frame_number: int = None, from_cache = False):
+        """Read frame from video file, HSV color space
+        """
         if frame_number is None:
             frame_number = self.frame_number
 
@@ -158,6 +158,10 @@ class VideoFileHandler(VideoAnalysisElement):
 
                 self._set_position(frame_number)
                 ret, frame = self._capture.read()
+
+                # Convert to colorspace
+                if self.colorspace == ColorSpace('hsv'):
+                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV, frame)
 
                 if ret:
                     self._cache.set(key, frame)
@@ -277,7 +281,7 @@ class PerspectiveTransform(Transform):
 class Filter(VideoAnalysisElement):
     """Handles pixel filtering operations
     """
-    def __init__(self, config: dict):
+    def __init__(self, config: dict = None):
         super(Filter, self).__init__(config)
 
     @abc.abstractmethod
@@ -320,16 +324,26 @@ class HsvRangeFilter(Filter):
         return cv2.inRange(img, self.c0, self.c1, img)
 
 
+class FilterType(Factory):
+    _mapping = {
+        'hsv range': HsvRangeFilter,
+    }
+
+
 class Mask(VideoAnalysisElement):
     """Handles masks in the context of a video file
     """
 
     filter: Filter
 
+    render_dir: str
+    kernel: np.ndarray
+    filter_type: FilterType
+
     __default__ = {
         'render_dir': os.path.join(os.getcwd(), '.render'),
         'kernel': ckernel(7),           # mask smoothing kernel
-        'filter_type': HsvRangeFilter,  # class of filter  # todo: should interface with factory
+        'filter_type': FilterType('hsv range'),  # class of filter  # todo: should interface with factory
     }
 
     def __init__(self, path: str, config: dict = None, filter: Filter = None):
@@ -343,12 +357,11 @@ class Mask(VideoAnalysisElement):
         if match:
             self.name = match.groups()[1].strip()
 
-
         self._full = to_mask(cv2.imread(path), self.kernel)
         self._part, self._rect, self._center = crop_mask(self._full)
 
         if filter is None:
-            filter = self.filter_type(config)
+            filter = self.filter_type.get()(config)
             assert isinstance(filter, Filter), AnalysisSetupError
         self.filter = filter
 
