@@ -14,7 +14,25 @@ import git
 #     def test_load_save(self):  # todo: implement after refactoring isimple.HistoryApp
 #         pass
 
-class updateTest(unittest.TestCase):
+def get_output(command: List[str]):
+    return subprocess.Popen(
+        command,
+        stdout=subprocess.PIPE
+    ).communicate()[0].decode('utf-8').strip(' \t\n\r')
+
+
+class gitTest(unittest.TestCase):
+    def setUp(self) -> None:
+        # Fail automatically if the git index is not empt
+        #  e.g.: test is run locally, but changes haven't been committed yet
+        #  ~ https://unix.stackexchange.com/questions/155046
+        self.assertEqual(
+            '', get_output(['git', 'status', '--porcelain']),
+            msg="Unstaged changes in repository"
+        )
+
+
+class updateTest(gitTest):
     # step back twice to make sure that we're out of the repo
     branch: str = 'master'
     changes: bool = False
@@ -38,25 +56,26 @@ class updateTest(unittest.TestCase):
               and need to reset it to its original state each time
         """
         super(updateTest, cls).setUpClass()
+
         cls.root = os.getcwd()
         if cls.root.split('/')[-1] == 'test':  # handle call from PyCharm
             cls.root = '/'.join(os.getcwd().split('/')[:-1])
 
         # Remember our actual origin url, if we have one
         try:
-            cls.original_url = cls.get_output(
+            cls.original_url = get_output(
                 ['git', 'config', '--get', 'remote.origin.url']
             )
         except subprocess.CalledProcessError:
             cls.original_url = ''
 
         # Remember our actual branch
-        cls.original_branch = cls.get_output(
+        cls.original_branch = get_output(
             ['git', 'rev-parse', '--abbrev-ref', 'HEAD']
         )
 
         # Remember our actual commit
-        cls.original_branch_original_commit = cls.get_output(
+        cls.original_branch_original_commit = get_output(
             ['git', 'rev-parse', 'HEAD']
         )
 
@@ -89,7 +108,7 @@ class updateTest(unittest.TestCase):
                 subprocess.check_call(['git', 'checkout', '-b', 'master'])
 
         # Remember what commit the master branch was on
-        self.original_commit = self.get_output(
+        self.original_commit = get_output(
             ['git', 'rev-parse', 'HEAD']
         )
 
@@ -114,7 +133,7 @@ class updateTest(unittest.TestCase):
         )
 
         # Set name & email if not specified (e.g. on CI server)
-        if not self.get_output(['git', 'config', '--get', 'user.name']):
+        if not get_output(['git', 'config', '--get', 'user.name']):
             subprocess.check_call(
                 ['git', 'config', 'user.name', 'temp']
             )
@@ -124,7 +143,7 @@ class updateTest(unittest.TestCase):
 
         cwd = os.getcwd()
         os.chdir(self.origin)
-        if not self.get_output(['git', 'config', '--get', 'user.name']):
+        if not get_output(['git', 'config', '--get', 'user.name']):
             subprocess.check_call(
                 ['git', 'config', 'user.name', 'temp']
             )
@@ -234,13 +253,6 @@ class updateTest(unittest.TestCase):
 
         self._commit_messages.append(message)
 
-    @classmethod  # todo: maybe put a more general version of this in isimple.utility instead?
-    def get_output(self, command: List[str]):
-        return subprocess.Popen(
-            command,
-            stdout=subprocess.PIPE
-        ).communicate()[0].decode('utf-8').strip(' \t\n\r')
-
     def assertRepoState(self, discard, pull, install):
         # If local changes haven't been discarded, no changes were pulled
         if discard:
@@ -254,7 +266,7 @@ class updateTest(unittest.TestCase):
 
             # Assert that the correct packages have been installed
             if len(self._new_requirements) and install:
-                freeze = self.get_output(
+                freeze = get_output(
                     [sys.executable, '-m', 'pip', 'freeze']
                 )
                 self.assertTrue(
