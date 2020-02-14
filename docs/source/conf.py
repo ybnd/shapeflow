@@ -27,6 +27,9 @@ release = '0.2'
 
 # -- General configuration ---------------------------------------------------
 
+
+master_doc = 'index'
+
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
@@ -54,3 +57,11 @@ html_theme = 'alabaster'
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
+
+html_context = {
+    "display_github": True, # Integrate GitHub
+    "github_user": "ybnd", # Username
+    "github_repo": "https://github.com/ybnd/isimple", # Repo name
+    "github_master": "version", # Version
+    "conf_py_path": "/source/", # Path in the checkout to the docs root
+}
