@@ -4,6 +4,7 @@ import os
 import numpy as np
 from isimple.video import \
     VideoFileHandler, VideoAnalyzer, VideoFileTypeError, Area
+from isimple.meta import *
 import cv2
 from threading import Thread
 import time
@@ -187,6 +188,94 @@ class VideoAnalyzerTest(unittest.TestCase):
 
         va1.design._clear_renders()
 
+    def test_frame_number_generator(self):  # todo: don't need the design to load here
+        # Don't overwrite self.config
+        config = {k:v for k,v in self.config.items()}
+
+        config.update(
+            {
+                'frame_interval_setting': 'Nf',
+                'Nf': 1000, # test video has only 68 frames
+            }
+        )
+
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], config)
+        frames = [f for f in va.get_next_frame_number()]
+
+        self.assertEqual(68, len(frames))
+
+        config.update(
+            {
+                'frame_interval_setting': 'dt',
+                'dt': 60,  # The test video is at ~ 0.1 fps
+            }
+        )
+
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], config)
+        frames = [f for f in va.get_next_frame_number()]
+
+        self.assertEqual(12, len(frames))
+
+    def test_context(self):  # todo: don't need the design to load here
+        # Don't overwrite self.config
+        config = {k: v for k, v in self.config.items()}
+
+        # Caching is disabled
+        config.update(
+            {'do_cache': False, 'do_background': False}
+        )
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], config)
+
+        self.assertEqual(None, va.video._cache)
+        with va.caching():
+            self.assertEqual(None, va.video._cache)
+            self.assertEqual(None, va.video._background)
+        self.assertEqual(None, va.video._cache)
+
+        # Caching is disabled, but background caching is enabled (ignored)
+        config.update(
+            {'do_cache': False, 'do_background': True}
+        )
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], config)
+
+        self.assertEqual(None, va.video._cache)
+        with va.caching():
+            self.assertEqual(None, va.video._cache)
+            self.assertEqual(None, va.video._background)
+        self.assertEqual(None, va.video._cache)
+
+        # Caching is enabled
+        config.update(
+            {'do_cache': True, 'do_background': False}
+        )
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], config)
+
+        self.assertEqual(None, va.video._cache)
+        with va.caching():
+            self.assertNotEqual(None, va.video._cache)
+            self.assertEqual(None, va.video._background)
+        self.assertEqual(None, va.video._cache)
+
+        # Background caching is enabled
+        config.update(
+            {'do_cache': True, 'do_background': True}
+        )
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], config)
+
+        self.assertEqual(None, va.video._cache)
+        with va.caching():
+            self.assertNotEqual(None, va.video._cache)
+            #self.assertNotEqual(None, va.video._background)  # todo: implement backgrond caching
+        self.assertEqual(None, va.video._cache)
+
+        # By default, main-thread caching is enabled
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], self.config)
+
+        self.assertEqual(None, va.video._cache)
+        with va.caching():
+            self.assertNotEqual(None, va.video._cache)
+            self.assertEqual(None, va.video._background)
+        self.assertEqual(None, va.video._cache)
 
 if __name__ == '__main__':
     unittest.main()

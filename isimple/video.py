@@ -3,6 +3,7 @@ import cv2
 import os
 import re
 import time
+import sys
 import logging
 from typing import Tuple, List, Optional, Any, Type, NamedTuple, Callable, Generator
 import numpy as np
@@ -10,9 +11,10 @@ from OnionSVG import OnionSVG, check_svg
 import abc
 import threading
 from collections import namedtuple
+from contextlib import contextmanager
 
 from isimple.maths.images import ckernel, to_mask, crop_mask, area_pixelsum
-from isimple.util import describe_function
+from isimple.util import describe_function, restrict
 from isimple.gui import guiPane
 from isimple.meta import *
 
@@ -89,7 +91,6 @@ class VideoAnalysisElement(abc.ABC):  # todo: more descriptive name
     def __len__(self):
         pass # todo: this is a workaround, PyCharm debugger keeps polling __len__ for some reason
 
-
     def __call__(self, frame: np.ndarray) -> np.ndarray:
         raise NotImplementedError
 
@@ -107,7 +108,7 @@ class VideoFileHandler(VideoAnalysisElement):
     colorspace: str
 
     __default__ = {
-        'do_cache': False,
+        'do_cache': True,
         'do_background': False, # True -> start background caching thread along with cache
         'cache_dir': os.path.join(os.getcwd(), '.cache'),
         'cache_size_limit': 2 ** 32,                        # cache size limit
@@ -190,26 +191,30 @@ class VideoFileHandler(VideoAnalysisElement):
                     return frame
 
     def __enter__(self):
-        self._cache = Cache(
-            directory=self.cache_dir,
-            size_limit=self.cache_size_limit,
-        )
-        if self.do_background:
-            pass  # todo: can start caching frames in background thread here
+        if self.do_cache:
+            self._cache = Cache(
+                directory=self.cache_dir,
+                size_limit=self.cache_size_limit,
+            )
+            if self.do_background:
+                pass  # todo: can start caching frames in background thread here
 
         return self
 
     def __exit__(self, exc_type, exc_value, tb):
-        self._cache.close()
+        if self.do_cache:
+            if self._cache is not None:
+                self._cache.close()
+                self._cache = None
 
-        if self._background is not None and self._background.is_alive():
-            pass    # todo: can stop background thread here (gracefully)
-                    #        ...also: self._background.is_alive() doesn't recognize self...
+            if self._background is not None and self._background.is_alive():
+                pass    # todo: can stop background thread here (gracefully)
+                        #        ...also: self._background.is_alive() doesn't recognize self...
 
-        if exc_type is not None:
-            return False
-        else:
-            return True
+            if exc_type is not None:
+                return False
+            else:
+                return True
 
 
 class VideoHandlerType(Factory):
@@ -731,8 +736,8 @@ class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
 
     __default__ = {
         'frame_interval_setting':   FrameIntervalSetting(),
-        'dt':                       5,
-        'Nf':                       100.0,
+        'dt':                       5.0,
+        'Nf':                       100,
         'video_type':               VideoHandlerType(),
         'design_type':              DesignHandlerType(),
         'transform_type':           TransformType(),
@@ -763,10 +768,12 @@ class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
         fps = self.video.fps
 
         if self.frame_interval_setting == FrameIntervalSetting('Nf'):
-            for f in np.linspace(0, frame_count, self.Nf):
+            Nf = min(self.Nf, frame_count)
+            for f in np.linspace(0, frame_count, Nf):
                 yield int(f)
         elif self.frame_interval_setting == FrameIntervalSetting('dt'):
-            for f in np.arange(0, frame_count, self.dt / fps):
+            df = restrict(self.dt * fps, 1, frame_count)
+            for f in np.arange(0, frame_count, df):
                 yield int(f)
         else:
             raise ValueError(f"Unexpected frame interval setting "
@@ -815,15 +822,13 @@ class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
 
         super(VideoAnalyzer, self).calculate()
 
-    def __enter__(self):
-        """Wrap VideoFileHandler context
-        """
-        self.video.__enter__()
-
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        """Wrap VideoFileHandler context
-        """
-        self.video.__exit__(exc_type, exc_val, exc_tb)
+    @contextmanager
+    def caching(self):
+        try:
+            self.video.__enter__()
+            yield self
+        finally:
+            self.video.__exit__(*sys.exc_info())
 
 
 class MultiVideoAnalyzer(VideoAnalysis):
