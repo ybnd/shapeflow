@@ -811,6 +811,16 @@ class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
 
         super(VideoAnalyzer, self).calculate()
 
+    def __enter__(self):
+        """Wrap VideoFileHandler context
+        """
+        self.video.__enter__()
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        """Wrap VideoFileHandler context
+        """
+        self.video.__exit__(exc_type, exc_val, exc_tb)
+
 
 class MultiVideoAnalyzer(VideoAnalysis):
     pass
