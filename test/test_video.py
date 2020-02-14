@@ -3,14 +3,14 @@ import unittest
 import os
 import numpy as np
 from isimple.video import \
-    VideoFileHandler, VideoAnalyzer, VideoFileTypeError, Area
+    VideoFileHandler, VideoAnalyzer, VideoFileTypeError, Area, CachingVideoAnalysisElement
 from isimple.meta import *
 import cv2
 from threading import Thread
 import time
 
 
-# Get validation frames from test video ~ OpenCV
+# Get validation frames from test video ~ "raw" OpenCV
 __VIDEO__ = 'test.mp4'
 __DESIGN__ = 'test.svg'
 
@@ -45,19 +45,27 @@ for frame_number in __FRAMES__:
 
 
 # Clear cache
-with VideoFileHandler(__VIDEO__) as vi:
+vi = VideoFileHandler(__VIDEO__)
+with vi.caching():
+    assert vi._cache is not None
     vi._cache.clear()
 
+# Load once to "spike" design stuff the cache
+va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], {'keep_renders': True})
 
-class VideoInterfaceTest(unittest.TestCase):
+
+class FrameTest(unittest.TestCase):
     def assertEqualFrames(self, frame1, frame2):
         self.assertTrue(np.equal(frame1, frame2).all())
 
-    def assertInCache(self, vi, method, *args, **kwargs):
+    def assertFrameInCache(self, vi, frame_number):
+        assert isinstance(vi, CachingVideoAnalysisElement) and vi._cache is not None
         self.assertTrue(
-            vi._get_key(method, *args, **kwargs) in vi._cache
+            vi._get_key(vi._read_frame, vi.path, frame_number) in vi._cache
         )
 
+
+class VideoInterfaceTest(FrameTest):
     def test_path_problems(self):
         self.assertRaises(
             FileNotFoundError, VideoFileHandler, 'non-existent'
@@ -74,7 +82,7 @@ class VideoInterfaceTest(unittest.TestCase):
                         frame, vi.read_frame(frame_number)
                     ).all()
                 )
-                self.assertInCache(vi, vi.read_frame, frame_number)
+                self.assertFrameInCache(vi, frame_number)
 
     def test_get_cached_frame(self):
         with VideoFileHandler(__VIDEO__) as vi:
@@ -84,7 +92,7 @@ class VideoInterfaceTest(unittest.TestCase):
                     __TEST_FRAME_HSV__[frame_number],
                     vi.read_frame(frame_number)
                 )
-                self.assertInCache(vi, vi.read_frame, frame_number)
+                self.assertFrameInCache(vi, frame_number)
 
 
             # Disconnect VideoInterface from OpenCV capture
@@ -93,7 +101,7 @@ class VideoInterfaceTest(unittest.TestCase):
 
             # Read frames
             for frame_number, frame in __TEST_FRAME_HSV__.items():
-                self.assertInCache(vi, vi.read_frame, frame_number)
+                self.assertFrameInCache(vi, frame_number)
                 self.assertEqualFrames(
                         frame, vi.read_frame(frame_number)
                 )
@@ -101,7 +109,7 @@ class VideoInterfaceTest(unittest.TestCase):
     def test_get_cached_frame_threaded(self):
         __INTERVAL__ = 0.1
 
-        def read_frames():
+        def read_frames_and_cache():
             with VideoFileHandler(__VIDEO__) as vi_source:
                 for frame_number in __TEST_FRAME_HSV__.keys():
                     time.sleep(__INTERVAL__)
@@ -111,23 +119,14 @@ class VideoInterfaceTest(unittest.TestCase):
         t0 = time.time()
 
         with VideoFileHandler(__VIDEO__) as vi_sink:
-            # Disconnect VideoInterface from OpenCV capture
-            #  to ensure frames are read from cache
-            vi_sink._capture = None
+            vi_sink._config['consumer'] = True
 
-            subthread = Thread(target = read_frames)
+            subthread = Thread(target = read_frames_and_cache)
             subthread.start()
 
             subthread_frames = []
             for frame_number in __TEST_FRAME_HSV__.keys():
-                frame = None
-                key = vi_sink._get_key(
-                    vi_sink.read_frame, frame_number
-                )
-                while frame is None:
-                    # Can't get frame while not in cache
-                    if key in vi_sink._cache:
-                        frame = vi_sink.read_frame(frame_number, True)
+                frame = vi_sink.read_frame(frame_number)
                 subthread_frames.append(frame)
 
             subthread.join()
@@ -143,14 +142,13 @@ class VideoInterfaceTest(unittest.TestCase):
             self.assertEqualFrames(frame1, __TEST_FRAME_HSV__[fn])
 
 
-class VideoAnalyzerTest(unittest.TestCase):
+class VideoAnalyzerTest(FrameTest):
     config = {
         'keep_renders': True,
         'transform': __TRANSFORM__,
     }
 
-    def test_loading(self):
-        # Not testing cache, don't need with statement
+    def test_aloading(self):
         va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], self.config)
         self.assertListEqual(
             sorted(list(os.listdir(va.design.render_dir))),
@@ -200,7 +198,7 @@ class VideoAnalyzerTest(unittest.TestCase):
         )
 
         va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], config)
-        frames = [f for f in va.get_next_frame_number()]
+        frames = [f for f in va.frame_numbers()]
 
         self.assertEqual(68, len(frames))
 
@@ -212,7 +210,7 @@ class VideoAnalyzerTest(unittest.TestCase):
         )
 
         va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], config)
-        frames = [f for f in va.get_next_frame_number()]
+        frames = [f for f in va.frame_numbers()]
 
         self.assertEqual(12, len(frames))
 
@@ -276,6 +274,16 @@ class VideoAnalyzerTest(unittest.TestCase):
             self.assertNotEqual(None, va.video._cache)
             self.assertEqual(None, va.video._background)
         self.assertEqual(None, va.video._cache)
+
+    def test_get_frame(self):
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], self.config)
+
+        with va.caching():
+            for fn in va.frame_numbers():
+                va.get_frame(fn)
+                if fn in __TEST_FRAME_HSV__.keys():
+                    self.assertEqualFrames(__TEST_FRAME_HSV__[fn], va.frame)
+
 
 if __name__ == '__main__':
     unittest.main()

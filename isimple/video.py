@@ -12,6 +12,7 @@ import abc
 import threading
 from collections import namedtuple
 from contextlib import contextmanager
+import functools
 
 from isimple.maths.images import ckernel, to_mask, crop_mask, area_pixelsum
 from isimple.util import describe_function, restrict
@@ -19,22 +20,44 @@ from isimple.gui import guiPane
 from isimple.meta import *
 
 
-class AnalysisSetupError(Exception):
-    pass
+class BaseException(Exception):
+    msg = ''
+    def __init__(self, *args):
+        #https://stackoverflow.com/questions/49224770/
+        # if no arguments are passed set the first positional argument
+        # to be the default message. To do that, we have to replace the
+        # 'args' tuple with another one, that will only contain the message.
+        # (we cannot do an assignment since tuples are immutable)
+        if not (args):
+            args = (self.msg,)
+
+        # Call super constructor
+        super(Exception, self).__init__(*args)
+
+
+class AnalysisSetupError(BaseException):
+    msg = 'Error in analysis setup'
 
 
 class VideoFileTypeError(AnalysisSetupError):
-    pass
+    msg = 'Unrecognized video file type'  # todo: formatting
 
 
-class AnalysisError(Exception):
-    pass
+class AnalysisError(BaseException):
+    msg = 'Error during analysis'
+
+
+class CacheAccessError(BaseException):
+    msg = 'Trying to access cache out of context'
+
 
 
 class VideoAnalysisElement(abc.ABC):  # todo: more descriptive name
     __default__: dict
     __default__ = {  # EnforcedStr instances should be instantiated without
     }                #  arguments, otherwise there may be two defaults!
+
+    __attributes__: List[str]
 
     # todo: interface with isimple.meta
     # todo: define legal values for strings so config can be validated at this level
@@ -65,6 +88,8 @@ class VideoAnalysisElement(abc.ABC):  # todo: more descriptive name
                 default_config.update(base_class.__default__)  #type: ignore
         default_config.update(self.__default__)
 
+        self.__attributes__ = list(default_config.keys())
+
         _config = {}
         for key, default in default_config.items():
             if key in config:
@@ -86,7 +111,14 @@ class VideoAnalysisElement(abc.ABC):  # todo: more descriptive name
     def __getattr__(self, item):  # todo: relatively annoying as this can't be linted...
         """Get attribute value from self._config  
         """  # todo: interface with metadata -> should raise an exception if unexpected attribute is got
-        return self._config[item]
+        if item in self._config.keys():
+            return self._config[item]
+        else:
+            raise ValueError(
+                f"Unexpected attribute '{item}'. "
+                f"{self.__class__.__name__} recognizes the following "
+                f"configuration attributes: {self.__attributes__}"
+            )
 
     def __len__(self):
         pass # todo: this is a workaround, PyCharm debugger keeps polling __len__ for some reason
@@ -95,8 +127,8 @@ class VideoAnalysisElement(abc.ABC):  # todo: more descriptive name
         raise NotImplementedError
 
 
-class VideoFileHandler(VideoAnalysisElement):
-    """Interface to video files ~ OpenCV
+class CachingVideoAnalysisElement(VideoAnalysisElement):  # todo: this should still be an abstract class though...
+    """Interface to diskcache.Cache
     """
     _cache: Optional[Cache]
     _background: Optional[threading.Thread]
@@ -105,13 +137,132 @@ class VideoFileHandler(VideoAnalysisElement):
     do_background: bool
     cache_dir: str
     cache_size_limit: int
-    colorspace: str
+    block_timeout: float
+    cache_consumer: bool
 
     __default__ = {
         'do_cache': True,
-        'do_background': False, # True -> start background caching thread along with cache
+        'do_background': False,
+        # True -> start background caching thread along with cache
         'cache_dir': os.path.join(os.getcwd(), '.cache'),
-        'cache_size_limit': 2 ** 32,                        # cache size limit
+        'cache_size_limit': 2 ** 32,  # cache size limit
+        'block_timeout': 1,
+        'cache_consumer': False,
+    }
+
+    BLOCKED = 'BLOCKED'
+
+
+    def __init__(self, config):
+        super(CachingVideoAnalysisElement, self).__init__(config)
+
+        self._cache = None
+        self._background = None
+
+    @functools.lru_cache(maxsize=1000)
+    def _get_key(self, method, *args) -> int:
+        # key should be instance-independent to handle multithreading
+        #  and caching between application runs
+        #  i.e. hash __name__ instead of bound method
+        return hash((describe_function(method), *args))
+
+    def _to_cache(self, key: int, value: Any):
+        assert self._cache is not None, CacheAccessError
+        self._cache.set(key, value)
+
+    def _from_cache(self, key: int) -> Optional[Any]:
+        assert self._cache is not None, CacheAccessError
+        return self._cache.get(key)
+
+    def _block(self, key: int):
+        assert self._cache is not None, CacheAccessError
+        self._cache.set(key, self.BLOCKED)
+
+    def _is_blocked(self, key: int) -> bool:
+        assert self._cache is not None, CacheAccessError
+        return key in self._cache \
+               and isinstance(self._cache[key], str) \
+               and self._from_cache(key) == self.BLOCKED
+
+    def _drop(self, key: int):
+        assert self._cache is not None, CacheAccessError
+        del self._cache[key]
+
+    def _cached_call(self, method, *args, **kwargs):
+        """Wrapper for a method, handles caching 'at both ends'
+        """  # todo can't use this as a decorator :(
+        key = self._get_key(method, *args)
+        if self._cache is not None:
+            # Check if the file's already cached
+            if key in self._cache:
+                t0 = time.time()
+                while self._is_blocked(key) and time.time() < t0 + self.timeout: # todo: clean up conditional
+                    # Some other thread is currently reading the same frame
+                    # Wait a bit and try to get from cache again
+                    time.sleep(0.01)  # todo: DiskCache-level events?
+
+                value = self._from_cache(key)
+                if isinstance(value, str) and value == self.BLOCKED:
+                    warnings.warn('Timed out waiting for blocked value.')
+                    return None
+                else:
+                    return value
+            if not self.cache_consumer:
+                # Cache a temporary string to 'block' the key
+                self._block(key)
+                value = method(*args, **kwargs)
+                if value is not None:
+                    self._to_cache(key, value)
+                    return value
+                else:
+                    self._drop(key)
+                    return None
+            else:
+                return None
+        else:
+            return method(*args, **kwargs)
+
+    def __enter__(self):
+        if self.do_cache:
+            self._cache = Cache(
+                directory=self.cache_dir,
+                size_limit=self.cache_size_limit,
+            )
+            if self.do_background:
+                pass  # todo: can start caching frames in background thread here
+
+        return self
+
+    def __exit__(self, exc_type, exc_value, tb):
+        if self.do_cache:
+            if self._cache is not None:
+                self._cache.close()
+                self._cache = None
+
+            if self._background is not None and self._background.is_alive():
+                pass  # todo: can stop background thread here (gracefully)
+                #        ...also: self._background.is_alive() doesn't recognize self...
+
+            if exc_type is not None:
+                return False
+            else:
+                return True
+
+    @contextmanager
+    def caching(self):
+        try:
+            self.__enter__()
+            yield self
+        finally:
+            self.__exit__(*sys.exc_info())
+
+
+class VideoFileHandler(CachingVideoAnalysisElement):
+    """Interface to video files ~ OpenCV
+    """
+    colorspace: str
+
+    __default__ = {
         'colorspace': ColorSpace('hsv'),
     }
 
@@ -133,15 +284,13 @@ class VideoFileHandler(VideoAnalysisElement):
         self.frame_count = int(self._capture.get(cv2.CAP_PROP_FRAME_COUNT))
         self.fps = self._capture.get(cv2.CAP_PROP_FPS)
         self.frame_number = int(self._capture.get(cv2.CAP_PROP_POS_FRAMES))
+        self.shape = (
+            int(self._capture.get(cv2.CAP_PROP_FRAME_WIDTH)),
+            int(self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        )
 
         if self.frame_count == 0:
             raise VideoFileTypeError
-
-    def _get_key(self, method, *args, **kwargs) -> int:
-        # key should be instance-independent to handle multithreading
-        #  and caching between application runs
-        #  i.e. hash __name__ instead of bound method
-        return hash(f"{self.path} {describe_function(method)} {args} {kwargs}")
 
     def _set_position(self, frame_number: int):
         self._capture.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
@@ -151,70 +300,22 @@ class VideoFileHandler(VideoAnalysisElement):
         self.frame_number = self._capture.get(cv2.CAP_PROP_POS_FRAMES)
         return self.frame_number
 
-    def read_frame(self, frame_number: int = None, from_cache = False):
+    def _read_frame(self, path: str, frame_number: int) -> np.ndarray:
         """Read frame from video file, HSV color space
+            the `path` parameter is included to determine the cache key
+            in order to make this function cachable across multiple files.
         """
-        if frame_number is None:
-            frame_number = self.frame_number
+        self._set_position(frame_number)
+        ret, frame = self._capture.read()
 
-        key = self._get_key(self.read_frame, frame_number)
-        # Check cache
-        if self._cache is not None:
-            if key in self._cache:
-                # Get frame from cache
-                frame = self._cache.get(key)
+        if ret:
+            # Convert to colorspace
+            if self.colorspace == ColorSpace('hsv'):
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV, frame)
+            return frame
 
-                while isinstance(frame, str) and frame == 'in progress':
-                    # Some other thread is currently reading the same frame
-                    # Wait a bit and try to get from cache again
-                    time.sleep(0.01)  # todo: DiskCache-level events?
-                    frame = self._cache.get(key)
-
-                return frame
-            elif not from_cache:
-                # Deposit a temporary entry into the cache
-                self._cache.set(key, 'in progress')
-
-                # Get frame from OpenCV capture
-                if frame_number is None:
-                    frame_number = int(self.frame_count / 2)
-
-                self._set_position(frame_number)
-                ret, frame = self._capture.read()
-
-                # Convert to colorspace
-                if self.colorspace == ColorSpace('hsv'):
-                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV, frame)
-
-                if ret:
-                    self._cache.set(key, frame)
-                    return frame
-
-    def __enter__(self):
-        if self.do_cache:
-            self._cache = Cache(
-                directory=self.cache_dir,
-                size_limit=self.cache_size_limit,
-            )
-            if self.do_background:
-                pass  # todo: can start caching frames in background thread here
-
-        return self
-
-    def __exit__(self, exc_type, exc_value, tb):
-        if self.do_cache:
-            if self._cache is not None:
-                self._cache.close()
-                self._cache = None
-
-            if self._background is not None and self._background.is_alive():
-                pass    # todo: can stop background thread here (gracefully)
-                        #        ...also: self._background.is_alive() doesn't recognize self...
-
-            if exc_type is not None:
-                return False
-            else:
-                return True
+    def read_frame(self, frame_number: int) -> Optional[np.ndarray]:
+        return self._cached_call(self._read_frame, self.path, frame_number)
 
 
 class VideoHandlerType(Factory):
@@ -227,7 +328,7 @@ class Transform(VideoAnalysisElement):
     """Handles coordinate transforms.
     """
     _shape: tuple
-    _transform: np.ndarray
+    _transform: Optional[np.ndarray]
 
     transform_matrix: np.ndarray
 
@@ -237,9 +338,9 @@ class Transform(VideoAnalysisElement):
 
     def __init__(self, shape, config):
         super(Transform, self).__init__(config)
-        self._shape = shape
+        self._shape = shape[0:2]  # Don't include color dimension
 
-        self._transfrom = None
+        self._transform = None
         if self.transform_matrix is not None:
             self.set(self.transform_matrix)
         else:
@@ -281,7 +382,7 @@ class IdentityTransform(Transform):
 
 class PerspectiveTransform(Transform):
     def set(self, transform: np.ndarray):
-        pass
+        self._transform = transform
 
     def estimate(self, coordinates):
         # todo: sanity check the coordinates!
@@ -307,7 +408,7 @@ class PerspectiveTransform(Transform):
 
     def __call__(self, frame: np.ndarray) -> np.ndarray:
         return cv2.warpPerspective(
-            frame, self._transform, self._shape
+            frame, self._transform, self._shape, dst=frame
         )
 
 
@@ -377,27 +478,19 @@ class Mask(VideoAnalysisElement):
     filter: Filter
 
     render_dir: str
-    kernel: np.ndarray
     filter_type: Filter
 
     __default__ = {
         'render_dir': os.path.join(os.getcwd(), '.render'),
-        'kernel': ckernel(7),           # mask smoothing kernel
         'filter_type': FilterType(),    # class of filter
     }
 
-    def __init__(self, path: str, config: dict = None, filter: Filter = None):
+    def __init__(self, mask: np.ndarray, name: str, config: dict = None, filter: Filter = None):
         super(Mask, self).__init__(config)
-        self._path = path
-        self.name = os.path.splitext(os.path.basename(path))[0]
+        self._full = mask
+        self.name = name
 
-        # todo: explain this!
-        pattern = re.compile('(\d+)[?\-=_#/\\\ ]+([?\w\-=_#/\\\ ]+)')
-        match = pattern.search(self.name)
-        if match:
-            self.name = match.groups()[1].strip()
-
-        self._full = to_mask(cv2.imread(path), self.kernel)
+        self._full = mask
         self._part, self._rect, self._center = crop_mask(self._full)
 
         if filter is None:
@@ -423,7 +516,7 @@ class Mask(VideoAnalysisElement):
         return img[self._rect[0]:self._rect[1], self._rect[2]:self._rect[3]]
 
 
-class DesignFileHandler(VideoAnalysisElement):
+class DesignFileHandler(CachingVideoAnalysisElement):
     _overlay: np.ndarray
     _masks: List[Mask]
 
@@ -431,12 +524,14 @@ class DesignFileHandler(VideoAnalysisElement):
     render_dir: str
     keep_renders: bool
     overlay_alpha: float
+    kernel: np.ndarray
 
     __default__ = {
         'dpi': 400,  # DPI to render .svg at
         'render_dir': os.path.join(os.getcwd(), '.render'),
         'keep_renders': False,
         'overlay_alpha': 0.1,
+        'kernel': ckernel(7),       # mask smoothing kernel
     }
 
     def __init__(self, path: str, config: dict = None):
@@ -446,7 +541,16 @@ class DesignFileHandler(VideoAnalysisElement):
             raise FileNotFoundError
 
         self._path = path
-        self._overlay, self._masks = self._handle_design(self._path)
+        with self.caching():
+            self._overlay = self.peel_design(path)
+            self._masks = []
+            masks, names = self.read_masks(path)
+            for mask, name in zip(masks, names):
+                self._masks.append(Mask(mask, name, config))
+
+            if not self.keep_renders:
+                self._clear_renders()
+
         self._shape = self._overlay.shape  # todo: all Transform objects need to know about this
 
     def _clear_renders(self):
@@ -454,8 +558,7 @@ class DesignFileHandler(VideoAnalysisElement):
         for f in renders:
             os.remove(os.path.join(self.render_dir, f))
 
-    def _handle_design(self, design_path) \
-            -> Tuple[np.ndarray, List[Mask]]:
+    def _peel_design(self, design_path) -> np.ndarray:
 
         if not os.path.isdir(self.render_dir):
             os.mkdir(self.render_dir)
@@ -473,6 +576,9 @@ class DesignFileHandler(VideoAnalysisElement):
             os.path.join(self.render_dir, 'overlay.png')
         )
 
+        return overlay
+
+    def _read_masks(self, _) -> Tuple[List[np.ndarray], List[str]]:
         files = os.listdir(self.render_dir)
         files.remove('overlay.png')
 
@@ -502,13 +608,26 @@ class DesignFileHandler(VideoAnalysisElement):
         sorted_files = sorted_files + mismatched
 
         masks = []
+        names = []
         for path in sorted_files:
-            masks.append(Mask(path, self._config))
+            masks.append(to_mask(cv2.imread(path), self.kernel))
+
+            match = pattern.search(path)
+            if match:
+                names.append(match.groups()[1].strip())
+            else:
+                names.append(path)
 
         if not self.keep_renders:
             self._clear_renders()
 
-        return overlay, masks
+        return masks, names
+
+    def peel_design(self, design_path) -> np.ndarray:
+        return self._cached_call(self._peel_design, design_path)
+
+    def read_masks(self, design_path) -> Tuple[List[np.ndarray], List[str]]:
+        return self._cached_call(self._read_masks, design_path)
 
     @property
     def shape(self):
@@ -648,7 +767,6 @@ class VideoAnalysis(abc.ABC):
     value: Optional[List[Any]]
     state: Optional[List[np.ndarray]]
 
-
     _elements: List[VideoAnalysisElement]
     _element_types: dict = {
         'element': {
@@ -658,12 +776,18 @@ class VideoAnalysis(abc.ABC):
 
     _callbacks: AnalysisCallbacks
 
-    def _add_elements(self, elements: List[VideoAnalysisElement]):
+    def __init__(self):
+        self._elements = []
+
+    def _add_element(self, element_type: Type[VideoAnalysisElement], *args, **kwargs) -> VideoAnalysisElement:
         """Add VideoAnalysisElement instances to VideoAnalyzer
         """
-        for e in elements:
-            if True:   # todo: add sanity check here
-                self._elements.append(e)
+        if not hasattr(self, '_elements'):
+            self._elements = []
+        if True:   # todo: add sanity check here
+            element = element_type(*args, **kwargs)  # todo: add checks ~ whether all of this makes sense etc
+            self._elements.append(element)
+            return element
 
     def set_callbacks(self, callbacks: AnalysisCallbacks):
         self._callbacks = callbacks
@@ -683,7 +807,7 @@ class VideoAnalysis(abc.ABC):
                 f"Valid element types: {list(self._element_types.keys())}"
             )
 
-    def calculate(self, frame_number: int = None):
+    def calculate(self, frame_number: int):
         """Perform analysis for a given frame number
         """
         if self.__class__.__name__ == 'VideoAnalysis':  # todo cleaner way to check for this?
@@ -695,6 +819,22 @@ class VideoAnalysis(abc.ABC):
         if self.value is not None:
             for callback in self._callbacks.value:
                 callback(self.state)
+
+    @contextmanager
+    def caching(self):
+        """Caching contest on VideoAnalysis: propagate context to elements
+            that implement caching
+        """
+        caching_elements = [
+            e for e in self._elements if isinstance(e, CachingVideoAnalysisElement)
+        ]
+        try:
+            for element in caching_elements:
+                element.__enter__()
+            yield self
+        finally:
+            for element in caching_elements:
+                element.__exit__(*sys.exc_info())
 
 
 class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
@@ -713,8 +853,6 @@ class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
     value: List[List[Any]]
     state: List[np.ndarray]
 
-    frame_number: int
-
     _element_types: dict = {
         'video': {
             'opencv': VideoFileHandler,
@@ -730,9 +868,9 @@ class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
     frame_interval_setting: FrameIntervalSetting  # use dt or Nf
     dt: float                                     # interval in seconds
     Nf: int                                       # number of evenly spaced frames
-    video_type: VideoFileHandler
-    design_type: DesignFileHandler
-    transform_type: Transform
+    video_type: Type[VideoFileHandler]
+    design_type: Type[DesignFileHandler]
+    transform_type: Type[Transform]
 
     __default__ = {
         'frame_interval_setting':   FrameIntervalSetting(),
@@ -745,15 +883,12 @@ class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
 
     def __init__(self, video_path: str, design_path: str,
                  feature_types: List[Type[Feature]], config: dict = None):
+        VideoAnalysis.__init__(self)  # todo: mixing styles here :(
         super(VideoAnalyzer, self).__init__(config)
 
-        assert isinstance(self.video_type, type(VideoFileHandler))  # todo: annoying that this is necessary for MyPy / inspections
-        assert isinstance(self.design_type, type(DesignFileHandler))
-        assert isinstance(self.transform_type, type(Transform))
-
-        self.video = self.video_type(video_path, config)
-        self.design = self.design_type(design_path, config)
-        self.transform = self.transform_type(self.design.shape, config)
+        self.video = self._add_element(self.video_type, video_path, config) # type: ignore  # todo: fix typing
+        self.design = self._add_element(self.design_type, design_path, config) # type: ignore
+        self.transform = self._add_element(self.transform_type, self.video.shape, config) # type: ignore
 
         self.featuresets = [
             FeatureSet(
@@ -761,7 +896,7 @@ class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
                 ) for feature_type in feature_types
         ]
 
-    def get_next_frame_number(self) -> Generator[int, None, None]:
+    def frame_numbers(self) -> Generator[int, None, None]:
         """
         """
         frame_count = self.video.frame_count
@@ -779,22 +914,17 @@ class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
             raise ValueError(f"Unexpected frame interval setting "
                              f"{self.frame_interval_setting}")
 
-    def get_frame(self, frame_number: int = None) -> np.ndarray:
-        if frame_number is None:   # todo: depending on self.frame is dangerous in case we want to run this in a different thread
-            frame_number = self.frame_number
-        else:
-            self.frame_number = frame_number
-
-        self.frame = self.transform(self.video.read_frame(frame_number))
+    def get_frame(self, frame_number: int) -> np.ndarray:
+        self.frame = self.transform(self.video.read_frame(frame_number))# todo: depending on self.frame is dangerous in case we want to run this in a different thread
         return self.frame
 
-    def get_frame_overlay(self, frame_number: int = None) -> np.ndarray:
+    def get_frame_overlay(self, frame_number: int) -> np.ndarray:
         if self.frame is None:   # todo: depending on self.frame is dangerous in case we want to run this in a different thread
             self.frame = self.get_frame(frame_number)
         # don't overwrite self.frame with the overlaid frame!
         return self.design.overlay(self.frame.copy())
 
-    def calculate(self, frame_number: int = None):
+    def calculate(self, frame_number: int):
         """Return a state image for each FeatureSet
         """
         if self.frame is None:  # todo: depending on self.frame is dangerous in case we want to run this in a different thread
@@ -820,15 +950,7 @@ class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
             self.value.append(values)   # todo value values value ugh
             self.state.append(state)
 
-        super(VideoAnalyzer, self).calculate()
-
-    @contextmanager
-    def caching(self):
-        try:
-            self.video.__enter__()
-            yield self
-        finally:
-            self.video.__exit__(*sys.exc_info())
+        super(VideoAnalyzer, self).calculate(frame_number)
 
 
 class MultiVideoAnalyzer(VideoAnalysis):
