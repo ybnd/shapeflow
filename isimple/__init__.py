@@ -35,6 +35,19 @@ def deploy(branch='master'):
                * deploy script tries to install git (feasible?), connects to an upstream and deploys
         todo: should hide confusing files in root directory when deplyed on Windows
     """
+
+    # Run update
+
+    # Build a virtual environment in .venv
+
+    # Place an activate_this.py script in .venv
+
+    # Activate .venv
+
+    # Install requirements.txt in .venv
+
+    # Maybe run test suite? DON'T BY DEFAULT THOUGH.
+
     pass
 
 
