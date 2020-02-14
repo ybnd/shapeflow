@@ -38,6 +38,8 @@ class EnforcedStrTest(unittest.TestCase):
     def test_comparisons(self):
         self.assertEqual('hsv', ColorSpace('hsv'))
         self.assertEqual('hsv', ColorSpace('nope'))
+        self.assertEqual(ColorSpace('hsv'), ColorSpace('hsv'))
+        self.assertNotEqual(ColorSpace('hsv'), ColorSpace('bgr'))
 
     def test_factory(self):
         self.assertEqual(HsvRangeFilter, FilterType('hsv range').get())

@@ -32,7 +32,7 @@ class EnforcedStr(object):
 
     def __eq__(self, other):
         if hasattr(other, '_str'):
-            return self._str == self._str
+            return self._str == other._str
         elif isinstance(other, str):
             return self._str == other
         else:
