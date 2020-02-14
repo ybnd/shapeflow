@@ -17,7 +17,7 @@ def ckernel(size: int) -> np.ndarray:
     return array
 
 
-def crop_mask(mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+def crop_mask(mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray, Tuple[int, int]]:
     """Crop a binary mask image to its minimal size
         (to exclude unnecessary regions)
     """

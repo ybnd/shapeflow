@@ -4,7 +4,7 @@ import os
 import re
 import time
 import logging
-from typing import Tuple, List, Optional, Any, Type, NamedTuple, Callable
+from typing import Tuple, List, Optional, Any, Type, NamedTuple, Callable, Generator
 import numpy as np
 from OnionSVG import OnionSVG, check_svg
 import abc
@@ -14,7 +14,7 @@ from collections import namedtuple
 from isimple.maths.images import ckernel, to_mask, crop_mask, area_pixelsum
 from isimple.util import describe_function
 from isimple.gui import guiPane
-from isimple.meta import EnforcedStr, Factory, ColorSpace
+from isimple.meta import *
 
 
 class AnalysisSetupError(Exception):
@@ -77,7 +77,7 @@ class VideoAnalysisElement(abc.ABC):  # todo: more descriptive name
             # Catch Factory instances, even if it's the default
             if isinstance(_config[key], Factory):
                 # Get mapped class
-                _config[key] = _config[key].get() # type: ignore
+                _config[key] = _config[key].get()  # type: ignore
 
         return _config
 
@@ -125,11 +125,11 @@ class VideoFileHandler(VideoAnalysisElement):
             os.path.join(os.getcwd(), self.path)
         )  # todo: handle failure to open capture
 
-        self.Nframes = int(self._capture.get(cv2.CAP_PROP_FRAME_COUNT))
+        self.frame_count = int(self._capture.get(cv2.CAP_PROP_FRAME_COUNT))
         self.fps = self._capture.get(cv2.CAP_PROP_FPS)
         self.frame_number = int(self._capture.get(cv2.CAP_PROP_POS_FRAMES))
 
-        if self.Nframes == 0:
+        if self.frame_count == 0:
             raise VideoFileTypeError
 
     def _get_key(self, method, *args, **kwargs) -> int:
@@ -172,7 +172,7 @@ class VideoFileHandler(VideoAnalysisElement):
 
                 # Get frame from OpenCV capture
                 if frame_number is None:
-                    frame_number = int(self.Nframes / 2)
+                    frame_number = int(self.frame_count / 2)
 
                 self._set_position(frame_number)
                 ret, frame = self._capture.read()
@@ -206,6 +206,12 @@ class VideoFileHandler(VideoAnalysisElement):
             return False
         else:
             return True
+
+
+class VideoHandlerType(Factory):
+    _mapping = {
+        'opencv':   VideoFileHandler,
+    }
 
 
 class Transform(VideoAnalysisElement):
@@ -296,6 +302,13 @@ class PerspectiveTransform(Transform):
         )
 
 
+class TransformType(Factory):
+    _mapping = {
+        'perspective':  PerspectiveTransform,
+        'identity':     IdentityTransform,
+    }
+
+
 class Filter(VideoAnalysisElement):
     """Handles pixel filtering operations
     """
@@ -344,7 +357,7 @@ class HsvRangeFilter(Filter):
 
 class FilterType(Factory):
     _mapping = {
-        'hsv range': HsvRangeFilter,
+        'hsv range':    HsvRangeFilter,
     }
 
 
@@ -504,6 +517,12 @@ class DesignFileHandler(VideoAnalysisElement):
     @property
     def masks(self):
         return self._masks
+
+
+class DesignHandlerType(Factory):
+    _mapping = {
+        'svg':      DesignFileHandler,
+    }
 
 
 class Feature(abc.ABC):
@@ -699,36 +718,33 @@ class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
         },
     }
 
-    dt: float
-    Nf: int
-    video_type: str
-    design_type: str
-    transform_type: str
+    frame_interval_setting: FrameIntervalSetting  # use dt or Nf
+    dt: float                                     # interval in seconds
+    Nf: int                                       # number of evenly spaced frames
+    video_type: VideoFileHandler
+    design_type: DesignFileHandler
+    transform_type: Transform
 
     __default__ = {
-        'dt': 5,
-        # time interval in seconds  # todo: switch between dt/Nf options?
-        'Nf': 100,  # number of frames to analyze
-        'video_type': 'opencv',
-        'design_type': 'svg',
-        'transform_type': 'perspective',
+        'frame_interval_setting':   FrameIntervalSetting(),
+        'dt':                       5,
+        'Nf':                       100.0,
+        'video_type':               VideoHandlerType(),
+        'design_type':              DesignHandlerType(),
+        'transform_type':           TransformType(),
     }
 
     def __init__(self, video_path: str, design_path: str,
                  feature_types: List[Type[Feature]], config: dict = None):
         super(VideoAnalyzer, self).__init__(config)
 
-        video = self.get_element('video', self.video_type)  # todo: can call context now as `with va.video:` ?
-        design = self.get_element('design', self.design_type)
-        transform = self.get_element('transform', self.transform_type)
+        assert isinstance(self.video_type, type(VideoFileHandler))  # todo: annoying that this is necessary for MyPy / inspections
+        assert isinstance(self.design_type, type(DesignFileHandler))
+        assert isinstance(self.transform_type, type(Transform))
 
-        assert isinstance(video, type(VideoFileHandler))  # todo: annoying that we have to do this... but do we?
-        assert isinstance(design, type(DesignFileHandler))
-        assert isinstance(transform, type(Transform))
-
-        self.video = video(video_path, config)
-        self.design = design(design_path, config)
-        self.transform = transform(self.design.shape, config)
+        self.video = self.video_type(video_path, config)
+        self.design = self.design_type(design_path, config)
+        self.transform = self.transform_type(self.design.shape, config)
 
         self.featuresets = [
             FeatureSet(
@@ -736,8 +752,21 @@ class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
                 ) for feature_type in feature_types
         ]
 
-    def get_next_frame_number(self):
-        pass
+    def get_next_frame_number(self) -> Generator[int, None, None]:
+        """
+        """
+        frame_count = self.video.frame_count
+        fps = self.video.fps
+
+        if self.frame_interval_setting == FrameIntervalSetting('Nf'):
+            for f in np.linspace(0, frame_count, self.Nf):
+                yield int(f)
+        elif self.frame_interval_setting == FrameIntervalSetting('dt'):
+            for f in np.arange(0, frame_count, self.dt / fps):
+                yield int(f)
+        else:
+            raise ValueError(f"Unexpected frame interval setting "
+                             f"{self.frame_interval_setting}")
 
     def get_frame(self, frame_number: int = None) -> np.ndarray:
         if frame_number is None:   # todo: depending on self.frame is dangerous in case we want to run this in a different thread
