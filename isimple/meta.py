@@ -12,7 +12,8 @@ class EnforcedStr(object):
     _options: List[str] = ['']
     _str: str
 
-    def __init__(self, string: str):
+    def __init__(self, string: str = None):
+        if string is not None:
             if string not in self.options:
                 warnings.warn(f"Illegal {self.__class__.__name__} '{string}', "
                               f"should be one of {self.options}. "
@@ -20,6 +21,8 @@ class EnforcedStr(object):
                 self._str = self.default
             else:
                 self._str = string
+        else:
+            self._str = self.default
 
     def __repr__(self):
         return f"<{self.__class__.__name__} '{self._str}'>"

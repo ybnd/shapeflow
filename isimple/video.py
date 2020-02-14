@@ -31,13 +31,28 @@ class AnalysisError(Exception):
 
 class VideoAnalysisElement(abc.ABC):  # todo: more descriptive name
     __default__: dict
-    __default__ = {                   # todo: interface with isimple.meta
-    }                                 # todo: define legal values for strings so config can be validated at this level
+    __default__ = {  # EnforcedStr instances should be instantiated without
+    }                #  arguments, otherwise there may be two defaults!
+
+    # todo: interface with isimple.meta
+    # todo: define legal values for strings so config can be validated at this level
 
     def __init__(self, config):
         self._config = self.handle_config(config)
 
     def handle_config(self, config: dict = None) -> dict:
+        """Handle a (flat) configuration dict
+            - Look through __default__ dict of all classes in __bases__
+            - For all of the keys defined in __default__:
+                -> if key not in config, use the default key
+                -> if default value is an EnforcedStr and key is present in
+                    config, validate the value
+                -> if default value is a Factory and key is present in
+                    config, validate and resolve to the associated class
+            - Keys in config that are not defined in __default__ are skipped
+        :param config:
+        :return:
+        """
         if config is None:
             config = {}
 
@@ -52,11 +67,18 @@ class VideoAnalysisElement(abc.ABC):  # todo: more descriptive name
         for key, default in default_config.items():
             if key in config:
                 if isinstance(default, EnforcedStr):
-                    pass
+                    # Pass config[key] through EnforcedStr
+                    _config[key] = default.__class__(config[key])
                 else:
                     _config[key] = config[key]
             else:
                 _config[key] = default
+
+            # Catch Factory instances, even if it's the default
+            if isinstance(_config[key], Factory):
+                # Get mapped class
+                _config[key] = _config[key].get() # type: ignore
+
         return _config
 
     def __getattr__(self, item):  # todo: relatively annoying as this can't be linted...
@@ -334,12 +356,12 @@ class Mask(VideoAnalysisElement):
 
     render_dir: str
     kernel: np.ndarray
-    filter_type: FilterType
+    filter_type: Filter
 
     __default__ = {
         'render_dir': os.path.join(os.getcwd(), '.render'),
         'kernel': ckernel(7),           # mask smoothing kernel
-        'filter_type': FilterType('hsv range'),  # class of filter  # todo: should interface with factory
+        'filter_type': FilterType(),    # class of filter
     }
 
     def __init__(self, path: str, config: dict = None, filter: Filter = None):
@@ -357,7 +379,7 @@ class Mask(VideoAnalysisElement):
         self._part, self._rect, self._center = crop_mask(self._full)
 
         if filter is None:
-            filter = self.filter_type.get()(config)
+            filter = self.filter_type(config)
             assert isinstance(filter, Filter), AnalysisSetupError
         self.filter = filter
 
