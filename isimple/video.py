@@ -13,8 +13,8 @@ from OnionSVG import OnionSVG, check_svg
 from isimple.maths.images import ckernel, to_mask, crop_mask, area_pixelsum
 from isimple.backend import BackendElement, \
     CachingBackendElement, VideoAnalysis, AnalysisSetupError, AnalysisError, \
-    Feature, FeatureSet
-from isimple.registry import RegistryEntry, backend, endpoint
+    Feature, FeatureSet, backend
+from isimple.registry import endpoints
 from isimple.util import restrict
 from isimple.gui import guiPane
 from isimple.meta import Factory, ColorSpace, FrameIntervalSetting
@@ -82,7 +82,7 @@ class VideoFileHandler(CachingBackendElement):
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV, frame)
             return frame
 
-    @backend.VideoFileHandler.expose(endpoint.get_raw_frame)
+    @backend.expose(endpoints.get_raw_frame)
     def read_frame(self, frame_number: int) -> Optional[np.ndarray]:
         return self._cached_call(self._read_frame, self.path, frame_number)
 
@@ -104,6 +104,7 @@ class Transform(BackendElement, abc.ABC):
     __default__ = {
         'transform_matrix': None
     }
+    __registry__ = backend.Transform
 
     def __init__(self, shape, config):
         super(Transform, self).__init__(config)
@@ -120,7 +121,8 @@ class Transform(BackendElement, abc.ABC):
         """
         raise NotImplementedError
 
-    def estimate(self, coordinates):
+    @backend.expose(endpoints.estimate_transform)
+    def estimate(self, coordinates: List) -> None:
         """Estimate the transform matrix from a set of coordinates
             coordinates should correspond to the corners of the outline of
             the design, ordered from the bottom left to the top right
@@ -138,13 +140,12 @@ class Transform(BackendElement, abc.ABC):
 class IdentityTransform(Transform):
     """Looks like a Transform, but doesn't transform
     """
-    __registry__ = backend.IdentityTransform
 
     def set(self, transform: np.ndarray):
         pass
 
-    @backend.IdentityTransform.expose(endpoint.estimate_transform)
-    def estimate(self, coordinates):
+
+    def estimate(self, coordinates: List) -> None:
         pass
 
     def __call__(self, img: np.ndarray) -> np.ndarray:
@@ -152,13 +153,10 @@ class IdentityTransform(Transform):
 
 
 class PerspectiveTransform(Transform):
-    __registry__ = backend.PerspectiveTransform
-
     def set(self, transform: np.ndarray):
         self._transform = transform
 
-    @backend.PerspectiveTransform.expose(endpoint.estimate_transform)
-    def estimate(self, coordinates):
+    def estimate(self, coordinates: List) -> None:
         # todo: sanity check the coordinates!
         #        * array size
         #        * ensure bottom left to top right order
@@ -227,8 +225,8 @@ class HsvRangeFilter(Filter):
         # todo: S and V are arbitrary for now
         return np.array([np.mean([self.c0[0], self.c1[0]]), 255, 200])
 
-    @backend.HsvRangeFilter.expose(endpoint.set_filter_from_color)
-    def set_filter(self, clr):
+    @backend.expose(endpoints.set_filter_from_color)
+    def set_filter(self, clr: List) -> None:
         hue = clr[0]
         self.c0 = np.array([
             hue - self.hue_rad, self.sat_window[0], self.val_window[0]
@@ -499,7 +497,7 @@ class VideoAnalyzer(VideoAnalysis):
         'design_type':              DesignHandlerType(),
         'transform_type':           TransformType(),
     }
-    __registry__ = backend.VideoAnalyzer
+    __registry__ = backend
 
     def __init__(self, video_path: str, design_path: str, config: dict = None):
         super(VideoAnalyzer, self).__init__(config)
@@ -530,11 +528,11 @@ class VideoAnalyzer(VideoAnalysis):
             raise ValueError(f"Unexpected frame interval setting "
                              f"{self.frame_interval_setting}")
 
-    @backend.VideoAnalyzer.expose(endpoint.get_transformed_frame)
+    @backend.expose(endpoints.get_transformed_frame)
     def get_transformed_frame(self, frame_number: int) -> np.ndarray:  # todo: also called from gui
         return self.transform(self.video.read_frame(frame_number))# todo: depending on self.frame is dangerous in case we want to run this in a different thread
 
-    @backend.VideoAnalyzer.expose(endpoint.get_transformed_overlaid_frame)
+    @backend.expose(endpoints.get_transformed_overlaid_frame)
     def get_frame_overlay(self, frame_number: int) -> np.ndarray:  # todo: also called from gui
         return self.design.overlay(self.get_transformed_frame(frame_number))
 

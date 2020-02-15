@@ -5,6 +5,7 @@ import numpy as np
 from isimple.video import \
     VideoFileHandler, VideoAnalyzer, VideoFileTypeError, PixelSum, CachingBackendElement
 from isimple.meta import *
+from isimple.util import timing
 import cv2
 from threading import Thread
 import time
@@ -106,6 +107,7 @@ class VideoInterfaceTest(FrameTest):
     def test_get_cached_frame_threaded(self):
         __INTERVAL__ = 0.1
 
+        @timing
         def read_frames_and_cache():
             with VideoFileHandler(__VIDEO__) as vi_source:
                 for frame_number in TEST_FRAME_HSV.keys():

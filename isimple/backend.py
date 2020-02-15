@@ -12,22 +12,7 @@ from typing import Tuple, NamedTuple, Callable, Dict, Type, Generator, Any, Opti
 
 from isimple.util import describe_function
 from isimple.meta import EnforcedStr, Factory
-from isimple.registry import RegistryEntry, Endpoint
-
-
-class RootException(Exception):
-    msg = ''
-    def __init__(self, *args):
-        #https://stackoverflow.com/questions/49224770/
-        # if no arguments are passed set the first positional argument
-        # to be the default message. To do that, we have to replace the
-        # 'args' tuple with another one, that will only contain the message.
-        # (we cannot do an assignment since tuples are immutable)
-        if not (args):
-            args = (self.msg,)
-
-        # Call super constructor
-        super(Exception, self).__init__(*args)
+from isimple.registry import RootException, EndpointRegistry, Endpoint  # todo: RootException should probably be in a separate file
 
 
 class AnalysisSetupError(RootException):
@@ -42,19 +27,23 @@ class CacheAccessError(RootException):
     msg = 'Trying to access cache out of context'
 
 
+backend = BackendRegistry()
+
+
 class BackendElement(abc.ABC):  # todo: more descriptive name, and probably shouldn't be in video
     __default__: dict
     __default__ = {  # EnforcedStr instances should be instantiated without
     }                #  arguments, otherwise there may be two defaults!
 
     __attributes__: List[str]
-    __registry__: RegistryEntry
+    __registry__: EndpointRegistry
 
     # todo: interface with isimple.meta
     # todo: define legal values for strings so config can be validated at this level
 
     def __init__(self, config):
         self._config = self.handle_config(config)
+        self.__registry__ = EndpointRegistry()
 
     def handle_config(self, config: dict = None) -> dict:
         """Handle a (flat) configuration dict
@@ -290,7 +279,7 @@ class VideoAnalysis(BackendElement):
                      **kwargs) -> BackendElement:
         """Add VideoAnalysisElement instances to VideoAnalyzer
         """
-        endpoints = self.endpoints() + element_type.endpoints()
+        endpoints = list(self.__instance__.keys())
 
         if len(endpoints) == len(
                 set(endpoints)):  # todo: add sanity check here
@@ -302,8 +291,7 @@ class VideoAnalysis(BackendElement):
             )
             return element
         else:
-            raise AnalysisSetupError(
-                "something something collision and explain it")
+            raise AnalysisSetupError("something something collision and explain it")
 
     def _calculate_callback(self, value: List[Any],
                             state: List[np.ndarray]):
