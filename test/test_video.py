@@ -19,39 +19,36 @@ if os.getcwd() == '/home/travis/build/ybnd/isimple':
     __VIDEO__ = 'test/' + __VIDEO__
     __DESIGN__ = 'test/' + __DESIGN__
 
+FRAMES = [1, 20, 50]
+TRANSFORM = np.random.rand(3, 3)
 
-__FRAMES__ = [1, 20, 50]
-__TRANSFORM__ = np.random.rand(3,3)
-
-__TEST_FRAME__ = {}
-__TEST_FRAME_HSV__ = {}
-__TEST_TRANSFORMED_FRAME__ = {}
+TEST_FRAME_BGR = {}
+TEST_FRAME_HSV = {}
+TEST_TRANSFORMED_FRAME_BGR = {}
+TEST_TRANSFORMED_FRAME_HSV = {}
 
 if os.path.isfile(__VIDEO__):
     capture = cv2.VideoCapture(__VIDEO__)
 else:
     raise FileNotFoundError(f'No file at {os.getcwd()}/{__VIDEO__}')
 
-for frame_number in __FRAMES__:
+for frame_number in FRAMES:
     capture.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
     ret, frame = capture.read()
-    __TEST_FRAME__[frame_number] = frame
+    TEST_FRAME_BGR[frame_number] = frame
 
     frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    __TEST_FRAME_HSV__[frame_number] = frame_hsv
+    TEST_FRAME_HSV[frame_number] = frame_hsv
 
-    transformed_frame = cv2.transform(frame_hsv, __TRANSFORM__)
-    __TEST_TRANSFORMED_FRAME__[frame_number] = transformed_frame
-
+    dsize = (frame.shape[1], frame.shape[0])
+    TEST_TRANSFORMED_FRAME_BGR[frame_number] = cv2.warpPerspective(frame, TRANSFORM, dsize)
+    TEST_TRANSFORMED_FRAME_HSV[frame_number] = cv2.warpPerspective(frame_hsv, TRANSFORM, dsize)
 
 # Clear cache
 vi = VideoFileHandler(__VIDEO__)
 with vi.caching():
     assert vi._cache is not None
     vi._cache.clear()
-
-# Load once to "spike" design stuff the cache
-va = VideoAnalyzer(__VIDEO__, __DESIGN__, {'keep_renders': True})
 
 
 class FrameTest(unittest.TestCase):
@@ -76,7 +73,7 @@ class VideoInterfaceTest(FrameTest):
 
     def test_get_frame(self):
         with VideoFileHandler(__VIDEO__) as vi:
-            for frame_number, frame in __TEST_FRAME_HSV__.items():
+            for frame_number, frame in TEST_FRAME_HSV.items():
                 self.assertTrue(
                     np.equal(
                         frame, vi.read_frame(frame_number)
@@ -86,10 +83,10 @@ class VideoInterfaceTest(FrameTest):
 
     def test_get_cached_frame(self):
         with VideoFileHandler(__VIDEO__) as vi:
-            for frame_number in __TEST_FRAME_HSV__.keys():
+            for frame_number in TEST_FRAME_HSV.keys():
                 # Read frames, which are cached
                 self.assertEqualFrames(
-                    __TEST_FRAME_HSV__[frame_number],
+                    TEST_FRAME_HSV[frame_number],
                     vi.read_frame(frame_number)
                 )
                 self.assertFrameInCache(vi, frame_number)
@@ -100,7 +97,7 @@ class VideoInterfaceTest(FrameTest):
             vi._capture = None
 
             # Read frames
-            for frame_number, frame in __TEST_FRAME_HSV__.items():
+            for frame_number, frame in TEST_FRAME_HSV.items():
                 self.assertFrameInCache(vi, frame_number)
                 self.assertEqualFrames(
                         frame, vi.read_frame(frame_number)
@@ -111,7 +108,7 @@ class VideoInterfaceTest(FrameTest):
 
         def read_frames_and_cache():
             with VideoFileHandler(__VIDEO__) as vi_source:
-                for frame_number in __TEST_FRAME_HSV__.keys():
+                for frame_number in TEST_FRAME_HSV.keys():
                     time.sleep(__INTERVAL__)
                     vi_source.read_frame(frame_number)
 
@@ -125,7 +122,7 @@ class VideoInterfaceTest(FrameTest):
             subthread.start()
 
             subthread_frames = []
-            for frame_number in __TEST_FRAME_HSV__.keys():
+            for frame_number in TEST_FRAME_HSV.keys():
                 frame = vi_sink.read_frame(frame_number)
                 subthread_frames.append(frame)
 
@@ -135,21 +132,24 @@ class VideoInterfaceTest(FrameTest):
         #  at least as long as the subthread has
         self.assertGreaterEqual(
             time.time() - t0,
-            len(__FRAMES__) * __INTERVAL__
+            len(FRAMES) * __INTERVAL__
         )
 
-        for frame1, fn in zip(subthread_frames, __TEST_FRAME_HSV__.keys()):
-            self.assertEqualFrames(frame1, __TEST_FRAME_HSV__[fn])
+        for frame1, fn in zip(subthread_frames, TEST_FRAME_HSV.keys()):
+            self.assertEqualFrames(frame1, TEST_FRAME_HSV[fn])
 
 
 class VideoAnalyzerTest(FrameTest):
     config = {
         'keep_renders': True,
-        'transform': __TRANSFORM__,
+        'transform_matrix': TRANSFORM,
     }
 
     def test_aloading(self):
-        va = VideoAnalyzer(__VIDEO__, __DESIGN__, self.config)
+        config = {k: v for k, v in self.config.items()}
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, config)
+        self.assertEqual(self.config, config)
+
         self.assertListEqual(
             sorted(list(os.listdir(va.design.render_dir))),
             sorted([
@@ -169,8 +169,8 @@ class VideoAnalyzerTest(FrameTest):
 
         self.assertTrue(hasattr(va.design, '_masks'))
         self.assertEqual(len(va.design._masks), 9)
-        self.assertEqual(  # todo: basically testing defaults here, lame
-            None, va.transform.transform_matrix
+        self.assertTrue(
+            np.all(np.equal(TRANSFORM, va.transform.transform_matrix))
         )
 
     def test_loading_path_problems(self):
@@ -281,8 +281,8 @@ class VideoAnalyzerTest(FrameTest):
         with va.caching():
             for fn in va.frame_numbers():
                 frame = va.get_transformed_frame(fn)
-                if fn in __TEST_FRAME_HSV__.keys():  # todo: if this test checks out, transform is not applied (:
-                    self.assertEqualFrames(__TEST_FRAME_HSV__[fn], frame)
+                if fn in FRAMES:  # todo: !!!!!! if this test checks out, transform is not applied (:
+                    self.assertEqualFrames(TEST_TRANSFORMED_FRAME_HSV[fn], frame)
 
 
 if __name__ == '__main__':
