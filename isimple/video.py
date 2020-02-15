@@ -11,26 +11,20 @@ import cv2
 from OnionSVG import OnionSVG, check_svg
 
 from isimple.maths.images import ckernel, to_mask, crop_mask, area_pixelsum
-from isimple.plumbing import RootException, VideoAnalysisElement, CachingVideoAnalysisElement
-from isimple.registry import Registry, registry, endpoint
+from isimple.backend import BackendElement, \
+    CachingBackendElement, VideoAnalysis, AnalysisSetupError, AnalysisError, \
+    Feature, FeatureSet
+from isimple.registry import RegistryEntry, backend, endpoint
 from isimple.util import restrict
 from isimple.gui import guiPane
 from isimple.meta import Factory, ColorSpace, FrameIntervalSetting
-
-
-class AnalysisSetupError(RootException):
-    msg = 'Error in analysis setup'
 
 
 class VideoFileTypeError(AnalysisSetupError):
     msg = 'Unrecognized video file type'  # todo: formatting
 
 
-class AnalysisError(RootException):
-    msg = 'Error during analysis'
-
-
-class VideoFileHandler(CachingVideoAnalysisElement):
+class VideoFileHandler(CachingBackendElement):
     """Interface to video files ~ OpenCV
     """
     colorspace: str
@@ -38,7 +32,7 @@ class VideoFileHandler(CachingVideoAnalysisElement):
     __default__ = {
         'colorspace': ColorSpace('hsv'),
     }
-    __registry__ = registry.VideoFileHandler
+    __registry__ = backend.VideoFileHandler
 
     def __init__(self, video_path, config: dict = None):
         super(VideoFileHandler, self).__init__(config)
@@ -88,7 +82,7 @@ class VideoFileHandler(CachingVideoAnalysisElement):
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV, frame)
             return frame
 
-    @registry.VideoFileHandler.expose(endpoint.get_raw_frame)
+    @backend.VideoFileHandler.expose(endpoint.get_raw_frame)
     def read_frame(self, frame_number: int) -> Optional[np.ndarray]:
         return self._cached_call(self._read_frame, self.path, frame_number)
 
@@ -99,7 +93,7 @@ class VideoHandlerType(Factory):
     }
 
 
-class Transform(VideoAnalysisElement):
+class Transform(BackendElement, abc.ABC):
     """Handles coordinate transforms.
     """
     _shape: tuple
@@ -144,12 +138,12 @@ class Transform(VideoAnalysisElement):
 class IdentityTransform(Transform):
     """Looks like a Transform, but doesn't transform
     """
-    __registry__ = registry.IdentityTransform
+    __registry__ = backend.IdentityTransform
 
     def set(self, transform: np.ndarray):
         pass
 
-    @registry.IdentityTransform.expose(endpoint.estimate_transform)
+    @backend.IdentityTransform.expose(endpoint.estimate_transform)
     def estimate(self, coordinates):
         pass
 
@@ -158,12 +152,12 @@ class IdentityTransform(Transform):
 
 
 class PerspectiveTransform(Transform):
-    __registry__ = registry.PerspectiveTransform
+    __registry__ = backend.PerspectiveTransform
 
     def set(self, transform: np.ndarray):
         self._transform = transform
 
-    @registry.PerspectiveTransform.expose(endpoint.estimate_transform)
+    @backend.PerspectiveTransform.expose(endpoint.estimate_transform)
     def estimate(self, coordinates):
         # todo: sanity check the coordinates!
         #        * array size
@@ -199,7 +193,7 @@ class TransformType(Factory):
     }
 
 
-class Filter(VideoAnalysisElement):
+class Filter(BackendElement, abc.ABC):
     """Handles pixel filtering operations
     """
     def __init__(self, config: dict = None):
@@ -224,7 +218,7 @@ class HsvRangeFilter(Filter):
         'c0': [90, 50, 50],         # Start of filtering range (in HSV space)
         'c1':   [110, 255, 255],    # End of filtering range (in HSV space)
     }
-    __registry__ = registry.HsvRangeFilter
+    __registry__ = backend.HsvRangeFilter
 
     def __init__(self, config: dict):
         super(HsvRangeFilter, self).__init__(config)
@@ -233,7 +227,7 @@ class HsvRangeFilter(Filter):
         # todo: S and V are arbitrary for now
         return np.array([np.mean([self.c0[0], self.c1[0]]), 255, 200])
 
-    @registry.HsvRangeFilter.expose(endpoint.set_filter_from_color)
+    @backend.HsvRangeFilter.expose(endpoint.set_filter_from_color)
     def set_filter(self, clr):
         hue = clr[0]
         self.c0 = np.array([
@@ -253,7 +247,7 @@ class FilterType(Factory):
     }
 
 
-class Mask(VideoAnalysisElement):
+class Mask(BackendElement):
     """Handles masks in the context of a video file
     """
 
@@ -298,9 +292,9 @@ class Mask(VideoAnalysisElement):
         return img[self._rect[0]:self._rect[1], self._rect[2]:self._rect[3]]
 
 
-class DesignFileHandler(CachingVideoAnalysisElement):
+class DesignFileHandler(CachingBackendElement):
     _overlay: np.ndarray
-    _masks: List[Mask]  # Number of masks shouldn't be changed after initialization
+    _masks: List[Mask]
 
     dpi: int
     render_dir: str
@@ -436,80 +430,6 @@ class DesignHandlerType(Factory):
     }
 
 
-class Feature(abc.ABC):
-    _color: Optional[np.ndarray]
-    _state: Optional[np.ndarray]
-
-    _elements: Tuple[VideoAnalysisElement, ...]
-
-    def __init__(self, elements: Tuple[VideoAnalysisElement, ...]):
-        self._elements = elements
-
-    def calculate(self, frame: np.ndarray, state: np.ndarray = None) \
-            -> Tuple[Any, np.ndarray]:
-        """Calculate Feature for given frame
-            and update state image (optional)
-        """
-        if state is not None:
-            state = self.state(frame, state)
-        return self.value(frame), state
-
-    @property
-    def color(self) -> np.ndarray:
-        """Color of the Feature in figures.
-
-            A Feature's color must be set as not to overlap with
-            other Features in the same FeatureSet.
-            Therefore, <Feature>._color must be determined by FeatureSet!
-        """
-        return self._color
-
-    @abc.abstractmethod
-    def _guideline_color(self) -> np.ndarray:
-        """Returns the 'guideline color' of a Feature instance
-            Used by FeatureSet to determine the actual _color
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def state(self, frame: np.ndarray, state: np.ndarray = None) -> np.ndarray:
-        """Return the Feature instance's state image for a given frame
-        """
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def value(self, frame: np.ndarray) -> Any:
-        """Compute the value of the Feature instance for a given frame
-        """
-        raise NotImplementedError
-
-
-class FeatureSet(object):
-    _features: Tuple[Feature, ...]
-    _colors: Tuple[np.ndarray, ...]
-
-    def __init__(self, features: Tuple[Feature, ...]):
-        self._features = features
-        self._colors = self.get_colors()
-
-    def get_colors(self) -> Tuple[np.ndarray, ...]:
-        if not hasattr(self, '_colors'):
-            # Get guideline colors for all features
-            colors = tuple([f._guideline_color() for f in self._features])
-
-            # todo: dodge colors
-
-            # Set the _color for all features
-            for feature, color in zip(self._features, colors):
-                feature._color = color
-
-            self._colors = colors
-        else:
-            colors = self._colors
-
-        return colors
-
-
 def frame_to_none(frame: np.ndarray) -> None:    # todo: this is dumb
     return None
 
@@ -541,105 +461,14 @@ class SimpleFeature(Feature):  # todo: Simple and SIMPLE are a bad fit (:
             return state
 
 
-class Area(SimpleFeature):
+class PixelSum(SimpleFeature):
     _function = staticmethod(area_pixelsum)
 
 
-class AnalysisCallbacks(NamedTuple):
-    setup: List[Callable]  # todo: some standardized way to communicate configuration (colors, amount of plots, ranges, sizes)
-    value: List[Callable[[Any], None]]
-    state: List[Callable[[np.ndarray], None]]
-
-
-class VideoAnalysis(VideoAnalysisElement):
-    _elements: List[VideoAnalysisElement]
-    _element_types: dict = {
-        'element': {
-            'type': VideoAnalysisElement
-        }
+class VideoFeature(Factory):
+    _mapping = {
+        'pixel_sum':    PixelSum,
     }
-
-    _callbacks: AnalysisCallbacks
-    __registry__: Registry
-    __instance__: Dict[str, VideoAnalysisElement]  # todo: ugh naming
-
-    def __init__(self, config):
-        super(VideoAnalysis, self).__init__(config)
-        self.__instance__ = {k: self for k in self.__registry__.signatures()}
-        self._elements = []
-
-    def _add_element(self, element_type: Type[VideoAnalysisElement], *args, **kwargs) -> VideoAnalysisElement:
-        """Add VideoAnalysisElement instances to VideoAnalyzer
-        """
-        signatures = self.signatures() + element_type.signatures()
-
-        if len(signatures) == len(set(signatures)):   # todo: add sanity check here
-            element = element_type(*args, **kwargs)  # todo: add checks ~ whether all of this makes sense etc
-            self._elements.append(element)
-            self.__instance__.update(
-                {k:element for k in element.signatures()}
-            )
-            return element
-        else:
-            raise AnalysisSetupError("something something collision and explain it")
-
-    def set_callbacks(self, callbacks: AnalysisCallbacks):
-        self._callbacks = callbacks
-
-    def _calculate_callback(self, value: List[Any], state: List[np.ndarray]):
-        """Perform analysis for a given frame number
-        """
-        assert len(value) == len(state), AnalysisSetupError
-
-        if value is not None:
-            for callback in self._callbacks.value:
-                callback(value)
-        if state is not None:
-            for callback in self._callbacks.value:
-                callback(state)
-
-    @contextmanager
-    def caching(self):
-        """Caching contest on VideoAnalysis: propagate context to elements
-            that implement caching
-        """
-        caching_elements = [
-            e for e in self._elements if isinstance(e, CachingVideoAnalysisElement)
-        ]
-        try:
-            for element in caching_elements:
-                element.__enter__()
-            yield self
-        finally:
-            for element in caching_elements:
-                element.__exit__(*sys.exc_info())
-
-    def signatures(self):
-        return list(self.__instance__.keys())
-
-    def exposes(self, signature):
-        """Check if own class or class of any contained VideoAnalysisElement 
-            instances exposes method specified with signature
-        """  # todo: what about collisions?
-
-        return signature in self.__instance__
-
-    def call(self, signature, *args, **kwargs):
-        """Call the method specified in signature 
-        """  # todo: check exposes here, or trust the implementation?
-        if self.exposes(signature):
-            return self.__instance__[signature].call(*args, **kwargs)
-        else:
-            raise NotImplementedError(f"{self.__class__.__name__} does not "
-                                      f"expose {signature}")
-
-    def get_callback(self, signature):
-        if self.exposes(signature):
-            method_name = self.__instance__[signature]._mapping[signature].__name__
-            return getattr(self.__instance__[signature], method_name)
-        else:
-            raise NotImplementedError(f"{self.__class__.__name__} does not "
-                                      f"expose {signature}")
 
 
 class VideoAnalyzer(VideoAnalysis):
@@ -654,18 +483,6 @@ class VideoAnalyzer(VideoAnalysis):
 
     featuresets: List[FeatureSet]
 
-    _element_types: dict = {
-        'video': {
-            'opencv': VideoFileHandler,
-        },
-        'design': {
-            'svg': DesignFileHandler,
-        },
-        'transform': {
-            'perspective': PerspectiveTransform,
-        },
-    }
-
     frame_interval_setting: FrameIntervalSetting  # use dt or Nf
     dt: float                                     # interval in seconds
     Nf: int                                       # number of evenly spaced frames
@@ -677,14 +494,14 @@ class VideoAnalyzer(VideoAnalysis):
         'frame_interval_setting':   FrameIntervalSetting(),
         'dt':                       5.0,
         'Nf':                       100,
+        'features':                 [VideoFeature('pixel_sum')],
         'video_type':               VideoHandlerType(),
         'design_type':              DesignHandlerType(),
         'transform_type':           TransformType(),
     }
-    __registry__ = registry.VideoAnalyzer
+    __registry__ = backend.VideoAnalyzer
 
-    def __init__(self, video_path: str, design_path: str,
-                 feature_types: List[Type[Feature]], config: dict = None):
+    def __init__(self, video_path: str, design_path: str, config: dict = None):
         super(VideoAnalyzer, self).__init__(config)
 
         self.video = self._add_element(self.video_type, video_path, config) # type: ignore  # todo: fix typing
@@ -693,8 +510,8 @@ class VideoAnalyzer(VideoAnalysis):
 
         self.featuresets = [
             FeatureSet(
-                    tuple(feature_type(mask) for mask in self.design.masks)
-                ) for feature_type in feature_types
+                    tuple(feature.get()(mask) for mask in self.design.masks)
+                ) for feature in self.features
         ]
 
     def frame_numbers(self) -> Generator[int, None, None]:
@@ -713,11 +530,11 @@ class VideoAnalyzer(VideoAnalysis):
             raise ValueError(f"Unexpected frame interval setting "
                              f"{self.frame_interval_setting}")
 
-    @registry.VideoAnalyzer.expose(endpoint.get_transformed_frame)
+    @backend.VideoAnalyzer.expose(endpoint.get_transformed_frame)
     def get_transformed_frame(self, frame_number: int) -> np.ndarray:  # todo: also called from gui
         return self.transform(self.video.read_frame(frame_number))# todo: depending on self.frame is dangerous in case we want to run this in a different thread
 
-    @registry.VideoAnalyzer.expose(endpoint.get_transformed_overlaid_frame)
+    @backend.VideoAnalyzer.expose(endpoint.get_transformed_overlaid_frame)
     def get_frame_overlay(self, frame_number: int) -> np.ndarray:  # todo: also called from gui
         return self.design.overlay(self.get_transformed_frame(frame_number))
 

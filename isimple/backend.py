@@ -8,11 +8,11 @@ import threading
 from contextlib import contextmanager
 import functools
 import warnings
-from typing import List, Optional, Any
+from typing import Tuple, NamedTuple, Callable, Dict, Type, Generator, Any, Optional, List
 
 from isimple.util import describe_function
 from isimple.meta import EnforcedStr, Factory
-from isimple.registry import Registry
+from isimple.registry import RegistryEntry, Endpoint
 
 
 class RootException(Exception):
@@ -30,17 +30,25 @@ class RootException(Exception):
         super(Exception, self).__init__(*args)
 
 
+class AnalysisSetupError(RootException):
+    msg = 'Error in analysis setup'
+
+
+class AnalysisError(RootException):
+    msg = 'Error during analysis'
+
+
 class CacheAccessError(RootException):
     msg = 'Trying to access cache out of context'
 
 
-class VideoAnalysisElement(abc.ABC):  # todo: more descriptive name, and probably shouldn't be in video
+class BackendElement(abc.ABC):  # todo: more descriptive name, and probably shouldn't be in video
     __default__: dict
     __default__ = {  # EnforcedStr instances should be instantiated without
     }                #  arguments, otherwise there may be two defaults!
 
     __attributes__: List[str]
-    __registry__: Registry
+    __registry__: RegistryEntry
 
     # todo: interface with isimple.meta
     # todo: define legal values for strings so config can be validated at this level
@@ -110,35 +118,35 @@ class VideoAnalysisElement(abc.ABC):  # todo: more descriptive name, and probabl
         raise NotImplementedError
 
     @classmethod
-    def signatures(cls):
+    def endpoints(cls):
         if hasattr(cls, '__registry__'):
-            return list(cls.__registry__.signatures())
+            return list(cls.__registry__.endpoints())
         else:
             return []
 
-    def exposes(self, signature):
-        return self.__registry__.exposes(signature)
+    def exposes(self, endpoint):
+        return self.__registry__.exposes(endpoint)
 
-    def call(self, signature, *args, **kwargs):
-        """Call the method specified in signature 
+    def call(self, endpoint, *args, **kwargs):
+        """Call the method specified in endpoint 
         """  # todo: check exposes here, or trust the implementation?
-        if self.exposes(signature):
-            method = self.__registry__._mapping[signature]
+        if self.exposes(endpoint):
+            method = self.__registry__._mapping[endpoint]
             return method(self, *args, **kwargs)
         else:
             raise NotImplementedError(f"{self.__class__.__name__} does not "
-                                      f"expose {signature}")
+                                      f"expose {endpoint}")
 
-    def get_callback(self, signature):
-        if self.exposes(signature):
-            method_name = self.__registry__._mapping[signature].__name__
+    def get_callback(self, endpoint):
+        if self.exposes(endpoint):
+            method_name = self.__registry__._mapping[endpoint].__name__
             return getattr(self, method_name)
         else:
             raise NotImplementedError(f"{self.__class__.__name__} does not "
-                                      f"expose {signature}")
+                                      f"expose {endpoint}")
 
 
-class CachingVideoAnalysisElement(VideoAnalysisElement):  # todo: this should still be an abstract class though... and probably shouldn't be in video either
+class CachingBackendElement(BackendElement):  # todo: this should still be an abstract class though... and probably shouldn't be in video either
     """Interface to diskcache.Cache
     """
     _cache: Optional[diskcache.Cache]
@@ -165,7 +173,7 @@ class CachingVideoAnalysisElement(VideoAnalysisElement):  # todo: this should st
 
 
     def __init__(self, config):
-        super(CachingVideoAnalysisElement, self).__init__(config)
+        super(CachingBackendElement, self).__init__(config)
 
         self._cache = None
         self._background = None
@@ -266,3 +274,168 @@ class CachingVideoAnalysisElement(VideoAnalysisElement):  # todo: this should st
             yield self
         finally:
             self.__exit__(*sys.exc_info())
+
+
+class VideoAnalysis(BackendElement):
+    _elements: List[BackendElement]
+
+    __instance__: Dict[Endpoint, BackendElement]
+
+    def __init__(self, config):
+        super(VideoAnalysis, self).__init__(config)
+        self.__instance__ = {k: self for k in self.__registry__.endpoints()}
+        self._elements = []
+
+    def _add_element(self, element_type: Type[BackendElement], *args,
+                     **kwargs) -> BackendElement:
+        """Add VideoAnalysisElement instances to VideoAnalyzer
+        """
+        endpoints = self.endpoints() + element_type.endpoints()
+
+        if len(endpoints) == len(
+                set(endpoints)):  # todo: add sanity check here
+            element = element_type(*args,
+                                   **kwargs)  # todo: add checks ~ whether all of this makes sense etc
+            self._elements.append(element)
+            self.__instance__.update(
+                {k: element for k in element.endpoints()}
+            )
+            return element
+        else:
+            raise AnalysisSetupError(
+                "something something collision and explain it")
+
+    def _calculate_callback(self, value: List[Any],
+                            state: List[np.ndarray]):
+        """Perform analysis for a given frame number
+        """
+        assert len(value) == len(state), AnalysisSetupError
+
+        if value is not None:
+            for callback in self._callbacks.value:
+                callback(value)
+        if state is not None:
+            for callback in self._callbacks.value:
+                callback(state)
+
+    @contextmanager
+    def caching(self):
+        """Caching contest on VideoAnalysis: propagate context to
+            every contained BackendElement that implements caching
+        """
+        caching_elements = [
+            e for e in self._elements if
+            isinstance(e, CachingBackendElement)
+        ]
+        try:
+            for element in caching_elements:
+                element.__enter__()
+            yield self
+        finally:
+            for element in caching_elements:
+                element.__exit__(*sys.exc_info())
+
+    def endpoints(self):
+        return list(self.__instance__.keys())
+
+    def exposes(self, endpoint):
+        """Check if own class or class of any contained VideoAnalysisElement 
+            instances exposes method specified with endpoint
+        """  # todo: what about collisions?
+
+        return endpoint in self.__instance__
+
+    def call(self, endpoint, *args, **kwargs):
+        """Call the method specified in endpoint 
+        """  # todo: check exposes here, or trust the implementation?
+        if self.exposes(endpoint):
+            return self.__instance__[endpoint].call(*args, **kwargs)
+        else:
+            raise NotImplementedError(
+                f"{self.__class__.__name__} does not "
+                f"expose {endpoint}")
+
+    def get_callback(self, endpoint):
+        if self.exposes(endpoint):
+            method_name = self.__instance__[endpoint]._mapping[endpoint].__name__
+            return getattr(self.__instance__[endpoint], method_name)
+        else:
+            raise NotImplementedError(f"{self.__class__.__name__} does not "
+                                      f"expose {endpoint}")
+
+
+class Feature(abc.ABC):
+    """A feature implements interactions between BackendElements to
+        produce a certain value
+    """
+    _color: Optional[np.ndarray]
+    _state: Optional[np.ndarray]
+
+    _elements: Tuple[BackendElement, ...]
+
+    def __init__(self, elements: Tuple[BackendElement, ...]):
+        self._elements = elements
+
+    def calculate(self, frame: np.ndarray, state: np.ndarray = None) \
+            -> Tuple[Any, np.ndarray]:
+        """Calculate Feature for given frame
+            and update state image (optional)
+        """
+        if state is not None:
+            state = self.state(frame, state)
+        return self.value(frame), state
+
+    @property
+    def color(self) -> np.ndarray:
+        """Color of the Feature in figures.
+
+            A Feature's color must be set as not to overlap with
+            other Features in the same FeatureSet.
+            Therefore, <Feature>._color must be determined by FeatureSet!
+        """
+        return self._color
+
+    @abc.abstractmethod
+    def _guideline_color(self) -> np.ndarray:
+        """Returns the 'guideline color' of a Feature instance
+            Used by FeatureSet to determine the actual _color
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod  # todo: we're dealing with frames explicitly, so maybe this should be an isimple.video thing...
+    def state(self, frame: np.ndarray, state: np.ndarray = None) -> np.ndarray:
+        """Return the Feature instance's state image for a given frame
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def value(self, frame: np.ndarray) -> Any:
+        """Compute the value of the Feature instance for a given frame
+        """
+        raise NotImplementedError
+
+
+class FeatureSet(object):
+    _features: Tuple[Feature, ...]
+    _colors: Tuple[np.ndarray, ...]
+
+    def __init__(self, features: Tuple[Feature, ...]):
+        self._features = features
+        self._colors = self.get_colors()
+
+    def get_colors(self) -> Tuple[np.ndarray, ...]:
+        if not hasattr(self, '_colors'):
+            # Get guideline colors for all features
+            colors = tuple([f._guideline_color() for f in self._features])
+
+            # todo: dodge colors
+
+            # Set the _color for all features
+            for feature, color in zip(self._features, colors):
+                feature._color = color
+
+            self._colors = colors
+        else:
+            colors = self._colors
+
+        return colors

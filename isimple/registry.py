@@ -3,31 +3,6 @@ from typing import Callable, Dict, List
 import numpy as np
 
 
-class Registry(object):
-    _mapping: Dict[str, Callable]
-
-    def __init__(self):
-        self._mapping = {}
-
-    def expose(self, signature):
-        def wrapper(method):
-            if signature in self._mapping:
-                warnings.warn(
-                    f"Exposing {method} has overridden previously "
-                    f"exposed method {self._mapping[signature]}")
-            self._mapping.update(
-                {signature: method}
-            )
-            return method
-        return wrapper
-
-    def exposes(self, signature):
-        return signature in self._mapping
-
-    def signatures(self):
-        return list(self._mapping.keys())
-
-
 class Endpoint(object):
     _name: str
     _signature: type
@@ -37,17 +12,45 @@ class Endpoint(object):
         self._signature = signature
 
 
+class RegistryEntry(object):
+    _mapping: Dict[Endpoint, Callable]
 
-class registry():  # todo: there are probably better ways to do this, eg. namedtuple?
-    VideoFileHandler = Registry()
-    IdentityTransform = Registry()
-    PerspectiveTransform = Registry()
-    Mask = Registry()
-    HsvRangeFilter = Registry()
-    VideoAnalyzer = Registry()
+    def __init__(self):
+        self._mapping = {}
+
+    def expose(self, endpoint: Endpoint):  # todo: check if method matches endpoint call signature
+        def wrapper(method):
+            if endpoint in self._mapping:
+                warnings.warn(
+                    f"Exposing {method} has overridden previously "
+                    f"exposed method {self._mapping[endpoint]}")
+            self._mapping.update(
+                {endpoint: method}
+            )
+            return method
+        return wrapper
+
+    def exposes(self, endpoint: Endpoint):
+        return endpoint in self._mapping
+
+    def endpoints(self):
+        return list(self._mapping.keys())
 
 
-class endpoint():
+class Registry(object):
+    pass
+
+
+class backend(Registry):
+    VideoFileHandler = RegistryEntry()
+    IdentityTransform = RegistryEntry()
+    PerspectiveTransform = RegistryEntry()
+    Mask = RegistryEntry()
+    HsvRangeFilter = RegistryEntry()
+    VideoAnalyzer = RegistryEntry()
+
+
+class endpoint(object):
     get_raw_frame = Endpoint('get_raw_frame', Callable[[int], np.ndarray])
     estimate_transform = Endpoint('estimate_transform', Callable[[List], None])
     set_filter_from_color = Endpoint('set_filter', Callable[[List], None])

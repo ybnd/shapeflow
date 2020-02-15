@@ -3,7 +3,7 @@ import unittest
 import os
 import numpy as np
 from isimple.video import \
-    VideoFileHandler, VideoAnalyzer, VideoFileTypeError, Area, CachingVideoAnalysisElement
+    VideoFileHandler, VideoAnalyzer, VideoFileTypeError, PixelSum, CachingBackendElement
 from isimple.meta import *
 import cv2
 from threading import Thread
@@ -51,7 +51,7 @@ with vi.caching():
     vi._cache.clear()
 
 # Load once to "spike" design stuff the cache
-va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], {'keep_renders': True})
+va = VideoAnalyzer(__VIDEO__, __DESIGN__, {'keep_renders': True})
 
 
 class FrameTest(unittest.TestCase):
@@ -59,7 +59,7 @@ class FrameTest(unittest.TestCase):
         self.assertTrue(np.equal(frame1, frame2).all())
 
     def assertFrameInCache(self, vi, frame_number):
-        assert isinstance(vi, CachingVideoAnalysisElement) and vi._cache is not None
+        assert isinstance(vi, CachingBackendElement) and vi._cache is not None
         self.assertTrue(
             vi._get_key(vi._read_frame, vi.path, frame_number) in vi._cache
         )
@@ -149,7 +149,7 @@ class VideoAnalyzerTest(FrameTest):
     }
 
     def test_aloading(self):
-        va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], self.config)
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, self.config)
         self.assertListEqual(
             sorted(list(os.listdir(va.design.render_dir))),
             sorted([
@@ -175,12 +175,12 @@ class VideoAnalyzerTest(FrameTest):
 
     def test_loading_path_problems(self):
         self.assertRaises(
-            FileNotFoundError, VideoAnalyzer, __VIDEO__, 'non-existent', [Area]
+            FileNotFoundError, VideoAnalyzer, __VIDEO__, 'non-existent', [PixelSum]
         )
 
         # Not testing cache, don't need with statement
-        va1 = VideoAnalyzer(__VIDEO__, __VIDEO__, [Area], self.config)
-        va2 = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area])
+        va1 = VideoAnalyzer(__VIDEO__, __VIDEO__, self.config)
+        va2 = VideoAnalyzer(__VIDEO__, __DESIGN__)
         self.assertTrue(np.equal(va1.design._overlay, va2.design._overlay).all())
         self.assertEqual(len(va1.design._masks), len(va2.design._masks))
 
@@ -197,7 +197,7 @@ class VideoAnalyzerTest(FrameTest):
             }
         )
 
-        va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], config)
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, config)
         frames = [f for f in va.frame_numbers()]
 
         self.assertEqual(68, len(frames))
@@ -209,7 +209,7 @@ class VideoAnalyzerTest(FrameTest):
             }
         )
 
-        va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], config)
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, config)
         frames = [f for f in va.frame_numbers()]
 
         self.assertEqual(12, len(frames))
@@ -222,7 +222,7 @@ class VideoAnalyzerTest(FrameTest):
         config.update(
             {'do_cache': False, 'do_background': False}
         )
-        va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], config)
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, config)
 
         self.assertEqual(None, va.video._cache)
         with va.caching():
@@ -234,7 +234,7 @@ class VideoAnalyzerTest(FrameTest):
         config.update(
             {'do_cache': False, 'do_background': True}
         )
-        va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], config)
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, config)
 
         self.assertEqual(None, va.video._cache)
         with va.caching():
@@ -246,7 +246,7 @@ class VideoAnalyzerTest(FrameTest):
         config.update(
             {'do_cache': True, 'do_background': False}
         )
-        va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], config)
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, config)
 
         self.assertEqual(None, va.video._cache)
         with va.caching():
@@ -258,7 +258,7 @@ class VideoAnalyzerTest(FrameTest):
         config.update(
             {'do_cache': True, 'do_background': True}
         )
-        va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], config)
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, config)
 
         self.assertEqual(None, va.video._cache)
         with va.caching():
@@ -267,7 +267,7 @@ class VideoAnalyzerTest(FrameTest):
         self.assertEqual(None, va.video._cache)
 
         # By default, main-thread caching is enabled
-        va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], self.config)
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, self.config)
 
         self.assertEqual(None, va.video._cache)
         with va.caching():
@@ -276,7 +276,7 @@ class VideoAnalyzerTest(FrameTest):
         self.assertEqual(None, va.video._cache)
 
     def test_get_frame(self):
-        va = VideoAnalyzer(__VIDEO__, __DESIGN__, [Area], self.config)
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, self.config)
 
         with va.caching():
             for fn in va.frame_numbers():
