@@ -5,7 +5,7 @@ import os
 import time
 import pandas as pd
 import warnings
-from typing import Union, Any, List, Optional
+from typing import List, Optional
 
 
 class EnforcedStr(object):
