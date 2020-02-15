@@ -43,3 +43,16 @@ def describe_function(f):
             else:
                 classes = list(c.__bases__) + classes
     return f'{f.__module__}{name}'
+
+
+def get_defining_class(method):
+    # https://stackoverflow.com/questions/961048/
+    for cls in inspect.getmro(method.im_class):
+        if method.__name__ in cls.__dict__:
+            return cls
+    return None
+
+def exactly_once(iterable):
+    # https://stackoverflow.com/questions/16801322/
+    i = iter(iterable)
+    return any(i) and not any(i)

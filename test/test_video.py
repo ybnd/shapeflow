@@ -280,9 +280,9 @@ class VideoAnalyzerTest(FrameTest):
 
         with va.caching():
             for fn in va.frame_numbers():
-                va.get_frame(fn)
-                if fn in __TEST_FRAME_HSV__.keys():
-                    self.assertEqualFrames(__TEST_FRAME_HSV__[fn], va.frame)
+                frame = va.get_transformed_frame(fn)
+                if fn in __TEST_FRAME_HSV__.keys():  # todo: if this test checks out, transform is not applied (:
+                    self.assertEqualFrames(__TEST_FRAME_HSV__[fn], frame)
 
 
 if __name__ == '__main__':

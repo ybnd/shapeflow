@@ -5,7 +5,8 @@ import re
 import time
 import sys
 import logging
-from typing import Tuple, List, Optional, Any, Type, NamedTuple, Callable, Generator
+from typing import Tuple, List, Optional, Any, Type, \
+    NamedTuple, Callable, Generator, Dict
 import numpy as np
 from OnionSVG import OnionSVG, check_svg
 import abc
@@ -13,9 +14,10 @@ import threading
 from collections import namedtuple
 from contextlib import contextmanager
 import functools
+import inspect
 
 from isimple.maths.images import ckernel, to_mask, crop_mask, area_pixelsum
-from isimple.util import describe_function, restrict
+from isimple.util import describe_function, restrict, exactly_once
 from isimple.gui import guiPane
 from isimple.meta import *
 
@@ -51,8 +53,32 @@ class CacheAccessError(BaseException):
     msg = 'Trying to access cache out of context'
 
 
+class Registry(object):  # todo: this shouldn't be in video
+    _mapping: Dict[str, Callable]
 
-class VideoAnalysisElement(abc.ABC):  # todo: more descriptive name
+    def __init__(self):
+        self._mapping = {}
+
+    def expose(self, signature):
+        def wrapper(method):
+            if signature in self._mapping:
+                warnings.warn(
+                    f"Exposing {method} has overridden previously"
+                    f"exposed method {self._mapping[signature]}")
+            self._mapping.update(
+                {signature: method}
+            )
+            return method
+        return wrapper
+
+    def exposes(self, signature):
+        return signature in self._mapping
+
+    def signatures(self):
+        return list(self._mapping.keys())
+
+
+class VideoAnalysisElement(abc.ABC):  # todo: more descriptive name, and probably shouldn't be in video
     __default__: dict
     __default__ = {  # EnforcedStr instances should be instantiated without
     }                #  arguments, otherwise there may be two defaults!
@@ -126,8 +152,36 @@ class VideoAnalysisElement(abc.ABC):  # todo: more descriptive name
     def __call__(self, frame: np.ndarray) -> np.ndarray:
         raise NotImplementedError
 
+    @classmethod
+    def signatures(cls):
+        if hasattr(cls, '__registry__'):
+            return list(cls.__registry__.signatures())
+        else:
+            return []
 
-class CachingVideoAnalysisElement(VideoAnalysisElement):  # todo: this should still be an abstract class though...
+    def exposes(self, signature):
+        return self.__registry__.exposes(signature)
+
+    def call(self, signature, *args, **kwargs):
+        """Call the method specified in signature 
+        """  # todo: check exposes here, or trust the implementation?
+        if self.exposes(signature):
+            method = self.__registry__._mapping[signature]
+            return method(self, *args, **kwargs)
+        else:
+            raise NotImplementedError(f"{self.__class__.__name__} does not "
+                                      f"expose {signature}")
+
+    def get_callback(self, signature):
+        if self.exposes(signature):
+            method_name = self.__registry__._mapping[signature].__name__
+            return getattr(self, method_name)
+        else:
+            raise NotImplementedError(f"{self.__class__.__name__} does not "
+                                      f"expose {signature}")
+
+
+class CachingVideoAnalysisElement(VideoAnalysisElement):  # todo: this should still be an abstract class though... and probably shouldn't be in video either
     """Interface to diskcache.Cache
     """
     _cache: Optional[Cache]
@@ -150,7 +204,7 @@ class CachingVideoAnalysisElement(VideoAnalysisElement):  # todo: this should st
         'cache_consumer': False,
     }
 
-    BLOCKED = 'BLOCKED'
+    _BLOCKED = 'BLOCKED'
 
 
     def __init__(self, config):
@@ -176,13 +230,13 @@ class CachingVideoAnalysisElement(VideoAnalysisElement):  # todo: this should st
 
     def _block(self, key: int):
         assert self._cache is not None, CacheAccessError
-        self._cache.set(key, self.BLOCKED)
+        self._cache.set(key, self._BLOCKED)
 
     def _is_blocked(self, key: int) -> bool:
         assert self._cache is not None, CacheAccessError
         return key in self._cache \
                and isinstance(self._cache[key], str) \
-               and self._from_cache(key) == self.BLOCKED
+               and self._from_cache(key) == self._BLOCKED
 
     def _drop(self, key: int):
         assert self._cache is not None, CacheAccessError
@@ -202,7 +256,7 @@ class CachingVideoAnalysisElement(VideoAnalysisElement):  # todo: this should st
                     time.sleep(0.01)  # todo: DiskCache-level events?
 
                 value = self._from_cache(key)
-                if isinstance(value, str) and value == self.BLOCKED:
+                if isinstance(value, str) and value == self._BLOCKED:
                     warnings.warn('Timed out waiting for blocked value.')
                     return None
                 else:
@@ -257,6 +311,10 @@ class CachingVideoAnalysisElement(VideoAnalysisElement):  # todo: this should st
             self.__exit__(*sys.exc_info())
 
 
+GetRawFrame = 'get_raw_frame'
+VideoFileHandlerRegistry = Registry()
+
+
 class VideoFileHandler(CachingVideoAnalysisElement):
     """Interface to video files ~ OpenCV
     """
@@ -265,6 +323,7 @@ class VideoFileHandler(CachingVideoAnalysisElement):
     __default__ = {
         'colorspace': ColorSpace('hsv'),
     }
+    __registry__ = VideoFileHandlerRegistry
 
     def __init__(self, video_path, config: dict = None):
         super(VideoFileHandler, self).__init__(config)
@@ -314,6 +373,7 @@ class VideoFileHandler(CachingVideoAnalysisElement):
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV, frame)
             return frame
 
+    @VideoFileHandlerRegistry.expose(GetRawFrame)
     def read_frame(self, frame_number: int) -> Optional[np.ndarray]:
         return self._cached_call(self._read_frame, self.path, frame_number)
 
@@ -322,6 +382,9 @@ class VideoHandlerType(Factory):
     _mapping = {
         'opencv':   VideoFileHandler,
     }
+
+
+EstimateTransform = 'estimate_transform'
 
 
 class Transform(VideoAnalysisElement):
@@ -365,25 +428,32 @@ class Transform(VideoAnalysisElement):
         """
         raise NotImplementedError
 
+IdentityTransformRegistry = Registry()
 
 class IdentityTransform(Transform):
     """Looks like a Transform, but doesn't transform
     """
+    __registry__ = IdentityTransformRegistry
 
     def set(self, transform: np.ndarray):
         pass
 
+    @IdentityTransformRegistry.expose(EstimateTransform)
     def estimate(self, coordinates):
         pass
 
     def __call__(self, img: np.ndarray) -> np.ndarray:
         return img
 
+PerspectiveTransformRegistry = Registry()
 
 class PerspectiveTransform(Transform):
+    __registry__ = PerspectiveTransformRegistry
+
     def set(self, transform: np.ndarray):
         self._transform = transform
 
+    @PerspectiveTransformRegistry.expose(EstimateTransform)
     def estimate(self, coordinates):
         # todo: sanity check the coordinates!
         #        * array size
@@ -434,6 +504,10 @@ class Filter(VideoAnalysisElement):
         raise NotImplementedError
 
 
+SetFilter = 'set_filter'
+HsvRangeFilterRegistry = Registry()
+
+
 class HsvRangeFilter(Filter):
     """Filters by a range of hues ~ HSV representation
     """
@@ -444,6 +518,7 @@ class HsvRangeFilter(Filter):
         'c0': [90, 50, 50],         # Start of filtering range (in HSV space)
         'c1':   [110, 255, 255],    # End of filtering range (in HSV space)
     }
+    __registry__ = HsvRangeFilterRegistry
 
     def __init__(self, config: dict):
         super(HsvRangeFilter, self).__init__(config)
@@ -452,6 +527,7 @@ class HsvRangeFilter(Filter):
         # todo: S and V are arbitrary for now
         return np.array([np.mean([self.c0[0], self.c1[0]]), 255, 200])
 
+    @HsvRangeFilterRegistry.expose(SetFilter)
     def set_filter(self, clr):
         hue = clr[0]
         self.c0 = np.array([
@@ -518,7 +594,7 @@ class Mask(VideoAnalysisElement):
 
 class DesignFileHandler(CachingVideoAnalysisElement):
     _overlay: np.ndarray
-    _masks: List[Mask]
+    _masks: List[Mask]  # Number of masks shouldn't be changed after initialization
 
     dpi: int
     render_dir: str
@@ -543,10 +619,11 @@ class DesignFileHandler(CachingVideoAnalysisElement):
         self._path = path
         with self.caching():
             self._overlay = self.peel_design(path)
-            self._masks = []
-            masks, names = self.read_masks(path)
-            for mask, name in zip(masks, names):
-                self._masks.append(Mask(mask, name, config))
+
+            self._masks = [
+                Mask(mask, name, config) for mask, name in zip(*self.read_masks(path))
+            ]
+
 
             if not self.keep_renders:
                 self._clear_renders()
@@ -657,8 +734,10 @@ class Feature(abc.ABC):
     _color: Optional[np.ndarray]
     _state: Optional[np.ndarray]
 
-    def __init__(self, _: Mask, *args, **kwargs):
-        pass
+    _elements: Tuple[VideoAnalysisElement, ...]
+
+    def __init__(self, elements: Tuple[VideoAnalysisElement, ...]):
+        self._elements = elements
 
     def calculate(self, frame: np.ndarray, state: np.ndarray = None) \
             -> Tuple[Any, np.ndarray]:
@@ -700,23 +779,25 @@ class Feature(abc.ABC):
 
 
 class FeatureSet(object):
-    _features: List[Feature]
-    _colors: List[np.ndarray]
+    _features: Tuple[Feature, ...]
+    _colors: Tuple[np.ndarray, ...]
 
-    def __init__(self, features: List[Feature]):
+    def __init__(self, features: Tuple[Feature, ...]):
         self._features = features
         self._colors = self.get_colors()
 
-    def get_colors(self) -> List[np.ndarray]:
+    def get_colors(self) -> Tuple[np.ndarray, ...]:
         if not hasattr(self, '_colors'):
             # Get guideline colors for all features
-            colors = [f._guideline_color() for f in self._features]
+            colors = tuple([f._guideline_color() for f in self._features])
 
             # todo: dodge colors
 
             # Set the _color for all features
             for feature, color in zip(self._features, colors):
                 feature._color = color
+
+            self._colors = colors
         else:
             colors = self._colors
 
@@ -734,13 +815,14 @@ class SimpleFeature(Feature):  # todo: Simple and SIMPLE are a bad fit (:
     filter: Filter
 
     def __init__(self, mask: Mask, filter: Filter = None):
-        super(SimpleFeature, self).__init__(mask, filter)
         if filter is None:
             assert isinstance(mask.filter, Filter), AnalysisSetupError
             filter = mask.filter
 
         self.mask = mask
         self.filter = filter
+
+        super(SimpleFeature, self).__init__((mask, filter))
 
     def _guideline_color(self) -> np.ndarray:
         return self.filter.mean_color()
@@ -763,10 +845,7 @@ class AnalysisCallbacks(NamedTuple):
     state: List[Callable[[np.ndarray], None]]
 
 
-class VideoAnalysis(abc.ABC):
-    value: Optional[List[Any]]
-    state: Optional[List[np.ndarray]]
-
+class VideoAnalysis(VideoAnalysisElement):
     _elements: List[VideoAnalysisElement]
     _element_types: dict = {
         'element': {
@@ -775,50 +854,43 @@ class VideoAnalysis(abc.ABC):
     }
 
     _callbacks: AnalysisCallbacks
+    __registry__: Registry
+    __instance__: Dict[str, VideoAnalysisElement]  # todo: ugh naming
 
-    def __init__(self):
+    def __init__(self, config):
+        super(VideoAnalysis, self).__init__(config)
+        self.__instance__ = {k: self for k in self.__registry__.signatures()}
         self._elements = []
 
     def _add_element(self, element_type: Type[VideoAnalysisElement], *args, **kwargs) -> VideoAnalysisElement:
         """Add VideoAnalysisElement instances to VideoAnalyzer
         """
-        if not hasattr(self, '_elements'):
-            self._elements = []
-        if True:   # todo: add sanity check here
+        signatures = self.signatures() + element_type.signatures()
+
+        if len(signatures) == len(set(signatures)):   # todo: add sanity check here
             element = element_type(*args, **kwargs)  # todo: add checks ~ whether all of this makes sense etc
             self._elements.append(element)
+            self.__instance__.update(
+                {k:element for k in element.signatures()}
+            )
             return element
+        else:
+            raise AnalysisSetupError("something something collision and explain it")
 
     def set_callbacks(self, callbacks: AnalysisCallbacks):
         self._callbacks = callbacks
 
-    def get_element(self, element, type):
-        if element in self._element_types:
-            if type in self._element_types[element]:
-                return self._element_types[element][type]
-            else:
-                raise ValueError(
-                    f"Invalid {element} type '{type}' \n"
-                    f"Valid types: {list(self._element_types[element].keys())}"
-                )
-        else:
-            raise ValueError(
-                f"Invalid element type '{element}' \n"
-                f"Valid element types: {list(self._element_types.keys())}"
-            )
-
-    def calculate(self, frame_number: int):
+    def _calculate_callback(self, value: List[Any], state: List[np.ndarray]):
         """Perform analysis for a given frame number
         """
-        if self.__class__.__name__ == 'VideoAnalysis':  # todo cleaner way to check for this?
-            raise NotImplementedError
+        assert len(value) == len(state), AnalysisSetupError
 
-        if self.value is not None:
+        if value is not None:
             for callback in self._callbacks.value:
-                callback(self.value)
-        if self.value is not None:
+                callback(value)
+        if state is not None:
             for callback in self._callbacks.value:
-                callback(self.state)
+                callback(state)
 
     @contextmanager
     def caching(self):
@@ -836,8 +908,39 @@ class VideoAnalysis(abc.ABC):
             for element in caching_elements:
                 element.__exit__(*sys.exc_info())
 
+    def signatures(self):
+        return list(self.__instance__.keys())
 
-class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
+    def exposes(self, signature):
+        """Check if own class or class of any contained VideoAnalysisElement 
+            instances exposes method specified with signature
+        """  # todo: what about collisions?
+
+        return signature in self.__instance__
+
+    def call(self, signature, *args, **kwargs):
+        """Call the method specified in signature 
+        """  # todo: check exposes here, or trust the implementation?
+        if self.exposes(signature):
+            return self.__instance__[signature].call(*args, **kwargs)
+        else:
+            raise NotImplementedError(f"{self.__class__.__name__} does not "
+                                      f"expose {signature}")
+
+    def get_callback(self, signature):
+        if self.exposes(signature):
+            method_name = self.__instance__[signature]._mapping[signature].__name__
+            return getattr(self.__instance__[signature], method_name)
+        else:
+            raise NotImplementedError(f"{self.__class__.__name__} does not "
+                                      f"expose {signature}")
+
+GetTransformedFrame = 'get_transformed_frame'
+GetTransformedOverlaidFrame = 'get_transformed_overlaid_frame'
+
+VideoAnalyzerRegistry = Registry()
+
+class VideoAnalyzer(VideoAnalysis):
     """Main video handling class
             * Load frames from video files
             * Load mask files
@@ -848,10 +951,6 @@ class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
     transform: Transform
 
     featuresets: List[FeatureSet]
-
-    frame: Optional[np.ndarray]
-    value: List[List[Any]]
-    state: List[np.ndarray]
 
     _element_types: dict = {
         'video': {
@@ -880,10 +979,10 @@ class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
         'design_type':              DesignHandlerType(),
         'transform_type':           TransformType(),
     }
+    __registry__ = VideoAnalyzerRegistry
 
     def __init__(self, video_path: str, design_path: str,
                  feature_types: List[Type[Feature]], config: dict = None):
-        VideoAnalysis.__init__(self)  # todo: mixing styles here :(
         super(VideoAnalyzer, self).__init__(config)
 
         self.video = self._add_element(self.video_type, video_path, config) # type: ignore  # todo: fix typing
@@ -892,13 +991,11 @@ class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
 
         self.featuresets = [
             FeatureSet(
-                    [feature_type(mask) for mask in self.design.masks]
+                    tuple(feature_type(mask) for mask in self.design.masks)
                 ) for feature_type in feature_types
         ]
 
     def frame_numbers(self) -> Generator[int, None, None]:
-        """
-        """
         frame_count = self.video.frame_count
         fps = self.video.fps
 
@@ -914,32 +1011,29 @@ class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
             raise ValueError(f"Unexpected frame interval setting "
                              f"{self.frame_interval_setting}")
 
-    def get_frame(self, frame_number: int) -> np.ndarray:
-        self.frame = self.transform(self.video.read_frame(frame_number))# todo: depending on self.frame is dangerous in case we want to run this in a different thread
-        return self.frame
+    @VideoAnalyzerRegistry.expose(GetTransformedFrame)
+    def get_transformed_frame(self, frame_number: int) -> np.ndarray:  # todo: also called from gui
+        return self.transform(self.video.read_frame(frame_number))# todo: depending on self.frame is dangerous in case we want to run this in a different thread
 
-    def get_frame_overlay(self, frame_number: int) -> np.ndarray:
-        if self.frame is None:   # todo: depending on self.frame is dangerous in case we want to run this in a different thread
-            self.frame = self.get_frame(frame_number)
-        # don't overwrite self.frame with the overlaid frame!
-        return self.design.overlay(self.frame.copy())
+    @VideoAnalyzerRegistry.expose(GetTransformedOverlaidFrame)
+    def get_frame_overlay(self, frame_number: int) -> np.ndarray:  # todo: also called from gui
+        return self.design.overlay(self.get_transformed_frame(frame_number))
 
     def calculate(self, frame_number: int):
         """Return a state image for each FeatureSet
         """
-        if self.frame is None:  # todo: depending on self.frame is dangerous in case we want to run this in a different thread
-            self.frame = self.get_frame(frame_number)
+        frame = self.get_transformed_frame(frame_number)
 
-        self.value = []
-        self.state = []
+        V = []
+        S = []
         for fs in self.featuresets:
             values = []
-            state = np.zeros(self.frame.shape, dtype=np.uint8) # todo: can't just set it to self.frame.dtype?
+            state = np.zeros(frame.shape, dtype=np.uint8) # todo: can't just set it to self.frame.dtype?
             # todo: may be faster / more memory-efficient to keep state[i] and set it to 0
 
             for feature in fs._features:  # todo: make featureset iterable maybe
                 value, state = feature.calculate(
-                    self.frame.copy(),  # don't overwrite self.frame ~ cv2 dst parameter  # todo: better to let OpenCV handle copying, or not?
+                    frame.copy(),  # don't overwrite self.frame ~ cv2 dst parameter  # todo: better to let OpenCV handle copying, or not?
                     state               # additive; each feature adds to state
                 )
                 values.append(value)
@@ -947,10 +1041,14 @@ class VideoAnalyzer(VideoAnalysisElement, VideoAnalysis):
             # Add overlay on top of state
             state = self.design.overlay(state)
 
-            self.value.append(values)   # todo value values value ugh
-            self.state.append(state)
+            V.append(values)   # todo value values value ugh
+            S.append(state)
 
-        super(VideoAnalyzer, self).calculate(frame_number)
+        self._calculate_callback(V,S)
+
+    def analyze(self):
+        for fn in self.frame_numbers():
+            self.calculate(fn)
 
 
 class MultiVideoAnalyzer(VideoAnalysis):
