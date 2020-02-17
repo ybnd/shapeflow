@@ -1,10 +1,12 @@
-from typing import Callable, Optional, List
+from typing import Callable, Optional, List, Callable
 import numpy as np
 
 from isimple.core.common import ImmutableRegistry, Endpoint
 
 class BackendEndpoints(ImmutableRegistry):  # todo: confusing naming
-    configure = Endpoint(Callable[[str, str, dict], None])
+    set_video_path = Endpoint(Callable[[str], None])
+    set_design_path = Endpoint(Callable[[str], None])
+    configure = Endpoint(Callable[[dict], None])
     get_raw_frame = Endpoint(Callable[[int], Optional[np.ndarray]])
     estimate_transform = Endpoint(Callable[[List], None])
     set_filter_from_color = Endpoint(Callable[[List], None])
@@ -13,8 +15,8 @@ class BackendEndpoints(ImmutableRegistry):  # todo: confusing naming
 
 
 class GuiEndpoints(ImmutableRegistry):
-    open_setupwindow = Endpoint(Callable[[], None])
-    open_transformwindow = Endpoint(Callable[[], None])
-    open_filterwindow = Endpoint(Callable[[], None])
+    open_setupwindow = Endpoint(Callable[[Callable], None])
+    open_transformwindow = Endpoint(Callable[[Callable], None])
+    open_filterwindow = Endpoint(Callable[[Callable,Callable], None])
     open_progresswindow = Endpoint(Callable[[], None])
     update_progresswindow = Endpoint(Callable[[], None])

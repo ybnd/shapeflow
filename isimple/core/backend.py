@@ -83,9 +83,9 @@ class BackendInstance(object):  # todo: more descriptive name, and probably shou
 
         return _config
 
-    def __getattr__(self, item):  # todo: relatively annoying as this can't be linted...
+    def __getattr__(self, item):
         """Get attribute value from self._config  
-        """  # todo: interface with metadata -> should raise an exception if unexpected attribute is got
+        """
         if item in self._config.keys():
             return self._config[item]
         else:
@@ -102,7 +102,7 @@ class BackendInstance(object):  # todo: more descriptive name, and probably shou
         raise NotImplementedError
 
 
-class CachingBackendInstance(BackendInstance):  # todo: this should still be an abstract class though... and probably shouldn't be in video either
+class CachingBackendInstance(BackendInstance):
     """Interface to diskcache.Cache
     """
     _cache: Optional[diskcache.Cache]
@@ -170,7 +170,7 @@ class CachingBackendInstance(BackendInstance):  # todo: this should still be an 
             # Check if the file's already cached
             if key in self._cache:
                 t0 = time.time()
-                while self._is_blocked(key) and time.time() < t0 + self.timeout: # todo: clean up conditional
+                while self._is_blocked(key) and time.time() < t0 + self.timeout:
                     # Some other thread is currently reading the same frame
                     # Wait a bit and try to get from cache again
                     time.sleep(0.01)  # todo: DiskCache-level events?

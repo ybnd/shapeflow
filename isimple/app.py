@@ -18,5 +18,5 @@ from isimple.gui import VideoAnalyzerGui
 
 
 if __name__ == '__main__':
-    frontend = VideoAnalyzerGui()
+    pass
 

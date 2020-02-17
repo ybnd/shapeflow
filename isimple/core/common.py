@@ -41,7 +41,7 @@ class Endpoint(RegistryEntry):
 
     def __init__(self, signature: Type[Callable]):
         if not hasattr(signature, '__args__'):
-            raise TypeError('Cannot define Endpoint without specifying argument and return type')
+            raise TypeError('Cannot define an Endpoint without a signature!')
         super(RegistryEntry, self).__init__()
         self._signature = signature
         self._methods = []
@@ -53,6 +53,7 @@ class Endpoint(RegistryEntry):
                 if arg == type(None):
                     arg = None
                 args.append(arg)
+            # Don't be stringent with unannotated None-type return
             return tuple(method.__annotations__.values()) == tuple(args)
         else:
             return False
@@ -65,7 +66,8 @@ class Endpoint(RegistryEntry):
         if self.compatible(method):
             self._methods.append(method)
         else:
-            warnings.warn(f"Tried to add an incompatible method to endpoint")
+            raise ValueError(f"Method '{method.__qualname__}' "
+                          f"is incompatible with endpoint '{self._name}'")  # todo: traceback to
 
 
 class Registry(object):

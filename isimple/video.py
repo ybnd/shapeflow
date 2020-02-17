@@ -323,9 +323,6 @@ class DesignFileHandler(CachingBackendInstance):
                 Mask(mask, name, config) for mask, name in zip(*self.read_masks(path))
             ]
 
-            if not self.keep_renders:
-                self._clear_renders()
-
     def _clear_renders(self):
         renders = [f for f in os.listdir(self.render_dir)]
         for f in renders:
@@ -497,34 +494,26 @@ class VideoAnalyzer(BackendManager):
         'transform_type':           TransformType(),
     }
 
-    _args: dict = {'video_path': None, 'design_path': None, 'config': None}
+    _args: dict
 
     def __init__(self, video_path: str = None, design_path: str = None, config: dict = None):  # todo: add optional feature list to override self._config.features
         super(VideoAnalyzer, self).__init__(config)
 
-        self._args.update({
+        self._args = ({
             'video_path': video_path,
             'design_path': design_path,
             'config': config
         })
 
         if video_path is not None and design_path is not None:
-            self.launch(video_path, design_path)
+            self.launch()
 
+    def launch(self):
+        video_path = self._args['video_path']
+        design_path = self._args['design_path']
+        config = self._args['config']
 
-    def launch(self, video_path: str = None, design_path: str = None, config: dict = None):
-        if config is not None:
-            self._configure(config)  # todo: make sure this is safe to do
-        else:
-            config = self._args['config']
-
-        if video_path is None and self._args['video_path'] is not None:
-                video_path = self._args['video_path']
-
-        if design_path is None and self._args['design_path'] is not None:
-            design_path = self._args['video_path']
-
-        if video_path is not None and design_path is not None:
+        if video_path and design_path:
             self.video = self.video_type(video_path, config)
             self.design = self.design_type(design_path, config)
             self.transform = self.transform_type(self.video.shape, config)
@@ -542,23 +531,18 @@ class VideoAnalyzer(BackendManager):
             raise ValueError("Either the video or the design wasn't provided")  # todo: make error message more specific
 
     @backend.expose(backend.configure)
-    def configure(self, video_path: str = None, design_path: str = None, config: dict = None):
-        if config is not None:
-            self._configure(config)  # todo: make sure that this doesn't set the attributes that **aren't** not provided to the defaults!
+    def set_config(self, config: dict) -> None:
+        self._configure(config)  # todo: make sure that this doesn't set the attributes that **aren't** not provided to the defaults!
 
-            self._args.update({
-                'config': config
-            })
+        self._args['config'] = config
 
-        if video_path is not None:
-            self._args.update({
-                'video_path': video_path,
-            })
+    @backend.expose(backend.set_video_path)
+    def set_video_path(self, video_path: str) -> None:
+        self._args['video_path'] = video_path
 
-        if design_path is not None:
-            self._args.update({
-                'design_path': design_path,
-            })
+    @backend.expose(backend.set_design_path)
+    def set_design_path(self, design_path: str) -> None:
+        self._args['design_path'] = design_path
 
     def frame_numbers(self) -> Generator[int, None, None]:
         if self.frame_interval_setting == FrameIntervalSetting('Nf'):

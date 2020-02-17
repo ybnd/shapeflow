@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Callable
 
 from isimple.core.common import Manager
 from isimple.endpoints import GuiEndpoints
@@ -36,29 +36,29 @@ class guiManager(Manager):
 
 class SetupWindow(guiWindow):
     @gui.expose(gui.open_setupwindow)  # todo: ... some way to combine gui and geep into one thing?
-    def open(self, configure_callback):   # todo: can add beep.configure.signature as a type hint?
+    def open(self, configure_callback: Callable) -> None:   # todo: can add beep.configure.signature as a type hint?
         pass
 
 
 class TransformWindow(guiWindow):
     @gui.expose(gui.open_transformwindow)
-    def open(self, estimate_callback):
+    def open(self, estimate_callback: Callable) -> None:
         pass
 
 
 class FilterWindow(guiWindow):
     @gui.expose(gui.open_filterwindow)
-    def open(self, set_callback, seek_callback):
+    def open(self, set_callback: Callable, seek_callback: Callable) -> None:
         pass
 
 
 class ProgressWindow(guiWindow):
     @gui.expose(gui.open_progresswindow)  # todo: this thing should provide its own callbacks tho
-    def open(self):
+    def open(self) -> None:
         pass
 
     @gui.expose(gui.update_progresswindow)
-    def update(self):
+    def update(self) -> None:
         pass
 
 

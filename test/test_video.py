@@ -145,10 +145,12 @@ class VideoAnalyzerTest(FrameTest):
     config = {
         'keep_renders': True,
         'transform_matrix': TRANSFORM,
+        'do_cache': False,
     }
 
     def test_loading(self):
         config = {k: v for k, v in self.config.items()}
+
         va = VideoAnalyzer(__VIDEO__, __DESIGN__, config)
         self.assertEqual(self.config, config)
 
@@ -183,7 +185,11 @@ class VideoAnalyzerTest(FrameTest):
         self.assertFalse(hasattr(va, 'design'))
         self.assertFalse(hasattr(va, 'transform'))
 
-        va.launch(__VIDEO__, __DESIGN__, config)
+        va.set_video_path(__VIDEO__)
+        va.set_design_path(__DESIGN__)
+        va.set_config(config)
+        va.launch()
+        self.assertEqual(self.config, config)
 
         self.assertListEqual(
             sorted(list(os.listdir(va.design.render_dir))),
@@ -208,9 +214,9 @@ class VideoAnalyzerTest(FrameTest):
             np.all(np.equal(TRANSFORM, va.transform.transform_matrix))
         )
 
-    def test_loading_path_problems(self):
+    def test_illegal_arguments(self):
         self.assertRaises(
-            FileNotFoundError, VideoAnalyzer, __VIDEO__, 'non-existent', [PixelSum]
+            FileNotFoundError, VideoAnalyzer, __VIDEO__, 'non-existent'
         )
 
         # Not testing cache, don't need with statement
@@ -302,7 +308,7 @@ class VideoAnalyzerTest(FrameTest):
         self.assertEqual(None, va.video._cache)
 
         # By default, main-thread caching is enabled
-        va = VideoAnalyzer(__VIDEO__, __DESIGN__, self.config)
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__)
 
         self.assertEqual(None, va.video._cache)
         with va.caching():
