@@ -1,6 +1,6 @@
 import abc
 import re
-from typing import Tuple, Any, Optional, List
+from typing import Tuple, Any, Optional, List, Type, Generator
 import os
 
 import numpy as np
@@ -8,12 +8,18 @@ import cv2
 
 from OnionSVG import OnionSVG, check_svg
 
+from isimple.core.util import frame_number_iterator
+from isimple.core.common import Manager
+from isimple.core.backend import BackendInstance, CachingBackendInstance, BackendManager, BackendSetupError
+from isimple.core.features import Feature, FeatureSet
+from isimple.core.meta import Factory, ColorSpace, FrameIntervalSetting
+
 from isimple.maths.images import ckernel, to_mask, crop_mask, area_pixelsum
-from isimple.core.backend import backend, BackendInstance, CachingBackendInstance, BackendManager, BackendSetupError
-from isimple.core.features import Feature
-from isimple.core.gui import guiPane
-from isimple.core.meta import Factory, ColorSpace
-from isimple.core.endpoints import beep, geep
+
+from isimple.endpoints import BackendEndpoints
+
+
+backend = BackendEndpoints()
 
 
 class VideoFileTypeError(BackendSetupError):
@@ -77,7 +83,7 @@ class VideoFileHandler(CachingBackendInstance):
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV, frame)
             return frame
 
-    @backend.expose(beep.get_raw_frame)
+    @backend.expose(backend.get_raw_frame)
     def read_frame(self, frame_number: int) -> Optional[np.ndarray]:
         return self._cached_call(self._read_frame, self.path, frame_number)
 
@@ -115,7 +121,7 @@ class Transform(BackendInstance, abc.ABC):
         """
         raise NotImplementedError
 
-    @backend.expose(beep.estimate_transform)
+    @backend.expose(backend.estimate_transform)
     def estimate(self, coordinates: List) -> None:
         """Estimate the transform matrix from a set of coordinates
             coordinates should correspond to the corners of the outline of
@@ -218,7 +224,7 @@ class HsvRangeFilter(Filter):
         # todo: S and V are arbitrary for now
         return np.array([np.mean([self.c0[0], self.c1[0]]), 255, 200])
 
-    @backend.expose(beep.set_filter_from_color)
+    @backend.expose(backend.set_filter_from_color)
     def set_filter(self, clr: List) -> None:
         hue = clr[0]
         self.c0 = np.array([
@@ -309,7 +315,7 @@ class DesignFileHandler(CachingBackendInstance):
             raise FileNotFoundError
 
         self._path = path
-        with self.caching():
+        with self.caching():  # todo: maybe also do this in a separate thread? It's quite slow.
             self._overlay = self.peel_design(path)
             self._shape = self._overlay.shape
 
@@ -460,23 +466,148 @@ class VideoFeatureType(Factory):
     }
 
 
+class VideoAnalyzer(BackendManager):
+    """Main video handling class
+            * Load frames from video files
+            * Load mask files
+            * Load/save measurement metadata
+    """
+    _gui: Manager
+
+    video: VideoFileHandler
+    design: DesignFileHandler
+    transform: Transform
+
+    featuresets: List[FeatureSet]
+
+    frame_interval_setting: FrameIntervalSetting  # use dt or Nf
+    dt: float                                     # interval in seconds
+    Nf: int                                       # number of evenly spaced frames
+    video_type: Type[VideoFileHandler]
+    design_type: Type[DesignFileHandler]
+    transform_type: Type[Transform]
+
+    __default__ = {
+        'frame_interval_setting':   FrameIntervalSetting(),
+        'dt':                       5.0,
+        'Nf':                       100,
+        'features':                 [VideoFeatureType('pixel_sum')],
+        'video_type':               VideoHandlerType(),
+        'design_type':              DesignHandlerType(),
+        'transform_type':           TransformType(),
+    }
+
+    _args: dict = {'video_path': None, 'design_path': None, 'config': None}
+
+    def __init__(self, video_path: str = None, design_path: str = None, config: dict = None):  # todo: add optional feature list to override self._config.features
+        super(VideoAnalyzer, self).__init__(config)
+
+        self._args.update({
+            'video_path': video_path,
+            'design_path': design_path,
+            'config': config
+        })
+
+        if video_path is not None and design_path is not None:
+            self.launch(video_path, design_path)
+
+
+    def launch(self, video_path: str = None, design_path: str = None, config: dict = None):
+        if config is not None:
+            self._configure(config)  # todo: make sure this is safe to do
+        else:
+            config = self._args['config']
+
+        if video_path is None and self._args['video_path'] is not None:
+                video_path = self._args['video_path']
+
+        if design_path is None and self._args['design_path'] is not None:
+            design_path = self._args['video_path']
+
+        if video_path is not None and design_path is not None:
+            self.video = self.video_type(video_path, config)
+            self.design = self.design_type(design_path, config)
+            self.transform = self.transform_type(self.video.shape, config)
+            self.masks = self.design.masks
+            self.filters = [mask.filter for mask in self.masks]
+
+            self._gather_instances()  # todo: annoying that we have to call this one explicilty, but doing it at super.__init__ makes it less dynamic
+
+            self.featuresets = [
+                FeatureSet(
+                    tuple(feature.get()(mask) for mask in self.design.masks)
+                ) for feature in self.features
+            ]
+        else:
+            raise ValueError("Either the video or the design wasn't provided")  # todo: make error message more specific
+
+    @backend.expose(backend.configure)
+    def configure(self, video_path: str = None, design_path: str = None, config: dict = None):
+        if config is not None:
+            self._configure(config)  # todo: make sure that this doesn't set the attributes that **aren't** not provided to the defaults!
+
+            self._args.update({
+                'config': config
+            })
+
+        if video_path is not None:
+            self._args.update({
+                'video_path': video_path,
+            })
+
+        if design_path is not None:
+            self._args.update({
+                'design_path': design_path,
+            })
+
+    def frame_numbers(self) -> Generator[int, None, None]:
+        if self.frame_interval_setting == FrameIntervalSetting('Nf'):
+            return frame_number_iterator(self.video.frame_count, Nf = self.Nf)
+        elif self.frame_interval_setting == FrameIntervalSetting('dt'):
+            return frame_number_iterator(self.video.frame_count, dt = self.dt, fps = self.video.fps)
+        else:
+            raise ValueError(f"Unexpected frame interval setting "
+                             f"{self.frame_interval_setting}")
+
+    @backend.expose(backend.get_transformed_frame)
+    def get_transformed_frame(self, frame_number: int) -> np.ndarray:
+        return self.transform(self.video.read_frame(frame_number))# todo: depending on self.frame is dangerous in case we want to run this in a different thread
+
+    @backend.expose(backend.get_transformed_overlaid_frame)
+    def get_frame_overlay(self, frame_number: int) -> np.ndarray:
+        return self.design.overlay(self.get_transformed_frame(frame_number))
+
+    def calculate(self, frame_number: int):
+        """Return a state image for each FeatureSet
+        """
+        frame = self.get_transformed_frame(frame_number)
+
+        V = []
+        S = []
+        for fs in self.featuresets:
+            values = []
+            state = np.zeros(frame.shape, dtype=np.uint8) # todo: can't just set it to self.frame.dtype?
+            # todo: may be faster / more memory-efficient to keep state[i] and set it to 0
+
+            for feature in fs._features:  # todo: make featureset iterable maybe
+                value, state = feature.calculate(
+                    frame.copy(),  # don't overwrite self.frame ~ cv2 dst parameter  # todo: better to let OpenCV handle copying, or not?
+                    state               # additive; each feature adds to state
+                )
+                values.append(value)
+
+            # Add overlay on top of state
+            state = self.design.overlay(state)
+
+            V.append(values)   # todo: value values value ugh
+            S.append(state)
+
+        # todo: launch callbacks here
+
+    def analyze(self):
+        for fn in self.frame_numbers():
+            self.calculate(fn)
+
+
 class MultiVideoAnalyzer(BackendManager):
-    pass
-
-
-class guiTransform(guiPane):
-    """A manual transform selection pane
-    """
-    pass
-
-
-class guiFilter(guiPane):
-    """A manual filter selection pane
-    """
-    pass
-
-
-class guiProgress(guiPane):
-    """A progress pane
-    """
     pass

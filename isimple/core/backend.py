@@ -11,7 +11,8 @@ from typing import Any, Optional, List
 
 from isimple.core.util import describe_function
 from isimple.core.meta import EnforcedStr, Factory
-from isimple.core.common import RootException, EndpointRegistry, Manager  # todo: RootException should probably be in a separate file
+from isimple.core.common import RootException, Manager  # todo: RootException should probably be in a separate file
+from isimple.endpoints import BackendEndpoints
 
 
 class BackendSetupError(RootException):
@@ -26,9 +27,6 @@ class CacheAccessError(RootException):
     msg = 'Trying to access cache out of context'
 
 
-backend = EndpointRegistry()
-
-
 class BackendInstance(object):  # todo: more descriptive name, and probably shouldn't be in video
     __default__: dict = {  # EnforcedStr instances should be instantiated without
     }                #  arguments, otherwise there may be two defaults!
@@ -39,10 +37,10 @@ class BackendInstance(object):  # todo: more descriptive name, and probably shou
     # todo: define legal values for strings so config can be validated at this level
 
     def __init__(self, config):
-        self._config = self.handle_config(config)
+        self._config = self._configure(config)
         super(BackendInstance, self).__init__()
 
-    def handle_config(self, config: dict = None) -> dict:
+    def _configure(self, config: dict = None) -> dict:
         """Handle a (flat) configuration dict
             - Look through __default__ dict of all classes in __bases__
             - For all of the keys defined in __default__:

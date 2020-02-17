@@ -4,7 +4,7 @@ import numpy as np
 from isimple.core.common import ImmutableRegistry, Endpoint
 
 class BackendEndpoints(ImmutableRegistry):  # todo: confusing naming
-    configure = Endpoint(Callable[[dict], None])
+    configure = Endpoint(Callable[[str, str, dict], None])
     get_raw_frame = Endpoint(Callable[[int], Optional[np.ndarray]])
     estimate_transform = Endpoint(Callable[[List], None])
     set_filter_from_color = Endpoint(Callable[[List], None])
@@ -18,6 +18,3 @@ class GuiEndpoints(ImmutableRegistry):
     open_filterwindow = Endpoint(Callable[[], None])
     open_progresswindow = Endpoint(Callable[[], None])
     update_progresswindow = Endpoint(Callable[[], None])
-
-beep = BackendEndpoints()
-geep = GuiEndpoints()

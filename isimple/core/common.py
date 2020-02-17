@@ -84,23 +84,6 @@ class Registry(object):
         self._entries.append(entry)
 
 
-class ImmutableRegistry(Registry):
-    _entries: Tuple[RegistryEntry, ...]  #type: ignore
-
-    def __init__(self):
-        _entries = []
-        for attr, val in self.__class__.__dict__.items():
-            if isinstance(val, RegistryEntry):
-                val.register(attr)
-                _entries.append(val)
-
-        self._entries = tuple(_entries)
-        super(ImmutableRegistry, self).__init__()
-
-    def _add_entry(self, entry: RegistryEntry):
-        raise NotImplementedError
-
-
 class EndpointRegistry(Registry):  # todo: confusing names :)
     """This one is global, collects callables that expose endpoints
     """
@@ -136,6 +119,36 @@ class EndpointRegistry(Registry):  # todo: confusing names :)
 
     def endpoints(self) -> List[Endpoint]:
         return list(self._callable_mapping.keys())
+
+
+class ImmutableRegistry(Registry):
+    _entries: Tuple[RegistryEntry, ...]  #type: ignore
+    _endpoints: EndpointRegistry
+
+    def __init__(self, endpoints: EndpointRegistry = None):
+        _entries = []
+        for attr, val in self.__class__.__dict__.items():
+            if isinstance(val, RegistryEntry):
+                val.register(attr)
+                _entries.append(val)
+
+        if endpoints is not None:
+            self._endpoints = endpoints
+        else:
+            self._endpoints = EndpointRegistry()
+
+        self._entries = tuple(_entries)
+        super(ImmutableRegistry, self).__init__()
+
+    def _add_entry(self, entry: RegistryEntry):
+        raise NotImplementedError
+
+    def expose(self, endpoint: Endpoint):
+        return self._endpoints.expose(endpoint)
+
+    def exposes(self, endpoint: Endpoint):
+        return self._endpoints.exposes(endpoint)
+
 
 
 class Manager(object):
