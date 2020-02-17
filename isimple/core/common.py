@@ -3,6 +3,8 @@ from typing import Callable, Dict, List, Tuple, Type, Optional
 import numpy as np
 import abc
 
+from isimple.core.util import all_attributes, get_overridden_methods
+
 
 class RootException(Exception):
     msg = ''
@@ -123,7 +125,7 @@ class EndpointRegistry(Registry):  # todo: confusing names :)
         return list(self._callable_mapping.keys())
 
 
-class ImmutableRegistry(Registry):
+class ImmutableRegistry(Registry):  # todo: confusing naming scheme
     _entries: Tuple[RegistryEntry, ...]  #type: ignore
     _endpoints: EndpointRegistry
 
@@ -154,15 +156,45 @@ class ImmutableRegistry(Registry):
 
 
 class Manager(object):
+    _endpoints: ImmutableRegistry
     _instances: List
     _instance_class = object
+    _instance_mapping: Dict[Endpoint, List[object]]
 
-    def _gather_instances(self):  # todo: how to handle nested instances?
+    def _gather_instances(self):  # todo: needs major clean-up
         self._instances = []
+        self._instance_mapping = {}
 
-        for attr in self.__dict__:
+        attributes = [attr for attr in self.__dir__() if attr[0:2] != '__']  # using iterator doubles count as _instances is also an attribute
+
+        for attr in sorted(attributes):
             value = getattr(self, attr)
+
             if isinstance(value, self._instance_class):
-                self._instances.append(getattr(self, attr))
-            elif isinstance(value, list) and all(isinstance(v, self._instance_class) for v in value):  # todo: be more general than list
+                self._instances.append(value)
+            elif isinstance(value, list) and all(isinstance(v, self._instance_class) for v in value):
                 self._instances += list(value)
+
+        for instance in [self] + self._instances:
+            for attr in [attr for attr in all_attributes(instance) if attr[0:2] != '__']:
+                value = getattr(instance, attr)  # bound method
+
+                if hasattr(value, '__func__'):
+                    implementations = get_overridden_methods(instance.__class__, getattr(instance.__class__, attr))
+
+                    endpoint = None
+                    for implementation in implementations:  # unbound methods
+                        try:
+                            endpoint = implementation._endpoint  # todo: won't catch endpoints defined at multiple placec in the methods inheritance tree
+                        except AttributeError:
+                            pass
+
+                    if endpoint is not None:
+                        if endpoint not in self._instance_mapping:
+                            self._instance_mapping[endpoint] = [value]
+                        else:
+                            self._instance_mapping[endpoint].append(value)
+
+        self._instances = list(set(self._instances))
+        for k,v in self._instance_mapping.items():
+            self._instance_mapping[k] = list(set(v))  # todo: eliminate this!

@@ -144,7 +144,6 @@ class IdentityTransform(Transform):
     def set(self, transform: np.ndarray):
         pass
 
-
     def estimate(self, coordinates: List) -> None:
         pass
 
@@ -155,6 +154,7 @@ class IdentityTransform(Transform):
 class PerspectiveTransform(Transform):
     def set(self, transform: np.ndarray):
         self._transform = transform
+
 
     def estimate(self, coordinates: List) -> None:
         # todo: sanity check the coordinates!
@@ -470,6 +470,7 @@ class VideoAnalyzer(BackendManager):
             * Load/save measurement metadata
     """
     _gui: Manager
+    _endpoints: BackendEndpoints = backend
 
     video: VideoFileHandler
     design: DesignFileHandler

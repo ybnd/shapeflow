@@ -47,11 +47,28 @@ def describe_function(f):
     return f'{f.__module__}{name}'
 
 
-def bases(c) -> list:
+def bases(c: type) -> list:
     b = [base for base in c.__bases__]
     for base in b:
         b += bases(base)
     return list(set(b))
+
+
+def all_attributes(o: object) -> list:
+    b = [o.__class__] + bases(o.__class__)
+    attributes: list = []
+    for base in b:
+        attributes += base.__dict__
+    return list(set(attributes))
+
+def get_overridden_methods(c, m) -> list:
+    b = [c] + bases(c)
+    implementations = []
+    for base in b:
+        if m.__name__ in base.__dict__:
+            implementations.append(getattr(base, m.__name__))
+
+    return implementations
 
 
 def frame_number_iterator(total: int,
