@@ -5,8 +5,6 @@ from typing import Callable
 from isimple.core.common import Endpoint, Registry, ImmutableRegistry, RegistryEntry, EndpointRegistry
 
 
-
-
 class EndpointTest(unittest.TestCase):
     def test_create_endpoint(self):
         def dummy1(a: int, b: float) -> str:

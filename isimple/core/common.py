@@ -100,8 +100,8 @@ class EndpointRegistry(Registry):  # todo: confusing names :)
         def wrapper(method):
             if endpoint in self._callable_mapping:
                 warnings.warn(   # todo: add traceback
-                    f"{self}: '{method.__name__}' @ '{endpoint._name}' will override "
-                    f"previously exposed method '{self._callable_mapping[endpoint].__name__}'."
+                    f"Exposing '{method.__qualname__}' at endpoint '{endpoint._name}' will override "
+                    f"previously exposed method '{self._callable_mapping[endpoint].__qualname__}'."
                 )  # todo: keep in mind we're also marking the methods themselves
             try:
                 self._entries.append(endpoint)
@@ -110,7 +110,7 @@ class EndpointRegistry(Registry):  # todo: confusing names :)
                 self._callable_mapping.update({endpoint: method})
             except TypeError:
                 raise TypeError(
-                    f"Cannot expose '{method.__name__}' @ '{endpoint._name}'."
+                    f"Cannot expose '{method.__qualname__}' at endpoint '{endpoint._name}'."
                     f"incompatible signature: {method.__annotations__} vs. {endpoint.signature}"
                 )
             return method
