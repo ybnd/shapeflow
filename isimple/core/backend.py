@@ -2,17 +2,16 @@ import diskcache
 import sys
 import os
 import numpy as np
-import abc
 import time
 import threading
 from contextlib import contextmanager
 import functools
 import warnings
-from typing import Tuple, NamedTuple, Callable, Dict, Type, Generator, Any, Optional, List
+from typing import Any, Optional, List
 
-from isimple.util import describe_function
-from isimple.meta import EnforcedStr, Factory
-from isimple.registry import RootException, InstanceRegistry, EndpointRegistry  # todo: RootException should probably be in a separate file
+from isimple.core.util import describe_function
+from isimple.core.meta import EnforcedStr, Factory
+from isimple.core.common import RootException, EndpointRegistry, Manager  # todo: RootException should probably be in a separate file
 
 
 class BackendSetupError(RootException):
@@ -234,22 +233,12 @@ class CachingBackendInstance(BackendInstance):  # todo: this should still be an 
             self.__exit__(*sys.exc_info())
 
 
-class BackendManager(BackendInstance):  # todo: naming :(
+class BackendManager(BackendInstance, Manager):  # todo: naming :(
     _instances: List[BackendInstance]
+    _instance_class = BackendInstance
 
     def __init__(self, config):
         super(BackendManager, self).__init__(config)
-        self._instances = []
-
-    def _gather_instances(self):  # todo: how to handle nested instances?
-        self._instances = []
-
-        for attr in self.__dict__:
-            value = getattr(self, attr)
-            if isinstance(value, BackendInstance):
-                self._instances.append(getattr(self, attr))
-            elif isinstance(value, list) and all(isinstance(v, BackendInstance) for v in value):  # todo: be more general than list
-                self._instances += list(value)
 
     @contextmanager
     def caching(self):

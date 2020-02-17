@@ -1,3 +1,7 @@
+from typing import List
+
+from isimple.core.common import Manager
+
 class guiElement(object):
     """Abstract class for GUI elements
     """
@@ -10,7 +14,12 @@ class guiPane(guiElement):
     pass
 
 
-class guiWindow(object):
+class guiWindow(guiElement):
     """Abstract class for a GUI window
     """
     pass
+
+
+class guiManager(Manager):
+    _instances: List[guiElement]
+    _instance_class = guiElement

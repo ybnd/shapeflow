@@ -1,7 +1,6 @@
-import sys
 import abc
 import re
-from typing import Tuple, NamedTuple, Callable, Dict, Type, Generator, Any, Optional, List
+from typing import Tuple, Type, Generator, Any, Optional, List
 import os
 
 import numpy as np
@@ -10,12 +9,12 @@ import cv2
 from OnionSVG import OnionSVG, check_svg
 
 from isimple.maths.images import ckernel, to_mask, crop_mask, area_pixelsum
-from isimple.registry import endpoints
-from isimple.backend import backend, BackendInstance, CachingBackendInstance, BackendManager, BackendSetupError, BackendError
-from isimple.features import Feature, FeatureSet
-from isimple.util import frame_number_iterator
-from isimple.gui import guiPane
-from isimple.meta import Factory, ColorSpace, FrameIntervalSetting
+from isimple.core.common import endpoints
+from isimple.core.backend import backend, BackendInstance, CachingBackendInstance, BackendManager, BackendSetupError
+from isimple.core.features import Feature, FeatureSet
+from isimple.core.util import frame_number_iterator
+from isimple.core.gui import guiPane
+from isimple.core.meta import Factory, ColorSpace, FrameIntervalSetting
 
 
 class VideoFileTypeError(BackendSetupError):

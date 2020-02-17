@@ -1,13 +1,11 @@
 import unittest
-from typing import List
 
 import numpy as np
 
-from isimple.meta import *
-from isimple.meta import (
-    __ext__, __video__, __design__, __height__, __timestep__, __coordinates__,
-    __transform__, __order__, __colors__, __from__, __to__, __meta_sheet__,
-)
+from isimple.core.meta import *
+from isimple.core.meta import (
+    __video__, __design__, __height__, __timestep__, __coordinates__,
+    __transform__, __order__, __colors__, __from__, __to__, )
 
 from isimple.video import VideoAnalyzer, PixelSum, FilterType, HsvRangeFilter
 

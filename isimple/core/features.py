@@ -1,8 +1,8 @@
 import numpy as np
 import abc
-from typing import Tuple, NamedTuple, Callable, Dict, Type, Generator, Any, Optional, List
+from typing import Tuple, Any, Optional
 
-from isimple.backend import BackendInstance
+from isimple.core.backend import BackendInstance
 
 
 class Feature(abc.ABC):

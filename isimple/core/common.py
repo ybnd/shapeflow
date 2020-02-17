@@ -1,9 +1,8 @@
 import warnings
-from typing import Callable, Dict, List, Tuple, Type, FrozenSet, Optional, Any
+from typing import Callable, Dict, List, Tuple, Type, Optional
 import numpy as np
 import abc
 
-from isimple.util import bases
 
 class RootException(Exception):
     msg = ''
@@ -166,3 +165,18 @@ class ApplicationEndpoints(ImmutableRegistry):  # todo: confusing naming
     get_transformed_overlaid_frame = Endpoint(Callable[[int], np.ndarray])
 
 endpoints = ApplicationEndpoints()
+
+
+class Manager(object):
+    _instances: List
+    _instance_class = object
+
+    def _gather_instances(self):  # todo: how to handle nested instances?
+        self._instances = []
+
+        for attr in self.__dict__:
+            value = getattr(self, attr)
+            if isinstance(value, self._instance_class):
+                self._instances.append(getattr(self, attr))
+            elif isinstance(value, list) and all(isinstance(v, self._instance_class) for v in value):  # todo: be more general than list
+                self._instances += list(value)

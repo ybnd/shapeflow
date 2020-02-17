@@ -1,8 +1,8 @@
 import unittest
 
-from typing import Callable, Any
+from typing import Callable
 
-from isimple.registry import Endpoint, Registry, ImmutableRegistry, RegistryEntry, EndpointRegistry
+from isimple.core.common import Endpoint, Registry, ImmutableRegistry, RegistryEntry, EndpointRegistry
 
 
 

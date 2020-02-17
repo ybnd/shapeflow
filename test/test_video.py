@@ -1,14 +1,13 @@
 import unittest
 
-import os
-import numpy as np
-from isimple.video import \
-    VideoFileHandler, VideoAnalyzer, VideoFileTypeError, PixelSum, CachingBackendInstance
-from isimple.meta import *
-from isimple.util import timing
 import cv2
 from threading import Thread
 import time
+
+import numpy as np
+from isimple.video import VideoFileHandler, VideoAnalyzer, VideoFileTypeError, PixelSum, CachingBackendInstance
+from isimple.core.meta import *
+from isimple.core.util import timing
 
 
 # Get validation frames from test video ~ "raw" OpenCV
