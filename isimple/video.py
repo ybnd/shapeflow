@@ -427,7 +427,7 @@ def frame_to_none(frame: np.ndarray) -> None:    # todo: this is dumb
     return None
 
 
-class SimpleFeature(Feature):  # todo: Simple and SIMPLE are a bad fit (:
+class MaskFilterFunction(Feature):
     _function = staticmethod(frame_to_none)  # Override in child classes
 
     mask: Mask
@@ -441,7 +441,7 @@ class SimpleFeature(Feature):  # todo: Simple and SIMPLE are a bad fit (:
         self.mask = mask
         self.filter = filter
 
-        super(SimpleFeature, self).__init__((mask, filter))
+        super(MaskFilterFunction, self).__init__((mask, filter))
 
     def _guideline_color(self) -> np.ndarray:
         return self.filter.mean_color()
@@ -454,13 +454,13 @@ class SimpleFeature(Feature):  # todo: Simple and SIMPLE are a bad fit (:
             return state
 
 
-class PixelSum(SimpleFeature):
-    _function = staticmethod(area_pixelsum)
+class PixelSum(MaskFilterFunction):
+    _function = staticmethod(area_pixelsum)  # todo: would be cleaner if we wouldn't need to have staticmethod here :/
 
 
 class VideoFeature(Factory):
     _mapping = {
-        'pixel_sum':    PixelSum,
+        'pixel_sum':    PixelSum,   # todo: actually, providing the Features as a list instead of using this factory is good in the sense that it allows feature definition at a higher level.
     }
 
 
@@ -493,7 +493,7 @@ class VideoAnalyzer(BackendManager):
         'transform_type':           TransformType(),
     }
 
-    def __init__(self, video_path: str, design_path: str, config: dict = None):
+    def __init__(self, video_path: str, design_path: str, config: dict = None):  # todo: add optional feature list to override self._config.features
         super(VideoAnalyzer, self).__init__(config)
 
         self.video = self.video_type(video_path, config)
@@ -520,11 +520,11 @@ class VideoAnalyzer(BackendManager):
                              f"{self.frame_interval_setting}")
 
     @backend.expose(endpoints.get_transformed_frame)
-    def get_transformed_frame(self, frame_number: int) -> np.ndarray:  # todo: also called from gui
+    def get_transformed_frame(self, frame_number: int) -> np.ndarray:
         return self.transform(self.video.read_frame(frame_number))# todo: depending on self.frame is dangerous in case we want to run this in a different thread
 
     @backend.expose(endpoints.get_transformed_overlaid_frame)
-    def get_frame_overlay(self, frame_number: int) -> np.ndarray:  # todo: also called from gui
+    def get_frame_overlay(self, frame_number: int) -> np.ndarray:
         return self.design.overlay(self.get_transformed_frame(frame_number))
 
     def calculate(self, frame_number: int):
