@@ -156,9 +156,6 @@ class InstanceRegistry(Registry):
         return self._endpoint_registry.expose(endpoint)
 
 
-
-
-
 # todo: everything below belongs in a separate file specifically for the video analysis case, everything above is generic
 
 class ApplicationEndpoints(ImmutableRegistry):  # todo: confusing naming

@@ -70,6 +70,7 @@ class Factory(EnforcedStr):
             return list(self._mapping.keys())[0]
 
 
+
 class ColorSpace(EnforcedStr):
     _options = ['hsv', 'bgr', 'rgb']
 
