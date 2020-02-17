@@ -69,7 +69,10 @@ class Factory(EnforcedStr):
         else:
             return list(self._mapping.keys())[0]
 
-
+    @classmethod
+    def extend(cls, mapping: dict):
+        # todo: sanity check this
+        cls._mapping.update(mapping)
 
 class ColorSpace(EnforcedStr):
     _options = ['hsv', 'bgr', 'rgb']
