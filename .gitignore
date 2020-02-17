@@ -21,3 +21,4 @@ test/.cache/
 test/.log
 *.log
 .mypy_cache/
+docs/build/
