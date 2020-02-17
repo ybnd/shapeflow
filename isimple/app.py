@@ -10,12 +10,13 @@ from OnionSVG import OnionSVG, check_svg
 
 from isimple.core.util import frame_number_iterator
 from isimple.maths.images import ckernel, to_mask, crop_mask, area_pixelsum
-from isimple.core.backend import backend, BackendInstance, CachingBackendInstance, BackendManager, BackendSetupError
+from isimple.core.backend import backend, BackendManager
 from isimple.core.endpoints import beep, geep
 from isimple.core.features import FeatureSet
 from isimple.core.gui import *
 from isimple.core.meta import *
-from isimple.video import VideoFileHandler, DesignFileHandler, Transform, VideoFeatureType, VideoHandlerType, DesignHandlerType, TransformType
+from isimple.video import VideoFileHandler, DesignFileHandler, Transform, \
+    VideoFeatureType, VideoHandlerType, DesignHandlerType, TransformType
 
 
 class VideoAnalyzer(BackendManager):

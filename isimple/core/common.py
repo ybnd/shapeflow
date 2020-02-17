@@ -138,23 +138,6 @@ class EndpointRegistry(Registry):  # todo: confusing names :)
         return list(self._callable_mapping.keys())
 
 
-class InstanceRegistry(Registry):
-    """This one is local, interfaces with the global registry
-    """
-    _endpoint_registry: EndpointRegistry
-
-    def __init__(self, endpoint_registry):
-        super(InstanceRegistry, self).__init__()
-        self._endpoint_registry = endpoint_registry
-
-    def _add_instance(self, instance):
-        if instance not in self._entries:
-            self._entries.append(instance)  # todo: if this is global for all children of something-something, this shit breaks down as soon as we've got multiples active?
-                                            # todo: i.e. the first way I tried doing this was the right way after all? ugh...
-    def expose(self, endpoint: Endpoint):
-        return self._endpoint_registry.expose(endpoint)
-
-
 class Manager(object):
     _instances: List
     _instance_class = object
