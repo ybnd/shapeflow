@@ -1,6 +1,8 @@
 import time
 from functools import wraps
 import inspect
+from typing import Generator
+import numpy as np
 
 
 def restrict(val, minval, maxval):
@@ -52,4 +54,17 @@ def bases(c) -> list:
     return list(set(b))
 
 
-
+def frame_number_iterator(total: int,
+                          Nf: int = None,
+                          dt: float = None, fps: float = None) \
+        -> Generator[int, None, None]:
+    if Nf is not None and (dt is None and fps is None):  # todo: a bit awkward, make two methods instead?
+        Nf = min(Nf, total)
+        for f in np.linspace(0, total, Nf):
+            yield int(f)
+    elif (dt is not None and fps is not None) and Nf is None:
+        df = restrict(dt * fps, 1, total)
+        for f in np.arange(0, total, df):
+            yield int(f)
+    else:
+        ValueError()

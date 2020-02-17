@@ -12,15 +12,15 @@ from OnionSVG import OnionSVG, check_svg
 
 from isimple.maths.images import ckernel, to_mask, crop_mask, area_pixelsum
 from isimple.backend import backend, BackendInstance, \
-    CachingBackendInstance, BackendManager, AnalysisSetupError, AnalysisError, \
+    CachingBackendInstance, BackendManager, BackendSetupError, BackendError, \
     Feature, FeatureSet
 from isimple.registry import endpoints
-from isimple.util import restrict
+from isimple.util import frame_number_iterator
 from isimple.gui import guiPane
 from isimple.meta import Factory, ColorSpace, FrameIntervalSetting
 
 
-class VideoFileTypeError(AnalysisSetupError):
+class VideoFileTypeError(BackendSetupError):
     msg = 'Unrecognized video file type'  # todo: formatting
 
 
@@ -266,7 +266,7 @@ class Mask(BackendInstance):
 
         if filter is None:
             filter = self.filter_type(config)
-            assert isinstance(filter, Filter), AnalysisSetupError
+            assert isinstance(filter, Filter), BackendSetupError
         self.filter = filter
 
     def __call__(self, img: np.ndarray) -> np.ndarray:
@@ -298,7 +298,7 @@ class DesignFileHandler(CachingBackendInstance):
     kernel: np.ndarray
 
     __default__ = {
-        'dpi': 400,  # DPI to render .svg at
+        'dpi': 400,  # DPI to render .svg at  # todo: actual precision is a function of DPI ~ Transform ~ video resolution
         'render_dir': os.path.join(os.getcwd(), '.render'),
         'keep_renders': False,
         'overlay_alpha': 0.1,
@@ -338,9 +338,8 @@ class DesignFileHandler(CachingBackendInstance):
 
         check_svg(design_path)
         OnionSVG(design_path, dpi=self.dpi).peel(
-            'all', to=self.render_dir
+            'all', to=self.render_dir  # todo: should maybe prepend file name to avoid overwriting previous renders?
         )
-
         print("\n")
 
         overlay = cv2.imread(
@@ -436,7 +435,7 @@ class SimpleFeature(Feature):  # todo: Simple and SIMPLE are a bad fit (:
 
     def __init__(self, mask: Mask, filter: Filter = None):
         if filter is None:
-            assert isinstance(mask.filter, Filter), AnalysisSetupError
+            assert isinstance(mask.filter, Filter), BackendSetupError
             filter = mask.filter
 
         self.mask = mask
@@ -512,17 +511,10 @@ class VideoAnalyzer(BackendManager):
         ]
 
     def frame_numbers(self) -> Generator[int, None, None]:
-        frame_count = self.video.frame_count
-        fps = self.video.fps
-
         if self.frame_interval_setting == FrameIntervalSetting('Nf'):
-            Nf = min(self.Nf, frame_count)
-            for f in np.linspace(0, frame_count, Nf):
-                yield int(f)
+            return frame_number_iterator(self.video.frame_count, Nf = self.Nf)
         elif self.frame_interval_setting == FrameIntervalSetting('dt'):
-            df = restrict(self.dt * fps, 1, frame_count)
-            for f in np.arange(0, frame_count, df):
-                yield int(f)
+            return frame_number_iterator(self.video.frame_count, dt = self.dt, fps = self.video.fps)
         else:
             raise ValueError(f"Unexpected frame interval setting "
                              f"{self.frame_interval_setting}")

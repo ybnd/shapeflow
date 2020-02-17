@@ -15,12 +15,12 @@ from isimple.meta import EnforcedStr, Factory
 from isimple.registry import RootException, InstanceRegistry, EndpointRegistry  # todo: RootException should probably be in a separate file
 
 
-class AnalysisSetupError(RootException):
-    msg = 'Error in analysis setup'
+class BackendSetupError(RootException):
+    msg = 'Error while setting up backend'
 
 
-class AnalysisError(RootException):
-    msg = 'Error during analysis'
+class BackendError(RootException):
+    msg = 'Error in backend'
 
 
 class CacheAccessError(RootException):
