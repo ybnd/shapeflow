@@ -1,11 +1,16 @@
 from typing import List
 
-from isimple.core.common import Manager
+from isimple.core.common import Manager, EndpointRegistry
+
+
+gui = EndpointRegistry()
+
 
 class guiElement(object):
     """Abstract class for GUI elements
     """
-    pass
+    def build(self):
+        pass
 
 
 class guiPane(guiElement):
@@ -17,7 +22,8 @@ class guiPane(guiElement):
 class guiWindow(guiElement):
     """Abstract class for a GUI window
     """
-    pass
+    def open(self):
+        pass
 
 
 class guiManager(Manager):

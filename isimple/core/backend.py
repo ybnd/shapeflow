@@ -235,7 +235,7 @@ class CachingBackendInstance(BackendInstance):  # todo: this should still be an 
 
 class BackendManager(BackendInstance, Manager):  # todo: naming :(
     _instances: List[BackendInstance]
-    _instance_class = BackendInstance
+    _instance_class = BackendInstance  #type: ignore
 
     def __init__(self, config):
         super(BackendManager, self).__init__(config)

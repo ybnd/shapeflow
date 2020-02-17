@@ -5,7 +5,8 @@ from threading import Thread
 import time
 
 import numpy as np
-from isimple.video import VideoFileHandler, VideoAnalyzer, VideoFileTypeError, PixelSum, CachingBackendInstance
+from isimple.video import VideoFileHandler, VideoFileTypeError, PixelSum, CachingBackendInstance
+from isimple.app import VideoAnalyzer
 from isimple.core.meta import *
 from isimple.core.util import timing
 

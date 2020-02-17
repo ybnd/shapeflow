@@ -1,6 +1,6 @@
 import abc
 import re
-from typing import Tuple, Type, Generator, Any, Optional, List
+from typing import Tuple, Any, Optional, List
 import os
 
 import numpy as np
@@ -9,12 +9,11 @@ import cv2
 from OnionSVG import OnionSVG, check_svg
 
 from isimple.maths.images import ckernel, to_mask, crop_mask, area_pixelsum
-from isimple.core.common import endpoints
 from isimple.core.backend import backend, BackendInstance, CachingBackendInstance, BackendManager, BackendSetupError
-from isimple.core.features import Feature, FeatureSet
-from isimple.core.util import frame_number_iterator
+from isimple.core.features import Feature
 from isimple.core.gui import guiPane
-from isimple.core.meta import Factory, ColorSpace, FrameIntervalSetting
+from isimple.core.meta import Factory, ColorSpace
+from isimple.core.endpoints import beep, geep
 
 
 class VideoFileTypeError(BackendSetupError):
@@ -78,7 +77,7 @@ class VideoFileHandler(CachingBackendInstance):
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV, frame)
             return frame
 
-    @backend.expose(endpoints.get_raw_frame)
+    @backend.expose(beep.get_raw_frame)
     def read_frame(self, frame_number: int) -> Optional[np.ndarray]:
         return self._cached_call(self._read_frame, self.path, frame_number)
 
@@ -116,7 +115,7 @@ class Transform(BackendInstance, abc.ABC):
         """
         raise NotImplementedError
 
-    @backend.expose(endpoints.estimate_transform)
+    @backend.expose(beep.estimate_transform)
     def estimate(self, coordinates: List) -> None:
         """Estimate the transform matrix from a set of coordinates
             coordinates should correspond to the corners of the outline of
@@ -219,7 +218,7 @@ class HsvRangeFilter(Filter):
         # todo: S and V are arbitrary for now
         return np.array([np.mean([self.c0[0], self.c1[0]]), 255, 200])
 
-    @backend.expose(endpoints.set_filter_from_color)
+    @backend.expose(beep.set_filter_from_color)
     def set_filter(self, clr: List) -> None:
         hue = clr[0]
         self.c0 = np.array([
@@ -455,105 +454,10 @@ class PixelSum(MaskFilterFunction):
     _function = staticmethod(area_pixelsum)  # todo: would be cleaner if we wouldn't need to have staticmethod here :/
 
 
-class VideoFeature(Factory):
+class VideoFeatureType(Factory):
     _mapping = {
         'pixel_sum':    PixelSum,   # todo: actually, providing the Features as a list instead of using this factory is good in the sense that it allows feature definition at a higher level.
     }
-
-
-class VideoAnalyzer(BackendManager):
-    """Main video handling class
-            * Load frames from video files
-            * Load mask files
-            * Load/save measurement metadata
-    """
-    video: VideoFileHandler
-    design: DesignFileHandler
-    transform: Transform
-
-    featuresets: List[FeatureSet]
-
-    frame_interval_setting: FrameIntervalSetting  # use dt or Nf
-    dt: float                                     # interval in seconds
-    Nf: int                                       # number of evenly spaced frames
-    video_type: Type[VideoFileHandler]
-    design_type: Type[DesignFileHandler]
-    transform_type: Type[Transform]
-
-    __default__ = {
-        'frame_interval_setting':   FrameIntervalSetting(),
-        'dt':                       5.0,
-        'Nf':                       100,
-        'features':                 [VideoFeature('pixel_sum')],
-        'video_type':               VideoHandlerType(),
-        'design_type':              DesignHandlerType(),
-        'transform_type':           TransformType(),
-    }
-
-    def __init__(self, video_path: str, design_path: str, config: dict = None):  # todo: add optional feature list to override self._config.features
-        super(VideoAnalyzer, self).__init__(config)
-
-        self.video = self.video_type(video_path, config)
-        self.design = self.design_type(design_path, config)
-        self.transform = self.transform_type(self.video.shape, config)
-        self.masks = self.design.masks
-        self.filters = [mask.filter for mask in self.masks]
-
-        self._gather_instances()
-
-        self.featuresets = [
-            FeatureSet(
-                    tuple(feature.get()(mask) for mask in self.design.masks)
-                ) for feature in self.features
-        ]
-
-    def frame_numbers(self) -> Generator[int, None, None]:
-        if self.frame_interval_setting == FrameIntervalSetting('Nf'):
-            return frame_number_iterator(self.video.frame_count, Nf = self.Nf)
-        elif self.frame_interval_setting == FrameIntervalSetting('dt'):
-            return frame_number_iterator(self.video.frame_count, dt = self.dt, fps = self.video.fps)
-        else:
-            raise ValueError(f"Unexpected frame interval setting "
-                             f"{self.frame_interval_setting}")
-
-    @backend.expose(endpoints.get_transformed_frame)
-    def get_transformed_frame(self, frame_number: int) -> np.ndarray:
-        return self.transform(self.video.read_frame(frame_number))# todo: depending on self.frame is dangerous in case we want to run this in a different thread
-
-    @backend.expose(endpoints.get_transformed_overlaid_frame)
-    def get_frame_overlay(self, frame_number: int) -> np.ndarray:
-        return self.design.overlay(self.get_transformed_frame(frame_number))
-
-    def calculate(self, frame_number: int):
-        """Return a state image for each FeatureSet
-        """
-        frame = self.get_transformed_frame(frame_number)
-
-        V = []
-        S = []
-        for fs in self.featuresets:
-            values = []
-            state = np.zeros(frame.shape, dtype=np.uint8) # todo: can't just set it to self.frame.dtype?
-            # todo: may be faster / more memory-efficient to keep state[i] and set it to 0
-
-            for feature in fs._features:  # todo: make featureset iterable maybe
-                value, state = feature.calculate(
-                    frame.copy(),  # don't overwrite self.frame ~ cv2 dst parameter  # todo: better to let OpenCV handle copying, or not?
-                    state               # additive; each feature adds to state
-                )
-                values.append(value)
-
-            # Add overlay on top of state
-            state = self.design.overlay(state)
-
-            V.append(values)   # todo: value values value ugh
-            S.append(state)
-
-        # todo: launch callbacks here
-
-    def analyze(self):
-        for fn in self.frame_numbers():
-            self.calculate(fn)
 
 
 class MultiVideoAnalyzer(BackendManager):

@@ -7,8 +7,8 @@ from isimple.core.meta import (
     __video__, __design__, __height__, __timestep__, __coordinates__,
     __transform__, __order__, __colors__, __from__, __to__, )
 
-from isimple.video import VideoAnalyzer, PixelSum, FilterType, HsvRangeFilter
-
+from isimple.video import PixelSum, FilterType, HsvRangeFilter
+from isimple.app import VideoAnalyzer
 
 __VIDEO__ = 'test.mp4'
 __DESIGN__ = 'test.svg'
@@ -24,7 +24,7 @@ coordinates = [[0,0] for i in range(4)]
 transform = np.eye(3).tolist()
 order = [0,1,2,3]
 
-va = VideoAnalyzer(__VIDEO__, __DESIGN__, [PixelSum])
+va = VideoAnalyzer(__VIDEO__, __DESIGN__)
 masks = va.design._masks
 
 

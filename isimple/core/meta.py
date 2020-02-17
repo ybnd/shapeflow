@@ -82,11 +82,6 @@ class FrameIntervalSetting(EnforcedStr):  # todo: this is a horrible name
     _options = ['dt', 'Nf']
 
 
-
-
-
-
-
 # https://stackoverflow.com/questions/16782112
 yaml.add_representer(
     dict, lambda self,

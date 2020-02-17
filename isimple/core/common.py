@@ -155,18 +155,6 @@ class InstanceRegistry(Registry):
         return self._endpoint_registry.expose(endpoint)
 
 
-# todo: everything below belongs in a separate file specifically for the video analysis case, everything above is generic
-
-class ApplicationEndpoints(ImmutableRegistry):  # todo: confusing naming
-    get_raw_frame = Endpoint(Callable[[int], Optional[np.ndarray]])
-    estimate_transform = Endpoint(Callable[[List], None])
-    set_filter_from_color = Endpoint(Callable[[List], None])
-    get_transformed_frame = Endpoint(Callable[[int], np.ndarray])
-    get_transformed_overlaid_frame = Endpoint(Callable[[int], np.ndarray])
-
-endpoints = ApplicationEndpoints()
-
-
 class Manager(object):
     _instances: List
     _instance_class = object
