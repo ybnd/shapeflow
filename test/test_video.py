@@ -147,10 +147,43 @@ class VideoAnalyzerTest(FrameTest):
         'transform_matrix': TRANSFORM,
     }
 
-    def test_aloading(self):
+    def test_loading(self):
         config = {k: v for k, v in self.config.items()}
         va = VideoAnalyzer(__VIDEO__, __DESIGN__, config)
         self.assertEqual(self.config, config)
+
+        self.assertListEqual(
+            sorted(list(os.listdir(va.design.render_dir))),
+            sorted([
+                '1 - WLC_SIMPLE.png',
+                '2 - PM_SIMPLE.png',
+                '3 - push1.png',
+                '4 - push2.png',
+                '5 - WLC_iSIMPLE.png',
+                '6 - PM_iSIMPLE.png',
+                '7 - block.png',
+                '8 - PM_block.png',
+                '9 - SLC.png',
+                'overlay.png'
+            ])
+        )
+        va.design._clear_renders()
+
+        self.assertTrue(hasattr(va.design, '_masks'))
+        self.assertEqual(len(va.design._masks), 9)
+        self.assertTrue(
+            np.all(np.equal(TRANSFORM, va.transform.transform_matrix))
+        )
+
+    def test_loading_after_init(self):
+        config = {k: v for k, v in self.config.items()}
+        va = VideoAnalyzer(None, None, None)
+
+        self.assertFalse(hasattr(va, 'video'))
+        self.assertFalse(hasattr(va, 'design'))
+        self.assertFalse(hasattr(va, 'transform'))
+
+        va.launch(__VIDEO__, __DESIGN__, config)
 
         self.assertListEqual(
             sorted(list(os.listdir(va.design.render_dir))),

@@ -89,7 +89,7 @@ class BackendInstance(object):  # todo: more descriptive name, and probably shou
         if item in self._config.keys():
             return self._config[item]
         else:
-            raise ValueError(
+            raise AttributeError(
                 f"Unexpected attribute '{item}'. "
                 f"{self.__class__.__name__} recognizes the following "
                 f"configuration attributes: {self.__attributes__}"
