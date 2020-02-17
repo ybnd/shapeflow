@@ -12,7 +12,7 @@ from typing import Tuple, NamedTuple, Callable, Dict, Type, Generator, Any, Opti
 
 from isimple.util import describe_function
 from isimple.meta import EnforcedStr, Factory
-from isimple.registry import RootException, EndpointRegistry, Endpoint  # todo: RootException should probably be in a separate file
+from isimple.registry import RootException, InstanceRegistry, EndpointRegistry  # todo: RootException should probably be in a separate file
 
 
 class AnalysisSetupError(RootException):
@@ -27,23 +27,21 @@ class CacheAccessError(RootException):
     msg = 'Trying to access cache out of context'
 
 
-backend = BackendRegistry()
+backend = EndpointRegistry()
 
 
-class BackendElement(abc.ABC):  # todo: more descriptive name, and probably shouldn't be in video
-    __default__: dict
-    __default__ = {  # EnforcedStr instances should be instantiated without
+class BackendInstance(object):  # todo: more descriptive name, and probably shouldn't be in video
+    __default__: dict = {  # EnforcedStr instances should be instantiated without
     }                #  arguments, otherwise there may be two defaults!
 
     __attributes__: List[str]
-    __registry__: EndpointRegistry
 
     # todo: interface with isimple.meta
     # todo: define legal values for strings so config can be validated at this level
 
     def __init__(self, config):
         self._config = self.handle_config(config)
-        self.__registry__ = EndpointRegistry()
+        super(BackendInstance, self).__init__()
 
     def handle_config(self, config: dict = None) -> dict:
         """Handle a (flat) configuration dict
@@ -61,7 +59,7 @@ class BackendElement(abc.ABC):  # todo: more descriptive name, and probably shou
         if config is None:
             config = {}
 
-        # Gather default config from all parents
+        # Gather default config from all bases
         default_config: dict = {}
         for base_class in self.__class__.__bases__:
             if hasattr(base_class, '__default__'):
@@ -106,36 +104,8 @@ class BackendElement(abc.ABC):  # todo: more descriptive name, and probably shou
     def __call__(self, frame: np.ndarray) -> np.ndarray:
         raise NotImplementedError
 
-    @classmethod
-    def endpoints(cls):
-        if hasattr(cls, '__registry__'):
-            return list(cls.__registry__.endpoints())
-        else:
-            return []
 
-    def exposes(self, endpoint):
-        return self.__registry__.exposes(endpoint)
-
-    def call(self, endpoint, *args, **kwargs):
-        """Call the method specified in endpoint 
-        """  # todo: check exposes here, or trust the implementation?
-        if self.exposes(endpoint):
-            method = self.__registry__._mapping[endpoint]
-            return method(self, *args, **kwargs)
-        else:
-            raise NotImplementedError(f"{self.__class__.__name__} does not "
-                                      f"expose {endpoint}")
-
-    def get_callback(self, endpoint):
-        if self.exposes(endpoint):
-            method_name = self.__registry__._mapping[endpoint].__name__
-            return getattr(self, method_name)
-        else:
-            raise NotImplementedError(f"{self.__class__.__name__} does not "
-                                      f"expose {endpoint}")
-
-
-class CachingBackendElement(BackendElement):  # todo: this should still be an abstract class though... and probably shouldn't be in video either
+class CachingBackendInstance(BackendInstance):  # todo: this should still be an abstract class though... and probably shouldn't be in video either
     """Interface to diskcache.Cache
     """
     _cache: Optional[diskcache.Cache]
@@ -160,9 +130,8 @@ class CachingBackendElement(BackendElement):  # todo: this should still be an ab
 
     _BLOCKED = 'BLOCKED'
 
-
     def __init__(self, config):
-        super(CachingBackendElement, self).__init__(config)
+        super(CachingBackendInstance, self).__init__(config)
 
         self._cache = None
         self._background = None
@@ -265,46 +234,22 @@ class CachingBackendElement(BackendElement):  # todo: this should still be an ab
             self.__exit__(*sys.exc_info())
 
 
-class VideoAnalysis(BackendElement):
-    _elements: List[BackendElement]
-
-    __instance__: Dict[Endpoint, BackendElement]
+class BackendManager(BackendInstance):  # todo: naming :(
+    _instances: List[BackendInstance]
 
     def __init__(self, config):
-        super(VideoAnalysis, self).__init__(config)
-        self.__instance__ = {k: self for k in self.__registry__.endpoints()}
-        self._elements = []
+        super(BackendManager, self).__init__(config)
+        self._instances = []
 
-    def _add_element(self, element_type: Type[BackendElement], *args,
-                     **kwargs) -> BackendElement:
-        """Add VideoAnalysisElement instances to VideoAnalyzer
-        """
-        endpoints = list(self.__instance__.keys())
+    def _gather_instances(self):  # todo: how to handle nested instances?
+        self._instances = []
 
-        if len(endpoints) == len(
-                set(endpoints)):  # todo: add sanity check here
-            element = element_type(*args,
-                                   **kwargs)  # todo: add checks ~ whether all of this makes sense etc
-            self._elements.append(element)
-            self.__instance__.update(
-                {k: element for k in element.endpoints()}
-            )
-            return element
-        else:
-            raise AnalysisSetupError("something something collision and explain it")
-
-    def _calculate_callback(self, value: List[Any],
-                            state: List[np.ndarray]):
-        """Perform analysis for a given frame number
-        """
-        assert len(value) == len(state), AnalysisSetupError
-
-        if value is not None:
-            for callback in self._callbacks.value:
-                callback(value)
-        if state is not None:
-            for callback in self._callbacks.value:
-                callback(state)
+        for attr in self.__dict__:
+            value = getattr(self, attr)
+            if isinstance(value, BackendInstance):
+                self._instances.append(getattr(self, attr))
+            elif isinstance(value, list) and all(isinstance(v, BackendInstance) for v in value):  # todo: be more general than list
+                self._instances += list(value)
 
     @contextmanager
     def caching(self):
@@ -312,8 +257,8 @@ class VideoAnalysis(BackendElement):
             every contained BackendElement that implements caching
         """
         caching_elements = [
-            e for e in self._elements if
-            isinstance(e, CachingBackendElement)
+            e for e in self._instances if
+            isinstance(e, CachingBackendInstance)
         ]
         try:
             for element in caching_elements:
@@ -323,34 +268,6 @@ class VideoAnalysis(BackendElement):
             for element in caching_elements:
                 element.__exit__(*sys.exc_info())
 
-    def endpoints(self):
-        return list(self.__instance__.keys())
-
-    def exposes(self, endpoint):
-        """Check if own class or class of any contained VideoAnalysisElement 
-            instances exposes method specified with endpoint
-        """  # todo: what about collisions?
-
-        return endpoint in self.__instance__
-
-    def call(self, endpoint, *args, **kwargs):
-        """Call the method specified in endpoint 
-        """  # todo: check exposes here, or trust the implementation?
-        if self.exposes(endpoint):
-            return self.__instance__[endpoint].call(*args, **kwargs)
-        else:
-            raise NotImplementedError(
-                f"{self.__class__.__name__} does not "
-                f"expose {endpoint}")
-
-    def get_callback(self, endpoint):
-        if self.exposes(endpoint):
-            method_name = self.__instance__[endpoint]._mapping[endpoint].__name__
-            return getattr(self.__instance__[endpoint], method_name)
-        else:
-            raise NotImplementedError(f"{self.__class__.__name__} does not "
-                                      f"expose {endpoint}")
-
 
 class Feature(abc.ABC):
     """A feature implements interactions between BackendElements to
@@ -359,9 +276,9 @@ class Feature(abc.ABC):
     _color: Optional[np.ndarray]
     _state: Optional[np.ndarray]
 
-    _elements: Tuple[BackendElement, ...]
+    _elements: Tuple[BackendInstance, ...]
 
-    def __init__(self, elements: Tuple[BackendElement, ...]):
+    def __init__(self, elements: Tuple[BackendInstance, ...]):
         self._elements = elements
 
     def calculate(self, frame: np.ndarray, state: np.ndarray = None) \

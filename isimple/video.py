@@ -11,9 +11,9 @@ import cv2
 from OnionSVG import OnionSVG, check_svg
 
 from isimple.maths.images import ckernel, to_mask, crop_mask, area_pixelsum
-from isimple.backend import BackendElement, \
-    CachingBackendElement, VideoAnalysis, AnalysisSetupError, AnalysisError, \
-    Feature, FeatureSet, backend
+from isimple.backend import backend, BackendInstance, \
+    CachingBackendInstance, BackendManager, AnalysisSetupError, AnalysisError, \
+    Feature, FeatureSet
 from isimple.registry import endpoints
 from isimple.util import restrict
 from isimple.gui import guiPane
@@ -24,7 +24,7 @@ class VideoFileTypeError(AnalysisSetupError):
     msg = 'Unrecognized video file type'  # todo: formatting
 
 
-class VideoFileHandler(CachingBackendElement):
+class VideoFileHandler(CachingBackendInstance):
     """Interface to video files ~ OpenCV
     """
     colorspace: str
@@ -32,7 +32,6 @@ class VideoFileHandler(CachingBackendElement):
     __default__ = {
         'colorspace': ColorSpace('hsv'),
     }
-    __registry__ = backend.VideoFileHandler
 
     def __init__(self, video_path, config: dict = None):
         super(VideoFileHandler, self).__init__(config)
@@ -93,7 +92,7 @@ class VideoHandlerType(Factory):
     }
 
 
-class Transform(BackendElement, abc.ABC):
+class Transform(BackendInstance, abc.ABC):
     """Handles coordinate transforms.
     """
     _shape: tuple
@@ -104,7 +103,6 @@ class Transform(BackendElement, abc.ABC):
     __default__ = {
         'transform_matrix': None
     }
-    __registry__ = backend.Transform
 
     def __init__(self, shape, config):
         super(Transform, self).__init__(config)
@@ -191,7 +189,7 @@ class TransformType(Factory):
     }
 
 
-class Filter(BackendElement, abc.ABC):
+class Filter(BackendInstance, abc.ABC):
     """Handles pixel filtering operations
     """
     def __init__(self, config: dict = None):
@@ -216,7 +214,6 @@ class HsvRangeFilter(Filter):
         'c0': [90, 50, 50],         # Start of filtering range (in HSV space)
         'c1':   [110, 255, 255],    # End of filtering range (in HSV space)
     }
-    __registry__ = backend.HsvRangeFilter
 
     def __init__(self, config: dict):
         super(HsvRangeFilter, self).__init__(config)
@@ -245,7 +242,7 @@ class FilterType(Factory):
     }
 
 
-class Mask(BackendElement):
+class Mask(BackendInstance):
     """Handles masks in the context of a video file
     """
 
@@ -290,7 +287,7 @@ class Mask(BackendElement):
         return img[self._rect[0]:self._rect[1], self._rect[2]:self._rect[3]]
 
 
-class DesignFileHandler(CachingBackendElement):
+class DesignFileHandler(CachingBackendInstance):
     _overlay: np.ndarray
     _masks: List[Mask]
 
@@ -311,22 +308,21 @@ class DesignFileHandler(CachingBackendElement):
     def __init__(self, path: str, config: dict = None):
         super(DesignFileHandler, self).__init__(config)
 
+
         if not os.path.isfile(path):
             raise FileNotFoundError
 
         self._path = path
         with self.caching():
             self._overlay = self.peel_design(path)
+            self._shape = self._overlay.shape
 
             self._masks = [
                 Mask(mask, name, config) for mask, name in zip(*self.read_masks(path))
             ]
 
-
             if not self.keep_renders:
                 self._clear_renders()
-
-        self._shape = self._overlay.shape  # todo: all Transform objects need to know about this
 
     def _clear_renders(self):
         renders = [f for f in os.listdir(self.render_dir)]
@@ -469,7 +465,7 @@ class VideoFeature(Factory):
     }
 
 
-class VideoAnalyzer(VideoAnalysis):
+class VideoAnalyzer(BackendManager):
     """Main video handling class
             * Load frames from video files
             * Load mask files
@@ -497,14 +493,17 @@ class VideoAnalyzer(VideoAnalysis):
         'design_type':              DesignHandlerType(),
         'transform_type':           TransformType(),
     }
-    __registry__ = backend
 
     def __init__(self, video_path: str, design_path: str, config: dict = None):
         super(VideoAnalyzer, self).__init__(config)
 
-        self.video = self._add_element(self.video_type, video_path, config) # type: ignore  # todo: fix typing
-        self.design = self._add_element(self.design_type, design_path, config) # type: ignore
-        self.transform = self._add_element(self.transform_type, self.video.shape, config) # type: ignore
+        self.video = self.video_type(video_path, config)
+        self.design = self.design_type(design_path, config)
+        self.transform = self.transform_type(self.video.shape, config)
+        self.masks = self.design.masks
+        self.filters = [mask.filter for mask in self.masks]
+
+        self._gather_instances()
 
         self.featuresets = [
             FeatureSet(
@@ -558,17 +557,17 @@ class VideoAnalyzer(VideoAnalysis):
             # Add overlay on top of state
             state = self.design.overlay(state)
 
-            V.append(values)   # todo value values value ugh
+            V.append(values)   # todo: value values value ugh
             S.append(state)
 
-        self._calculate_callback(V,S)
+        # todo: launch callbacks here
 
     def analyze(self):
         for fn in self.frame_numbers():
             self.calculate(fn)
 
 
-class MultiVideoAnalyzer(VideoAnalysis):
+class MultiVideoAnalyzer(BackendManager):
     pass
 
 

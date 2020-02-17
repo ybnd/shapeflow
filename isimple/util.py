@@ -43,3 +43,13 @@ def describe_function(f):
             else:
                 classes = list(c.__bases__) + classes
     return f'{f.__module__}{name}'
+
+
+def bases(c) -> list:
+    b = [base for base in c.__bases__]
+    for base in b:
+        b += bases(base)
+    return list(set(b))
+
+
+

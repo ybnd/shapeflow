@@ -3,7 +3,7 @@ import unittest
 import os
 import numpy as np
 from isimple.video import \
-    VideoFileHandler, VideoAnalyzer, VideoFileTypeError, PixelSum, CachingBackendElement
+    VideoFileHandler, VideoAnalyzer, VideoFileTypeError, PixelSum, CachingBackendInstance
 from isimple.meta import *
 from isimple.util import timing
 import cv2
@@ -57,7 +57,7 @@ class FrameTest(unittest.TestCase):
         self.assertTrue(np.equal(frame1, frame2).all())
 
     def assertFrameInCache(self, vi, frame_number):
-        assert isinstance(vi, CachingBackendElement) and vi._cache is not None
+        assert isinstance(vi, CachingBackendInstance) and vi._cache is not None
         self.assertTrue(
             vi._get_key(vi._read_frame, vi.path, frame_number) in vi._cache
         )

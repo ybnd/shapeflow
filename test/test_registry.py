@@ -20,10 +20,10 @@ class EndpointTest(unittest.TestCase):
         self.assertEqual(Callable[[int, float], str], ep1._signature)
         self.assertEqual(Callable[[], bool], ep2._signature)
 
-        self.assertTrue(ep1.isvalid(dummy1))
-        self.assertTrue(ep2.isvalid(dummy2))
-        self.assertFalse(ep2.isvalid(dummy1))
-        self.assertFalse(ep1.isvalid(dummy2))
+        self.assertTrue(ep1.compatible(dummy1))
+        self.assertTrue(ep2.compatible(dummy2))
+        self.assertFalse(ep2.compatible(dummy1))
+        self.assertFalse(ep1.compatible(dummy2))
 
     def test_create_illegal_endpoint(self):
         def dummy_untyped():

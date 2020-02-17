@@ -3,6 +3,7 @@ from typing import Callable, Dict, List, Tuple, Type, FrozenSet, Optional, Any
 import numpy as np
 import abc
 
+from isimple.util import bases
 
 class RootException(Exception):
     msg = ''
@@ -37,17 +38,19 @@ class RegistryEntry(abc.ABC):  # todo: shouldn't allow instances
 
 class Endpoint(RegistryEntry):
     _signature: Type[Callable]
+    _methods: List[Callable]
 
     def __init__(self, signature: Type[Callable]):
         if not hasattr(signature, '__args__'):
             raise TypeError('Cannot define Endpoint without specifying argument and return type')
         super(RegistryEntry, self).__init__()
         self._signature = signature
+        self._methods = []
 
-    def isvalid(self, method: Callable) -> bool:
+    def compatible(self, method: Callable) -> bool:
         if hasattr(method, '__annotations__'):
             args: List = []
-            for arg in self._signature.__args__:
+            for arg in self.signature:
                 if arg == type(None):
                     arg = None
                 args.append(arg)
@@ -55,9 +58,19 @@ class Endpoint(RegistryEntry):
         else:
             return False
 
+    @property
+    def signature(self):
+        return self._signature.__args__
+
+    def add(self, method):
+        if self.compatible(method):
+            self._methods.append(method)
+        else:
+            warnings.warn(f"Tried to add an incompatible method to endpoint")
+
 
 class Registry(object):
-    _entries: List[RegistryEntry]
+    _entries: List
 
     def __init__(self):
         if not hasattr(self, '_entries'):
@@ -73,7 +86,7 @@ class Registry(object):
 
 
 class ImmutableRegistry(Registry):
-    _entries = Tuple[RegistryEntry, ...]
+    _entries: Tuple[RegistryEntry, ...]  #type: ignore
 
     def __init__(self):
         _entries = []
@@ -89,8 +102,10 @@ class ImmutableRegistry(Registry):
         raise NotImplementedError
 
 
-
 class EndpointRegistry(Registry):  # todo: confusing names :)
+    """This one is global, collects callables that expose endpoints
+    """
+    _entries: List[Endpoint]
     _callable_mapping: Dict[Endpoint, Callable]
 
     def __init__(self):
@@ -100,17 +115,19 @@ class EndpointRegistry(Registry):  # todo: confusing names :)
     def expose(self, endpoint: Endpoint):
         def wrapper(method):
             if endpoint in self._callable_mapping:
-                warnings.warn(
+                warnings.warn(   # todo: add traceback
                     f"{self}: '{method.__name__}' @ '{endpoint._name}' will override "
                     f"previously exposed method '{self._callable_mapping[endpoint].__name__}'."
-                )
-            if endpoint.isvalid(method):
+                )  # todo: keep in mind we're also marking the methods themselves
+            try:
+                self._entries.append(endpoint)
+                endpoint.add(method)
+                method._endpoint = endpoint
                 self._callable_mapping.update({endpoint: method})
-                self._add_entry(endpoint)
-            else:
+            except TypeError:
                 raise TypeError(
                     f"Cannot expose '{method.__name__}' @ '{endpoint._name}'."
-                    f"incompatible signature: {method.__annotations__} vs. {endpoint._signature.__args__}"
+                    f"incompatible signature: {method.__annotations__} vs. {endpoint.signature}"
                 )
             return method
         return wrapper
@@ -121,14 +138,34 @@ class EndpointRegistry(Registry):  # todo: confusing names :)
     def endpoints(self) -> List[Endpoint]:
         return list(self._callable_mapping.keys())
 
+
+class InstanceRegistry(Registry):
+    """This one is local, interfaces with the global registry
+    """
+    _endpoint_registry: EndpointRegistry
+
+    def __init__(self, endpoint_registry):
+        super(InstanceRegistry, self).__init__()
+        self._endpoint_registry = endpoint_registry
+
+    def _add_instance(self, instance):
+        if instance not in self._entries:
+            self._entries.append(instance)  # todo: if this is global for all children of something-something, this shit breaks down as soon as we've got multiples active?
+                                            # todo: i.e. the first way I tried doing this was the right way after all? ugh...
+    def expose(self, endpoint: Endpoint):
+        return self._endpoint_registry.expose(endpoint)
+
+
+
+
+
 # todo: everything below belongs in a separate file specifically for the video analysis case, everything above is generic
 
-
-class ApplicationEndpointRegistry(ImmutableRegistry):  # todo: confusing naming
+class ApplicationEndpoints(ImmutableRegistry):  # todo: confusing naming
     get_raw_frame = Endpoint(Callable[[int], Optional[np.ndarray]])
     estimate_transform = Endpoint(Callable[[List], None])
     set_filter_from_color = Endpoint(Callable[[List], None])
     get_transformed_frame = Endpoint(Callable[[int], np.ndarray])
     get_transformed_overlaid_frame = Endpoint(Callable[[int], np.ndarray])
 
-endpoints = ApplicationEndpointRegistry()
+endpoints = ApplicationEndpoints()
