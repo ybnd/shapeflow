@@ -10,12 +10,14 @@ __isimple__ = os.path.dirname(__file__)
 __history_path__ = os.path.join(__isimple__, '.history')
 
 
-class HistoryApp:
+class HistoryApp(object):
+    """Applications with history stored in JSON format in isimple/.history
+    """
     def __init__(self, file):
-        self.full_history = {}
+        self.full_history = {}  # todo: should interact with isimple.video.VideoAnalysisElement._config
         self.history = {}
 
-        self.key = __file__
+        self.key = file or __file__
         self.load_history()
 
     def reset_history(self):
@@ -26,7 +28,9 @@ class HistoryApp:
             with open(__history_path__, 'r') as f:
                 self.full_history = json.load(f)
 
-        except (json.decoder.JSONDecodeError, FileNotFoundError, KeyError) as e:
+        except (
+                json.decoder.JSONDecodeError, FileNotFoundError, KeyError
+        ) as e:
             self.reset_history()
             if e is KeyError:
                 self.full_history[self.key] = self.history
@@ -41,7 +45,11 @@ class HistoryApp:
             json.dump(self.full_history, f, indent=2)
 
     def get_own_history(self):
-        self.history = self.full_history[self.key]
+        try:
+            self.history = self.full_history[self.key]
+        except KeyError:
+            self.reset_history()
+            self.full_history[self.key] = self.history
 
     def unpack_history(self):
         pass
