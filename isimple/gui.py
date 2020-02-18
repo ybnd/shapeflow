@@ -35,6 +35,7 @@ class guiWindow(guiElement):
     def close(self):
         pass
 
+
 class SetupWindow(guiWindow):
     set_video_path_callback = backend.get_raw_frame.signature
     set_design_path_callback = backend.get_raw_frame.signature
