@@ -28,7 +28,7 @@ class EnforcedStr(object):
         return f"<{self.__class__.__name__} '{self._str}'>"
 
     def __str__(self):
-        return self.__repr__()
+        return self._str
 
     def __eq__(self, other):
         if hasattr(other, '_str'):
@@ -51,12 +51,21 @@ class Factory(EnforcedStr):
     _mapping: dict = {}
     _default: Optional[str] = None
 
-    def get(self):
+    def get(self) -> type:
         if self._str in self._mapping:
             return self._mapping[self._str]
         else:
             raise ValueError(f"Factory {self.__class__.__name__} doesn't map"
                              f"{self._str} to a class.")
+
+    @classmethod
+    def get_str(cls, mapped_value):
+        str = cls.default
+        for k,v in cls._mapping.items():
+            if mapped_value == v:
+                str = k
+
+        return str
 
     @property
     def options(self):

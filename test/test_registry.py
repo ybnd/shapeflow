@@ -143,13 +143,13 @@ class ManagerTest(EndpointRegistryTest):
         tm._gather_instances()
 
         self.assertEqual(
-            tm.a.dummy1, tm.get_callback(self.registry.ep1)
+            tm.a.dummy1, tm.get(self.registry.ep1)
         )
         self.assertEqual(
-            tm.b.dummy2, tm.get_callback(self.registry.ep2)
+            tm.b.dummy2, tm.get(self.registry.ep2)
         )
         self.assertEqual(
-            None, tm.get_callback(self.registry.ep3)
+            None, tm.get(self.registry.ep3)
         )
 
     def test_instance_mapping_list(self):
@@ -169,13 +169,13 @@ class ManagerTest(EndpointRegistryTest):
         tm._gather_instances()
 
         self.assertEqual(
-            tm.i[0].dummy1, tm.get_callback(self.registry.ep1)
+            tm.i[0].dummy1, tm.get(self.registry.ep1)
         )
         self.assertEqual(
-            tm.i[1].dummy2, tm.get_callback(self.registry.ep2)
+            tm.i[1].dummy2, tm.get(self.registry.ep2)
         )
         self.assertEqual(
-            None, tm.get_callback(self.registry.ep3)
+            None, tm.get(self.registry.ep3)
         )
 
     def test_instance_mapping_list_collision(self):
@@ -199,19 +199,19 @@ class ManagerTest(EndpointRegistryTest):
         tm._gather_instances()
 
         self.assertEqual(
-            tm.i[0].dummy1, tm.get_callback(self.registry.ep1)
+            tm.i[0].dummy1, tm.get(self.registry.ep1)
         )
         self.assertEqual(
-            tm.i[0].dummy1, tm.get_callback(self.registry.ep1, 0)
+            tm.i[0].dummy1, tm.get(self.registry.ep1, 0)
         )
         self.assertEqual(
-            tm.i[1].dummy1, tm.get_callback(self.registry.ep1, 1)
+            tm.i[1].dummy1, tm.get(self.registry.ep1, 1)
         )
         self.assertEqual(
-            tm.i[1].dummy2, tm.get_callback(self.registry.ep2)
+            tm.i[1].dummy2, tm.get(self.registry.ep2)
         )
         self.assertEqual(
-            None, tm.get_callback(self.registry.ep3)
+            None, tm.get(self.registry.ep3)
         )
 
     def test_instance_mapping_self(self):
@@ -231,11 +231,11 @@ class ManagerTest(EndpointRegistryTest):
         tm._gather_instances()
 
         self.assertEqual(
-            tm.a.dummy1, tm.get_callback(self.registry.ep1)
+            tm.a.dummy1, tm.get(self.registry.ep1)
         )
         self.assertEqual(
-            tm.dummy2, tm.get_callback(self.registry.ep2)
+            tm.dummy2, tm.get(self.registry.ep2)
         )
         self.assertEqual(
-            None, tm.get_callback(self.registry.ep3)
+            None, tm.get(self.registry.ep3)
         )

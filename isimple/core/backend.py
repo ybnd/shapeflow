@@ -11,11 +11,11 @@ from typing import Any, Optional, List
 
 from isimple.core.util import describe_function
 from isimple.core.meta import EnforcedStr, Factory
-from isimple.core.common import RootException, Manager  # todo: RootException should probably be in a separate file
+from isimple.core.common import RootException, SetupError, Manager  # todo: RootException should probably be in a separate file
 from isimple.endpoints import BackendEndpoints
 
 
-class BackendSetupError(RootException):
+class BackendSetupError(SetupError):
     msg = 'Error while setting up backend'
 
 

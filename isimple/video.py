@@ -1,6 +1,6 @@
 import abc
 import re
-from typing import Tuple, Any, Optional, List, Type, Generator
+from typing import Tuple, Any, Optional, List, Type, Generator, Union
 import os
 
 import numpy as np
@@ -17,6 +17,7 @@ from isimple.core.meta import Factory, ColorSpace, FrameIntervalSetting
 from isimple.maths.images import ckernel, to_mask, crop_mask, area_pixelsum
 
 from isimple.endpoints import BackendEndpoints
+from isimple.endpoints import GuiEndpoints as gui
 
 
 backend = BackendEndpoints()
@@ -94,148 +95,202 @@ class VideoHandlerType(Factory):
     }
 
 
-class Transform(BackendInstance, abc.ABC):
+class DynamicHandler(object):
+    _implementation: object
+    _implementation_factory = Factory
+    _implementation_class = object
+
+    def set_implementation(self, implementation: str) -> str:
+        impl_type: type = self._implementation_factory(implementation).get()
+        assert issubclass(impl_type, self._implementation_class)
+
+        self._implementation = impl_type()
+        return self._implementation_factory.get_str(
+            self._implementation.__class__
+        )
+
+
+class TransformInterface(abc.ABC):
+    default = np.eye(3)
+
+    @abc.abstractmethod
+    def validate(self, transform: np.ndarray) -> bool:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def estimate(self, coordinates: list, shape: tuple) -> np.ndarray:  # todo: explain what and why shape is
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def transform(self, img: np.ndarray, transform: np.ndarray, shape: tuple) -> np.ndarray:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def inverse_transform(self, img: np.ndarray, transform: np.ndarray, shape: tuple):
+        raise NotImplementedError
+
+
+class IdentityTransform(TransformInterface):
+    """Looks like a Transform, but doesn't transform
+    """
+    def validate(self, transform):
+        return True
+
+    def estimate(self, coordinates: list, shape: tuple) -> np.ndarray:
+        return np.eye(3)
+
+    def transform(self, img: np.ndarray, transform: np.ndarray, shape: tuple) -> np.ndarray:
+        return img
+
+    def inverse_transform(self, img: np.ndarray, transform: np.ndarray, shape: tuple):
+        return img
+
+
+class PerspectiveTransform(TransformInterface):
+    def validate(self, transform: np.ndarray) -> bool:
+        return transform.shape == (3, 3)
+
+    def estimate(self, coordinates: list, shape: tuple) -> dict:
+        return cv2.getPerspectiveTransform(
+            np.float32(coordinates),
+            np.float32(
+                np.array(  # selection rectangle: bottom left to top right
+                    [
+                        [0, shape[0]],
+                        [0, 0],
+                        [shape[1], 0],
+                        [shape[1], shape[0]]
+                    ]
+                )
+            )
+        )
+
+    def transform(self, img: np.ndarray, transform: np.ndarray,
+                  shape: tuple) -> np.ndarray:
+        return cv2.warpPerspective(
+            img, transform, shape, dst=img
+        )
+
+    def inverse_transform(self, img: np.ndarray, transform: np.ndarray, shape: tuple):
+        raise NotImplementedError
+
+
+class TransformType(Factory):
+    _mapping = {
+        'perspective': PerspectiveTransform,
+        'identity': IdentityTransform,
+    }
+
+
+class TransformHandler(BackendInstance, DynamicHandler):
     """Handles coordinate transforms.
     """
     _shape: tuple
     _transform: Optional[np.ndarray]
 
+    _implementation: TransformInterface
+    _implementation_factory = TransformType
+    _implementation_class = TransformInterface
+
     transform_matrix: np.ndarray
 
     __default__ = {
-        'transform_matrix': None
+        'transform_matrix': None,
+        'transform_type': str(TransformType()),
     }
 
     def __init__(self, shape, config):
-        super(Transform, self).__init__(config)
+        super(TransformHandler, self).__init__(config)
+        self.set_implementation(self.transform_type)
         self._shape = shape[0:2]  # Don't include color dimension
 
         self._transform = None
         if self.transform_matrix is not None:
             self.set(self.transform_matrix)
         else:
-            self.set(np.eye(3))
+            self.set(self._implementation.default)
+
+    @backend.expose(backend.set_transform_implementation)
+    def set_implementation(self, implementation: str) -> str:
+        return super(TransformHandler, self).set_implementation(implementation)
+
+
 
     def set(self, transform: np.ndarray):
         """Set the transform matrix
         """
-        raise NotImplementedError
+        if self._implementation.validate(transform):
+            self._transform = transform
+        else:
+            raise ValueError(f"Invalid transform {transform} for "
+                             f"'{self._implementation.__class__.__name__}'")
 
     @backend.expose(backend.estimate_transform)
-    def estimate(self, coordinates: List) -> None:
-        """Estimate the transform matrix from a set of coordinates
-            coordinates should correspond to the corners of the outline of
-            the design, ordered from the bottom left to the top right
+    def estimate(self, coordinates: list) -> None:
+        """Estimate the transform matrix from a set of coordinates.
+            Coordinates should correspond to the corners of the outline of
+            the design, ordered from the bottom left to the top right.
         """
-        raise NotImplementedError
+        self.set(self._implementation.estimate(coordinates, self._shape))
 
     def __call__(self, img: np.ndarray) -> np.ndarray:
         """Transform a frame.
             Writes to the provided variable!
             If caller needs the original value, they should copy explicitly
         """
-        raise NotImplementedError
+        return self._implementation.transform(img, self._transform, self._shape)
 
 
-class IdentityTransform(Transform):
-    """Looks like a Transform, but doesn't transform
-    """
-
-    def set(self, transform: np.ndarray):
-        pass
-
-    def estimate(self, coordinates: List) -> None:
-        pass
-
-    def __call__(self, img: np.ndarray) -> np.ndarray:
-        return img
-
-
-class PerspectiveTransform(Transform):
-    def set(self, transform: np.ndarray):
-        self._transform = transform
-
-
-    def estimate(self, coordinates: List) -> None:
-        # todo: sanity check the coordinates!
-        #        * array size
-        #        * ensure bottom left to top right order
-        # todo: corner order should be handled by coordinates
-        #        ordered @ gui if needed, supplied in the correct order
-        self.set(
-            cv2.getPerspectiveTransform(
-                np.float32(coordinates),
-                np.float32(
-                    np.array(  # selection rectangle: bottom left to top right
-                        [
-                            [0, self._shape[0]],
-                            [0, 0],
-                            [self._shape[1], 0],
-                            [self._shape[1], self._shape[0]]
-                        ]
-                    )
-                )
-            )
-        )   # todo: this is messy :(
-
-    def __call__(self, frame: np.ndarray) -> np.ndarray:
-        return cv2.warpPerspective(
-            frame, self._transform, self._shape, dst=frame
-        )
-
-
-class TransformType(Factory):
-    _mapping = {
-        'perspective':  PerspectiveTransform,
-        'identity':     IdentityTransform,
-    }
-
-
-class Filter(BackendInstance, abc.ABC):
+class FilterInterface(abc.ABC):
     """Handles pixel filtering operations
     """
-    def __init__(self, config: dict = None):
-        super(Filter, self).__init__(config)
+    default: dict = {}
 
     @abc.abstractmethod
-    def mean_color(self) -> np.ndarray:  # todo: add custom np.ndarray type 'hsvcolor'
+    def set_filter(self, color: list, filter: dict) -> dict:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def __call__(self, image: np.ndarray) -> np.ndarray:  # todo: add custom np.ndarray type 'image'
+    def mean_color(self, filter: dict) -> list:  # todo: add custom np.ndarray type 'hsvcolor'
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def filter(self, image: np.ndarray, filter: dict) -> np.ndarray:  # todo: add custom np.ndarray type 'image'
         raise NotImplementedError
 
 
-class HsvRangeFilter(Filter):
+class HsvRangeFilter(FilterInterface):  # todo: may be better to **wrap** this in Filter instead of inheriting from it
     """Filters by a range of hues ~ HSV representation
     """
-    __default__ = {
-        'hue_radius': 10,           # Radius to determine range from one color
-        'sat_window': [50, 255],
-        'val_window': [50, 255],
-        'c0': [90, 50, 50],         # Start of filtering range (in HSV space)
-        'c1':   [110, 255, 255],    # End of filtering range (in HSV space)
-    }
+    default = {
+            'hue_radius': 10,               # Radius to determine range from one color
+            'sat_window': [50, 255],
+            'val_window': [50, 255],
+            'c0': [90, 50, 50],             # Start of filtering range (in HSV space)
+            'c1': [110, 255, 255],          # End of filtering range (in HSV space)
+        }
 
-    def __init__(self, config: dict):
-        super(HsvRangeFilter, self).__init__(config)
+    def validate(self, filter):
+        return all(attr in self.default for attr in filter)
 
-    def mean_color(self) -> np.ndarray:
-        # todo: S and V are arbitrary for now
-        return np.array([np.mean([self.c0[0], self.c1[0]]), 255, 200])
+    def set_filter(self, color: list, filter: dict) -> dict:
+        filter['hue'] = color[0]
 
-    @backend.expose(backend.set_filter_from_color)
-    def set_filter(self, clr: List) -> None:
-        hue = clr[0]
-        self.c0 = np.array([
-            hue - self.hue_rad, self.sat_window[0], self.val_window[0]
+        filter['c0'] = np.array([
+            filter['hue'] - filter['hue_rad'], filter['sat_window'][0], filter['val_window'][0]
         ])
-        self.c1 = np.array([
-            hue - self.hue_rad, self.sat_window[1], self.val_window[1]
+        filter['c1'] = np.array([
+            filter['hue'] - filter['hue_rad'], filter['sat_window'][1], filter['val_window'][1]
         ])  # todo: plot color was set from here originally, but Filter shouldn't care about that
 
-    def __call__(self, img: np.ndarray) -> np.ndarray:
-        return cv2.inRange(img, self.c0, self.c1, img)
+        return filter
+
+    def mean_color(self, filter) -> list:
+        # todo: S and V are arbitrary for now
+        return list([np.mean([filter['c0'][0], filter['c1'][0]]), 255, 200])
+
+    def filter(self, img: np.ndarray, filter) -> np.ndarray:
+        return cv2.inRange(img, filter['c0'], filter['c1'], img)
 
 
 class FilterType(Factory):
@@ -244,21 +299,49 @@ class FilterType(Factory):
     }
 
 
+class FilterHandler(BackendInstance, DynamicHandler):
+    _implementation: FilterInterface
+    _implementation_factory = FilterType
+    _implementation_class = FilterInterface
+
+    __default__ = {
+        'filter_type': str(FilterType()),
+        'filter': FilterType().get().default,  #type: ignore
+        'color': list,
+    }
+
+    def __init__(self, config: dict = None):
+        super(FilterHandler, self).__init__(config)
+        self.set_implementation(self.filter_type)
+
+    @backend.expose(backend.get_filter_mean_color)
+    def mean_color(self) -> list:
+        return self._implementation.mean_color(self.filter)
+
+    @backend.expose(backend.set_filter_parameters)
+    def set_filter(self, color: list, filter: dict) -> dict:
+        self._config['filter'] = self._implementation.set_filter(color, filter)
+        return self.filter
+
+    @backend.expose(backend.set_filter_implementation)
+    def set_implementation(self, implementation: str) -> str:
+        return super(FilterHandler, self).set_implementation(implementation)
+
+
 class Mask(BackendInstance):
     """Handles masks in the context of a video file
     """
 
-    filter: Filter
+    filter: FilterHandler
 
     render_dir: str
-    filter_type: Filter
 
     __default__ = {
         'render_dir': os.path.join(os.getcwd(), '.render'),
-        'filter_type': FilterType(),    # class of filter
+        'filter_type': str(FilterType()),    # class of filter
     }
 
-    def __init__(self, mask: np.ndarray, name: str, config: dict = None, filter: Filter = None):
+    def __init__(self, mask: np.ndarray, name: str, config: dict = None, filter: FilterHandler = None):
         super(Mask, self).__init__(config)
         self._full = mask
         self.name = name
@@ -266,9 +349,10 @@ class Mask(BackendInstance):
         self._full = mask
         self._part, self._rect, self._center = crop_mask(self._full)
 
+        # Each Mask should have its own FilterHandler instance, unless otherwise specified
         if filter is None:
-            filter = self.filter_type(config)
-            assert isinstance(filter, Filter), BackendSetupError
+            filter = FilterHandler(config)
+            assert isinstance(filter, FilterHandler), BackendSetupError
         self.filter = filter
 
     def __call__(self, img: np.ndarray) -> np.ndarray:
@@ -430,11 +514,11 @@ class MaskFilterFunction(Feature):
     _function = staticmethod(frame_to_none)  # Override in child classes
 
     mask: Mask
-    filter: Filter
+    filter: FilterHandler
 
-    def __init__(self, mask: Mask, filter: Filter = None):
+    def __init__(self, mask: Mask, filter: FilterHandler = None):
         if filter is None:
-            assert isinstance(mask.filter, Filter), BackendSetupError
+            assert isinstance(mask.filter, FilterHandler), BackendSetupError
             filter = mask.filter
 
         self.mask = mask
@@ -442,7 +526,7 @@ class MaskFilterFunction(Feature):
 
         super(MaskFilterFunction, self).__init__((mask, filter))
 
-    def _guideline_color(self) -> np.ndarray:
+    def _guideline_color(self) -> list:
         return self.filter.mean_color()
 
     def value(self, frame) -> Any:
@@ -474,7 +558,7 @@ class VideoAnalyzer(BackendManager):
 
     video: VideoFileHandler
     design: DesignFileHandler
-    transform: Transform
+    transform: TransformHandler
 
     featuresets: List[FeatureSet]
 
@@ -483,7 +567,7 @@ class VideoAnalyzer(BackendManager):
     Nf: int                                       # number of evenly spaced frames
     video_type: Type[VideoFileHandler]
     design_type: Type[DesignFileHandler]
-    transform_type: Type[Transform]
+    transform_type: Type[TransformHandler]
 
     __default__ = {
         'frame_interval_setting':   FrameIntervalSetting(),
@@ -492,7 +576,6 @@ class VideoAnalyzer(BackendManager):
         'features':                 [VideoFeatureType('pixel_sum')],
         'video_type':               VideoHandlerType(),
         'design_type':              DesignHandlerType(),
-        'transform_type':           TransformType(),
     }
 
     _args: dict
@@ -517,7 +600,7 @@ class VideoAnalyzer(BackendManager):
         if video_path and design_path:
             self.video = self.video_type(video_path, config)
             self.design = self.design_type(design_path, config)
-            self.transform = self.transform_type(self.video.shape, config)
+            self.transform = TransformHandler(self.video.shape, config)
             self.masks = self.design.masks
             self.filters = [mask.filter for mask in self.masks]
 
@@ -530,6 +613,22 @@ class VideoAnalyzer(BackendManager):
             ]
         else:
             raise ValueError("Either the video or the design wasn't provided")  # todo: make error message more specific
+
+    def open_setupwindow(self):
+        self._gui.get(gui.open_setupwindow)()
+
+    def open_transformwindow(self):
+        self._gui.get(gui.open_transformwindow)()
+
+    def open_filterwindow(self, index: int):
+        self._gui.get(gui.open_filterwindow, index)()
+
+    def open_progresswindow(self):
+        self._gui.get(gui.open_progresswindow)()
+
+    def update_progresswindow(self, values: List, state: np.ndarray):
+        self._gui.get(gui.open_progresswindow)(values, state)
+
 
     @backend.expose(backend.configure)
     def set_config(self, config: dict) -> None:
@@ -554,11 +653,11 @@ class VideoAnalyzer(BackendManager):
             raise ValueError(f"Unexpected frame interval setting "
                              f"{self.frame_interval_setting}")
 
-    @backend.expose(backend.get_transformed_frame)
+    @backend.expose(backend.get_frame)
     def get_transformed_frame(self, frame_number: int) -> np.ndarray:
         return self.transform(self.video.read_frame(frame_number))# todo: depending on self.frame is dangerous in case we want to run this in a different thread
 
-    @backend.expose(backend.get_transformed_overlaid_frame)
+    @backend.expose(backend.get_overlaid_frame)
     def get_frame_overlay(self, frame_number: int) -> np.ndarray:
         return self.design.overlay(self.get_transformed_frame(frame_number))
 

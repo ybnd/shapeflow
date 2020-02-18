@@ -21,6 +21,10 @@ class RootException(Exception):
         super(Exception, self).__init__(*args)
 
 
+class SetupError(RootException):
+    pass
+
+
 class RegistryEntry(abc.ABC):  # todo: shouldn't allow instances
     _name: str
     _registered: bool
@@ -121,6 +125,7 @@ class EndpointRegistry(Registry):  # todo: confusing names :)
     def exposes(self, endpoint: Endpoint):
         return endpoint in self._callable_mapping
 
+    @property
     def endpoints(self) -> List[Endpoint]:
         return list(self._callable_mapping.keys())
 
@@ -153,8 +158,9 @@ class ImmutableRegistry(Registry):  # todo: confusing naming scheme
     def exposes(self, endpoint: Endpoint):
         return self._endpoints.exposes(endpoint)
 
+    @property
     def endpoints(self) -> List[Endpoint]:
-        return self._endpoints.endpoints()
+        return self._endpoints.endpoints
 
 
 
@@ -178,6 +184,15 @@ class Manager(object):
                 instances += list(value)
 
         for instance in [self] + instances:
+            self._add_instance(instance)
+
+        for k,v in self._instance_mapping.items():
+            self._instance_mapping[k] = list(set(v))  # todo: eliminate this!
+
+        self._instances = instances
+
+    def _add_instance(self, instance: object):
+        if isinstance(instance, self._instance_class):
             for attr in [attr for attr in all_attributes(instance) if attr[0:2] != '__']:
                 value = getattr(instance, attr)  # bound method
 
@@ -197,11 +212,17 @@ class Manager(object):
                         else:
                             self._instance_mapping[endpoint].append(value)
 
-        for k,v in self._instance_mapping.items():
-            self._instance_mapping[k] = list(set(v))  # todo: eliminate this!
+            for k, v in self._instance_mapping.items():
+                self._instance_mapping[k] = list(set(v))  # todo: eliminate this!
+        else:
+            pass
 
-    def get_callback(self, endpoint: Endpoint, index: int = None) -> Optional[Callable]:
-        if endpoint in self._instance_mapping:
+    def get(self, endpoint: Endpoint, index: int = None) -> Callable:
+        if endpoint not in self._endpoints.endpoints:
+            raise SetupError(f"'{endpoint}' is not defined in '{self._endpoints}'.")
+        elif endpoint not in self._instance_mapping:
+            raise SetupError(f"'{self}' does not map {endpoint} to a bound method.")
+        else:
             if index is None:
                 index = 0
                 if len(self._instance_mapping[endpoint]) > 1:
@@ -209,5 +230,4 @@ class Manager(object):
                                   f"-- defaulting to entry 0 ({len(self._instance_mapping[endpoint])} in total)")  # todo: traceback
 
             return self._instance_mapping[endpoint][index]
-        else:
-            return None
+
