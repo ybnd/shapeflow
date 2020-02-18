@@ -102,7 +102,7 @@ class BackendInstance(object):  # todo: more descriptive name, and probably shou
         raise NotImplementedError
 
 
-class CachingBackendInstance(BackendInstance):
+class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cache: e.g. 2 GB in-memory, 4GB on-disk, finally the actual video
     """Interface to diskcache.Cache
     """
     _cache: Optional[diskcache.Cache]

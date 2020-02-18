@@ -3,6 +3,9 @@ import unittest
 import cv2
 from threading import Thread
 import time
+import shutil
+
+from OnionSVG import OnionSVG
 
 import numpy as np
 from isimple.video import VideoFileHandler, VideoFileTypeError, PixelSum, CachingBackendInstance
@@ -14,11 +17,16 @@ from isimple.core.util import timing
 # Get validation frames from test video ~ "raw" OpenCV
 __VIDEO__ = 'test.mp4'
 __DESIGN__ = 'test.svg'
+__DPI__ = 400
 
 # Point to right files in Travis CI build
 if os.getcwd() == '/home/travis/build/ybnd/isimple':
     __VIDEO__ = 'test/' + __VIDEO__
     __DESIGN__ = 'test/' + __DESIGN__
+
+OnionSVG(__DESIGN__, dpi=__DPI__).peel('all', to = '.render')
+overlay = cv2.imread('.render/overlay.png')
+shutil.rmtree('.render')
 
 FRAMES = [1, 20, 50]
 TRANSFORM = np.random.rand(3, 3)
@@ -41,7 +49,7 @@ for frame_number in FRAMES:
     frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     TEST_FRAME_HSV[frame_number] = frame_hsv
 
-    dsize = (frame.shape[1], frame.shape[0])
+    dsize = (overlay.shape[0], overlay.shape[1])
     TEST_TRANSFORMED_FRAME_BGR[frame_number] = cv2.warpPerspective(frame, TRANSFORM, dsize)
     TEST_TRANSFORMED_FRAME_HSV[frame_number] = cv2.warpPerspective(frame_hsv, TRANSFORM, dsize)
 

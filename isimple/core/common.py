@@ -3,7 +3,7 @@ from typing import Callable, Dict, List, Tuple, Type, Optional
 import numpy as np
 import abc
 
-from isimple.core.util import all_attributes, get_overridden_methods
+from isimple.core.util import all_attributes, get_overridden_methods, timing
 
 
 class RootException(Exception):
@@ -43,14 +43,12 @@ class RegistryEntry(abc.ABC):  # todo: shouldn't allow instances
 
 class Endpoint(RegistryEntry):
     _signature: Type[Callable]
-    _methods: List[Callable]
 
     def __init__(self, signature: Type[Callable]):
         if not hasattr(signature, '__args__'):
             raise TypeError('Cannot define an Endpoint without a signature!')
         super(RegistryEntry, self).__init__()
         self._signature = signature
-        self._methods = []
 
     def compatible(self, method: Callable) -> bool:
         if hasattr(method, '__annotations__'):
@@ -69,11 +67,10 @@ class Endpoint(RegistryEntry):
         return self._signature.__args__
 
     def add(self, method):
-        if self.compatible(method):
-            self._methods.append(method)
-        else:
+        if not self.compatible(method):
             raise ValueError(f"Method '{method.__qualname__}' "
-                          f"is incompatible with endpoint '{self._name}'")  # todo: traceback to
+                             f"is incompatible with endpoint '{self._name}'. \n"
+                             f"{method.__annotations__} vs. {self.signature}")  # todo: traceback to
 
 
 class Registry(object):     # todo: make these three into a single EndpointRegistry class if possible
@@ -170,6 +167,11 @@ class Manager(object):
     _instance_class = object
     _instance_mapping: Dict[Endpoint, List[Callable]]
 
+
+    def connect(self, manager):
+        raise NotImplementedError
+
+    @timing
     def _gather_instances(self):  # todo: needs major clean-up
         self._instance_mapping = {}
         instances = []
@@ -182,6 +184,8 @@ class Manager(object):
                 instances.append(value)
             elif isinstance(value, list) and all(isinstance(v, self._instance_class) for v in value):
                 instances += list(value)
+            elif isinstance(value, dict) and all(isinstance(v, self._instance_class) for v in value.values()):
+                instances += [v for v in value.values()]
 
         for instance in [self] + instances:
             self._add_instance(instance)
@@ -193,7 +197,7 @@ class Manager(object):
 
     def _add_instance(self, instance: object):
         if isinstance(instance, self._instance_class):
-            for attr in [attr for attr in all_attributes(instance) if attr[0:2] != '__']:
+            for attr in [attr for attr in all_attributes(instance)]:
                 value = getattr(instance, attr)  # bound method
 
                 if hasattr(value, '__func__'):
@@ -210,7 +214,8 @@ class Manager(object):
                         if endpoint not in self._instance_mapping:
                             self._instance_mapping[endpoint] = [value]
                         else:
-                            self._instance_mapping[endpoint].append(value)
+                            if value not in self._instance_mapping[endpoint]:
+                                self._instance_mapping[endpoint].append(value)
 
             for k, v in self._instance_mapping.items():
                 self._instance_mapping[k] = list(set(v))  # todo: eliminate this!
@@ -218,14 +223,15 @@ class Manager(object):
             pass
 
     def get(self, endpoint: Endpoint, index: int = None) -> Callable:
-        if endpoint not in self._endpoints.endpoints:
+        if endpoint not in self._endpoints._entries:  # todo: oh god save me from this hell
             raise SetupError(f"'{endpoint}' is not defined in '{self._endpoints}'.")
         elif endpoint not in self._instance_mapping:
-            raise SetupError(f"'{self}' does not map {endpoint} to a bound method.")
+            raise SetupError(f"'{self.__class__.__name__}' does not map "
+                             f"'{endpoint._name}' to a bound method.")
         else:
             if index is None:
                 index = 0
-                if len(self._instance_mapping[endpoint]) > 1:
+                if index >= len(self._instance_mapping[endpoint]):
                     warnings.warn(f"No index specified for endpoint '{endpoint._name}' "
                                   f"-- defaulting to entry 0 ({len(self._instance_mapping[endpoint])} in total)")  # todo: traceback
 

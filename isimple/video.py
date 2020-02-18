@@ -1,14 +1,16 @@
 import abc
 import re
-from typing import Tuple, Any, Optional, List, Type, Generator, Union
+from typing import Tuple, Any, Optional, List, Type, Generator, Union, Callable
 import os
 
 import numpy as np
 import cv2
 
+import copy
+
 from OnionSVG import OnionSVG, check_svg
 
-from isimple.core.util import frame_number_iterator
+from isimple.core.util import *
 from isimple.core.common import Manager
 from isimple.core.backend import BackendInstance, CachingBackendInstance, BackendManager, BackendSetupError
 from isimple.core.features import Feature, FeatureSet
@@ -54,15 +56,11 @@ class VideoFileHandler(CachingBackendInstance):
         self.frame_count = int(self._capture.get(cv2.CAP_PROP_FRAME_COUNT))
         self.fps = self._capture.get(cv2.CAP_PROP_FPS)
         self.frame_number = int(self._capture.get(cv2.CAP_PROP_POS_FRAMES))
-        self.shape = (
-            int(self._capture.get(cv2.CAP_PROP_FRAME_WIDTH)),
-            int(self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        )
 
         if self.frame_count == 0:
             raise VideoFileTypeError
 
-    def _set_position(self, frame_number: int):
+    def _set_position(self, frame_number: int):  # todo: add a mechanism to restrict the frame_number to a limited number of options -- take the nearest 'legal' one -> fill out the cache during seeking before the actual analysis. This will make seeking slower though..
         self._capture.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
         self._get_position()
 
@@ -84,9 +82,21 @@ class VideoFileHandler(CachingBackendInstance):
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV, frame)
             return frame
 
+    @backend.expose(backend.get_total_frames)
+    def get_total_frames(self) -> int:
+        return self.frame_count
+
     @backend.expose(backend.get_raw_frame)
     def read_frame(self, frame_number: int) -> Optional[np.ndarray]:
         return self._cached_call(self._read_frame, self.path, frame_number)
+
+    @backend.expose(backend.get_time)
+    def get_time(self, frame_number: int) -> float:
+        return frame_number / self.fps
+
+    @backend.expose(backend.get_fps)
+    def get_fps(self) -> float:
+        return self.fps
 
 
 class VideoHandlerType(Factory):
@@ -156,19 +166,18 @@ class PerspectiveTransform(TransformInterface):
             np.float32(
                 np.array(  # selection rectangle: bottom left to top right
                     [
-                        [0, shape[0]],
+                        [0, shape[1]],
                         [0, 0],
-                        [shape[1], 0],
-                        [shape[1], shape[0]]
+                        [shape[0], 0],
+                        [shape[0], shape[1]],
                     ]
                 )
             )
         )
 
-    def transform(self, img: np.ndarray, transform: np.ndarray,
-                  shape: tuple) -> np.ndarray:
+    def transform(self, img: np.ndarray, transform: np.ndarray, shape: tuple) -> np.ndarray:
         return cv2.warpPerspective(
-            img, transform, shape, dst=img
+            img, transform, shape,# dst=img  # todo: can't use destination image here! it's the wrong shape!
         )
 
     def inverse_transform(self, img: np.ndarray, transform: np.ndarray, shape: tuple):
@@ -214,8 +223,6 @@ class TransformHandler(BackendInstance, DynamicHandler):
     def set_implementation(self, implementation: str) -> str:
         return super(TransformHandler, self).set_implementation(implementation)
 
-
-
     def set(self, transform: np.ndarray):
         """Set the transform matrix
         """
@@ -233,12 +240,16 @@ class TransformHandler(BackendInstance, DynamicHandler):
         """
         self.set(self._implementation.estimate(coordinates, self._shape))
 
+    @backend.expose(backend.transform)
     def __call__(self, img: np.ndarray) -> np.ndarray:
         """Transform a frame.
             Writes to the provided variable!
             If caller needs the original value, they should copy explicitly
         """
         return self._implementation.transform(img, self._transform, self._shape)
+
+    def inverse(self, img: np.ndarray) -> np.ndarray:
+        raise NotImplementedError
 
 
 class FilterInterface(abc.ABC):
@@ -247,7 +258,7 @@ class FilterInterface(abc.ABC):
     default: dict = {}
 
     @abc.abstractmethod
-    def set_filter(self, color: list, filter: dict) -> dict:
+    def set_filter(self, filter: dict) -> dict:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -262,7 +273,7 @@ class FilterInterface(abc.ABC):
 class HsvRangeFilter(FilterInterface):  # todo: may be better to **wrap** this in Filter instead of inheriting from it
     """Filters by a range of hues ~ HSV representation
     """
-    default = {
+    default = {  # todo: may be better to make it an implementation-specific namedtuple; use that for validation/normalization also
             'hue_radius': 10,               # Radius to determine range from one color
             'sat_window': [50, 255],
             'val_window': [50, 255],
@@ -270,17 +281,17 @@ class HsvRangeFilter(FilterInterface):  # todo: may be better to **wrap** this i
             'c1': [110, 255, 255],          # End of filtering range (in HSV space)
         }
 
-    def validate(self, filter):
+    def validate(self, filter):  # todo: may be better to 'normalize' the filter dict -- i.e. replace all fields that weren't found with the defaults
         return all(attr in self.default for attr in filter)
 
-    def set_filter(self, color: list, filter: dict) -> dict:
-        filter['hue'] = color[0]
+    def set_filter(self, filter: dict) -> dict:
+        filter['hue'] = filter['color'][0]
 
         filter['c0'] = np.array([
-            filter['hue'] - filter['hue_rad'], filter['sat_window'][0], filter['val_window'][0]
+            filter['hue'] - filter['hue_radius'], filter['sat_window'][0], filter['val_window'][0]
         ])
         filter['c1'] = np.array([
-            filter['hue'] - filter['hue_rad'], filter['sat_window'][1], filter['val_window'][1]
+            filter['hue'] + filter['hue_radius'], filter['sat_window'][1], filter['val_window'][1]
         ])  # todo: plot color was set from here originally, but Filter shouldn't care about that
 
         return filter
@@ -290,7 +301,7 @@ class HsvRangeFilter(FilterInterface):  # todo: may be better to **wrap** this i
         return list([np.mean([filter['c0'][0], filter['c1'][0]]), 255, 200])
 
     def filter(self, img: np.ndarray, filter) -> np.ndarray:
-        return cv2.inRange(img, filter['c0'], filter['c1'], img)
+        return cv2.inRange(img, np.float32(filter['c0']), np.float32(filter['c1']), img)
 
 
 class FilterType(Factory):
@@ -319,13 +330,22 @@ class FilterHandler(BackendInstance, DynamicHandler):
         return self._implementation.mean_color(self.filter)
 
     @backend.expose(backend.set_filter_parameters)
-    def set_filter(self, color: list, filter: dict) -> dict:
-        self._config['filter'] = self._implementation.set_filter(color, filter)
+    def set_filter(self, filter: dict) -> dict:
+        self._config['filter'] = self._implementation.set_filter(filter)
         return self.filter
+
+    @backend.expose(backend.get_filter_parameters)
+    def get_filter(self) -> dict:
+        return self._config['filter']
 
     @backend.expose(backend.set_filter_implementation)
     def set_implementation(self, implementation: str) -> str:
         return super(FilterHandler, self).set_implementation(implementation)
+
+    @backend.expose(backend.filter)
+    def __call__(self, frame: np.ndarray) -> np.ndarray:
+        return self._implementation.filter(frame, self.filter)
+
 
 
 class Mask(BackendInstance):
@@ -337,6 +357,7 @@ class Mask(BackendInstance):
     render_dir: str
 
     __default__ = {
+        'h': 153e-6, # height of mask  todo: should probably be set in a different way though...
         'render_dir': os.path.join(os.getcwd(), '.render'),
         'filter_type': str(FilterType()),    # class of filter
     }
@@ -355,6 +376,7 @@ class Mask(BackendInstance):
             assert isinstance(filter, FilterHandler), BackendSetupError
         self.filter = filter
 
+    @backend.expose(backend.mask)
     def __call__(self, img: np.ndarray) -> np.ndarray:
         """Mask an image.
             Writes to the provided variable!
@@ -401,7 +423,7 @@ class DesignFileHandler(CachingBackendInstance):
         self._path = path
         with self.caching():  # todo: maybe also do this in a separate thread? It's quite slow.
             self._overlay = self.peel_design(path)
-            self._shape = self._overlay.shape
+            self._shape = (self._overlay.shape[1], self._overlay.shape[0])
 
             self._masks = [
                 Mask(mask, name, config) for mask, name in zip(*self.read_masks(path))
@@ -486,18 +508,32 @@ class DesignFileHandler(CachingBackendInstance):
     def shape(self):
         return self._shape
 
-    def overlay(self, frame: np.ndarray) -> np.ndarray:
-        cv2.addWeighted(
-            self._overlay, self.overlay_alpha,
+    @backend.expose(backend.get_dpi)
+    def get_dpi(self) -> float:
+        return self.dpi
+
+    @backend.expose(backend.get_overlay)
+    def overlay(self) -> np.ndarray:
+        return self._overlay
+
+    @backend.expose(backend.overlay_frame)
+    def overlay_frame(self, frame: np.ndarray) -> np.ndarray:
+        frame = cv2.cvtColor(frame, cv2.COLOR_HSV2BGR)
+        frame = cv2.addWeighted(
+            self._overlay, self.overlay_alpha,  # https://stackoverflow.com/questions/54249728/
             frame, 1 - self.overlay_alpha,
             gamma=0, dst=frame
-        )  # todo: could cause issues since frame is HSV by default
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB, dst=frame)
+        )
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         return frame
 
     @property
     def masks(self):
         return self._masks
+
+    @backend.expose(backend.get_mask_names)
+    def get_mask_names(self) -> Tuple[str,]:
+        return tuple(mask.name for mask in self._masks)
 
 
 class DesignHandlerType(Factory):
@@ -553,14 +589,14 @@ class VideoAnalyzer(BackendManager):
             * Load mask files
             * Load/save measurement metadata
     """
-    _gui: Manager
+    _gui: Optional[Manager]
     _endpoints: BackendEndpoints = backend
 
     video: VideoFileHandler
     design: DesignFileHandler
     transform: TransformHandler
 
-    featuresets: List[FeatureSet]
+    _featuresets: List[FeatureSet]
 
     frame_interval_setting: FrameIntervalSetting  # use dt or Nf
     dt: float                                     # interval in seconds
@@ -573,7 +609,8 @@ class VideoAnalyzer(BackendManager):
         'frame_interval_setting':   FrameIntervalSetting(),
         'dt':                       5.0,
         'Nf':                       100,
-        'features':                 [VideoFeatureType('pixel_sum')],
+        'h':                        0.153e-3,
+        'features':              [VideoFeatureType('pixel_sum')],
         'video_type':               VideoHandlerType(),
         'design_type':              DesignHandlerType(),
     }
@@ -582,17 +619,17 @@ class VideoAnalyzer(BackendManager):
 
     def __init__(self, video_path: str = None, design_path: str = None, config: dict = None):  # todo: add optional feature list to override self._config.features
         super(VideoAnalyzer, self).__init__(config)
-
         self._args = ({
             'video_path': video_path,
             'design_path': design_path,
             'config': config
         })
 
-        if video_path is not None and design_path is not None:
-            self.launch()
+        self._gather_instances()
 
+    @timing
     def launch(self):
+        # todo: better sanity check -- are we already launched maybe?
         video_path = self._args['video_path']
         design_path = self._args['design_path']
         config = self._args['config']
@@ -600,13 +637,13 @@ class VideoAnalyzer(BackendManager):
         if video_path and design_path:
             self.video = self.video_type(video_path, config)
             self.design = self.design_type(design_path, config)
-            self.transform = TransformHandler(self.video.shape, config)
+            self.transform = TransformHandler(self.design.shape, config)
             self.masks = self.design.masks
             self.filters = [mask.filter for mask in self.masks]
 
             self._gather_instances()  # todo: annoying that we have to call this one explicilty, but doing it at super.__init__ makes it less dynamic
 
-            self.featuresets = [
+            self._featuresets = [
                 FeatureSet(
                     tuple(feature.get()(mask) for mask in self.design.masks)
                 ) for feature in self.features
@@ -614,26 +651,37 @@ class VideoAnalyzer(BackendManager):
         else:
             raise ValueError("Either the video or the design wasn't provided")  # todo: make error message more specific
 
-    def open_setupwindow(self):
-        self._gui.get(gui.open_setupwindow)()
+    def connect(self, gui: Manager):
+        # todo: sanity checks
+        self._gui = gui
 
-    def open_transformwindow(self):
-        self._gui.get(gui.open_transformwindow)()
+    def configure(self):
+        if self._gui is not None:
+            self._gui.get(gui.open_setupwindow)()
 
-    def open_filterwindow(self, index: int):
-        self._gui.get(gui.open_filterwindow, index)()
+    def align(self):
+        if self._gui is not None:
+            self._gui.get(gui.open_transformwindow)()
 
-    def open_progresswindow(self):
-        self._gui.get(gui.open_progresswindow)()
+    def pick(self, index: int):
+        if self._gui is not None:
+            self._gui.get(gui.open_filterwindow)(index)
 
-    def update_progresswindow(self, values: List, state: np.ndarray):
-        self._gui.get(gui.open_progresswindow)(values, state)
+    @backend.expose(backend.get_name)
+    def get_name(self) -> str:
+        return self.video.name
 
+    @backend.expose(backend.get_arguments)
+    def get_config(self) -> dict:
+        return self._args
 
-    @backend.expose(backend.configure)
+    @backend.expose(backend.get_h)
+    def get_h(self) -> float:
+        return self.h
+
+    @backend.expose(backend.set_config)
     def set_config(self, config: dict) -> None:
         self._configure(config)  # todo: make sure that this doesn't set the attributes that **aren't** not provided to the defaults!
-
         self._args['config'] = config
 
     @backend.expose(backend.set_video_path)
@@ -657,18 +705,27 @@ class VideoAnalyzer(BackendManager):
     def get_transformed_frame(self, frame_number: int) -> np.ndarray:
         return self.transform(self.video.read_frame(frame_number))# todo: depending on self.frame is dangerous in case we want to run this in a different thread
 
+    @backend.expose(backend.get_inverse_transformed_overlay)
+    def get_inverse_transformed_overlay(self) -> np.ndarray:
+        return self.transform.inverse(self.design.overlay())
+
     @backend.expose(backend.get_overlaid_frame)
     def get_frame_overlay(self, frame_number: int) -> np.ndarray:
-        return self.design.overlay(self.get_transformed_frame(frame_number))
+        return self.design.overlay_frame(self.get_transformed_frame(frame_number))
 
-    def calculate(self, frame_number: int):
+    @backend.expose(backend.get_colors)  # todo: per feature in each feature set; maybe better as a dict instead of a list of tuples?
+    def get_colors(self) -> List[tuple]:
+        return [featureset.get_colors() for featureset in self._featuresets]
+
+    def calculate(self, frame_number: int, update_callback: Callable):
         """Return a state image for each FeatureSet
         """
-        frame = self.get_transformed_frame(frame_number)
+        raw_frame = self.video.read_frame(frame_number)
+        frame = self.transform(raw_frame)
 
         V = []
         S = []
-        for fs in self.featuresets:
+        for fs in self._featuresets:  # todo: for each feature set -- export data for a separate legend to add to the state plot
             values = []
             state = np.zeros(frame.shape, dtype=np.uint8) # todo: can't just set it to self.frame.dtype?
             # todo: may be faster / more memory-efficient to keep state[i] and set it to 0
@@ -681,16 +738,32 @@ class VideoAnalyzer(BackendManager):
                 values.append(value)
 
             # Add overlay on top of state
-            state = self.design.overlay(state)
+            state = self.design.overlay_frame(state)
 
             V.append(values)   # todo: value values value ugh
             S.append(state)
 
-        # todo: launch callbacks here
+        update_callback(
+            self.video.get_time(frame_number),
+            V, # todo: this is per feature in each feature set; maybe better as dict instead of list of lists?
+            S,
+            frame
+        )
 
     def analyze(self):
+        if self._gui is not None:
+            update_callback = self._gui.get(gui.update_progresswindow)
+            self._gui.get(gui.open_progresswindow)()
+        else:
+            def update_callback(*args, **kwargs): pass
+
         for fn in self.frame_numbers():
-            self.calculate(fn)
+            self.calculate(fn, update_callback)
+
+    def save(self):
+        """Save video analysis results & metadata
+        """
+        raise NotImplementedError
 
 
 class MultiVideoAnalyzer(BackendManager):

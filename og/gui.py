@@ -28,8 +28,7 @@ __monitor_h__ = min(m.height for m in screeninfo.get_monitors())
 __coo__ = namedtuple('Coordinate', 'x y')
 __ratio__ = 0.6  # some kind of magic number?
 
-
-
+__FIRST_FRAME__ = 1200
 
 
 class ScriptWindow(tk.Tk):
@@ -67,25 +66,21 @@ class FileSelectWindow(og.app.HistoryApp):
         - Select video & overlay files
         - Edit script parameters (dt, ...)
     """
-
-    __default_dt__ = 5
-    __default_h__ = 0.153
     __history_path__ = '.history'
 
     __path_width__ = 60
     __num_width__ = 12
 
-    full_history = {}
-    history = {}
+    args: dict = {}
 
-    video_path_history = ['']
-    design_path_history = ['']
-    previous_height = 0.153
-    previous_timestep = 5
+    full_history: dict
+    history: dict
 
-    def __init__(self, file=__file__):
+    def __init__(self, WRAPPER, file=__file__):
         super().__init__(file)
-        self.args = (None, None, None, None)
+
+        self.WRAPPER = WRAPPER
+        self.args = self.WRAPPER.get_arguments_callback()
 
         self.window = ScriptWindow()
         self.window.title('isimple-video')
@@ -96,8 +91,8 @@ class FileSelectWindow(og.app.HistoryApp):
 
         self.video_path = tk.StringVar(value=self.video_path_history[0])
         self.design_path = tk.StringVar(value=self.design_path_history[0])
-        self.timestep = tk.StringVar(value=self.previous_timestep)
-        self.height = tk.StringVar(value=self.previous_height)
+        self.timestep = tk.StringVar(value=self.args['config']['dt'])
+        self.height = tk.StringVar(value=self.args['config']['h'])
 
         video_list = list(filter(None, self.video_path_history))
         design_list = list(filter(None, self.design_path_history))
@@ -163,8 +158,7 @@ class FileSelectWindow(og.app.HistoryApp):
         self.history = {
             'video_path': [''],
             'design_path': [''],
-            'previous_timestep': 5,
-            'previous_height': 0.153
+            'config': [{}]
         }
 
     def unpack_history(self):
@@ -175,8 +169,7 @@ class FileSelectWindow(og.app.HistoryApp):
         if len(self.design_path_history) > 20:
             self.design_path_history = self.design_path_history[0:19]
 
-        self.previous_timestep = self.history['previous_timestep']
-        self.previous_height = self.history['previous_height']
+        self.config = self.history['config'][-1]  # todo: only doing the last one entry, doesn't matter too much
 
         self.__path_width__ = max(
             [len(path) for path
@@ -198,8 +191,11 @@ class FileSelectWindow(og.app.HistoryApp):
     def run(self, _=None):
         video = self.video_path_box.get()
         design = self.design_path_box.get()
-        height = float(self.height_box.get())
-        timestep = float(self.timestep_box.get())
+        config = {
+            'h': float(self.height_box.get()),
+            'dt': float(self.timestep_box.get()),
+            'frame_interval_setting': 'dt',
+        }
 
         try:
             self.history['video_path'].remove(video)
@@ -217,11 +213,13 @@ class FileSelectWindow(og.app.HistoryApp):
         self.history['video_path'].append(video)
         self.history['design_path'].append(design)
 
-        self.history['previous_height'] = height
-        self.history['previous_timestep'] = timestep
+        self.history['config'].append(config)
 
         self.save_history()
-        self.args = (video, design, timestep, height)
+
+        self.WRAPPER.set_video_path_callback(video)
+        self.WRAPPER.set_design_path_callback(design)
+        self.WRAPPER.configure_callback(config)
 
         self.window.destroy()
 
@@ -283,10 +281,10 @@ class ReshapeSelection:
 
             # Get coordinates of rectangle corners
             self.coordinates = [
-                __coo__(self.start.x, self.start.y),  # Bottom Left
-                __coo__(self.start.x, self.stop.y),  # ?      ?
-                __coo__(self.stop.x, self.stop.y),  # ?      ?
-                __coo__(self.stop.x, self.start.y)  # Top    Right
+                __coo__(self.start.x, self.start.y),    # Bottom Left
+                __coo__(self.start.x, self.stop.y),     # ?      ?
+                __coo__(self.stop.x, self.stop.y),      # ?      ?
+                __coo__(self.stop.x, self.start.y)      # Top    Right
             ]
 
             self.get_corners()
@@ -314,7 +312,7 @@ class ReshapeSelection:
         co = [co[i] for i in self.order]
 
         # print(f"Coordinates: {co}")
-        self.transform.get_new_transform(co, self.order)
+        self.transform.get_new_transform(co)
 
     def redraw(self):
         """Redraw selection rectangle on the canvas.
@@ -382,8 +380,8 @@ class Corner:
 
         self.canvas.tag_bind(self.id, "<ButtonPress-1>", self.press)
         self.canvas.tag_bind(self.id, "<ButtonRelease-1>", self.release)
-        self.canvas.tag_bind(self.id, "<Enter>", self.enter)
-        self.canvas.tag_bind(self.id, "<Leave>", self.leave)
+        # self.canvas.tag_bind(self.id, "<Enter>", self.enter)
+        # self.canvas.tag_bind(self.id, "<Leave>", self.leave)
 
         self.dragging = False
 
@@ -414,22 +412,22 @@ class Corner:
         self.co = __coo__(co[0], co[1])
         # self.co = __coo__((co[0]+co[2])/2, (co[1]+co[3])/2)
         self.selection.update()
-        self.leave(event)
+        # self.leave(event)
         self.dragging = False
 
     def delete(self):
         self.canvas.delete(self.id)
 
-    def enter(self, _):
-        """Callback - mouse is hovering over object
-        """
-        self.canvas.set_config(cursor='hand2')
-
-    def leave(self, _):
-        """Callback - mouse is not hovering over object anymore
-        """
-        if not self.dragging:
-            self.canvas.set_config(cursor='left_ptr')
+    # def enter(self, _):
+    #     """Callback - mouse is hovering over object
+    #     """
+    #     self.canvas.set_config(cursor='hand2')
+    #
+    # def leave(self, _):
+    #     """Callback - mouse is not hovering over object anymore
+    #     """
+    #     if not self.dragging:
+    #         self.canvas.set_config(cursor='left_ptr')
 
 
 class ImageDisplay:
@@ -439,10 +437,14 @@ class ImageDisplay:
     __ratio__ = __ratio__ * __monitor_w__
     __rotations__ = {str(p): p for p in rotations(list(range(4)))}
 
-    def __init__(self, window: ScriptWindow, image: np.ndarray,
-                 overlay: np.ndarray, transform: np.ndarray,
-                 order: set = (0, 1, 2, 3), initial_coordinates=None):
+    def __init__(self, window: ScriptWindow, order = (0, 1, 2, 3), initial_coordinates=None):
         self.window = window  # todo: some of this should actually be in an 'app' or 'window' object
+
+        self.Nf = self.window.WRAPPER.get_total_frames_callback()
+        overlay = self.window.WRAPPER.get_overlay_callback()
+        self.frame_number = int(self.Nf/2)
+        image = self.window.WRAPPER.get_raw_frame_callback(self.frame_number)
+
         self.shape = image.shape
 
         self.__ratio__ = self.__ratio__ / self.shape[1]
@@ -451,7 +453,7 @@ class ImageDisplay:
             overlay.shape[1] * self.__ratio__
 
         if self.__width__ >= __monitor_w__:
-            self.__width__ = __monitor_w__ * 0.98
+            self.__width__ = __monitor_w__ * 0.90
             self.__ratio__ = self.__width__ \
                 / (self.shape[1] + overlay.shape[1])
 
@@ -473,7 +475,7 @@ class ImageDisplay:
 
         self.original = image
         height, width, channels = image.shape
-        img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        img = cv2.cvtColor(image, cv2.COLOR_HSV2RGB)
         img = Image.fromarray(img)
         img.thumbnail(
             (int(width * self.__ratio__), int(height * self.__ratio__))
@@ -487,10 +489,10 @@ class ImageDisplay:
             image,
             overlay,
             self.scaled_shape,
-            self.window.transform_callback,
+            self.window.WRAPPER.estimate_transform_callback,
             self.__ratio__,
-            transform,
-            order
+            order,
+            self.frame_number
         )
         self.selection = ReshapeSelection(
             self,
@@ -523,8 +525,7 @@ class TransformImage:
     """
     alpha = 0.1
 
-    def __init__(self, canvas, image, overlay_img, co, callback, ratio,
-                 initial_transform, initial_order=(0, 1, 2, 3)):
+    def __init__(self, canvas, image, overlay_img, co, callback, ratio, initial_order=(0, 1, 2, 3), frame_number=0):
         self.overlay = overlay_img
         self.original = image
         self.image = None
@@ -532,6 +533,7 @@ class TransformImage:
         self.canvas = canvas
         self.callback = callback
         self.__ratio__ = ratio
+        self.frame_number = frame_number
 
         shape = self.overlay.shape
 
@@ -539,26 +541,14 @@ class TransformImage:
         self.height = co[1]
         self.width = int(shape[0] * co[1] / shape[1])
 
-        # selection rectangle: bottom left to top right
-        self.to_coordinates = np.array(
-            [
-                [0, shape[0]], [0, 0], [shape[1], 0], [shape[1], shape[0]]
-            ]
-        )
-
-        self.transform = initial_transform
         self.order = initial_order
         self.show_overlay()
 
-        if np.array_equal(self.transform, np.eye(3)):
-            self.update()
-
-    def get_new_transform(self, from_coordinates, order):  # todo: don't need order here?
+    def get_new_transform(self, from_coordinates):  # todo: don't need order here?
         """Recalculate transform and show overlay.
         """
-        self.transform = cv2.getPerspectiveTransform(
-            np.float32(from_coordinates) / self.__ratio__,
-            np.float32(self.to_coordinates)
+        self.canvas._root().WRAPPER.estimate_transform_callback(
+            np.float32(from_coordinates) / self.__ratio__
         )
 
         # Round to remove unnecessary precision
@@ -569,20 +559,18 @@ class TransformImage:
         # )
 
         self.update()
-        self.callback(self.transform, from_coordinates)
 
     def update(self):
         """Update image based
-        """  # todo: transformed + overlay should be a VideoAnalyzer method
+        """
         y, x, c = self.overlay.shape
-        self.image = cv2.warpPerspective(self.original, self.transform, (x, y))
 
-        cv2.addWeighted(
-            self.overlay, self.alpha, self.image, 1 - self.alpha, 0, self.image
+        self.image = self.canvas._root().WRAPPER.overlay_frame_callback(
+            self.canvas._root().WRAPPER.transform_callback(self.original)
         )
 
         height, width, channels = self.overlay.shape
-        img = cv2.cvtColor(self.image, cv2.COLOR_BGR2RGB)
+        img = cv2.cvtColor(self.image, cv2.COLOR_HSV2RGB)
         img = Image.fromarray(img)
         img.thumbnail(
             (int(width * self.__ratio__), int(height * self.__ratio__))
@@ -593,7 +581,7 @@ class TransformImage:
         # self.callback(self.transform)
 
     def show_overlay(self):
-        """Show overlay
+        """Show overlay; i.e. without the acual video frame
         """
         height, width, channels = self.overlay.shape
         img = cv2.cvtColor(self.overlay, cv2.COLOR_BGR2RGB)
@@ -637,14 +625,16 @@ class ColorPicker:
     __w_spacing__ = 3
     __h_scale__ = 25
 
-    def __init__(self, window, mask, video):
+    def __init__(self, window, WRAPPER):
         self.window = window
-        self.mask = mask
-        self.video = video
+        self.WRAPPER = WRAPPER
 
         self.coo = None
 
-        image = self.mask.mask(self.video.get_frame(1))
+        self.FN = 1
+        image = self.WRAPPER.mask_callback(self.WRAPPER.get_frame_callback(self.FN))
+
+        self.filter = self.WRAPPER.get_filter_callback()
 
         self.im_masked = None
         self.im_filtered = None
@@ -669,7 +659,7 @@ class ColorPicker:
         self.slider = tk.Scale(
             self.window,
             from_=1,
-            to=self.video.frameN,
+            to=self.WRAPPER.get_total_frames_callback(),
             orient=tk.HORIZONTAL,
             command=self.track,
             length=self.__width__,
@@ -690,10 +680,14 @@ class ColorPicker:
     def update(self):
         """Update UI
         """
-        masked, filtered = self.mask.get_images()
+        frame = self.WRAPPER.get_frame_callback(self.FN)
+        masked = self.WRAPPER.mask_callback(frame)
+        filtered = self.WRAPPER.filter_callback(masked)
 
         self.im_masked = hsvimg2tk(masked, ratio=self.__ratio__)
         self.im_filtered = binimg2tk(filtered, ratio=self.__ratio__)
+
+        self.masked = masked
 
         self.canvas.create_image(
             0, 0,
@@ -704,22 +698,22 @@ class ColorPicker:
             image=self.im_filtered, anchor=tk.NW
         )
 
-        self.window.selection_callback(
-            {metadata.__from__: self.mask.filter_from,
-             metadata.__to__: self.mask.filter_to}
-        )
+        self.window.selection_callback()
 
     def pick(self, event):
         """Pick a colour
         """
         self.coo = __coo__(x=event.x, y=event.y)
-        self.mask.pick(self.coo)
+        self.filter.update(
+            {'color': self.masked[self.coo.y, self.coo.x]}
+        )
+        self.filter = self.WRAPPER.set_filter_callback(self.filter)
         self.update()
 
     def track(self, value):
         """Scrollbar callback - track through the video.
         """
-        self.mask.track(int(value))
+        self.FN = int(value)
         self.update()
 
     def quit(self, _):
@@ -732,42 +726,27 @@ class OverlayAlignWindow(ScriptWindow):
     __default_frame__ = 0.5
     __title__ = "Overlay alignment"
 
-    def __init__(self, video):
+    def __init__(self, WRAPPER):
         ScriptWindow.__init__(self)
-        self.data = video
-        self.title(self.data.name)
+        self.WRAPPER = WRAPPER
+        self.title(self.__title__)
 
-        self.image = ImageDisplay(
-            self,
-            self.data.get_frame_at(
-                self.__default_frame__, do_warp=False, to_hsv=False),
-            self.data.overlay,
-            self.data.transform,
-            self.data.order,
-            self.data.coordinates,
-        )
-
-    def transform_callback(self, transform, coordinates):
-        self.data.transform = transform
-        self.data.coordinates = coordinates
-        self.done = True
+        self.image = ImageDisplay(self)
 
 
 class MaskFilterWindow(ScriptWindow):
     __title__ = 'Filter hue selection'
 
-    def __init__(self, mask):
+    def __init__(self, WRAPPER):
         ScriptWindow.__init__(self)
-        self.data = mask
-        self.title(self.data.name)
+        self.WRAPPER = WRAPPER
+        self.title('Pick a color')
 
         self.picker = ColorPicker(
-            self,
-            mask=mask,
-            video=mask.video
+            self, self.WRAPPER
         )
 
-    def selection_callback(self, selection):  # todo: don't need selection here?
+    def selection_callback(self):  # todo: don't need selection here?
         self.done = True
 
 
@@ -779,24 +758,32 @@ class ProgressWindow(ScriptWindow):
 
     __title__ = 'Volume measurement'
 
-    def __init__(self, video):
+    def __init__(self, WRAPPER):
         ScriptWindow.__init__(self)
-        self.video = video
-        self.title(self.video.name)
+        self.WRAPPER = WRAPPER
+        self.title(self.WRAPPER.get_name_callback())
 
         self.canvas_height = self.__ratio__ * __monitor_h__
-        self.__raw_width__ = self.video.raw_frame.shape[1] * \
-            self.canvas_height / self.video.raw_frame.shape[0]
-        self.__processed__ = self.video.frame.shape[1] * \
-            self.canvas_height / self.video.frame.shape[0]
 
-        self.tmax = self.video.frameN / self.video.fps
+        frame = self.WRAPPER.get_raw_frame_callback(0)
+        state = self.WRAPPER.get_frame_callback(0)
+
+        self.colors = self.WRAPPER.get_colors_callback()[0]  # We assume that there's only one featureset for now
+        self.mask_names = self.WRAPPER.get_mask_names()
+        self.t = []
+
+        self.__raw_width__ = frame.shape[1] * \
+                             self.canvas_height / frame.shape[0]
+        self.__processed__ = state.shape[1] * \
+                             self.canvas_height / state.shape[0]
+
+        self.tmax = self.WRAPPER.get_total_frames_callback() / self.WRAPPER.get_fps_callback()
         self.t0 = time.time()
 
-        frame = self.video.get_frame(1)
         self.img = None
         self.df = None
-        self.t = None
+        self.t = []
+        self.areas = [[] for _ in self.colors]
         self.size = frame.shape
 
         self.canvas_width = \
@@ -807,7 +794,7 @@ class ProgressWindow(ScriptWindow):
             width=self.canvas_width,
             height=self.canvas_height
         )
-        self.update_image()
+        self.update_image(np.ones(state.shape, dtype = state.dtype), frame)
         self.canvas.pack()
 
         figw = self.canvas_width / self.__dpi__
@@ -834,17 +821,20 @@ class ProgressWindow(ScriptWindow):
 
         self.figcanvas.get_tk_widget().pack()
 
-    def update_image(self):
+    def update_image(self, state, frame):
         """Show the current video frame in the UI
         """
-        if self.video.frame is not None:
+        if isinstance(state, list):
+            state = state[0]  # assuming that we have only one feature set
+
+        if frame is not None:
             self.img = hsvimg2tk(
-                self.video.raw_frame,
-                ratio=self.canvas_height / self.video.raw_frame.shape[0]
+                frame,
+                ratio=self.canvas_height / frame.shape[0]
             )
             self.state = hsvimg2tk(
-                self.video.get_state_image(),
-                ratio=self.canvas_height / self.video.frame.shape[0]
+                state,
+                ratio=self.canvas_height / state.shape[0]
             )
             self.canvas.create_image(
                 0, 0, image=self.img, anchor=tk.NW
@@ -854,8 +844,9 @@ class ProgressWindow(ScriptWindow):
                 image=self.state, anchor=tk.NW
             )
 
-    def update(self):
-        self.update_image()
+    def update_window(self, time, values, state, frame):
+        self.plot(time, values)
+        self.update_image(state, frame)
 
         self.figcanvas.draw()
         ScriptWindow.update(self)
@@ -864,61 +855,67 @@ class ProgressWindow(ScriptWindow):
         """Update the plot.
         """
         if areas is not None:
-            try:
-                self.t = t
-                elapsed = time.time() - self.t0
 
-                areas = np.transpose(areas) / (
-                        self.video.__overlay_DPI__ / 25.4
-                ) ** 2 * self.video.h
-                # todo: do this at the VideoAnalyzer level!
+            if not hasattr(self, 'areas'):
+                self.areas = []
 
-                self.ax.clear()
-                for i, curve in enumerate(areas):
-                    color = cv2.cvtColor(
-                        np.array([[
-                            np.array(
-                                self.video.plot_colors[self.video.masks[i]],
-                                dtype=np.uint8
-                            )
-                        ]]),
-                        cv2.COLOR_HSV2RGB
-                    )[0, 0] / 255
-                    # todo: shouldn't need to do this calculation at every time step!
-                    self.ax.plot(
-                        t, curve,
-                        label=self.video.masks[i].name,
-                        color=tuple(color),
-                        linewidth=2
-                    )
+            if not hasattr(self, 't'):
+                self.t = []
 
-                # todo: is it necessary to re-do all of the plot legend/axis stuff for every time step?
-                self.ax.legend(loc='center right')
-                self.ax.set_title(
-                    f"{t[-1] / self.tmax * 100:.0f}% ({elapsed:.0f} s elapsed "
-                    f" @ {t[-1] / elapsed:.1f} x)", size=18, weight='bold'
-                )
-                self.ax.set_ylabel('Volume (µL)', size=12)
-                self.ax.set_xlabel('Time (s)', size=12)
-                self.ax.set_xlim(0, self.tmax)
+            self.t.append(t)
+            for i, value in enumerate(areas[0]):
+                self.areas[i].append(value)
 
-                self.df = pd.DataFrame(
-                    data=np.stack(
-                        [np.array(t)] + [curve for curve in areas], 1),
-                    columns=['t'] + [m.name for m in self.video.masks]
+            elapsed = time.time() - self.t0
+
+            areas = np.transpose(areas) / (
+                    self.WRAPPER.get_dpi_callback() / 25.4
+            ) ** 2 * self.WRAPPER.get_h_callback()
+            # todo: do this at the VideoAnalyzer level!
+
+            self.ax.clear()
+            for i, curve in enumerate(self.areas):
+                color = cv2.cvtColor(
+                    np.array([[
+                        np.array(
+                            self.colors[i],
+                            dtype=np.uint8
+                        )
+                    ]]),
+                    cv2.COLOR_HSV2RGB
+                )[0, 0] / 255
+                # todo: shouldn't need to do this calculation at every time step!
+                self.ax.plot(
+                    self.t, curve,
+                    label=self.mask_names[i],
+                    color=tuple(color),
+                    linewidth=2
                 )
 
-                if t[-1] / self.tmax > 0.95:
-                    # todo: this is a bit backwards, the VideoAnalyzer object should know how
-                    #  many steps it will take at a given dt and say it's done at the last step...
-                    self.done = True
-                    self.quit()
+            # todo: is it necessary to re-do all of the plot legend/axis stuff for every time step?
+            self.ax.legend(loc='center right')
+            self.ax.set_title(
+                f"{self.t[-1] / self.tmax * 100:.0f}% ({elapsed:.0f} s elapsed "
+                f" @ {self.t[-1] / elapsed:.1f} x)", size=18, weight='bold'
+            )
+            self.ax.set_ylabel('Volume (µL)', size=12)
+            self.ax.set_xlabel('Time (s)', size=12)
+            self.ax.set_xlim(0, self.tmax)
 
-            except TypeError:
-                pass
+            self.df = pd.DataFrame(
+                data=np.stack(
+                    [np.array(self.t)] + [curve for curve in self.areas], 1),
+                columns=['t'] + list(self.mask_names)
+            )
 
-            if isinstance(self.df, pd.DataFrame):
-                return self.df
+            if self.t[-1] / self.tmax > 0.95:
+                # todo: this is a bit backwards, the VideoAnalyzer object should know how
+                #  many steps it will take at a given dt and say it's done at the last step...
+                self.done = True
+                self.quit()
+
+        if isinstance(self.df, pd.DataFrame):
+            return self.df
 
     def keepopen(self):
         """Called to keep the window open after the script has run.
