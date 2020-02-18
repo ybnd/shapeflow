@@ -15,6 +15,20 @@ def restrict(val, minval, maxval):
     return val
 
 
+def rotations(sequence) -> list:  # todo: clean up
+    """Returns all rotations of a list.
+    """
+
+    def rotate(seq, n: int) -> list:
+        return seq[n:] + seq[:n]
+
+    rotation_list = []
+    for N in range(len(sequence)):
+        rotation_list.append(rotate(sequence, N))
+
+    return rotation_list
+
+
 def timing(f):
     """Function decorator to measure elapsed time.
     :param f: function

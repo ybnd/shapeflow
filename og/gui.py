@@ -4,6 +4,9 @@ import tkinter as tk
 import tkinter.messagebox
 from collections import namedtuple
 
+import tkinter.ttk as ttk
+import tkinter.filedialog as tkfd
+
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
@@ -12,6 +15,21 @@ import screeninfo
 from PIL import Image, ImageTk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
+
+import og.app
+
+from isimple.core.util import restrict, rotations
+import isimple.core.meta as metadata
+
+
+__monitor_w__ = min(m.width for m in screeninfo.get_monitors())
+__monitor_h__ = min(m.height for m in screeninfo.get_monitors())
+
+__coo__ = namedtuple('Coordinate', 'x y')
+__ratio__ = 0.6  # some kind of magic number?
+
+
+
 
 
 class ScriptWindow(tk.Tk):
@@ -44,7 +62,7 @@ class ScriptWindow(tk.Tk):
                     sys.exit()
 
 
-class FileSelectWindow(isimple.app.HistoryApp):
+class FileSelectWindow(og.app.HistoryApp):
     """
         - Select video & overlay files
         - Edit script parameters (dt, ...)
@@ -66,7 +84,7 @@ class FileSelectWindow(isimple.app.HistoryApp):
     previous_timestep = 5
 
     def __init__(self, file=__file__):
-        isimple.HistoryApp.__init__(self, file)
+        super().__init__(file)
         self.args = (None, None, None, None)
 
         self.window = ScriptWindow()
