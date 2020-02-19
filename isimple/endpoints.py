@@ -15,7 +15,7 @@ class BackendEndpoints(ImmutableRegistry):  # todo: confusing naming
     transform = Endpoint(Callable[[np.ndarray], np.ndarray])
     estimate_transform = Endpoint(Callable[[list], None])
     get_mask_name = Endpoint(Callable[[int], str])
-    get_mask_names = Endpoint(Callable[[], Tuple[str,]])
+    get_mask_names = Endpoint(Callable[[], tuple])
     set_filter_implementation = Endpoint(Callable[[str], str])
     set_filter_parameters = Endpoint(Callable[[dict], dict])
     get_filter_parameters = Endpoint(Callable[[], dict])

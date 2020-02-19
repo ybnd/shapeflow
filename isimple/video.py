@@ -532,7 +532,7 @@ class DesignFileHandler(CachingBackendInstance):
         return self._masks
 
     @backend.expose(backend.get_mask_names)
-    def get_mask_names(self) -> Tuple[str,]:
+    def get_mask_names(self) -> tuple:
         return tuple(mask.name for mask in self._masks)
 
 
@@ -628,13 +628,13 @@ class VideoAnalyzer(BackendManager):
         self._gather_instances()
 
     @timing
-    def launch(self):
+    def launch(self) -> object:
         # todo: better sanity check -- are we already launched maybe?
         video_path = self._args['video_path']
         design_path = self._args['design_path']
         config = self._args['config']
 
-        if video_path and design_path:
+        if video_path is not None and design_path is not None:
             self.video = self.video_type(video_path, config)
             self.design = self.design_type(design_path, config)
             self.transform = TransformHandler(self.design.shape, config)
@@ -648,6 +648,8 @@ class VideoAnalyzer(BackendManager):
                     tuple(feature.get()(mask) for mask in self.design.masks)
                 ) for feature in self.features
             ]
+
+            return self
         else:
             raise ValueError("Either the video or the design wasn't provided")  # todo: make error message more specific
 

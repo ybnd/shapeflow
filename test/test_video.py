@@ -49,7 +49,7 @@ for frame_number in FRAMES:
     frame_hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
     TEST_FRAME_HSV[frame_number] = frame_hsv
 
-    dsize = (overlay.shape[0], overlay.shape[1])
+    dsize = (overlay.shape[1], overlay.shape[0])
     TEST_TRANSFORMED_FRAME_BGR[frame_number] = cv2.warpPerspective(frame, TRANSFORM, dsize)
     TEST_TRANSFORMED_FRAME_HSV[frame_number] = cv2.warpPerspective(frame_hsv, TRANSFORM, dsize)
 
@@ -160,6 +160,7 @@ class VideoAnalyzerTest(FrameTest):
         config = {k: v for k, v in self.config.items()}
 
         va = VideoAnalyzer(__VIDEO__, __DESIGN__, config)
+        va.launch()
         self.assertEqual(self.config, config)
 
         self.assertListEqual(
@@ -224,12 +225,12 @@ class VideoAnalyzerTest(FrameTest):
 
     def test_illegal_arguments(self):
         self.assertRaises(
-            FileNotFoundError, VideoAnalyzer, __VIDEO__, 'non-existent'
+            FileNotFoundError, VideoAnalyzer(__VIDEO__, 'non-existent').launch
         )
 
         # Not testing cache, don't need with statement
-        va1 = VideoAnalyzer(__VIDEO__, __VIDEO__, self.config)
-        va2 = VideoAnalyzer(__VIDEO__, __DESIGN__)
+        va1 = VideoAnalyzer(__VIDEO__, __VIDEO__, self.config).launch()
+        va2 = VideoAnalyzer(__VIDEO__, __DESIGN__).launch()
         self.assertTrue(np.equal(va1.design._overlay, va2.design._overlay).all())
         self.assertEqual(len(va1.design._masks), len(va2.design._masks))
 
@@ -246,7 +247,7 @@ class VideoAnalyzerTest(FrameTest):
             }
         )
 
-        va = VideoAnalyzer(__VIDEO__, __DESIGN__, config)
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, config).launch()
         frames = [f for f in va.frame_numbers()]
 
         self.assertEqual(68, len(frames))
@@ -258,7 +259,7 @@ class VideoAnalyzerTest(FrameTest):
             }
         )
 
-        va = VideoAnalyzer(__VIDEO__, __DESIGN__, config)
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, config).launch()
         frames = [f for f in va.frame_numbers()]
 
         self.assertEqual(12, len(frames))
@@ -271,7 +272,7 @@ class VideoAnalyzerTest(FrameTest):
         config.update(
             {'do_cache': False, 'do_background': False}
         )
-        va = VideoAnalyzer(__VIDEO__, __DESIGN__, config)
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, config).launch()
 
         self.assertEqual(None, va.video._cache)
         with va.caching():
@@ -283,7 +284,7 @@ class VideoAnalyzerTest(FrameTest):
         config.update(
             {'do_cache': False, 'do_background': True}
         )
-        va = VideoAnalyzer(__VIDEO__, __DESIGN__, config)
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, config).launch()
 
         self.assertEqual(None, va.video._cache)
         with va.caching():
@@ -295,7 +296,7 @@ class VideoAnalyzerTest(FrameTest):
         config.update(
             {'do_cache': True, 'do_background': False}
         )
-        va = VideoAnalyzer(__VIDEO__, __DESIGN__, config)
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, config).launch()
 
         self.assertEqual(None, va.video._cache)
         with va.caching():
@@ -307,7 +308,7 @@ class VideoAnalyzerTest(FrameTest):
         config.update(
             {'do_cache': True, 'do_background': True}
         )
-        va = VideoAnalyzer(__VIDEO__, __DESIGN__, config)
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, config).launch()
 
         self.assertEqual(None, va.video._cache)
         with va.caching():
@@ -316,7 +317,7 @@ class VideoAnalyzerTest(FrameTest):
         self.assertEqual(None, va.video._cache)
 
         # By default, main-thread caching is enabled
-        va = VideoAnalyzer(__VIDEO__, __DESIGN__)
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__).launch()
 
         self.assertEqual(None, va.video._cache)
         with va.caching():
@@ -325,7 +326,7 @@ class VideoAnalyzerTest(FrameTest):
         self.assertEqual(None, va.video._cache)
 
     def test_get_frame(self):
-        va = VideoAnalyzer(__VIDEO__, __DESIGN__, self.config)
+        va = VideoAnalyzer(__VIDEO__, __DESIGN__, self.config).launch()
 
         with va.caching():
             for fn in va.frame_numbers():

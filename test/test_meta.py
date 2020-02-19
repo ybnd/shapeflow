@@ -25,6 +25,7 @@ transform = np.eye(3).tolist()
 order = [0,1,2,3]
 
 va = VideoAnalyzer(__VIDEO__, __DESIGN__)
+va.launch()
 masks = va.design._masks
 
 
