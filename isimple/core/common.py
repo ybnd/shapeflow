@@ -229,11 +229,13 @@ class Manager(object):
             raise SetupError(f"'{self.__class__.__name__}' does not map "
                              f"'{endpoint._name}' to a bound method.")
         else:
+            methods = self._instance_mapping[endpoint]
             if index is None:
                 index = 0
-                if index >= len(self._instance_mapping[endpoint]):
+                if index+1 < len(methods):
                     warnings.warn(f"No index specified for endpoint '{endpoint._name}' "
-                                  f"-- defaulting to entry 0 ({len(self._instance_mapping[endpoint])} in total)")  # todo: traceback
-
+                                  f"-- defaulting to entry 0 ({len(methods)} in total)")  # todo: traceback
+            elif len(methods) == 1:
+                index = 0  # Ignore the index if only one method is mapped
             return self._instance_mapping[endpoint][index]
 

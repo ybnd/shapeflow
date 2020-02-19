@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Type, Callable
 import abc
 import time
 
@@ -32,6 +32,13 @@ class guiPane(guiElement):
 class guiWindow(guiElement):
     """Abstract class for a GUI window
     """
+    _methods: Dict[str, Callable]
+    _endpoints: List[Endpoint]
+
+    def __init__(self):
+        super().__init__()
+        self._methods = {}
+
     def open(self):  # todo: should check if all callbacks have been provided
         pass
 
@@ -40,10 +47,12 @@ class guiWindow(guiElement):
 
 
 class SetupWindow(guiWindow):
-    get_arguments_callback = backend.get_arguments.signature
-    set_video_path_callback = backend.get_raw_frame.signature
-    set_design_path_callback = backend.get_raw_frame.signature
-    configure_callback = backend.get_raw_frame.signature
+    _endpoints = [
+        backend.get_arguments,
+        backend.set_video_path,
+        backend.set_design_path,
+        backend.set_config,
+    ]
 
     def __init__(self):  # todo: should limit configuration get/set to backend; metadata saving should be done from there too.
         super().__init__()
@@ -58,15 +67,17 @@ class TransformWindow(guiWindow):
                 - Get the raw and transformed frame at a certain frame number (scrollable)
                 - Estimate the transform for a set of coordinates
         """
-    get_total_frames_callback = backend.get_total_frames.signature
-    get_overlay_callback = backend.get_overlaid_frame.signature
-    overlay_frame_callback = backend.get_overlaid_frame.signature
-    get_raw_frame_callback = backend.get_raw_frame.signature
-    transform_callback = backend.transform.signature
-    estimate_transform_callback = backend.get_raw_frame.signature
-    get_transformed_frame_callback = backend.get_raw_frame.signature
-    get_transformed_overlaid_frame_callback = backend.get_raw_frame.signature
-    get_inverse_transformed_overlay_callback = backend.get_raw_frame.signature
+    _endpoints = [
+        backend.get_total_frames,
+        backend.get_overlay,
+        backend.overlay_frame,
+        backend.get_raw_frame,
+        backend.transform,
+        backend.estimate_transform,
+        backend.get_frame,
+        backend.get_overlaid_frame,
+        backend.get_inverse_transformed_overlay,
+    ]
 
     def __init__(self):
         super().__init__()
@@ -90,12 +101,14 @@ class FilterWindow(guiWindow):
             - Get the masked / masked & filtered frame at a certain frame number (scrollable)
             - Set the filter
     """
-    get_total_frames_callback = backend.get_total_frames.signature
-    get_frame_callback = backend.get_frame.signature
-    mask_callback = backend.mask.signature
-    get_filter_callback = backend.get_filter_parameters.signature
-    set_filter_callback = backend.set_filter_parameters.signature
-    filter_callback = backend.filter.signature
+    _endpoints = [
+        backend.get_total_frames,
+        backend.get_frame,
+        backend.mask,
+        backend.get_filter_parameters,
+        backend.set_filter_parameters,
+        backend.filter,
+    ]
 
     def __init__(self):
         super().__init__()
@@ -108,16 +121,17 @@ class ProgressWindow(guiWindow):
     """Shows the progress of an analysis.
         * No callbacks; not interactive, so the backend pushes to the GUI instead
     """
-
-    get_name_callback = backend.get_name.signature
-    get_colors_callback = backend.get_colors.signature
-    get_frame_callback = backend.get_frame.signature
-    get_raw_frame_callback = backend.get_raw_frame.signature
-    get_total_frames_callback = backend.get_total_frames.signature
-    get_fps_callback = backend.get_fps.signature
-    get_h_callback = backend.get_h.signature
-    get_dpi_callback = backend.get_dpi.signature
-    get_mask_names = backend.get_mask_names.signature
+    _endpoints = [
+        backend.get_name,
+        backend.get_colors,
+        backend.get_frame,
+        backend.get_raw_frame,
+        backend.get_total_frames,
+        backend.get_fps,
+        backend.get_h,
+        backend.get_dpi,
+        backend.get_mask_names,
+    ]
 
     def __init__(self):
         super().__init__()
@@ -149,78 +163,45 @@ class VideoAnalyzerGui(Manager, guiElement):  # todo: find a different name
         self._backend = backend
         self._backend.connect(self)
 
-        for c in [SetupWindow, TransformWindow, FilterWindow, ProgressWindow]:
-            self.add_window(c, c())
+        for c in [SetupWindow, TransformWindow, FilterWindow, ProgressWindow]:  # todo: cleaner way to define this, maybe as a _window_classes class attribute?
+            self.add_window(c)
 
         self._gather_instances()
 
     @gui.expose(gui.open_setupwindow)
     def open_setupwindow(self) -> None:  # todo: probably a bad idea to give out references to the actual windows; maybe give index or key instead?
-        sw = self.windows[SetupWindow]   # todo: this setup process can be generalized: open a window of class <C>: get from dict, assert, add all requested callbacks, open
-        assert isinstance(sw, SetupWindow)
-
-        sw.get_arguments_callback = self._backend.get(backend.get_arguments)
-        sw.set_video_path_callback = self._backend.get(backend.set_video_path)
-        sw.set_design_path_callback = self._backend.get(backend.set_design_path)
-        sw.configure_callback = self._backend.get(backend.set_config)
-
-        self.open_window(sw)
+        self.open_window(SetupWindow)
 
     @gui.expose(gui.open_transformwindow)
     def open_transformwindow(self) -> None:
-        tw = self.windows[TransformWindow]
-        assert isinstance(tw, TransformWindow)
-
-        tw.get_total_frames_callback = self._backend.get(backend.get_total_frames)
-        tw.get_overlay_callback = self._backend.get(backend.get_overlay)
-        tw.overlay_frame_callback = self._backend.get(backend.overlay_frame)
-        tw.get_raw_frame_callback = self._backend.get(backend.get_raw_frame)
-        tw.transform_callback = self._backend.get(backend.transform)
-        tw.estimate_transform_callback = self._backend.get(backend.estimate_transform)
-        tw.get_transformed_frame_callback = self._backend.get(backend.get_frame)
-        tw.get_transformed_overlaid_frame_callback = self._backend.get(backend.get_overlaid_frame)
-        tw.get_inverse_transformed_overlay_callback = self._backend.get(backend.get_inverse_transformed_overlay)
-
-        self.open_window(tw)
+        self.open_window(TransformWindow)
 
     @gui.expose(gui.open_filterwindow)
     def open_filterwindow(self, index: int) -> None:
-        fw = self.windows[FilterWindow]
-        assert isinstance(fw, FilterWindow)
-
-        fw.get_total_frames_callback = self._backend.get(backend.get_total_frames)  # todo: some kind of mechanism to make it ok to only write the thing once...
-        fw.get_frame_callback = self._backend.get(backend.get_frame)
-        fw.mask_callback = self._backend.get(backend.mask, index)
-        fw.filter_callback = self._backend.get(backend.filter, index)
-        fw.set_filter_callback = self._backend.get(backend.set_filter_parameters, index)
-        fw.get_filter_callback = self._backend.get(backend.get_filter_parameters, index)
-
-        self.open_window(fw)
+        self.open_window(FilterWindow, index)
 
     @gui.expose(gui.open_progresswindow)
     def open_progresswindow(self) -> None:
-        pw = self.windows[ProgressWindow]
-        assert isinstance(pw, ProgressWindow)
+        self.open_window(ProgressWindow)
 
-        pw.get_name_callback = self._backend.get(backend.get_name)
-        pw.get_colors_callback = self._backend.get(backend.get_colors)
-        pw.get_raw_frame_callback = self._backend.get(backend.get_raw_frame)
-        pw.get_frame_callback = self._backend.get(backend.get_frame)
-        pw.get_total_frames_callback = self._backend.get(backend.get_total_frames)
-        pw.get_fps_callback = self._backend.get(backend.get_fps)
-        pw.get_h_callback = self._backend.get(backend.get_h)
-        pw.get_dpi_callback = self._backend.get(backend.get_dpi)
-        pw.get_mask_names = self._backend.get(backend.get_mask_names)
-
-        self.open_window(pw)
-
-    def add_window(self, key: type, window: guiWindow):
-        self.windows[key] = window
+    def add_window(self, window_type: Type[guiWindow]):
+        self.windows[window_type] = window_type()
 
 
-    def open_window(self, window: guiWindow):
-        self.open_windows.append(window)
-        window.open()
+    def open_window(self, window_type: Type[guiWindow], index: int = None):
+        w = self.windows[window_type]
+
+        if isinstance(w, list):
+            if index is None:
+                index = 0
+            w = w[index]
+
+        self.open_windows.append(w)
+
+        for endpoint in w._endpoints:
+            setattr(w, endpoint._name, self._backend.get(endpoint, index))
+
+        w.open()
 
     def close_window(self, index: int):
         window = self.open_windows.pop(index)

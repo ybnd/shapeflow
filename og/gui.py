@@ -80,7 +80,7 @@ class FileSelectWindow(og.app.HistoryApp):
         super().__init__(file)
 
         self.WRAPPER = WRAPPER
-        self.args = self.WRAPPER.get_arguments_callback()
+        self.args = self.WRAPPER.get_arguments()
 
         self.window = ScriptWindow()
         self.window.title('isimple-video')
@@ -217,9 +217,9 @@ class FileSelectWindow(og.app.HistoryApp):
 
         self.save_history()
 
-        self.WRAPPER.set_video_path_callback(video)
-        self.WRAPPER.set_design_path_callback(design)
-        self.WRAPPER.configure_callback(config)
+        self.WRAPPER.set_video_path(video)
+        self.WRAPPER.set_design_path(design)
+        self.WRAPPER.configure(config)
 
         self.window.destroy()
 
@@ -440,10 +440,10 @@ class ImageDisplay:
     def __init__(self, window: ScriptWindow, order = (0, 1, 2, 3), initial_coordinates=None):
         self.window = window  # todo: some of this should actually be in an 'app' or 'window' object
 
-        self.Nf = self.window.WRAPPER.get_total_frames_callback()
-        overlay = self.window.WRAPPER.get_overlay_callback()
+        self.Nf = self.window.WRAPPER.get_total_frames()
+        overlay = self.window.WRAPPER.get_overlay()
         self.frame_number = int(self.Nf/2)
-        image = self.window.WRAPPER.get_raw_frame_callback(self.frame_number)
+        image = self.window.WRAPPER.get_raw_frame(self.frame_number)
 
         self.shape = image.shape
 
@@ -489,7 +489,7 @@ class ImageDisplay:
             image,
             overlay,
             self.scaled_shape,
-            self.window.WRAPPER.estimate_transform_callback,
+            self.window.WRAPPER.estimate_transform,
             self.__ratio__,
             order,
             self.frame_number
@@ -547,7 +547,7 @@ class TransformImage:
     def get_new_transform(self, from_coordinates):  # todo: don't need order here?
         """Recalculate transform and show overlay.
         """
-        self.canvas._root().WRAPPER.estimate_transform_callback(
+        self.canvas._root().WRAPPER.estimate_transform(
             np.float32(from_coordinates) / self.__ratio__
         )
 
@@ -565,8 +565,8 @@ class TransformImage:
         """
         y, x, c = self.overlay.shape
 
-        self.image = self.canvas._root().WRAPPER.overlay_frame_callback(
-            self.canvas._root().WRAPPER.transform_callback(self.original)
+        self.image = self.canvas._root().WRAPPER.overlay_frame(
+            self.canvas._root().WRAPPER.transform(self.original)
         )
 
         height, width, channels = self.overlay.shape
@@ -632,9 +632,9 @@ class ColorPicker:
         self.coo = None
 
         self.FN = 1
-        image = self.WRAPPER.mask_callback(self.WRAPPER.get_frame_callback(self.FN))
+        image = self.WRAPPER.mask(self.WRAPPER.get_frame(self.FN))
 
-        self.filter = self.WRAPPER.get_filter_callback()
+        self.filter = self.WRAPPER.get_filter_parameters()
 
         self.im_masked = None
         self.im_filtered = None
@@ -659,7 +659,7 @@ class ColorPicker:
         self.slider = tk.Scale(
             self.window,
             from_=1,
-            to=self.WRAPPER.get_total_frames_callback(),
+            to=self.WRAPPER.get_total_frames(),
             orient=tk.HORIZONTAL,
             command=self.track,
             length=self.__width__,
@@ -680,9 +680,9 @@ class ColorPicker:
     def update(self):
         """Update UI
         """
-        frame = self.WRAPPER.get_frame_callback(self.FN)
-        masked = self.WRAPPER.mask_callback(frame)
-        filtered = self.WRAPPER.filter_callback(masked)
+        frame = self.WRAPPER.get_frame(self.FN)
+        masked = self.WRAPPER.mask(frame)
+        filtered = self.WRAPPER.filter(masked)
 
         self.im_masked = hsvimg2tk(masked, ratio=self.__ratio__)
         self.im_filtered = binimg2tk(filtered, ratio=self.__ratio__)
@@ -707,7 +707,7 @@ class ColorPicker:
         self.filter.update(
             {'color': self.masked[self.coo.y, self.coo.x]}
         )
-        self.filter = self.WRAPPER.set_filter_callback(self.filter)
+        self.filter = self.WRAPPER.set_filter_parameters(self.filter)
         self.update()
 
     def track(self, value):
@@ -761,14 +761,14 @@ class ProgressWindow(ScriptWindow):
     def __init__(self, WRAPPER):
         ScriptWindow.__init__(self)
         self.WRAPPER = WRAPPER
-        self.title(self.WRAPPER.get_name_callback())
+        self.title(self.WRAPPER.get_name())
 
         self.canvas_height = self.__ratio__ * __monitor_h__
 
-        frame = self.WRAPPER.get_raw_frame_callback(0)
-        state = self.WRAPPER.get_frame_callback(0)
+        frame = self.WRAPPER.get_raw_frame(0)
+        state = self.WRAPPER.get_frame(0)
 
-        self.colors = self.WRAPPER.get_colors_callback()[0]  # We assume that there's only one featureset for now
+        self.colors = self.WRAPPER.get_colors()[0]  # We assume that there's only one featureset for now
         self.mask_names = self.WRAPPER.get_mask_names()
         self.t = []
 
@@ -777,7 +777,7 @@ class ProgressWindow(ScriptWindow):
         self.__processed__ = state.shape[1] * \
                              self.canvas_height / state.shape[0]
 
-        self.tmax = self.WRAPPER.get_total_frames_callback() / self.WRAPPER.get_fps_callback()
+        self.tmax = self.WRAPPER.get_total_frames() / self.WRAPPER.get_fps()
         self.t0 = time.time()
 
         self.img = None
@@ -869,8 +869,8 @@ class ProgressWindow(ScriptWindow):
             elapsed = time.time() - self.t0
 
             areas = np.transpose(areas) / (
-                    self.WRAPPER.get_dpi_callback() / 25.4
-            ) ** 2 * self.WRAPPER.get_h_callback()
+                    self.WRAPPER.get_dpi() / 25.4
+            ) ** 2 * self.WRAPPER.get_h()
             # todo: do this at the VideoAnalyzer level!
 
             self.ax.clear()
