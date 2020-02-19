@@ -21,9 +21,12 @@ import og.app
 from isimple.core.util import restrict, rotations
 import isimple.core.meta as metadata
 
-
-__monitor_w__ = min(m.width for m in screeninfo.get_monitors())
-__monitor_h__ = min(m.height for m in screeninfo.get_monitors())
+try:
+    __monitor_w__ = min(m.width for m in screeninfo.get_monitors())
+    __monitor_h__ = min(m.height for m in screeninfo.get_monitors())
+except ValueError:
+    __monitor_w__ = 0
+    __monitor_h__ = 0
 
 __coo__ = namedtuple('Coordinate', 'x y')
 __ratio__ = 0.6  # some kind of magic number?
