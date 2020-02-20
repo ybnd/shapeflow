@@ -3,11 +3,13 @@ import sys
 import os
 import numpy as np
 import time
+import copy
 import threading
+import hashlib
 from contextlib import contextmanager
 import functools
 import warnings
-from typing import Any, Optional, List
+from typing import Any, Optional, List, Callable, Type
 
 from isimple.core.util import describe_function
 from isimple.core.meta import EnforcedStr, Factory
@@ -27,14 +29,15 @@ class CacheAccessError(RootException):
     msg = 'Trying to access cache out of context'
 
 
-class BackendInstance(object):  # todo: more descriptive name, and probably shouldn't be in video
+class BackendInstance(object):
+    _config: dict
     __default__: dict = {  # EnforcedStr instances should be instantiated without
     }                #  arguments, otherwise there may be two defaults!
 
     __attributes__: List[str]
 
-    # todo: interface with isimple.meta
-    # todo: define legal values for strings so config can be validated at this level
+    # todo: interface with isimple.core.meta
+    #  define legal values for strings in isimple.core.meta
 
     def __init__(self, config):
         self._config = self._configure(config)
@@ -81,7 +84,7 @@ class BackendInstance(object):  # todo: more descriptive name, and probably shou
                 # Get mapped class
                 _config[key] = _config[key].get()  # type: ignore
 
-        return _config
+        return copy.deepcopy(_config)  # Each instance should have a *copy* of the config, not references to the actual values
 
     def __getattr__(self, item):
         """Get attribute value from self._config  
@@ -98,15 +101,13 @@ class BackendInstance(object):  # todo: more descriptive name, and probably shou
     def __len__(self):
         pass # todo: this is a workaround, PyCharm debugger keeps polling __len__ for some reason
 
-    def __call__(self, frame: np.ndarray) -> np.ndarray:
-        raise NotImplementedError
-
 
 class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cache: e.g. 2 GB in-memory, 4GB on-disk, finally the actual video
     """Interface to diskcache.Cache
     """
     _cache: Optional[diskcache.Cache]
     _background: Optional[threading.Thread]
+    _background_task: Callable
 
     do_cache: bool
     do_background: bool
@@ -133,32 +134,31 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
         self._cache = None
         self._background = None
 
-    @functools.lru_cache(maxsize=1000)
-    def _get_key(self, method, *args) -> int:
-        # key should be instance-independent to handle multithreading
-        #  and caching between application runs
-        #  i.e. hash __name__ instead of bound method
-        return hash((describe_function(method), *args))
+    def _get_key(self, method, *args) -> str:
+        # Key should be instance-independent to handle multithreading
+        #  and caching between application runs.
+        # Hashing the string is a significant performance hit.
+        return f"{describe_function(method)}:{args}"
 
-    def _to_cache(self, key: int, value: Any):
+    def _to_cache(self, key: str, value: Any):
         assert self._cache is not None, CacheAccessError
         self._cache.set(key, value)
 
-    def _from_cache(self, key: int) -> Optional[Any]:
+    def _from_cache(self, key: str) -> Optional[Any]:  # todo: implement memory/disk cache waterfall, maybe?
         assert self._cache is not None, CacheAccessError
         return self._cache.get(key)
 
-    def _block(self, key: int):
+    def _block(self, key: str):
         assert self._cache is not None, CacheAccessError
         self._cache.set(key, self._BLOCKED)
 
-    def _is_blocked(self, key: int) -> bool:
+    def _is_blocked(self, key: str) -> bool:
         assert self._cache is not None, CacheAccessError
         return key in self._cache \
                and isinstance(self._cache[key], str) \
                and self._from_cache(key) == self._BLOCKED
 
-    def _drop(self, key: int):
+    def _drop(self, key: str):
         assert self._cache is not None, CacheAccessError
         del self._cache[key]
 
@@ -231,6 +231,27 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
             self.__exit__(*sys.exc_info())
 
 
+class DynamicHandler(object):  # todo: implementations of CachingBackendInstance in `_implementation` will not be found by `_gather_instances`
+    """
+    """
+
+    _implementation: object
+    _implementation_factory = Factory
+    _implementation_class = object  # actually, it's type, but that doesn't fly with MyPy for some reason
+
+    def set_implementation(self, implementation: str) -> str:
+        impl_type: type = self._implementation_factory(implementation).get()
+        assert issubclass(impl_type, self._implementation_class)
+
+        self._implementation = impl_type()
+        return self._implementation_factory.get_str(
+            self._implementation.__class__
+        )
+
+    def get_implementation(self) -> str:
+        return self._implementation.__class__.__qualname__
+
+
 class BackendManager(BackendInstance, Manager):  # todo: naming :(
     _instances: List[BackendInstance]
     _instance_class = BackendInstance  #type: ignore
@@ -243,14 +264,17 @@ class BackendManager(BackendInstance, Manager):  # todo: naming :(
         """Caching contest on VideoAnalysis: propagate context to
             every contained BackendElement that implements caching
         """
-        caching_elements = [
+        caching_instances = [
             e for e in self._instances if
             isinstance(e, CachingBackendInstance)
         ]
         try:
-            for element in caching_elements:
+            for element in caching_instances:
                 element.__enter__()
             yield self
         finally:
-            for element in caching_elements:
+            for element in caching_instances:
                 element.__exit__(*sys.exc_info())
+
+    def save_config(self):
+        raise NotImplementedError

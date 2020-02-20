@@ -2,6 +2,7 @@ import abc
 import re
 from typing import Tuple, Any, Optional, List, Type, Generator, Union, Callable
 import os
+import functools
 
 import numpy as np
 import cv2
@@ -12,7 +13,7 @@ from OnionSVG import OnionSVG, check_svg
 
 from isimple.core.util import *
 from isimple.core.common import Manager
-from isimple.core.backend import BackendInstance, CachingBackendInstance, BackendManager, BackendSetupError
+from isimple.core.backend import BackendInstance, CachingBackendInstance, DynamicHandler, BackendManager, BackendSetupError
 from isimple.core.features import Feature, FeatureSet
 from isimple.core.meta import Factory, ColorSpace, FrameIntervalSetting
 
@@ -32,10 +33,13 @@ class VideoFileTypeError(BackendSetupError):
 class VideoFileHandler(CachingBackendInstance):
     """Interface to video files ~ OpenCV
     """
+    _requested_frames: List[int]
+
     colorspace: str
 
     __default__ = {
-        'colorspace': ColorSpace('hsv'),
+        'colorspace': ColorSpace('hsv'),    # The colorspace at which to output images  todo: should do everything in HSV by default for clarity
+        'do_resolve': True,                 # Whether to resolve frame numbers to the nearest requested frame number, if specified
     }
 
     def __init__(self, video_path, config: dict = None):
@@ -60,20 +64,47 @@ class VideoFileHandler(CachingBackendInstance):
         if self.frame_count == 0:
             raise VideoFileTypeError
 
-    def _set_position(self, frame_number: int):  # todo: add a mechanism to restrict the frame_number to a limited number of options -- take the nearest 'legal' one -> fill out the cache during seeking before the actual analysis. This will make seeking slower though..
+    def set_requested_frames(self, allowed_frames: List[int]) -> None:
+        """Add a list of requested frames.
+            Used to determine which frames to cache in the background and
+            in `_resolve_frame`
+        """
+        self._requested_frames = allowed_frames
+
+    def _resolve_frame(self, frame_number: int) -> int:
+        """Resolve a frame_number to the nearest requested frame number
+            This is used to limit the polled frames to the
+            frames that are to be cached or are cached already.
+        """
+        if hasattr(self, '_allowed_frames'):
+            return min(
+                self._requested_frames,
+                key=lambda x:abs(x - frame_number)
+            )
+        else:
+            return frame_number
+
+    def _set_position(self, frame_number: int):
+        """Set the position of the OpenCV VideoCapture.
+        """
         self._capture.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
         self._get_position()
 
     def _get_position(self) -> int:
+        """Get the position of the OpenCV VideoCapture.
+            Due to some internal workings of OpenCV, the actual position the
+            capture object ends up at may differ from the requested position.
+        """
         self.frame_number = self._capture.get(cv2.CAP_PROP_POS_FRAMES)
         return self.frame_number
 
-    def _read_frame(self, path: str, frame_number: int) -> np.ndarray:
+    def _read_frame(self, _: str, frame_number: int) -> np.ndarray:
         """Read frame from video file, HSV color space
-            the `path` parameter is included to determine the cache key
-            in order to make this function cachable across multiple files.
+            the `_` parameter is a placeholder for the (unused) path of the
+            video file, which is used to make the cache key in order to make
+            this function cachable across multiple files.
         """
-        self._set_position(frame_number)
+        self._set_position(frame_number)  # todo: check if it's a problem for multiple cv2.VideoCapture instances to read from the same file at the same time (case of background caching while seeking in the video)
         ret, frame = self._capture.read()
 
         if ret:
@@ -86,38 +117,30 @@ class VideoFileHandler(CachingBackendInstance):
     def get_total_frames(self) -> int:
         return self.frame_count
 
-    @backend.expose(backend.get_raw_frame)
-    def read_frame(self, frame_number: int) -> Optional[np.ndarray]:
-        return self._cached_call(self._read_frame, self.path, frame_number)
-
     @backend.expose(backend.get_time)
     def get_time(self, frame_number: int) -> float:
-        return frame_number / self.fps
+        return self._resolve_frame(frame_number) / self.fps
 
     @backend.expose(backend.get_fps)
     def get_fps(self) -> float:
         return self.fps
+
+    @backend.expose(backend.get_raw_frame)
+    def read_frame(self, frame_number: int) -> Optional[np.ndarray]:
+        """Wrapper for `_read_frame`.
+            Enables caching (if in a caching context!) and provides the video
+            file's path to determine the cache key.
+        """
+        if self.do_resolve:
+            return self._cached_call(self._read_frame, self.path, self._resolve_frame(frame_number))
+        else:
+            return self._cached_call(self._read_frame, self.path, frame_number)
 
 
 class VideoHandlerType(Factory):
     _mapping = {
         'opencv':   VideoFileHandler,
     }
-
-
-class DynamicHandler(object):
-    _implementation: object
-    _implementation_factory = Factory
-    _implementation_class = object
-
-    def set_implementation(self, implementation: str) -> str:
-        impl_type: type = self._implementation_factory(implementation).get()
-        assert issubclass(impl_type, self._implementation_class)
-
-        self._implementation = impl_type()
-        return self._implementation_factory.get_str(
-            self._implementation.__class__
-        )
 
 
 class TransformInterface(abc.ABC):
@@ -138,22 +161,6 @@ class TransformInterface(abc.ABC):
     @abc.abstractmethod
     def inverse_transform(self, img: np.ndarray, transform: np.ndarray, shape: tuple):
         raise NotImplementedError
-
-
-class IdentityTransform(TransformInterface):
-    """Looks like a Transform, but doesn't transform
-    """
-    def validate(self, transform):
-        return True
-
-    def estimate(self, coordinates: list, shape: tuple) -> np.ndarray:
-        return np.eye(3)
-
-    def transform(self, img: np.ndarray, transform: np.ndarray, shape: tuple) -> np.ndarray:
-        return img
-
-    def inverse_transform(self, img: np.ndarray, transform: np.ndarray, shape: tuple):
-        return img
 
 
 class PerspectiveTransform(TransformInterface):
@@ -187,7 +194,6 @@ class PerspectiveTransform(TransformInterface):
 class TransformType(Factory):
     _mapping = {
         'perspective': PerspectiveTransform,
-        'identity': IdentityTransform,
     }
 
 
@@ -221,6 +227,7 @@ class TransformHandler(BackendInstance, DynamicHandler):
 
     @backend.expose(backend.set_transform_implementation)
     def set_implementation(self, implementation: str) -> str:
+        # If there's ever any method to set additional transform options, this method/endpoint can be merged into that
         return super(TransformHandler, self).set_implementation(implementation)
 
     def set(self, transform: np.ndarray):
@@ -275,8 +282,8 @@ class HsvRangeFilter(FilterInterface):  # todo: may be better to **wrap** this i
     """
     default = {  # todo: may be better to make it an implementation-specific namedtuple; use that for validation/normalization also
             'hue_radius': 10,               # Radius to determine range from one color
-            'sat_window': [50, 255],
-            'val_window': [50, 255],
+            'sat_window': [50, 255],        # todo: Henry mentioned darker colors not filtering well -- this is due to these hard-coded windows
+            'val_window': [50, 255],        #  Should be replaced with a `sat_radius` & `val_radius` and should be tweakable from the GUI
             'c0': [90, 50, 50],             # Start of filtering range (in HSV space)
             'c1': [110, 255, 255],          # End of filtering range (in HSV space)
         }
@@ -298,7 +305,9 @@ class HsvRangeFilter(FilterInterface):  # todo: may be better to **wrap** this i
 
     def mean_color(self, filter) -> list:
         # todo: S and V are arbitrary for now
-        return list([np.mean([filter['c0'][0], filter['c1'][0]]), 255, 200])
+        if 'hue' not in filter:
+            filter['hue'] = np.mean([filter['c0'][0], filter['c1'][0]])
+        return list([filter['hue'], 255, 200])
 
     def filter(self, img: np.ndarray, filter) -> np.ndarray:
         return cv2.inRange(img, np.float32(filter['c0']), np.float32(filter['c1']), img)
@@ -628,7 +637,7 @@ class VideoAnalyzer(BackendManager):
         self._gather_instances()
 
     @timing
-    def launch(self) -> object:
+    def launch(self):
         # todo: better sanity check -- are we already launched maybe?
         video_path = self._args['video_path']
         design_path = self._args['design_path']
@@ -636,22 +645,22 @@ class VideoAnalyzer(BackendManager):
 
         if video_path is not None and design_path is not None:
             self.video = self.video_type(video_path, config)
+            self.video.set_requested_frames(list(self.frame_numbers()))
             self.design = self.design_type(design_path, config)
             self.transform = TransformHandler(self.design.shape, config)
             self.masks = self.design.masks
             self.filters = [mask.filter for mask in self.masks]
 
             self._gather_instances()  # todo: annoying that we have to call this one explicilty, but doing it at super.__init__ makes it less dynamic
-
-            self._featuresets = [
-                FeatureSet(
-                    tuple(feature.get()(mask) for mask in self.design.masks)
-                ) for feature in self.features
-            ]
-
-            return self
         else:
             raise ValueError("Either the video or the design wasn't provided")  # todo: make error message more specific
+
+    def _get_featuresets(self):
+        self._featuresets = [
+            FeatureSet(
+                tuple(feature.get()(mask) for mask in self.design.masks)
+            ) for feature in self.features
+        ]
 
     def connect(self, gui: Manager):
         # todo: sanity checks
@@ -748,11 +757,12 @@ class VideoAnalyzer(BackendManager):
         update_callback(
             self.video.get_time(frame_number),
             V, # todo: this is per feature in each feature set; maybe better as dict instead of list of lists?
-            S,
+            S,     # todo: keep values (in order to save them)
             frame
         )
 
     def analyze(self):
+        self._get_featuresets()
         if self._gui is not None:
             update_callback = self._gui.get(gui.update_progresswindow)
             self._gui.get(gui.open_progresswindow)()

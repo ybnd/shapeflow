@@ -707,6 +707,7 @@ class ColorPicker:
         """Pick a colour
         """
         self.coo = __coo__(x=event.x, y=event.y)
+        self.filter = self.WRAPPER.get_filter_parameters()
         self.filter.update(
             {'color': self.masked[self.coo.y, self.coo.x]}
         )

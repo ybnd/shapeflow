@@ -190,9 +190,6 @@ class Manager(object):
         for instance in [self] + instances:
             self._add_instance(instance)
 
-        for k,v in self._instance_mapping.items():
-            self._instance_mapping[k] = list(set(v))  # todo: eliminate this!
-
         self._instances = instances
 
     def _add_instance(self, instance: object):
@@ -217,8 +214,6 @@ class Manager(object):
                             if value not in self._instance_mapping[endpoint]:
                                 self._instance_mapping[endpoint].append(value)
 
-            for k, v in self._instance_mapping.items():
-                self._instance_mapping[k] = list(set(v))  # todo: eliminate this!
         else:
             pass
 

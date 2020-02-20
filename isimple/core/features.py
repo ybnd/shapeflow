@@ -58,25 +58,34 @@ class Feature(abc.ABC):
 
 class FeatureSet(object):
     _features: Tuple[Feature, ...]
-    _colors: Tuple[np.ndarray, ...]
+    _colors: Tuple[tuple, ...]
 
     def __init__(self, features: Tuple[Feature, ...]):
         self._features = features
-        self._colors = self.get_colors()
 
-    def get_colors(self) -> Tuple[np.ndarray, ...]:
+    def get_colors(self) -> Tuple[tuple, ...]:
         if not hasattr(self, '_colors'):
-            # Get guideline colors for all features
-            colors = tuple([f._guideline_color() for f in self._features])
+            guideline_colors = [f._guideline_color() for f in self._features]
+            colors: list = []
 
-            # todo: dodge colors
+            # For all features in the FeatureSet
+            for feature, color in zip(self._features, guideline_colors):
+                # Dodge the other colors by hue
+                tolerance = 15
+                increment = 60  # todo: should be set *after* the number of repititions is determined
+                repetition = 0
+                for registered_color in colors:
+                    if abs(float(color[0]) - float(registered_color[0])) < tolerance:
+                        repetition += 1
 
-            # Set the _color for all features
-            for feature, color in zip(self._features, colors):
+                color = (color[0], 220, 255 - repetition * increment)
+
                 feature._color = color
+                colors.append(color)
 
-            self._colors = colors
-        else:
-            colors = self._colors
+            self._colors = tuple(colors)
+        return self.colors
 
-        return colors
+    @property
+    def colors(self) -> Tuple[tuple, ...]:
+        return self._colors

@@ -11,14 +11,14 @@ def analysis(video = None, design = None, config = None):
     backend = VideoAnalyzer(video, design, config)
     VideoAnalyzerGui(backend)
 
+    # Open setup window to gather arguments if necessary
+    if video is None or design is None:
+        backend.configure()  # todo: make sure that this waits on the window (was implemented in ScriptWindow iirc?)
+
+    # Once we have all arguments, launch the backend
+    backend.launch()
+
     with backend.caching():
-        # Open setup window to gather arguments if necessary
-        if video is None or design is None:
-            backend.configure()  # todo: make sure that this waits on the window (was implemented in ScriptWindow iirc?)
-
-        # Once we have all arguments, launch the backend
-        backend.launch()
-
         # Open alignment window
         backend.align()  # todo: make sure that this waits on the window (was implemented in ScriptWindow iirc?)
         for i, _ in enumerate(backend.masks):
