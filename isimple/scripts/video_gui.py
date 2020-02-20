@@ -132,8 +132,6 @@ class FileSelectWindow(isimple.HistoryApp):
 
 
 if __name__ == '__main__':
-    isimple.update()
-
     fs = FileSelectWindow()
     v, d, t, h = fs.output
     demo(v, d, t, h)

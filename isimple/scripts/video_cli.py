@@ -18,8 +18,6 @@ parser.add_argument(
 )
 
 if __name__ == '__main__':
-    isimple.update()
-
     args = parser.parse_args()
     # todo: if no arguments passed, maybe just call video_gui.py
     demo(args.video, args.design, args.dt, args.hc)
