@@ -1,0 +1,3 @@
+url: https://github.com/ybnd/isimple
+name: isimple
+setup: scripts/setup_cairo_windows.py

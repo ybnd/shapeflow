@@ -25,3 +25,4 @@ openpyxl
 pyyaml
 GitPython
 scipy
+dulwich
