@@ -12,20 +12,25 @@ if os.name == 'nt':  # If running on Windows
     
     with ZipFile('cairo.zip', 'r') as z:
         z.extractall()
-        
-    # Check whether running from a 64- or a 32-bit Python installation
-    if sys.maxsize > 2**32:
-        # 64-bit Python
-        cairo = glob.glob('cairo*/lib/x64/cairo*')
-    else:
-        # 32-bit Python
-        cairo = glob.glob('cairo*/lib/x86/cairo*')
-        
+
     # Move cairo files to the /Scripts/ folder in the virtual environment
-    for file in cairo:
+    for file in glob.glob('cairo*/lib/x64/cairo*'):
         shutil.move(file, "$environment/Scripts/")
-        
+
+    try:
+        import cairocffi
+    except OSError:
+        for file in glob.glob('$environment/Scripts/cairo*'):
+            os.remove(file)
+
+        for file in glob.glob('cairo*/lib/x86/cairo*'):
+            shutil.move(file, "$environment/Scripts/")
+
+        try:
+            import cairocffi
+        except OSError:
+            raise OSError('Could not load cairo from the virtual environment.')
+
     # Delete the rest of the cairo files
     os.remove('cairo.zip')
     shutil.rmtree(glob.glob('cairo*')[0])
-
