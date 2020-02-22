@@ -18,7 +18,7 @@ if os.name == 'nt':  # If running on Windows
         shutil.move(file, "$environment/Scripts/")
 
     try:
-        import cairocffi
+        import cairocffi    # todo: this doesn't seem to work from the actual script, but after the script has run, cairocffi can be imported. Check ~ subprocess.check_call?
     except OSError:
         for file in glob.glob('$environment/Scripts/cairo*'):
             os.remove(file)
@@ -34,3 +34,10 @@ if os.name == 'nt':  # If running on Windows
     # Delete the rest of the cairo files
     os.remove('cairo.zip')
     shutil.rmtree(glob.glob('cairo*')[0])
+
+    # Hide dotfiles
+    os.mkdir('.render')
+    os.mkdir('.cache')
+
+    for file in glob.glob('.*'):
+        os.system('attrib +h ' + file)
