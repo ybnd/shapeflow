@@ -12,7 +12,7 @@ import warnings
 from typing import Any, Optional, List, Callable, Type
 
 from isimple.core.util import describe_function
-from isimple.core.meta import EnforcedStr, Factory
+from isimple.core.config import *
 from isimple.core.common import RootException, SetupError, Manager  # todo: RootException should probably be in a separate file
 from isimple.endpoints import BackendEndpoints
 
@@ -30,20 +30,19 @@ class CacheAccessError(RootException):
 
 
 class BackendInstance(object):
-    _config: dict
-    __default__: dict = {  # EnforcedStr instances should be instantiated without
-    }                #  arguments, otherwise there may be two defaults!
+    _config: BackendInstanceConfig
+    _default = BackendInstanceConfig()
 
     __attributes__: List[str]
 
     # todo: interface with isimple.core.meta
     #  define legal values for strings in isimple.core.meta
 
-    def __init__(self, config):
-        self._config = self._configure(config)
+    def __init__(self, config: Optional[BackendInstanceConfig]):
+        self._configure(config)
         super(BackendInstance, self).__init__()
 
-    def _configure(self, config: dict = None) -> dict:
+    def _configure(self, config: BackendInstanceConfig = None):   # todo: adapt to dataclass implementation
         """Handle a (flat) configuration dict
             - Look through __default__ dict of all classes in __bases__
             - For all of the keys defined in __default__:
@@ -56,50 +55,38 @@ class BackendInstance(object):
         :param config:
         :return:
         """
-        if config is None:
-            config = {}
+        if config is not None:
+        # # Gather default config from all bases
+        # default_config: dict = {}
+        # for base_class in self.__class__.__bases__:
+        #     if hasattr(base_class, '__default__'):
+        #         default_config.update(base_class.__default__)  #type: ignore
+        # default_config.update(self.__default__)
+        #
+        # self.__attributes__ = list(default_config.keys())
+        #
+        # _config = {}
+        # for key, default in default_config.items():
+        #     if key in config:
+        #         if isinstance(default, EnforcedStr):
+        #             # Pass config[key] through EnforcedStr
+        #             _config[key] = default.__class__(config[key])
+        #         else:
+        #             _config[key] = config[key]
+        #     else:
+        #         _config[key] = default
+        #
+        #     # Catch Factory instances, even if it's the default
+        #     if isinstance(_config[key], Factory):
+        #         # Get mapped class
+        #         _config[key] = _config[key].get()  # type: ignore
 
-        # Gather default config from all bases
-        default_config: dict = {}
-        for base_class in self.__class__.__bases__:
-            if hasattr(base_class, '__default__'):
-                default_config.update(base_class.__default__)  #type: ignore
-        default_config.update(self.__default__)
-
-        self.__attributes__ = list(default_config.keys())
-
-        _config = {}
-        for key, default in default_config.items():
-            if key in config:
-                if isinstance(default, EnforcedStr):
-                    # Pass config[key] through EnforcedStr
-                    _config[key] = default.__class__(config[key])
-                else:
-                    _config[key] = config[key]
-            else:
-                _config[key] = default
-
-            # Catch Factory instances, even if it's the default
-            if isinstance(_config[key], Factory):
-                # Get mapped class
-                _config[key] = _config[key].get()  # type: ignore
-
-        return copy.deepcopy(_config)  # Each instance should have a *copy* of the config, not references to the actual values
-
-    def __getattr__(self, item):
-        """Get attribute value from self._config  
-        """
-        if item in self._config.keys():
-            return self._config[item]
+            self._config = copy.deepcopy(config)  # Each instance should have a *copy* of the config, not references to the actual values
         else:
-            raise AttributeError(
-                f"Unexpected attribute '{item}'. "
-                f"{self.__class__.__name__} recognizes the following "
-                f"configuration attributes: {self.__attributes__}"
-            )
+            self._config = copy.deepcopy(self._default)
 
-    def __len__(self):
-        pass # todo: this is a workaround, PyCharm debugger keeps polling __len__ for some reason
+
+__BLOCKED__ = 'BLOCKED'
 
 
 class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cache: e.g. 2 GB in-memory, 4GB on-disk, finally the actual video
@@ -109,26 +96,10 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
     _background: Optional[threading.Thread]
     _background_task: Callable
 
-    do_cache: bool
-    do_background: bool
-    cache_dir: str
-    cache_size_limit: int
-    block_timeout: float
-    cache_consumer: bool
+    _config: CachingBackendInstanceConfig
+    _default = CachingBackendInstanceConfig()
 
-    __default__ = {
-        'do_cache': True,
-        'do_background': False,
-        # True -> start background caching thread along with cache
-        'cache_dir': os.path.join(os.getcwd(), '.cache'),
-        'cache_size_limit': 2 ** 32,  # cache size limit
-        'block_timeout': 1,
-        'cache_consumer': False,
-    }
-
-    _BLOCKED = 'BLOCKED'
-
-    def __init__(self, config):
+    def __init__(self, config: CachingBackendInstanceConfig = None):
         super(CachingBackendInstance, self).__init__(config)
 
         self._cache = None
@@ -150,13 +121,13 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
 
     def _block(self, key: str):
         assert self._cache is not None, CacheAccessError
-        self._cache.set(key, self._BLOCKED)
+        self._cache.set(key, __BLOCKED__)
 
     def _is_blocked(self, key: str) -> bool:
         assert self._cache is not None, CacheAccessError
         return key in self._cache \
                and isinstance(self._cache[key], str) \
-               and self._from_cache(key) == self._BLOCKED
+               and self._from_cache(key) == __BLOCKED__
 
     def _drop(self, key: str):
         assert self._cache is not None, CacheAccessError
@@ -170,18 +141,18 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
             # Check if the file's already cached
             if key in self._cache:
                 t0 = time.time()
-                while self._is_blocked(key) and time.time() < t0 + self.timeout:
+                while self._is_blocked(key) and time.time() < t0 + self._config.block_timeout:
                     # Some other thread is currently reading the same frame
                     # Wait a bit and try to get from cache again
                     time.sleep(0.01)  # todo: DiskCache-level events?
 
                 value = self._from_cache(key)
-                if isinstance(value, str) and value == self._BLOCKED:
+                if isinstance(value, str) and value == __BLOCKED__:
                     warnings.warn('Timed out waiting for blocked value.')
                     return None
                 else:
                     return value
-            if not self.cache_consumer:
+            if not self._config.cache_consumer:
                 # Cache a temporary string to 'block' the key
                 self._block(key)
                 value = method(*args, **kwargs)
@@ -197,18 +168,18 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
             return method(*args, **kwargs)
 
     def __enter__(self):
-        if self.do_cache:
+        if self._config.do_cache:
             self._cache = diskcache.Cache(
-                directory=self.cache_dir,
-                size_limit=self.cache_size_limit,
+                directory=self._config.cache_dir,
+                size_limit=self._config.cache_size_limit,
             )
-            if self.do_background:
+            if self._config.do_background:
                 pass  # todo: can start caching frames in background thread here
 
         return self
 
     def __exit__(self, exc_type, exc_value, tb):
-        if self.do_cache:
+        if self._config.do_cache:
             if self._cache is not None:
                 self._cache.close()
                 self._cache = None
@@ -254,9 +225,9 @@ class DynamicHandler(object):  # todo: implementations of CachingBackendInstance
 
 class BackendManager(BackendInstance, Manager):  # todo: naming :(
     _instances: List[BackendInstance]
-    _instance_class = BackendInstance  #type: ignore
+    _instance_class = BackendInstance
 
-    def __init__(self, config):
+    def __init__(self, config: BackendManagerConfig = None):
         super(BackendManager, self).__init__(config)
 
     @contextmanager
@@ -276,5 +247,5 @@ class BackendManager(BackendInstance, Manager):  # todo: naming :(
             for element in caching_instances:
                 element.__exit__(*sys.exc_info())
 
-    def save_config(self):
+    def save(self):
         raise NotImplementedError

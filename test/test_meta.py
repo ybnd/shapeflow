@@ -2,13 +2,8 @@ import unittest
 
 import numpy as np
 
-from isimple.core.meta import *
-from isimple.core.meta import (
-    __video__, __design__, __height__, __timestep__, __coordinates__,
-    __transform__, __order__, __colors__, __from__, __to__, )
-
-from isimple.video import PixelSum, FilterType, HsvRangeFilter
-from isimple.app import VideoAnalyzer
+from isimple.core.config import *
+from isimple.video import *
 
 __VIDEO__ = 'test.mp4'
 __DESIGN__ = 'test.svg'
@@ -17,16 +12,6 @@ __DESIGN__ = 'test.svg'
 if os.getcwd() == '/home/travis/build/ybnd/isimple':
     __VIDEO__ = 'test/' + __VIDEO__
     __DESIGN__ = 'test/' + __DESIGN__
-
-height = 1e-3
-timestep = 5
-coordinates = [[0,0] for i in range(4)]
-transform = np.eye(3).tolist()
-order = [0,1,2,3]
-
-va = VideoAnalyzer(__VIDEO__, __DESIGN__)
-va.launch()
-masks = va.design._masks
 
 
 class EnforcedStrTest(unittest.TestCase):
@@ -62,71 +47,87 @@ class EnforcedStrTest(unittest.TestCase):
 
         self.assertEqual(1, TestFactory2('').get())
 
-class OgMetaTest(unittest.TestCase):
-    colors: dict
-    meta: dict
 
-    def setUp(cls):
-        cls.colors = {}
-        for m in masks:
-            m.filter_from = np.random.rand(1,3)
-            m.filter_to = np.random.rand(1,3)
-            cls.colors.update({
-                m.name: {
-                    __from__: m.filter_from.tolist(),
-                    __to__: m.filter_to.tolist()
-                }
-            })
+class BackendConfigTest(unittest.TestCase):
+    def test_videoanalyzerconfig(self):
+        vac = VideoAnalyzerConfig(__VIDEO__, __DESIGN__)
 
-        cls.meta = {
-            __video__: __VIDEO__,
-            __design__: __DESIGN__,
-            __height__: height,
-            __timestep__: timestep,
-            __coordinates__: coordinates,
-            __transform__: transform,
-            __order__: order,
-            __colors__: cls.colors
-        }
+        self.assertEqual(__VIDEO__, vac.video_path)
+        self.assertEqual(__DESIGN__, vac.design_path)
+
+        self.assertEqual('dt', vac.frame_interval_setting)
+
+    def test_instantiate_factories(self):
+        vac = VideoAnalyzerConfig(__VIDEO__, __DESIGN__)
+
+        self.assertEqual(FrameIntervalSetting(), vac.frame_interval_setting)
+        self.assertIsInstance(vac.frame_interval_setting, FrameIntervalSetting)
+
+        vac = VideoAnalyzerConfig(__VIDEO__, __DESIGN__, FrameIntervalSetting('dt'))
+        self.assertEqual(FrameIntervalSetting(), vac.frame_interval_setting)
+        self.assertIsInstance(vac.frame_interval_setting, FrameIntervalSetting)
+
+
+__YAML_CONFIG__ = f'''
+video_path: {__VIDEO__}
+design_path: {__DESIGN__}
+frame_interval_setting: dt
+dt: 10.000
+video:
+  do_cache: True
+  do_background: False
+design:
+  do_cache: False
+  do_background: False
+  render_dir: .renders
+transform:
+  type: perspective
+  matrix: [[1,0,100],[0,1,200],[0,0,1]]
+masks:
+  - height: 0.127e-3
+    filter: 
+      type: hsv range
+      filter:
+        hue_radius: 15
+        sat_radius: 50
+        val_radius: 25
+  - height: 0.306e-3
+    filter: 
+      type: hsv range
+      filter: 
+        hue_radius: 30
+features:
+  - pixel sum
+'''
+
+class VideoAnalyzerConfigTest(unittest.TestCase):
+    yaml = 'config.yaml'
+
+    def setUp(self):
+        if os.path.isfile(self.yaml):
+            os.remove(self.yaml)
+
+        with open(self.yaml, 'w+') as f:
+            f.write(__YAML_CONFIG__)
 
     def tearDown(self):
-        pass
-
-    def test_bundle(self):
-        self.assertEqual(
-            self.meta,
-            bundle(
-                __VIDEO__, __DESIGN__, coordinates, transform,
-                order, self.colors, height, timestep
-            )
-        )
-
-    def test_colors_from_masks(self):
-        self.assertEqual(
-            self.colors,
-            colors_from_masks(masks)
-        )
-
-    def test_bundle_readable(self):
-        transformed_keys = [
-            __coordinates__, __transform__, __order__, __colors__
-        ]
-
-        readable = bundle_readable(
-            __VIDEO__, __DESIGN__, coordinates, transform,
-            order, self.colors, height, timestep
-        )
-        for key in self.meta:
-            if key not in transformed_keys:
-                self.assertEqual(self.meta[key], readable[key])
-            else:
-                pass  # don't care for now
-
-    def test_save(self):
-        pass  # skip for now
-
-    def test_save_to_excel(self):
-        pass  # todo: does this work outside of Windows?
+        if os.path.isfile(self.yaml):
+            os.remove(self.yaml)
 
     def test_load(self):
-        pass  # skip for now
+        config = load(self.yaml)
+
+        self.assertEqual(10, config.dt)
+        self.assertEqual(0.153e-3, config.height)
+        self.assertEqual(False, config.design.do_background)
+        self.assertEqual(True, config.video.do_cache)
+        self.assertEqual(0.127e-3, config.masks[0].height)
+
+    def test_dump(self):
+        dump(load(self.yaml), 'temp.yaml')
+
+        with open(self.yaml, 'r') as f:
+            cs = f.read()
+
+        if os.path.isfile('temp.yaml'):
+            os.remove('temp.yaml')

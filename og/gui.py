@@ -19,7 +19,7 @@ from matplotlib.figure import Figure
 import og.app
 
 from isimple.core.util import restrict, rotations
-import isimple.core.meta as metadata
+import isimple.core.config as metadata
 
 try:
     __monitor_w__ = min(m.width for m in screeninfo.get_monitors())

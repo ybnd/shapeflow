@@ -15,7 +15,7 @@ from isimple.core.util import *
 from isimple.core.common import Manager
 from isimple.core.backend import BackendInstance, CachingBackendInstance, DynamicHandler, BackendManager, BackendSetupError
 from isimple.core.features import Feature, FeatureSet
-from isimple.core.meta import Factory, ColorSpace, FrameIntervalSetting
+from isimple.core.config import *
 
 from isimple.maths.images import ckernel, to_mask, crop_mask, area_pixelsum
 
@@ -37,12 +37,10 @@ class VideoFileHandler(CachingBackendInstance):
 
     colorspace: str
 
-    __default__ = {
-        'colorspace': ColorSpace('hsv'),    # The colorspace at which to output images  todo: should do everything in HSV by default for clarity
-        'do_resolve': True,                 # Whether to resolve frame numbers to the nearest requested frame number, if specified
-    }
+    _config: VideoFileHandlerConfig
+    _default = VideoFileHandlerConfig()
 
-    def __init__(self, video_path, config: dict = None):
+    def __init__(self, video_path, config: VideoFileHandlerConfig = None):
         super(VideoFileHandler, self).__init__(config)
 
         if not os.path.isfile(video_path):
@@ -108,9 +106,7 @@ class VideoFileHandler(CachingBackendInstance):
         ret, frame = self._capture.read()
 
         if ret:
-            # Convert to colorspace
-            if self.colorspace == ColorSpace('hsv'):
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV, frame)
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV, frame)
             return frame
 
     @backend.expose(backend.get_total_frames)
@@ -131,16 +127,10 @@ class VideoFileHandler(CachingBackendInstance):
             Enables caching (if in a caching context!) and provides the video
             file's path to determine the cache key.
         """
-        if self.do_resolve:
+        if self._config.do_resolve_frame_number:
             return self._cached_call(self._read_frame, self.path, self._resolve_frame(frame_number))
         else:
             return self._cached_call(self._read_frame, self.path, frame_number)
-
-
-class VideoHandlerType(Factory):
-    _mapping = {
-        'opencv':   VideoFileHandler,
-    }
 
 
 class TransformInterface(abc.ABC):
@@ -191,10 +181,9 @@ class PerspectiveTransform(TransformInterface):
         raise NotImplementedError
 
 
-class TransformType(Factory):
-    _mapping = {
-        'perspective': PerspectiveTransform,
-    }
+TransformType.extend({
+    'perspective': PerspectiveTransform,
+})
 
 
 class TransformHandler(BackendInstance, DynamicHandler):
@@ -209,19 +198,17 @@ class TransformHandler(BackendInstance, DynamicHandler):
 
     transform_matrix: np.ndarray
 
-    __default__ = {
-        'transform_matrix': None,
-        'transform_type': str(TransformType()),
-    }
+    _config: TransformHandlerConfig
+    _default = TransformHandlerConfig()
 
-    def __init__(self, shape, config):
+    def __init__(self, shape, config: TransformHandlerConfig):
         super(TransformHandler, self).__init__(config)
-        self.set_implementation(self.transform_type)
+        self.set_implementation(self._config.type)
         self._shape = shape[0:2]  # Don't include color dimension
 
         self._transform = None
-        if self.transform_matrix is not None:
-            self.set(self.transform_matrix)
+        if self._config.matrix is not None:
+            self.set(self._config.matrix)
         else:
             self.set(self._implementation.default)
 
@@ -262,7 +249,6 @@ class TransformHandler(BackendInstance, DynamicHandler):
 class FilterInterface(abc.ABC):
     """Handles pixel filtering operations
     """
-    default: dict = {}
 
     @abc.abstractmethod
     def set_filter(self, filter: dict) -> dict:
@@ -280,13 +266,6 @@ class FilterInterface(abc.ABC):
 class HsvRangeFilter(FilterInterface):  # todo: may be better to **wrap** this in Filter instead of inheriting from it
     """Filters by a range of hues ~ HSV representation
     """
-    default = {  # todo: may be better to make it an implementation-specific namedtuple; use that for validation/normalization also
-            'hue_radius': 10,               # Radius to determine range from one color
-            'sat_window': [50, 255],        # todo: Henry mentioned darker colors not filtering well -- this is due to these hard-coded windows
-            'val_window': [50, 255],        #  Should be replaced with a `sat_radius` & `val_radius` and should be tweakable from the GUI
-            'c0': [90, 50, 50],             # Start of filtering range (in HSV space)
-            'c1': [110, 255, 255],          # End of filtering range (in HSV space)
-        }
 
     def validate(self, filter):  # todo: may be better to 'normalize' the filter dict -- i.e. replace all fields that weren't found with the defaults
         return all(attr in self.default for attr in filter)
@@ -313,10 +292,9 @@ class HsvRangeFilter(FilterInterface):  # todo: may be better to **wrap** this i
         return cv2.inRange(img, np.float32(filter['c0']), np.float32(filter['c1']), img)
 
 
-class FilterType(Factory):
-    _mapping = {
-        'hsv range':    HsvRangeFilter,
-    }
+FilterType.extend({
+    'hsv range':    HsvRangeFilter,
+})
 
 
 class FilterHandler(BackendInstance, DynamicHandler):
@@ -324,28 +302,25 @@ class FilterHandler(BackendInstance, DynamicHandler):
     _implementation_factory = FilterType
     _implementation_class = FilterInterface
 
-    __default__ = {
-        'filter_type': str(FilterType()),
-        'filter': FilterType().get().default,  #type: ignore
-        'color': list,
-    }
+    _config: FilterHandlerConfig
+    _default = FilterHandlerConfig()
 
-    def __init__(self, config: dict = None):
+    def __init__(self, config: FilterHandlerConfig = None):
         super(FilterHandler, self).__init__(config)
-        self.set_implementation(self.filter_type)
+        self.set_implementation(self._config.type)
 
     @backend.expose(backend.get_filter_mean_color)
     def mean_color(self) -> list:
-        return self._implementation.mean_color(self.filter)
+        return self._implementation.mean_color(self._config.filter.to_dict())
 
     @backend.expose(backend.set_filter_parameters)
     def set_filter(self, filter: dict) -> dict:
-        self._config['filter'] = self._implementation.set_filter(filter)
-        return self.filter
+        self._config.filter = self._implementation.set_filter(filter)
+        return self._config.filter
 
     @backend.expose(backend.get_filter_parameters)
     def get_filter(self) -> dict:
-        return self._config['filter']
+        return self._config.filter.to_dict()
 
     @backend.expose(backend.set_filter_implementation)
     def set_implementation(self, implementation: str) -> str:
@@ -353,7 +328,7 @@ class FilterHandler(BackendInstance, DynamicHandler):
 
     @backend.expose(backend.filter)
     def __call__(self, frame: np.ndarray) -> np.ndarray:
-        return self._implementation.filter(frame, self.filter)
+        return self._implementation.filter(frame, self._config.filter.to_dict())
 
 
 
@@ -363,15 +338,12 @@ class Mask(BackendInstance):
 
     filter: FilterHandler
 
-    render_dir: str
+    _config: MaskConfig
 
-    __default__ = {
-        'h': 153e-6, # height of mask  todo: should probably be set in a different way though...
-        'render_dir': os.path.join(os.getcwd(), '.render'),
-        'filter_type': str(FilterType()),    # class of filter
-    }
+    def __init__(self, mask: np.ndarray, name: str, config: MaskConfig = None, filter: FilterHandler = None):
+        if config is None:
+            config = MaskConfig()
 
-    def __init__(self, mask: np.ndarray, name: str, config: dict = None, filter: FilterHandler = None):
         super(Mask, self).__init__(config)
         self._full = mask
         self.name = name
@@ -381,7 +353,7 @@ class Mask(BackendInstance):
 
         # Each Mask should have its own FilterHandler instance, unless otherwise specified
         if filter is None:
-            filter = FilterHandler(config)
+            filter = FilterHandler(self._config.filter)
             assert isinstance(filter, FilterHandler), BackendSetupError
         self.filter = filter
 
@@ -408,21 +380,10 @@ class DesignFileHandler(CachingBackendInstance):
     _overlay: np.ndarray
     _masks: List[Mask]
 
-    dpi: int
-    render_dir: str
-    keep_renders: bool
-    overlay_alpha: float
-    kernel: np.ndarray
+    _config: DesignFileHandlerConfig
+    _default = DesignFileHandlerConfig()
 
-    __default__ = {
-        'dpi': 400,  # DPI to render .svg at  # todo: actual precision is a function of DPI ~ Transform ~ video resolution
-        'render_dir': os.path.join(os.getcwd(), '.render'),
-        'keep_renders': False,
-        'overlay_alpha': 0.1,
-        'kernel': ckernel(7),       # mask smoothing kernel
-    }
-
-    def __init__(self, path: str, config: dict = None):
+    def __init__(self, path: str, config: DesignFileHandlerConfig = None, mask_config: Tuple[MaskConfig,...] = None):
         super(DesignFileHandler, self).__init__(config)
 
 
@@ -434,36 +395,39 @@ class DesignFileHandler(CachingBackendInstance):
             self._overlay = self.peel_design(path)
             self._shape = (self._overlay.shape[1], self._overlay.shape[0])
 
-            self._masks = [
-                Mask(mask, name, config) for mask, name in zip(*self.read_masks(path))
-            ]
+            self._masks = []
+            for i, (mask, name) in enumerate(zip(*self.read_masks(path))):
+                if mask_config is not None:
+                    self._masks.append(Mask(mask, name, mask_config[i]))
+                else:
+                    self._masks.append(Mask(mask, name))
 
     def _clear_renders(self):
-        renders = [f for f in os.listdir(self.render_dir)]
+        renders = [f for f in os.listdir(self._config.render_dir)]
         for f in renders:
-            os.remove(os.path.join(self.render_dir, f))
+            os.remove(os.path.join(self._config.render_dir, f))
 
     def _peel_design(self, design_path) -> np.ndarray:
 
-        if not os.path.isdir(self.render_dir):
-            os.mkdir(self.render_dir)
+        if not os.path.isdir(self._config.render_dir):
+            os.mkdir(self._config.render_dir)
         else:
             self._clear_renders()
 
         check_svg(design_path)
-        OnionSVG(design_path, dpi=self.dpi).peel(
-            'all', to=self.render_dir  # todo: should maybe prepend file name to avoid overwriting previous renders?
+        OnionSVG(design_path, dpi=self._config.dpi).peel(
+            'all', to=self._config.render_dir  # todo: should maybe prepend file name to avoid overwriting previous renders?
         )
         print("\n")
 
         overlay = cv2.imread(
-            os.path.join(self.render_dir, 'overlay.png')
+            os.path.join(self._config.render_dir, 'overlay.png')
         )
 
         return overlay
 
     def _read_masks(self, _) -> Tuple[List[np.ndarray], List[str]]:
-        files = os.listdir(self.render_dir)
+        files = os.listdir(self._config.render_dir)
         files.remove('overlay.png')
 
         # Catch file names of numbered layers
@@ -475,7 +439,7 @@ class DesignFileHandler(CachingBackendInstance):
 
         for path in files:
             match = pattern.search(os.path.splitext(path)[0])
-            path = os.path.join(self.render_dir, path)
+            path = os.path.join(self._config.render_dir, path)
 
             if match:
                 matched.update(  # numbered layer
@@ -494,7 +458,7 @@ class DesignFileHandler(CachingBackendInstance):
         masks = []
         names = []
         for path in sorted_files:
-            masks.append(to_mask(cv2.imread(path), self.kernel))
+            masks.append(to_mask(cv2.imread(path), self._config.smoothing_kernel))
 
             match = pattern.search(path)
             if match:
@@ -502,7 +466,7 @@ class DesignFileHandler(CachingBackendInstance):
             else:
                 names.append(path)
 
-        if not self.keep_renders:
+        if not self._config.keep_renders:
             self._clear_renders()
 
         return masks, names
@@ -519,7 +483,7 @@ class DesignFileHandler(CachingBackendInstance):
 
     @backend.expose(backend.get_dpi)
     def get_dpi(self) -> float:
-        return self.dpi
+        return self._config.dpi
 
     @backend.expose(backend.get_overlay)
     def overlay(self) -> np.ndarray:
@@ -529,8 +493,8 @@ class DesignFileHandler(CachingBackendInstance):
     def overlay_frame(self, frame: np.ndarray) -> np.ndarray:
         frame = cv2.cvtColor(frame, cv2.COLOR_HSV2BGR)
         frame = cv2.addWeighted(
-            self._overlay, self.overlay_alpha,  # https://stackoverflow.com/questions/54249728/
-            frame, 1 - self.overlay_alpha,
+            self._overlay, self._config.overlay_alpha,  # https://stackoverflow.com/questions/54249728/
+            frame, 1 - self._config.overlay_alpha,
             gamma=0, dst=frame
         )
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
@@ -543,12 +507,6 @@ class DesignFileHandler(CachingBackendInstance):
     @backend.expose(backend.get_mask_names)
     def get_mask_names(self) -> tuple:
         return tuple(mask.name for mask in self._masks)
-
-
-class DesignHandlerType(Factory):
-    _mapping = {
-        'svg':      DesignFileHandler,
-    }
 
 
 def frame_to_none(frame: np.ndarray) -> None:    # todo: this is dumb
@@ -586,10 +544,9 @@ class PixelSum(MaskFilterFunction):
     _function = staticmethod(area_pixelsum)  # todo: would be cleaner if we wouldn't need to have staticmethod here :/
 
 
-class VideoFeatureType(Factory):
-    _mapping = {
-        'pixel_sum':    PixelSum,   # todo: actually, providing the Features as a list instead of using this factory is good in the sense that it allows feature definition at a higher level.
-    }
+VideoFeatureType.extend({
+    'pixel sum':    PixelSum
+})
 
 
 class VideoAnalyzer(BackendManager):
@@ -598,56 +555,33 @@ class VideoAnalyzer(BackendManager):
             * Load mask files
             * Load/save measurement metadata
     """
+    _config: VideoAnalyzerConfig
+    _default = VideoAnalyzerConfig('', '')
     _gui: Optional[Manager]
     _endpoints: BackendEndpoints = backend
 
     video: VideoFileHandler
     design: DesignFileHandler
     transform: TransformHandler
+    features: Tuple[Feature,...]
 
     _featuresets: List[FeatureSet]
 
-    frame_interval_setting: FrameIntervalSetting  # use dt or Nf
-    dt: float                                     # interval in seconds
-    Nf: int                                       # number of evenly spaced frames
-    video_type: Type[VideoFileHandler]
-    design_type: Type[DesignFileHandler]
-    transform_type: Type[TransformHandler]
-
-    __default__ = {
-        'frame_interval_setting':   FrameIntervalSetting(),
-        'dt':                       5.0,
-        'Nf':                       100,
-        'h':                        0.153e-3,
-        'features':              [VideoFeatureType('pixel_sum')],
-        'video_type':               VideoHandlerType(),
-        'design_type':              DesignHandlerType(),
-    }
-
-    _args: dict
-
-    def __init__(self, video_path: str = None, design_path: str = None, config: dict = None):  # todo: add optional feature list to override self._config.features
+    def __init__(self, config: VideoAnalyzerConfig = None):  # todo: add optional feature list to override self._config.features
         super(VideoAnalyzer, self).__init__(config)
-        self._args = ({
-            'video_path': video_path,
-            'design_path': design_path,
-            'config': config
-        })
-
         self._gather_instances()
 
     @timing
     def launch(self):
         # todo: better sanity check -- are we already launched maybe?
-        video_path = self._args['video_path']
-        design_path = self._args['design_path']
-        config = self._args['config']
+        video_path = self._config.video_path
+        design_path = self._config.design_path
 
-        if video_path is not None and design_path is not None:
-            self.video = self.video_type(video_path, config)
+        if os.path.isfile(video_path) and os.path.isfile(design_path):
+            self.video = VideoFileHandler(video_path, self._config.video)
             self.video.set_requested_frames(list(self.frame_numbers()))
-            self.design = self.design_type(design_path, config)
-            self.transform = TransformHandler(self.design.shape, config)
+            self.design = DesignFileHandler(design_path, self._config.design)
+            self.transform = TransformHandler(self.design.shape, self._config.transform)
             self.masks = self.design.masks
             self.filters = [mask.filter for mask in self.masks]
 
@@ -659,7 +593,7 @@ class VideoAnalyzer(BackendManager):
         self._featuresets = [
             FeatureSet(
                 tuple(feature.get()(mask) for mask in self.design.masks)
-            ) for feature in self.features
+            ) for feature in self._config.features
         ]
 
     def connect(self, gui: Manager):
@@ -684,33 +618,32 @@ class VideoAnalyzer(BackendManager):
 
     @backend.expose(backend.get_arguments)
     def get_config(self) -> dict:
-        return self._args
+        return self._config.to_dict()
 
     @backend.expose(backend.get_h)
     def get_h(self) -> float:
-        return self.h
+        return self._config.height
 
-    @backend.expose(backend.set_config)
+    @backend.expose(backend.set_config)  # todo: this is more complex now! Should only write values, not whole config.
     def set_config(self, config: dict) -> None:
-        self._configure(config)  # todo: make sure that this doesn't set the attributes that **aren't** not provided to the defaults!
-        self._args['config'] = config
+        self._configure(VideoAnalyzerConfig(**config))  # todo: make sure that this doesn't set the attributes that **aren't** not provided to the defaults!
 
     @backend.expose(backend.set_video_path)
     def set_video_path(self, video_path: str) -> None:
-        self._args['video_path'] = video_path
+        self._config.video_path = video_path
 
     @backend.expose(backend.set_design_path)
     def set_design_path(self, design_path: str) -> None:
-        self._args['design_path'] = design_path
+        self._config.design_path = design_path
 
     def frame_numbers(self) -> Generator[int, None, None]:
-        if self.frame_interval_setting == FrameIntervalSetting('Nf'):
-            return frame_number_iterator(self.video.frame_count, Nf = self.Nf)
-        elif self.frame_interval_setting == FrameIntervalSetting('dt'):
-            return frame_number_iterator(self.video.frame_count, dt = self.dt, fps = self.video.fps)
+        if self._config.frame_interval_setting == FrameIntervalSetting('Nf'):
+            return frame_number_iterator(self.video.frame_count, Nf = self._config.Nf)
+        elif self._config.frame_interval_setting == FrameIntervalSetting('dt'):
+            return frame_number_iterator(self.video.frame_count, dt = self._config.dt, fps = self.video.fps)
         else:
             raise ValueError(f"Unexpected frame interval setting "
-                             f"{self.frame_interval_setting}")
+                             f"{self._config.frame_interval_setting}")
 
     @backend.expose(backend.get_frame)
     def get_transformed_frame(self, frame_number: int) -> np.ndarray:
@@ -771,6 +704,17 @@ class VideoAnalyzer(BackendManager):
 
         for fn in self.frame_numbers():
             self.calculate(fn, update_callback)
+
+
+    def load_config(self):
+        """Load video analysis configuration
+        """
+        pass
+
+    def save_config(self):
+        """Save video analysis configuration
+        """
+        pass
 
     def save(self):
         """Save video analysis results & metadata
