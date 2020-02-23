@@ -397,12 +397,21 @@ def load(path: str) -> VideoAnalyzerConfig:  # todo: internals should be replace
     return VideoAnalyzerConfig(**d)
 
 
+def _get_dict(config: VideoAnalyzerConfig) -> dict:
+    # Add timestamp & version info
+    d = {
+        'timestamp': datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S.%f'),
+        'version': __version__,
+    }
+    d.update(config.to_dict())
+
+    return d
+
+
 def dump(config: VideoAnalyzerConfig, path:str):
     with open(path, 'w+') as f:
-        # Add timestamp & version info
-        d = {
-            'timestamp': datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S.%f'),
-            'version': __version__,
-        }.update(config.to_dict())
+        yaml.safe_dump(_get_dict(config),f)
+        
 
-        yaml.safe_dump(d,f)
+def dumps(config: VideoAnalyzerConfig) -> str:
+    return yaml.safe_dump(_get_dict(config))

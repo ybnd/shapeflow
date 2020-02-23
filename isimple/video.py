@@ -702,19 +702,34 @@ class VideoAnalyzer(BackendManager):
             self.calculate(fn, update_callback)
 
 
-    def load_config(self):
+    def load_config(self, path: str):
         """Load video analysis configuration
         """
-        pass
+        self._config = load(path)
+        self.launch()
 
-    def save_config(self):
+    def save_config(self, path: str):
         """Save video analysis configuration
         """
-        pass
+        dump(self._gather_config(), path)
+
+    def _gather_config(self) -> VideoAnalyzerConfig:
+        """Gather configuration from instances
+        """
+        self._config.video = self.video._config
+        self._config.design = self.design._config
+        self._config.transform = self.transform._config
+        self._config.masks = tuple(
+            [m._config for m in self.masks]
+        )
+        return self._config
 
     def save(self):
         """Save video analysis results & metadata
         """
+
+        config_yaml =
+
         raise NotImplementedError
 
 
