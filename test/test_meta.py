@@ -86,14 +86,12 @@ masks:
     filter: 
       type: hsv range
       filter:
-        hue_radius: 15
-        sat_radius: 50
-        val_radius: 25
+        radius: (15, 50, 25)
   - height: 0.306e-3
     filter: 
       type: hsv range
       filter: 
-        hue_radius: 30
+        radius: (30, 10, 10)
 features:
   - pixel sum
 '''

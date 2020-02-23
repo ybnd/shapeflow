@@ -454,7 +454,7 @@ class DesignFileHandler(CachingBackendInstance):
         masks = []
         names = []
         for path in sorted_files:
-            masks.append(to_mask(cv2.imread(path), self._config.smoothing_kernel))
+            masks.append(to_mask(cv2.imread(path), ckernel(self._config.smoothing)))
 
             match = pattern.search(path)
             if match:

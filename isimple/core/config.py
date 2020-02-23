@@ -12,12 +12,6 @@ import datetime
 
 from isimple.maths.images import ckernel
 
-# https://stackoverflow.com/questions/16782112
-yaml.add_representer(
-    dict, lambda self,
-    data: yaml.representer.SafeRepresenter.represent_dict(self, data.items())
-)
-
 __version__: str = '0.2'
 
 # Extension
@@ -212,18 +206,21 @@ class Config(abc.ABC):
                 # Assume that `obj` is serializable
                 return obj
 
+
         for attr, val in self.__dict__.items():
-            if isinstance(val, list) or isinstance(val, tuple):
-                output[attr] = []
-                for v in val:
-                    output[attr].append(_represent(v))
-            else:
-                output[attr] = _represent(val)
+            if val is not None:
+                if (isinstance(val, list) or isinstance(val, tuple)) \
+                        and not (attr in ['c0', 'c1', 'radius']):  # Filter out color attributes
+                    output[attr] = []
+                    for v in val:
+                        output[attr].append(_represent(v))
+                else:
+                    output[attr] = _represent(val)
         return output
 
     @staticmethod
     def __ndarray2json__(array: np.ndarray) -> str:
-        return json.dumps(array.tolist())
+        return str(json.dumps(array.tolist()))
 
     @staticmethod
     def __str2ndarray__(string: str) -> np.ndarray:
@@ -290,15 +287,16 @@ class HsvRangeFilterConfig(FilterConfig):
 @dataclass
 class FilterHandlerConfig(BackendInstanceConfig):
     type: Union[FilterType,str] = ''
-    filter: Union[FilterConfig, dict,None] = None
+    filter: Union[FilterConfig,dict,None] = None
 
     def __post_init__(self):
         self.type = self.resolve(self.type, FilterType)
-        self.filter = self.resolve(self.filter, self.type._default.__class__)
+        self.filter = self.resolve(self.filter, self.type.get()._default.__class__)  # todo: something something typing in Factory
 
 
 @dataclass
 class MaskConfig(BackendInstanceConfig):
+    name: Optional[str] = None
     height: Optional[float] = None
     filter: Union[FilterHandlerConfig,dict,None] = None
 
@@ -313,10 +311,7 @@ class DesignFileHandlerConfig(CachingBackendInstanceConfig):
     dpi: int = 400
 
     overlay_alpha: float = 0.1
-    smoothing_kernel: Union[np.ndarray,str] = ckernel(7)
-
-    def __post_init__(self):
-        self.smoothing_kernel = self.resolve(self.smoothing_kernel, np.ndarray)
+    smoothing: int = 7
 
 
 @dataclass
@@ -362,8 +357,16 @@ def load(path: str) -> VideoAnalyzerConfig:  # todo: internals should be replace
             'design_path': d['design'],
             'transform': {'matrix': d['transform']},
             'masks': [
-                {'filter': {'filter': {'c0': m['from'], 'c1': m['to']}}}
-                for m in [json.loads(md) for md in list(d['colors'].values())]
+                {
+                    'name': mk,
+                    'filter': {
+                        'filter': {'c0': mv['from'], 'c1': mv['to']}
+                    }
+                }
+                for mk, mv in zip(
+                    d['colors'].keys(),
+                    [json.loads(mv) for mv in d['colors'].values()]
+                )
             ]
         }
 
@@ -387,8 +390,8 @@ def _get_dict(config: VideoAnalyzerConfig) -> dict:
 
 def dump(config: VideoAnalyzerConfig, path:str):
     with open(path, 'w+') as f:
-        yaml.safe_dump(_get_dict(config),f)
+        yaml.safe_dump(_get_dict(config),f, width=999)
 
 
 def dumps(config: VideoAnalyzerConfig) -> str:
-    return yaml.safe_dump(_get_dict(config))
+    return yaml.safe_dump(_get_dict(config), width=999)
