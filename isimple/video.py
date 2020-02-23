@@ -11,6 +11,7 @@ from isimple.core.common import Manager
 from isimple.core.backend import BackendInstance, CachingBackendInstance, DynamicHandler, BackendManager, BackendSetupError
 from isimple.core.features import Feature, FeatureSet
 from isimple.core.config import *
+from isimple.core.config import Color
 
 from isimple.maths.images import to_mask, crop_mask, area_pixelsum
 
@@ -246,15 +247,15 @@ class FilterInterface(abc.ABC):
     """
 
     @abc.abstractmethod
-    def set_filter(self, filter: dict) -> dict:
+    def set_filter(self, filter, color: Color):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def mean_color(self, filter: dict) -> list:  # todo: add custom np.ndarray type 'hsvcolor'
+    def mean_color(self, filter) -> Color:  # todo: add custom np.ndarray type 'hsvcolor'
         raise NotImplementedError
 
     @abc.abstractmethod
-    def filter(self, image: np.ndarray, filter: dict) -> np.ndarray:  # todo: add custom np.ndarray type 'image'
+    def filter(self, image: np.ndarray, filter) -> np.ndarray:  # todo: add custom np.ndarray type 'image'
         raise NotImplementedError
 
 
@@ -266,26 +267,22 @@ class HsvRangeFilter(FilterInterface):  # todo: may be better to **wrap** this i
     def validate(self, filter):  # todo: may be better to 'normalize' the filter dict -- i.e. replace all fields that weren't found with the defaults
         return all(attr in self._default for attr in filter)
 
-    def set_filter(self, filter: dict) -> dict:
-        filter['hue'] = filter['color'][0]
-
-        filter['c0'] = np.array([
-            filter['hue'] - filter['hue_radius'], filter['sat_window'][0], filter['val_window'][0]
-        ])
-        filter['c1'] = np.array([
-            filter['hue'] + filter['hue_radius'], filter['sat_window'][1], filter['val_window'][1]
-        ])  # todo: plot color was set from here originally, but Filter shouldn't care about that
+    def set_filter(self, filter: HsvRangeFilterConfig, color: Color) -> HsvRangeFilterConfig:
+        c, r = color, filter.radius
+        assert isinstance(r, tuple)
+        filter.c0 = (c[0]-r[0], c[1]-r[1], c[2]-r[2])
+        filter.c1 = (c[0]+r[0], c[1]+r[1], c[2]+r[2])
 
         return filter
 
-    def mean_color(self, filter) -> list:
+    def mean_color(self, filter: HsvRangeFilterConfig) -> Color:
         # todo: S and V are arbitrary for now
-        if 'hue' not in filter:
-            filter['hue'] = np.mean([filter['c0'][0], filter['c1'][0]])
-        return list([filter['hue'], 255, 200])
+        return (float(np.mean([filter.c0[0], filter.c1[0]])), 255.0, 200.0)
 
-    def filter(self, img: np.ndarray, filter) -> np.ndarray:
-        return cv2.inRange(img, np.float32(filter['c0']), np.float32(filter['c1']), img)
+    def filter(self, img: np.ndarray, filter: HsvRangeFilterConfig) -> np.ndarray:
+        return cv2.inRange(
+            img, np.float32(filter.c0), np.float32(filter.c1), img
+        )
 
 
 FilterType.extend({
@@ -306,17 +303,19 @@ class FilterHandler(BackendInstance, DynamicHandler):
         self.set_implementation(self._config.type)
 
     @backend.expose(backend.get_filter_mean_color)
-    def mean_color(self) -> list:
-        return self._implementation.mean_color(self._config.filter.to_dict())
+    def mean_color(self) -> Color:
+        return self._implementation.mean_color(self._config.filter)
 
     @backend.expose(backend.set_filter_parameters)
-    def set_filter(self, filter: dict) -> dict:
-        self._config.filter = self._implementation.set_filter(filter)
+    def set_filter(self, filter: FilterConfig, color: Color) -> FilterConfig:
+        self._config.filter = self._implementation.set_filter(filter, color)
+        assert isinstance(self._config.filter, FilterConfig)
         return self._config.filter
 
     @backend.expose(backend.get_filter_parameters)
-    def get_filter(self) -> dict:
-        return self._config.filter.to_dict()
+    def get_filter(self) -> FilterConfig:
+        assert isinstance(self._config.filter, FilterConfig)
+        return self._config.filter
 
     @backend.expose(backend.set_filter_implementation)
     def set_implementation(self, implementation: str) -> str:
@@ -324,6 +323,7 @@ class FilterHandler(BackendInstance, DynamicHandler):
 
     @backend.expose(backend.filter)
     def __call__(self, frame: np.ndarray) -> np.ndarray:
+        assert isinstance(self._config.filter, FilterConfig)
         return self._implementation.filter(frame, self._config.filter.to_dict())
 
 
@@ -349,6 +349,8 @@ class Mask(BackendInstance):
 
         # Each Mask should have its own FilterHandler instance, unless otherwise specified
         if filter is None:
+            if self._config.filter is not None:
+                assert isinstance(self._config.filter, FilterHandlerConfig)
             filter = FilterHandler(self._config.filter)
             assert isinstance(filter, FilterHandler), BackendSetupError
         self.filter = filter
@@ -359,10 +361,8 @@ class Mask(BackendInstance):
             Writes to the provided variable!
             If caller needs the original value, they should copy explicitly
         """
-
         img = self._crop(img)
         return cv2.bitwise_and(img, img, mask=self._part)
-
 
     def _crop(self, img: np.ndarray) -> np.ndarray:
         """Crop an image to fit self._part
@@ -654,7 +654,7 @@ class VideoAnalyzer(BackendManager):
         return self.design.overlay_frame(self.get_transformed_frame(frame_number))
 
     @backend.expose(backend.get_colors)  # todo: per feature in each feature set; maybe better as a dict instead of a list of tuples?
-    def get_colors(self) -> List[tuple]:
+    def get_colors(self) -> List[Tuple[Color,...]]:
         return [featureset.get_colors() for featureset in self._featuresets]
 
     def calculate(self, frame_number: int, update_callback: Callable):

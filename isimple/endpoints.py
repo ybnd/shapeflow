@@ -1,7 +1,8 @@
-from typing import Dict, Optional, List, Callable, Tuple
+from typing import Dict, Optional, List, Callable, Tuple, Type
 import numpy as np
 
 from isimple.core.common import ImmutableRegistry, Endpoint
+from isimple.core.config import Color, FilterConfig
 
 class BackendEndpoints(ImmutableRegistry):  # todo: confusing naming
     get_arguments = Endpoint(Callable[[], dict])
@@ -17,9 +18,9 @@ class BackendEndpoints(ImmutableRegistry):  # todo: confusing naming
     get_mask_name = Endpoint(Callable[[int], str])
     get_mask_names = Endpoint(Callable[[], tuple])
     set_filter_implementation = Endpoint(Callable[[str], str])
-    set_filter_parameters = Endpoint(Callable[[dict], dict])
-    get_filter_parameters = Endpoint(Callable[[], dict])
-    get_filter_mean_color = Endpoint(Callable[[], list])
+    set_filter_parameters = Endpoint(Callable[[FilterConfig, Tuple[float,float,float]], FilterConfig])
+    get_filter_parameters = Endpoint(Callable[[], FilterConfig])
+    get_filter_mean_color = Endpoint(Callable[[], Tuple[float,float,float]])
     get_overlay = Endpoint(Callable[[], np.ndarray])
     get_frame = Endpoint(Callable[[int], np.ndarray])
     get_masked_frame = Endpoint(Callable[[int], np.ndarray])
@@ -30,7 +31,7 @@ class BackendEndpoints(ImmutableRegistry):  # todo: confusing naming
     overlay_frame = Endpoint(Callable[[np.ndarray], np.ndarray])
     get_overlaid_frame = Endpoint(Callable[[int], np.ndarray])
     get_inverse_transformed_overlay = Endpoint(Callable[[], np.ndarray])
-    get_colors = Endpoint(Callable[[], List[tuple]])
+    get_colors = Endpoint(Callable[[], List[Tuple[Tuple[float,float,float],...]]])
     get_time = Endpoint(Callable[[int], float])
     get_fps = Endpoint(Callable[[], float])
     get_h = Endpoint(Callable[[], float])

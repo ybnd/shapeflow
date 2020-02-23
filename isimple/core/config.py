@@ -27,6 +27,9 @@ __ext__ = '.meta'
 __meta_sheet__ = 'metadata'
 
 
+Color = Tuple[float, float, float]
+
+
 class EnforcedStr(object):
     _options: List[str] = ['']
     _str: str
@@ -297,12 +300,10 @@ class FilterConfig(Config):
 
 @dataclass
 class HsvRangeFilterConfig(FilterConfig):
-    hue_radius: float = 10
-    sat_radius: float = 75
-    val_radius: float = 75
+    radius: Union[Color, str] = (10, 50, 50)
 
-    c0: Union[tuple, str] = (0,0,0)
-    c1: Union[tuple, str] = (0,0,0)
+    c0: Union[Color, str] = (0,0,0)
+    c1: Union[Color, str] = (0,0,0)
 
     def __post_init__(self):
         self.c0 = self.resolve(self.c0, tuple)

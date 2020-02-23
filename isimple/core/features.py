@@ -3,6 +3,7 @@ import abc
 from typing import Tuple, Any, Optional
 
 from isimple.core.backend import BackendInstance
+from isimple.core.config import Color
 
 
 class Feature(abc.ABC):
@@ -63,7 +64,7 @@ class FeatureSet(object):
     def __init__(self, features: Tuple[Feature, ...]):
         self._features = features
 
-    def get_colors(self) -> Tuple[tuple, ...]:
+    def get_colors(self) -> Tuple[Color,...]:
         if not hasattr(self, '_colors'):
             guideline_colors = [f._guideline_color() for f in self._features]
             colors: list = []
@@ -78,13 +79,17 @@ class FeatureSet(object):
                     if abs(float(color[0]) - float(registered_color[0])) < tolerance:
                         repetition += 1
 
-                color = (color[0], 220, 255 - repetition * increment)
+                color = (
+                    float(color[0]),
+                    float(220),
+                    float(255 - repetition * increment)
+                )
 
                 feature._color = color
                 colors.append(color)
 
             self._colors = tuple(colors)
-        return self.colors
+        return self.colors  #type: ignore
 
     @property
     def colors(self) -> Tuple[tuple, ...]:
