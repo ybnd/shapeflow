@@ -6,6 +6,7 @@ __log_file__ = '.log'
 VDEBUG = 9
 logging.addLevelName(VDEBUG, "VDEBUG")
 
+
 def vdebug(self, message, *args, **kwargs):
     if self.isEnabledFor(VDEBUG):
         self._log(VDEBUG, message, *args, **kwargs)

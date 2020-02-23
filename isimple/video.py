@@ -21,7 +21,6 @@ from isimple.endpoints import GuiEndpoints as gui
 
 
 log = get_logger(__name__)
-
 backend = BackendEndpoints()
 
 
@@ -378,7 +377,17 @@ class Mask(BackendInstance):
             Writes to the provided variable!
             If caller needs the original value, they should copy explicitly
         """
-        return img[self._rect[0]:self._rect[1], self._rect[2]:self._rect[3]]
+        return img[self.rows, self.cols]
+
+    @property
+    def rows(self):
+        return slice(self._rect[0], self._rect[1])
+
+    @property
+    def cols(self):
+        return slice(self._rect[2], self._rect[3])
+
+
 
 
 class DesignFileHandler(CachingBackendInstance):
@@ -497,13 +506,17 @@ class DesignFileHandler(CachingBackendInstance):
     @backend.expose(backend.overlay_frame)
     def overlay_frame(self, frame: np.ndarray) -> np.ndarray:
         frame = cv2.cvtColor(frame, cv2.COLOR_HSV2BGR)
-        frame = cv2.addWeighted(
-            self._overlay, self._config.overlay_alpha,  # https://stackoverflow.com/questions/54249728/
+        frame = self._overlay_bgr(frame)
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        return frame
+
+    def _overlay_bgr(self, frame: np.ndarray) -> np.ndarray:
+        # https://stackoverflow.com/questions/54249728/
+        return cv2.addWeighted(
+            self._overlay, self._config.overlay_alpha,
             frame, 1 - self._config.overlay_alpha,
             gamma=0, dst=frame
         )
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        return frame
 
     @property
     def masks(self):
@@ -541,7 +554,15 @@ class MaskFilterFunction(Feature):
         return self._function(self.filter(self.mask(frame)))
 
     def state(self, frame: np.ndarray, state: np.ndarray = None) -> np.ndarray:
+        """Generate a state image (BGR)
+        """
         if state is not None:
+            binary = self.filter(self.mask(frame))
+            substate = np.multiply(
+                np.ones((binary.shape[0], binary.shape[1], 3), dtype=np.uint8),
+                cv2.cvtColor(np.uint8([[self.color]]), cv2.COLOR_HSV2BGR)
+            )
+            state[self.mask.rows, self.mask.cols, :] = cv2.bitwise_and(substate, substate, mask=binary)
             return state
 
 
@@ -670,7 +691,7 @@ class VideoAnalyzer(BackendManager):
         S = []
         for fs in self._featuresets:  # todo: for each feature set -- export data for a separate legend to add to the state plot
             values = []
-            state = np.zeros(frame.shape, dtype=np.uint8) # todo: can't just set it to self.frame.dtype?
+            state = np.zeros(frame.shape, dtype=np.uint8)  # BGR state image
             # todo: may be faster / more memory-efficient to keep state[i] and set it to 0
 
             for feature in fs._features:  # todo: make featureset iterable maybe
@@ -680,8 +701,10 @@ class VideoAnalyzer(BackendManager):
                 )
                 values.append(value)
 
+            state[np.equal(state, 0)] = 255
+
             # Add overlay on top of state
-            state = self.design.overlay_frame(state)
+            state = self.design._overlay_bgr(state)
 
             V.append(values)   # todo: value values value ugh
             S.append(state)

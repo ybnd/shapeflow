@@ -33,12 +33,12 @@ def analysis(config = None):
 
 if __name__ == '__main__':
     analysis(
-        # VideoAnalyzerConfig(**{
-        #     'video_path': '/home/ybnd/projects/200210 - isimple/shuttle.mp4',
-        #     'design_path': '/home/ybnd/projects/200210 - isimple/shuttle.svg',
-        #     'dt': 5,
-        #     'height': 153e-3,
-        #     'video': {'do_cache': True}
-        # })
+        VideoAnalyzerConfig(**{
+            'video_path': '/home/ybnd/projects/200210 - isimple/shuttle.mp4',
+            'design_path': '/home/ybnd/projects/200210 - isimple/shuttle.svg',
+            'dt': 5,
+            'height': 153e-3,
+            'video': {'do_cache': True}
+        })
     )
 

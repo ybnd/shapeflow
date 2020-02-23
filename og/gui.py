@@ -602,6 +602,19 @@ def hsvimg2tk(image, ratio=1.0):
     return img
 
 
+def bgrimg2tk(image, ratio=1.0):
+    """Convert OpenCV HSV image to PhotoImage object
+    """
+    img = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    shape = img.shape
+    img = Image.fromarray(img)
+    img.thumbnail(
+        (int(shape[1] * ratio), int(shape[0] * ratio))
+    )
+    img = ImageTk.PhotoImage(image=img)
+    return img
+
+
 def binimg2tk(image, ratio=1.0):
     """Convert OpenCV binary image to PhotoImage object
     """
@@ -826,9 +839,9 @@ class ProgressWindow(ScriptWindow):
                 frame,
                 ratio=self.canvas_height / frame.shape[0]
             )
-            self.state = hsvimg2tk(
+            self.state = bgrimg2tk(
                 state,
-                ratio=self.canvas_height / state.shape[0]
+                ratio=self.canvas_height / state.shape[0],
             )
             self.canvas.create_image(
                 0, 0, image=self.img, anchor=tk.NW

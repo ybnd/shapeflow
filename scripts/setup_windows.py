@@ -31,7 +31,14 @@ if os.name == 'nt':  # If running on Windows
     os.mkdir('.render')
     os.mkdir('.cache')
 
-    nondot = ['mypy.ini', 'tox.ini', 'requirements.txt', 'docs']
+    nondot = [
+        'mypy.ini',
+        'tox.ini',
+        'codecov.yml',
+        'requirements.txt',
+        'docs',
+        'test',
+    ]
 
     for file in glob.glob('.*') + nondot:
         if os.path.exists(file):
