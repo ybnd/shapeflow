@@ -189,59 +189,36 @@ class Config(abc.ABC):
 
     def to_dict(self) -> dict:
         """Return this instances value as a serializable dict.
-            Attributes set to their default value are omitted.
         """
         output: dict = {}
-        def _represent(obj, default) -> Union[dict, str]:
-            """
-            Represent an object in a YAML-serializable way, if not
-             equal to its default value
+        def _represent(obj) -> Union[dict, str]:
+            """Represent an object in a YAML-serializable way
             :param obj: object
-            :param default: default value of object
             :return:
             """
             if isinstance(obj, Config):
                 # Recurse
                 return obj.to_dict()
             if isinstance(obj, EnforcedStr):
-                if obj != default:
-                    # Return str value
-                    return str(obj)
-                else:
-                    raise ValueError('Value is default')
+                # Return str value
+                return str(obj)
             if isinstance(obj, tuple):
-                if obj != default:
-                    # Convert to str & bypass YAML tuple representation
-                    return Config.__tuple2str__(obj)
-                else:
-                    raise ValueError('Value is default')
+                # Convert to str & bypass YAML tuple representation
+                return Config.__tuple2str__(obj)
             if isinstance(obj, np.ndarray):
-                if np.any(obj != default):
-                    # Convert to str  & bypass YAML list representation
-                    return Config.__ndarray2json__(obj)
-                else:
-                    raise ValueError('Value is default')
+                # Convert to str  & bypass YAML list representation
+                return Config.__ndarray2json__(obj)
             else:
-                if obj != default:
-                    # Assume that `obj` is serializable
-                    return obj
-                raise ValueError('Value is default')
+                # Assume that `obj` is serializable
+                return obj
 
-        defaults = self.__class__()  # Get default values to compare
         for attr, val in self.__dict__.items():
-            try:
-                default = getattr(defaults, attr)
-                if isinstance(val, list) or isinstance(val, tuple):
-                    output[attr] = []
-                    for v in val:
-                        try:
-                            output[attr].append(_represent(v,default))
-                        except ValueError:
-                            pass  # Equal to default value
-                else:
-                    output[attr] = _represent(val, default)
-            except ValueError:
-                pass  # Equal to default value
+            if isinstance(val, list) or isinstance(val, tuple):
+                output[attr] = []
+                for v in val:
+                    output[attr].append(_represent(v))
+            else:
+                output[attr] = _represent(val)
         return output
 
     @staticmethod
@@ -411,7 +388,7 @@ def _get_dict(config: VideoAnalyzerConfig) -> dict:
 def dump(config: VideoAnalyzerConfig, path:str):
     with open(path, 'w+') as f:
         yaml.safe_dump(_get_dict(config),f)
-        
+
 
 def dumps(config: VideoAnalyzerConfig) -> str:
     return yaml.safe_dump(_get_dict(config))

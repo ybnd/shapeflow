@@ -728,7 +728,7 @@ class VideoAnalyzer(BackendManager):
         """Save video analysis results & metadata
         """
 
-        config_yaml =
+        config_yaml = dumps
 
         raise NotImplementedError
 
