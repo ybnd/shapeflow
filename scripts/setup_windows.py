@@ -14,22 +14,14 @@ if os.name == 'nt':  # If running on Windows
         z.extractall()
 
     # Move cairo files to the /Scripts/ folder in the virtual environment
-    for file in glob.glob('cairo*/lib/x64/cairo*'):
-        shutil.move(file, "$environment/Scripts/")
-
-    try:
-        import cairocffi    # todo: this doesn't seem to work from the actual script, but after the script has run, cairocffi can be imported. Check ~ subprocess.check_call?
-    except OSError:
-        for file in glob.glob('$environment/Scripts/cairo*'):
-            os.remove(file)
-
+    if sys.maxsize > 2**32:
+        # 64-bit Python
+        for file in glob.glob('cairo*/lib/x64/cairo*'):
+            shutil.move(file, "$environment/Scripts/")
+    else:
+        # 32-bit Python
         for file in glob.glob('cairo*/lib/x86/cairo*'):
             shutil.move(file, "$environment/Scripts/")
-
-        try:
-            import cairocffi
-        except OSError:
-            raise OSError('Could not load cairo from the virtual environment.')
 
     # Delete the rest of the cairo files
     os.remove('cairo.zip')
@@ -39,5 +31,8 @@ if os.name == 'nt':  # If running on Windows
     os.mkdir('.render')
     os.mkdir('.cache')
 
-    for file in glob.glob('.*'):
-        os.system('attrib +h ' + file)
+    nondot = ['mypy.ini', 'tox.ini', 'requirements.txt', 'docs']
+
+    for file in glob.glob('.*') + nondot:
+        if os.path.exists(file):
+            os.system('attrib +h ' + file)
