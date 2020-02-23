@@ -1,20 +1,14 @@
 import diskcache
 import sys
-import os
-import numpy as np
-import time
 import copy
+import time
 import threading
-import hashlib
 from contextlib import contextmanager
-import functools
-import warnings
-from typing import Any, Optional, List, Callable, Type
+from typing import Any, Callable
 
 from isimple.core.util import describe_function
 from isimple.core.config import *
 from isimple.core.common import RootException, SetupError, Manager  # todo: RootException should probably be in a separate file
-from isimple.endpoints import BackendEndpoints
 
 
 class BackendSetupError(SetupError):

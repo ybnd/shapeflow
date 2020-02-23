@@ -1,8 +1,5 @@
 import unittest
 
-import numpy as np
-
-from isimple.core.config import *
 from isimple.video import *
 
 __VIDEO__ = 'test.mp4'

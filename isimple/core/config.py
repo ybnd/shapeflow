@@ -2,17 +2,14 @@ import yaml
 from yaml.representer import SafeRepresenter
 import json
 from ast import literal_eval as make_tuple
-import os
-import time
-import pandas as pd
 import numpy as np
 import warnings
-from typing import List, Optional, NamedTuple, Dict, Tuple, Union
+from typing import List, Optional, Tuple, Union
 from dataclasses import dataclass
 from collections.abc import Iterable
+import abc
 
 from isimple.maths.images import ckernel
-from isimple.core.util import timing
 
 # https://stackoverflow.com/questions/16782112
 yaml.add_representer(
@@ -128,60 +125,36 @@ class VideoFeatureType(Factory):
 
 
 @dataclass
-class Config(object):
+class Config(abc.ABC):
+    """Abstract class for configuration data.
+        * Default values for Config or Factory subclasses should be provided as
+            None and '' respectively; in this way they should be caught by
+            `self.resolve` and resolved at runtime. This is important to resolve
+            to the latest version of the Factory, as it may have been extended.
+    """
     def __init__(self, **kwargs):
+        """Initialize instance and call post-initialization method
+        """
         for kw, arg in kwargs.items():
             if hasattr(self, kw):
                 setattr(self, kw, arg)
         self.__post_init__()
 
     def __post_init__(self):
+        """Resolve attribute values here
+        """
         pass
-
-    def to_dict(self) -> dict:
-        output: dict = {}
-        def _represent(obj, default) -> Union[dict, str]:
-            if isinstance(obj, Config):
-                return obj.to_dict()
-            if isinstance(obj, EnforcedStr):
-                if obj != default:
-                    return str(obj)
-                else:
-                    raise ValueError('Value is default')
-            if isinstance(obj, tuple):
-                if obj != default:
-                    return Config.__tuple2str__(obj)
-                else:
-                    raise ValueError('Value is default')
-            if isinstance(obj, np.ndarray):
-                if np.any(obj != default):
-                    return Config.__ndarray2json__(obj)
-                else:
-                    raise ValueError('Value is default')
-            else:
-                if obj != default:
-                    return obj
-                raise ValueError('Value is default')
-
-        defaults = self.__class__()
-        for attr, val in self.__dict__.items():
-            try:
-                default = getattr(defaults, attr)
-                if isinstance(val, list) or isinstance(val, tuple):
-                    output[attr] = []
-                    for v in val:
-                        try:
-                            output[attr].append(_represent(v,default))
-                        except ValueError:
-                            pass
-                else:
-                    output[attr] = _represent(val, default)
-            except ValueError:
-                pass
-        return output
 
     @staticmethod
     def resolve(val, type, iter=False):
+        """Resolve the value of an attribute to match a specific type
+        :param val: current value
+        :param type: type to resolve to
+        :param iter: if True, interpret `val` as an iterable and resolve
+                     all elements of `val` to `type`
+        :return: the resolved value for `val`; this should be written to the
+                  original attribute, i.e. `self.attr = resolve(self.attr, type)`
+        """
         def _resolve(val, type):
             if isinstance(val, str):
                 if issubclass(type, EnforcedStr):
@@ -201,10 +174,69 @@ class Config(object):
 
         if not isinstance(val, type):
             if iter and isinstance(val, Iterable):
+                # Resolve every elemen,t in `val`
                 val = [_resolve(v, type) for v in val]
             else:
+                # Resolve `val`
                 val = _resolve(val, type)
         return val
+
+    def to_dict(self) -> dict:
+        """Return this instances value as a serializable dict.
+            Attributes set to their default value are omitted.
+        """
+        output: dict = {}
+        def _represent(obj, default) -> Union[dict, str]:
+            """
+            Represent an object in a YAML-serializable way, if not
+             equal to its default value
+            :param obj: object
+            :param default: default value of object
+            :return:
+            """
+            if isinstance(obj, Config):
+                # Recurse
+                return obj.to_dict()
+            if isinstance(obj, EnforcedStr):
+                if obj != default:
+                    # Return str value
+                    return str(obj)
+                else:
+                    raise ValueError('Value is default')
+            if isinstance(obj, tuple):
+                if obj != default:
+                    # Convert to str & bypass YAML tuple representation
+                    return Config.__tuple2str__(obj)
+                else:
+                    raise ValueError('Value is default')
+            if isinstance(obj, np.ndarray):
+                if np.any(obj != default):
+                    # Convert to str  & bypass YAML list representation
+                    return Config.__ndarray2json__(obj)
+                else:
+                    raise ValueError('Value is default')
+            else:
+                if obj != default:
+                    # Assume that `obj` is serializable
+                    return obj
+                raise ValueError('Value is default')
+
+        defaults = self.__class__()  # Get default values to compare
+        for attr, val in self.__dict__.items():
+            try:
+                default = getattr(defaults, attr)
+                if isinstance(val, list) or isinstance(val, tuple):
+                    output[attr] = []
+                    for v in val:
+                        try:
+                            output[attr].append(_represent(v,default))
+                        except ValueError:
+                            pass  # Equal to default value
+                else:
+                    output[attr] = _represent(val, default)
+            except ValueError:
+                pass  # Equal to default value
+        return output
 
     @staticmethod
     def __ndarray2json__(array: np.ndarray) -> str:

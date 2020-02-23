@@ -1,13 +1,8 @@
-import abc
 import re
-from typing import Tuple, Any, Optional, List, Type, Generator, Union, Callable
 import os
-import functools
+from typing import Any, Callable
 
-import numpy as np
 import cv2
-
-import copy
 
 from OnionSVG import OnionSVG, check_svg
 
@@ -17,7 +12,7 @@ from isimple.core.backend import BackendInstance, CachingBackendInstance, Dynami
 from isimple.core.features import Feature, FeatureSet
 from isimple.core.config import *
 
-from isimple.maths.images import ckernel, to_mask, crop_mask, area_pixelsum
+from isimple.maths.images import to_mask, crop_mask, area_pixelsum
 
 from isimple.endpoints import BackendEndpoints
 from isimple.endpoints import GuiEndpoints as gui

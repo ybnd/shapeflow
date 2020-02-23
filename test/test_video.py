@@ -3,13 +3,12 @@ from copy import deepcopy
 
 import cv2
 from threading import Thread
-import time
 import shutil
 
 from OnionSVG import OnionSVG
 
-import numpy as np
-from isimple.video import VideoFileHandler, VideoFileTypeError, PixelSum, CachingBackendInstance
+from isimple.video import VideoFileHandler, VideoFileTypeError, \
+    CachingBackendInstance
 from isimple.app import VideoAnalyzer
 from isimple.core.config import *
 from isimple.core.util import timing
