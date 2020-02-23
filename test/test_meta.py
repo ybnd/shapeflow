@@ -66,6 +66,7 @@ class BackendConfigTest(unittest.TestCase):
 
 
 __YAML_CONFIG__ = f'''
+version: 0.2
 video_path: {__VIDEO__}
 design_path: {__DESIGN__}
 frame_interval_setting: dt

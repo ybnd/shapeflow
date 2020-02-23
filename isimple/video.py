@@ -261,9 +261,10 @@ class FilterInterface(abc.ABC):
 class HsvRangeFilter(FilterInterface):  # todo: may be better to **wrap** this in Filter instead of inheriting from it
     """Filters by a range of hues ~ HSV representation
     """
+    _default = HsvRangeFilterConfig()
 
     def validate(self, filter):  # todo: may be better to 'normalize' the filter dict -- i.e. replace all fields that weren't found with the defaults
-        return all(attr in self.default for attr in filter)
+        return all(attr in self._default for attr in filter)
 
     def set_filter(self, filter: dict) -> dict:
         filter['hue'] = filter['color'][0]

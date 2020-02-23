@@ -8,6 +8,7 @@ from typing import List, Optional, Tuple, Union
 from dataclasses import dataclass
 from collections.abc import Iterable
 import abc
+import datetime
 
 from isimple.maths.images import ckernel
 
@@ -17,6 +18,7 @@ yaml.add_representer(
     data: yaml.representer.SafeRepresenter.represent_dict(self, data.items())
 )
 
+__version__: str = '0.2'
 
 # Extension
 __ext__ = '.meta'
@@ -132,6 +134,7 @@ class Config(abc.ABC):
             `self.resolve` and resolved at runtime. This is important to resolve
             to the latest version of the Factory, as it may have been extended.
     """
+
     def __init__(self, **kwargs):
         """Initialize instance and call post-initialization method
         """
@@ -373,9 +376,32 @@ def load(path: str) -> VideoAnalyzerConfig:  # todo: internals should be replace
     with open(path, 'r') as f:  # todo: assuming it is yaml, sanity check?
         d = yaml.safe_load(f)
 
+    # Normalize legacy configuration dictionaries
+    if 'version' not in d:
+        # Pre-v0.2 .meta file
+        d = {
+            'video_path': d['video'],
+            'design_path': d['design'],
+            'transform': {'matrix': d['transform']},
+            'masks': [
+                {'filter': {'filter': {'c0': m['from'], 'c1': m['to']}}}
+                for m in [json.loads(md) for md in list(d['colors'].values())]
+            ]
+        }
+
+    # Remove timestamp & version info
+    d.pop('timestamp', None)
+    d.pop('version', None)
+
     return VideoAnalyzerConfig(**d)
 
 
 def dump(config: VideoAnalyzerConfig, path:str):
     with open(path, 'w+') as f:
-        yaml.safe_dump(config.to_dict(), f)
+        # Add timestamp & version info
+        d = {
+            'timestamp': datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S.%f'),
+            'version': __version__,
+        }.update(config.to_dict())
+
+        yaml.safe_dump(d,f)

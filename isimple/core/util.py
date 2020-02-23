@@ -99,3 +99,18 @@ def frame_number_iterator(total: int,
             yield int(f)
     else:
         ValueError()
+
+
+def before_version(version_a, version_b):
+    """Check whether `version_a` precedes `version_b`.
+        Only handles numerics, i.e. no '1.25b.3v7'
+    """
+    return tuple(int(s) for s in version_a.split('.')) \
+            < tuple(int(s) for s in version_b.split('.'))
+
+
+def after_version(version_a, version_b):
+    """Check whether `version_a` doesn't precede `version_b`.
+            Only handles numerics, i.e. no '1.25b.3v7'
+    """
+    return not before_version(version_a, version_b)
