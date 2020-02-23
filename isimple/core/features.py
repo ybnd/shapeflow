@@ -56,6 +56,12 @@ class Feature(abc.ABC):
         """
         raise NotImplementedError
 
+    @abc.abstractmethod
+    def name(self) -> str:
+        """Return the name of the feature
+        """
+        raise NotImplementedError
+
 
 class FeatureSet(object):
     _features: Tuple[Feature, ...]
@@ -64,7 +70,7 @@ class FeatureSet(object):
     def __init__(self, features: Tuple[Feature, ...]):
         self._features = features
 
-    def get_colors(self) -> Tuple[Color,...]:
+    def get_colors(self) -> Tuple[Color, ...]:
         if not hasattr(self, '_colors'):
             guideline_colors = [f._guideline_color() for f in self._features]
             colors: list = []
@@ -94,3 +100,7 @@ class FeatureSet(object):
     @property
     def colors(self) -> Tuple[tuple, ...]:
         return self._colors
+
+    @property
+    def features(self) -> Tuple[Feature, ...]:
+        return self._features

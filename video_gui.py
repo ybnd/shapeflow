@@ -2,10 +2,8 @@ from isimple.core.config import VideoAnalyzerConfig
 from isimple.video import VideoAnalyzer
 from isimple.gui import VideoAnalyzerGui
 
-from og.gui import FileSelectWindow
 
-
-def analysis(config = None):
+def analysis(config=None):
     # Initialize backend & frontend
     backend = VideoAnalyzer(config)
     VideoAnalyzerGui(backend)
@@ -24,16 +22,13 @@ def analysis(config = None):
             # Open color picker windows for each mask
             backend.pick(i)  # todo: make sure that this waits on the window (was implemented in ScriptWindow iirc?)
 
-        # Perform the video analysis
+        # Perform the video analysis & save the results
         backend.analyze()
-
-        # Save the results
-        backend.save()
 
 
 if __name__ == '__main__':
     analysis(
-        VideoAnalyzerConfig(**{
+        VideoAnalyzerConfig(**{  # type: ignore
             'video_path': '/home/ybnd/projects/200210 - isimple/shuttle.mp4',
             'design_path': '/home/ybnd/projects/200210 - isimple/shuttle.svg',
             'dt': 5,
@@ -41,4 +36,3 @@ if __name__ == '__main__':
             'video': {'do_cache': True}
         })
     )
-

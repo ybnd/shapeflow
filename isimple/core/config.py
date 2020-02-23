@@ -17,7 +17,7 @@ log = get_logger(__name__)
 __version__: str = '0.2'
 
 # Extension
-__ext__ = '.meta'
+__meta_ext__ = '.meta'
 
 # Excel sheet name
 __meta_sheet__ = 'metadata'
@@ -265,10 +265,13 @@ class VideoFileHandlerConfig(CachingBackendInstanceConfig):
 class TransformHandlerConfig(BackendInstanceConfig):
     type: Union[TransformType,str] = ''
     matrix: Union[np.ndarray,str] = np.eye(3)
+    coordinates: Union[list, str] = ''
 
     def __post_init__(self):
         self.type = self.resolve(self.type, TransformType)
         self.matrix = self.resolve(self.matrix, np.ndarray)
+        if len(self.coordinates) > 0:
+            self.coordinates = self.resolve(self.coordinates, np.ndarray).tolist()
 
 
 class FilterConfig(Config):
@@ -277,7 +280,7 @@ class FilterConfig(Config):
 
 @dataclass
 class HsvRangeFilterConfig(FilterConfig):
-    radius: Union[Color, str] = (10, 50, 50)
+    radius: Union[Color, str] = (10, 75, 75)
 
     c0: Union[Color, str] = (0,0,0)
     c1: Union[Color, str] = (0,0,0)

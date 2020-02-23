@@ -1,6 +1,7 @@
 import re
 import os
-from typing import Any, Callable, Type
+import pandas as pd
+from typing import Any, Callable, Type, Dict
 
 import cv2
 
@@ -12,7 +13,7 @@ from isimple.core.common import Manager
 from isimple.core.backend import BackendInstance, CachingBackendInstance, DynamicHandler, BackendManager, BackendSetupError
 from isimple.core.features import Feature, FeatureSet
 from isimple.core.config import *
-from isimple.core.config import Color
+from isimple.core.config import Color, __meta_ext__
 
 from isimple.maths.images import to_mask, crop_mask, area_pixelsum, ckernel
 
@@ -147,10 +148,6 @@ class TransformInterface(abc.ABC):
     def transform(self, img: np.ndarray, transform: np.ndarray, shape: tuple) -> np.ndarray:
         raise NotImplementedError
 
-    @abc.abstractmethod
-    def inverse_transform(self, img: np.ndarray, transform: np.ndarray, shape: tuple):
-        raise NotImplementedError
-
 
 class PerspectiveTransform(TransformInterface):
     def validate(self, transform: np.ndarray) -> bool:
@@ -174,11 +171,8 @@ class PerspectiveTransform(TransformInterface):
 
     def transform(self, img: np.ndarray, transform: np.ndarray, shape: tuple) -> np.ndarray:
         return cv2.warpPerspective(
-            img, transform, shape,# dst=img  # todo: can't use destination image here! it's the wrong shape!
+            img, transform, shape,  # can't set destination image here! it's the wrong shape!
         )
-
-    def inverse_transform(self, img: np.ndarray, transform: np.ndarray, shape: tuple):
-        raise NotImplementedError
 
 
 TransformType.extend({
@@ -190,7 +184,7 @@ class TransformHandler(BackendInstance, DynamicHandler):
     """Handles coordinate transforms.
     """
     _shape: tuple
-    _transform: Optional[np.ndarray]
+    _inverse = np.ndarray
 
     _implementation: TransformInterface
     _implementation_factory = TransformType
@@ -206,12 +200,6 @@ class TransformHandler(BackendInstance, DynamicHandler):
         self.set_implementation(self._config.type)
         self._shape = shape[0:2]  # Don't include color dimension
 
-        self._transform = None
-        if self._config.matrix is not None:
-            self.set(self._config.matrix)
-        else:
-            self.set(self._implementation.default)
-
     @backend.expose(backend.set_transform_implementation)
     def set_implementation(self, implementation: str) -> str:
         # If there's ever any method to set additional transform options, this method/endpoint can be merged into that
@@ -221,7 +209,8 @@ class TransformHandler(BackendInstance, DynamicHandler):
         """Set the transform matrix
         """
         if self._implementation.validate(transform):
-            self._transform = transform
+            self._config.matrix = transform
+            self._inverse = np.linalg.inv(transform)
         else:
             raise ValueError(f"Invalid transform {transform} for "
                              f"'{self._implementation.__class__.__name__}'")
@@ -232,7 +221,16 @@ class TransformHandler(BackendInstance, DynamicHandler):
             Coordinates should correspond to the corners of the outline of
             the design, ordered from the bottom left to the top right.
         """
+        self._config.coordinates = coordinates
         self.set(self._implementation.estimate(coordinates, self._shape))
+
+
+    @backend.expose(backend.get_coordinates)
+    def get_coordinates(self) -> Optional[list]:
+        if isinstance(self._config.coordinates, list):
+            return self._config.coordinates
+        else:
+            return None
 
     @backend.expose(backend.transform)
     def __call__(self, img: np.ndarray) -> np.ndarray:
@@ -240,10 +238,14 @@ class TransformHandler(BackendInstance, DynamicHandler):
             Writes to the provided variable!
             If caller needs the original value, they should copy explicitly
         """
-        return self._implementation.transform(img, self._transform, self._shape)
+        return self._implementation.transform(img, self.matrix, self._shape)
 
     def inverse(self, img: np.ndarray) -> np.ndarray:
-        raise NotImplementedError
+        return self._implementation.transform(img, self._inverse, self._shape)
+
+    @property
+    def matrix(self):
+        return self._config.matrix
 
 
 class FilterInterface(abc.ABC):
@@ -350,7 +352,7 @@ class Mask(BackendInstance):
 
         super(Mask, self).__init__(config)
         self._full = mask
-        self.name = name
+        self._config.name = name
 
         self._full = mask
         self._part, self._rect, self._center = crop_mask(self._full)
@@ -362,6 +364,7 @@ class Mask(BackendInstance):
             filter = FilterHandler(self._config.filter)
             assert isinstance(filter, FilterHandler), BackendSetupError
         self.filter = filter
+        self._config.filter = self.filter._config
 
     @backend.expose(backend.mask)
     def __call__(self, img: np.ndarray) -> np.ndarray:
@@ -387,6 +390,10 @@ class Mask(BackendInstance):
     def cols(self):
         return slice(self._rect[2], self._rect[3])
 
+    @property
+    def name(self):
+        return self._config.name
+
 
 
 
@@ -411,7 +418,7 @@ class DesignFileHandler(CachingBackendInstance):
 
             self._masks = []
             for i, (mask, name) in enumerate(zip(*self.read_masks(path))):
-                if mask_config is not None:
+                if mask_config is not None and len(mask_config) >= i+1:  # handle case len(mask_config) < len(self.read_masks(path))
                     self._masks.append(Mask(mask, name, mask_config[i]))
                 else:
                     self._masks.append(Mask(mask, name))
@@ -565,6 +572,10 @@ class MaskFilterFunction(Feature):
             state[self.mask.rows, self.mask.cols, :] = cv2.bitwise_and(substate, substate, mask=binary)
             return state
 
+    @property
+    def name(self) -> str:
+        return self.mask.name
+
 
 class PixelSum(MaskFilterFunction):
     _function = staticmethod(area_pixelsum)  # todo: would be cleaner if we wouldn't need to have staticmethod here :/
@@ -591,11 +602,12 @@ class VideoAnalyzer(BackendManager):
     transform: TransformHandler
     features: Tuple[Feature,...]
 
-    _featuresets: List[FeatureSet]
+    _featuresets: Dict[str, FeatureSet]
+    value: Dict[str, pd.DataFrame]
 
     def __init__(self, config: VideoAnalyzerConfig = None):  # todo: add optional feature list to override self._config.features
         super(VideoAnalyzer, self).__init__(config)
-
+        self.value = {}
         self._gather_instances()
 
     def can_launch(self):
@@ -604,10 +616,11 @@ class VideoAnalyzer(BackendManager):
 
     def launch(self):
         if self.can_launch():
+            self.load_config()
             log.debug(f'{self.__class__.__name__}: launch nested instances.')
             self.video = VideoFileHandler(self._config.video_path, self._config.video)
             self.video.set_requested_frames(list(self.frame_numbers()))
-            self.design = DesignFileHandler(self._config.design_path, self._config.design)
+            self.design = DesignFileHandler(self._config.design_path, self._config.design, self._config.masks)
             self.transform = TransformHandler(self.design.shape, self._config.transform)
             self.masks = self.design.masks
             self.filters = [mask.filter for mask in self.masks]
@@ -617,11 +630,17 @@ class VideoAnalyzer(BackendManager):
             raise ValueError("Either the video or the design wasn't provided")  # todo: make error message more specific
 
     def _get_featuresets(self):
-        self._featuresets = [
-            FeatureSet(
-                tuple(feature.get()(mask) for mask in self.design.masks)
+        self._featuresets = {
+            str(feature): FeatureSet(
+                tuple(feature.get()(mask) for mask in self.design.masks),
             ) for feature in self._config.features
-        ]
+        }
+
+        for fs, feature in zip(self._featuresets.values(), self._config.features):
+            self.value[str(feature)] = pd.DataFrame(
+                [], columns=['time'] + [f.name for f in fs.features], index=list(self.frame_numbers())
+            )
+
 
     def connect(self, gui: Manager):
         # todo: sanity checks
@@ -679,17 +698,18 @@ class VideoAnalyzer(BackendManager):
 
     @backend.expose(backend.get_colors)  # todo: per feature in each feature set; maybe better as a dict instead of a list of tuples?
     def get_colors(self) -> List[Tuple[Color,...]]:
-        return [featureset.get_colors() for featureset in self._featuresets]
+        return [featureset.get_colors() for featureset in self._featuresets.values()]
 
     def calculate(self, frame_number: int, update_callback: Callable):
         """Return a state image for each FeatureSet
         """
+        t = self.video.get_time(frame_number)
         raw_frame = self.video.read_frame(frame_number)
         frame = self.transform(raw_frame)
 
         V = []
         S = []
-        for fs in self._featuresets:  # todo: for each feature set -- export data for a separate legend to add to the state plot
+        for k,fs in self._featuresets.items():  # todo: for each feature set -- export data for a separate legend to add to the state plot
             values = []
             state = np.zeros(frame.shape, dtype=np.uint8)  # BGR state image
             # todo: may be faster / more memory-efficient to keep state[i] and set it to 0
@@ -709,8 +729,10 @@ class VideoAnalyzer(BackendManager):
             V.append(values)   # todo: value values value ugh
             S.append(state)
 
+            self.value[k].loc[frame_number] = [t] + values
+
         update_callback(
-            self.video.get_time(frame_number),
+            t,
             V, # todo: this is per feature in each feature set; maybe better as dict instead of list of lists?
             S,     # todo: keep values (in order to save them)
             frame
@@ -727,17 +749,35 @@ class VideoAnalyzer(BackendManager):
         for fn in self.frame_numbers():
             self.calculate(fn, update_callback)
 
+        self.save()
 
-    def load_config(self, path: str):
+
+    def load_config(self, path: str = None):
         """Load video analysis configuration
         """
-        self._config = load(path)
-        self.launch()
+        if path is None and self._config.video_path:
+            path = os.path.splitext(
+                self._config.video_path
+            )[0] + __meta_ext__
 
-    def save_config(self, path: str):
+        if path is not None:
+            if os.path.isfile(path):
+                self._config = load(path)
+        else:
+            log.warning(f"No path provided to `load_config`; no video file either.")
+
+    def save_config(self, path: str = None):
         """Save video analysis configuration
         """
-        dump(self._gather_config(), path)
+        if path is None and self._config.video_path:
+            path = os.path.splitext(
+                self._config.video_path
+            )[0] + __meta_ext__
+
+        if path is not None:
+            dump(self._gather_config(), path)
+        else:
+            log.warning(f"No path provided to `save_config`; no video file either.")
 
     def _gather_config(self) -> VideoAnalyzerConfig:
         """Gather configuration from instances
@@ -750,11 +790,11 @@ class VideoAnalyzer(BackendManager):
         )
         return self._config
 
-    def save(self):
+    def save(self, path: str = None):
         """Save video analysis results & metadata
         """
-
-        config_yaml = dumps
+        self.save_config()
+        config_yaml = dumps(self._gather_config())
 
         raise NotImplementedError
 

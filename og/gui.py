@@ -447,6 +447,12 @@ class ImageDisplay:
 
         self.__ratio__ = self.__ratio__ / self.shape[1]
 
+        if initial_coordinates is None:
+            initial_coordinates = np.array(
+                self.window.WRAPPER.get_coordinates()
+            ) * self.__ratio__
+            initial_coordinates = initial_coordinates.tolist()
+
         self.__width__ = int(self.shape[1] * self.__ratio__) + \
             overlay.shape[1] * self.__ratio__
 

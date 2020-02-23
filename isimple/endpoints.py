@@ -14,6 +14,7 @@ class BackendEndpoints(ImmutableRegistry):  # todo: confusing naming
     set_transform_implementation = Endpoint(Callable[[str], str])
     transform = Endpoint(Callable[[np.ndarray], np.ndarray])
     estimate_transform = Endpoint(Callable[[list], None])
+    get_coordinates = Endpoint(Callable[[], Optional[list]])
     get_mask_name = Endpoint(Callable[[int], str])
     get_mask_names = Endpoint(Callable[[], tuple])
     set_filter_implementation = Endpoint(Callable[[str], str])

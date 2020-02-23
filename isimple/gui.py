@@ -70,6 +70,7 @@ class TransformWindow(guiWindow):
         backend.get_raw_frame,
         backend.transform,
         backend.estimate_transform,
+        backend.get_coordinates,
         backend.get_frame,
         backend.get_overlaid_frame,
         backend.get_inverse_transformed_overlay,
