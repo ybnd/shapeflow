@@ -1,9 +1,11 @@
-import warnings
-from typing import Callable, Dict, List, Tuple, Type, Optional
-import numpy as np
+from typing import Callable, Dict, List, Tuple, Type
 import abc
 
 from isimple.core.util import all_attributes, get_overridden_methods, timing
+from isimple.core.log import get_logger
+
+
+log = get_logger(__name__)
 
 
 class RootException(Exception):
@@ -102,7 +104,7 @@ class EndpointRegistry(Registry):  # todo: confusing names :)
     def expose(self, endpoint: Endpoint):
         def wrapper(method):
             if endpoint in self._callable_mapping:
-                warnings.warn(   # todo: add traceback
+                log.debug(   # todo: add traceback
                     f"Exposing '{method.__qualname__}' at endpoint '{endpoint._name}' will override "
                     f"previously exposed method '{self._callable_mapping[endpoint].__qualname__}'."
                 )  # todo: keep in mind we're also marking the methods themselves
@@ -171,8 +173,8 @@ class Manager(object):
     def connect(self, manager):
         raise NotImplementedError
 
-    @timing
     def _gather_instances(self):  # todo: needs major clean-up
+        log.debug(f'{self.__class__.__name__}: gather nested instances')
         self._instance_mapping = {}
         instances = []
         attributes = [attr for attr in self.__dir__() if attr[0:2] != '__']  # using iterator doubles count as _instances is also an attribute
@@ -224,11 +226,13 @@ class Manager(object):
             raise SetupError(f"'{self.__class__.__name__}' does not map "
                              f"'{endpoint._name}' to a bound method.")
         else:
+            log.debug(f"{self.__class__.__name__}: get callback for "
+                     f"endpoint '{endpoint._name}' with index {index}")
             methods = self._instance_mapping[endpoint]
             if index is None:
                 index = 0
                 if index+1 < len(methods):
-                    warnings.warn(f"No index specified for endpoint '{endpoint._name}' "
+                    log.debug(f"No index specified for endpoint '{endpoint._name}' "
                                   f"-- defaulting to entry 0 ({len(methods)} in total)")  # todo: traceback
             elif len(methods) == 1:
                 index = 0  # Ignore the index if only one method is mapped

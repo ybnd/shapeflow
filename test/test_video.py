@@ -199,8 +199,8 @@ class VideoAnalyzerTest(FrameTest):
         self.assertFalse(hasattr(va, 'design'))
         self.assertFalse(hasattr(va, 'transform'))
 
-        va.set_video_path(__VIDEO__)
-        va.set_design_path(__DESIGN__)
+
+
         va.set_config(config.to_dict())
         va.launch()
         # self.assertEqual(self.config, config)  # todo: replace with a less problematic assertion

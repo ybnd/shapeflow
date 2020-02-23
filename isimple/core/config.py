@@ -3,14 +3,16 @@ from yaml.representer import SafeRepresenter
 import json
 from ast import literal_eval as make_tuple
 import numpy as np
-import warnings
 from typing import List, Optional, Tuple, Union
 from dataclasses import dataclass
 from collections.abc import Iterable
 import abc
 import datetime
 
-from isimple.maths.images import ckernel
+from isimple.core.log import get_logger
+
+
+log = get_logger(__name__)
 
 __version__: str = '0.2'
 
@@ -31,7 +33,7 @@ class EnforcedStr(object):
     def __init__(self, string: str = None):
         if string is not None:
             if string not in self.options:
-                warnings.warn(f"Illegal {self.__class__.__name__} '{string}', "
+                log.debug(f"Illegal {self.__class__.__name__} '{string}', "
                               f"should be one of {self.options}. "
                               f"Defaulting to '{self.default}'.")
                 self._str = self.default
@@ -100,6 +102,7 @@ class Factory(EnforcedStr):
     @classmethod
     def extend(cls, mapping: dict):
         # todo: sanity check this
+        log.debug(f"Extending Factory '{cls.__name__}' with {mapping}")
         cls._mapping.update(mapping)
 
 
@@ -244,7 +247,7 @@ class BackendInstanceConfig(Config):
 @dataclass
 class CachingBackendInstanceConfig(BackendInstanceConfig):
     do_cache: bool = True
-    do_background: bool = True
+    do_background: bool = False
 
     cache_dir: str = '.cache'
     cache_size_limit: int = 2**32
@@ -291,7 +294,7 @@ class FilterHandlerConfig(BackendInstanceConfig):
 
     def __post_init__(self):
         self.type = self.resolve(self.type, FilterType)
-        self.filter = self.resolve(self.filter, self.type.get()._default.__class__)  # todo: something something typing in Factory
+        self.filter = self.resolve(self.filter, self.type.get()._config_class)  # todo: something something typing in Factory
 
 
 @dataclass
@@ -346,11 +349,13 @@ class VideoAnalyzerConfig(BackendManagerConfig):
 
 
 def load(path: str) -> VideoAnalyzerConfig:  # todo: internals should be replaced with more sensible methods for setting; reuse those in UI etc.
+    log.debug(f'Loading VideoAnalyzerConfig from {path}')
     with open(path, 'r') as f:  # todo: assuming it is yaml, sanity check?
         d = yaml.safe_load(f)
 
     # Normalize legacy configuration dictionaries
     if 'version' not in d:
+        log.info(f"Normalizing legacy configuration file {path}")
         # Pre-v0.2 .meta file
         d = {
             'video_path': d['video'],

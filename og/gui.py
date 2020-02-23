@@ -73,7 +73,7 @@ class FileSelectWindow(og.app.HistoryApp):
     __path_width__ = 60
     __num_width__ = 12
 
-    args: dict = {}
+    config: dict = {}
 
     full_history: dict
     history: dict
@@ -82,19 +82,19 @@ class FileSelectWindow(og.app.HistoryApp):
         super().__init__(file)
 
         self.WRAPPER = WRAPPER
-        self.args = self.WRAPPER.get_arguments()
+        self.config = self.WRAPPER.get_config()
 
         self.window = ScriptWindow()
         self.window.title('isimple-video')
         self.window.option_add('*Font', '12')
 
         self.canvas = tk.Canvas(self.window)
-        self.window.bind("<Return>", self.run)
+        self.window.bind("<Return>", self.commit)
 
         self.video_path = tk.StringVar(value=self.video_path_history[0])
         self.design_path = tk.StringVar(value=self.design_path_history[0])
-        self.timestep = tk.StringVar(value=self.args['config']['dt'])
-        self.height = tk.StringVar(value=self.args['config']['h'])
+        self.timestep = tk.StringVar(value=self.config['dt'])
+        self.height = tk.StringVar(value=self.config['height'])
 
         video_list = list(filter(None, self.video_path_history))
         design_list = list(filter(None, self.design_path_history))
@@ -125,7 +125,7 @@ class FileSelectWindow(og.app.HistoryApp):
             command=self.browse_design, font='Arial 10', pady=1, padx=3
         )
         run_button = tk.Button(
-            self.window, text='Run', command=self.run
+            self.window, text='Run', command=self.commit
         )
 
         self.video_path_box.grid(column=1, row=1)
@@ -190,41 +190,38 @@ class FileSelectWindow(og.app.HistoryApp):
             filetypes=[('SVG files', '*.svg')])
         )
 
-    def run(self, _=None):
-        video = self.video_path_box.get()
-        design = self.design_path_box.get()
-        config = {
-            'h': float(self.height_box.get()),
+    def commit(self, _=None):
+        self.config.update({
+            'video_path': self.video_path_box.get(),
+            'design_path': self.design_path_box.get(),
+            'height': float(self.height_box.get()),
             'dt': float(self.timestep_box.get()),
             'frame_interval_setting': 'dt',
-        }
+        })
 
         try:
-            self.history['video_path'].remove(video)
+            self.history['video_path'].remove(self.config['video_path'])
         except ValueError:
             pass
 
         try:
-            self.history['design_path'].remove(design)
+            self.history['design_path'].remove(self.config['video_path'])
         except ValueError:
             pass
 
         self.history['video_path'] = list(set(self.history['video_path']))
         self.history['design_path'] = list(set(self.history['design_path']))
 
-        self.history['video_path'].append(video)
-        self.history['design_path'].append(design)
+        self.history['video_path'].append(self.config['video_path'])
+        self.history['design_path'].append(self.config['design_path'])
 
-        self.history['config'].append(config)
+        self.history['config'].append(self.config)
 
         self.save_history()
 
-        self.WRAPPER.set_video_path(video)
-        self.WRAPPER.set_design_path(design)
-        self.WRAPPER.configure(config)
+        self.WRAPPER.set_config(self.config)
 
         self.window.destroy()
-
 
 
 class ReshapeSelection:
@@ -313,7 +310,6 @@ class ReshapeSelection:
         # Permute the coordinate list
         co = [co[i] for i in self.order]
 
-        # print(f"Coordinates: {co}")
         self.transform.get_new_transform(co)
 
     def redraw(self):
@@ -458,8 +454,6 @@ class ImageDisplay:
             self.__width__ = __monitor_w__ * 0.90
             self.__ratio__ = self.__width__ \
                 / (self.shape[1] + overlay.shape[1])
-
-        print(f'Ratio = {self.__ratio__}')
 
         self.canvas = tk.Canvas(
             self.window,
@@ -707,10 +701,7 @@ class ColorPicker:
         """
         self.coo = __coo__(x=event.x, y=event.y)
         self.filter = self.WRAPPER.get_filter_parameters()
-        self.filter.update(
-            {'color': self.masked[self.coo.y, self.coo.x]}
-        )
-        self.filter = self.WRAPPER.set_filter_parameters(self.filter)
+        self.filter = self.WRAPPER.set_filter_parameters(self.filter, tuple(self.masked[self.coo.y, self.coo.x]))
         self.update()
 
     def track(self, value):

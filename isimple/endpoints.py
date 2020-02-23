@@ -6,8 +6,7 @@ from isimple.core.config import Color, FilterConfig
 
 class BackendEndpoints(ImmutableRegistry):  # todo: confusing naming
     get_arguments = Endpoint(Callable[[], dict])
-    set_video_path = Endpoint(Callable[[str], None])
-    set_design_path = Endpoint(Callable[[str], None])
+    get_config = Endpoint(Callable[[], dict])
     set_config = Endpoint(Callable[[dict], None])
     get_name = Endpoint(Callable[[], str])
     get_total_frames = Endpoint(Callable[[], int])

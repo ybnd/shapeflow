@@ -4,11 +4,15 @@ import copy
 import time
 import threading
 from contextlib import contextmanager
-from typing import Any, Callable
+from typing import Any, Callable, List, Optional
 
 from isimple.core.util import describe_function
-from isimple.core.config import *
+from isimple.core.log import get_logger
+from isimple.core.config import BackendInstanceConfig, CachingBackendInstanceConfig, BackendManagerConfig, Factory
 from isimple.core.common import RootException, SetupError, Manager  # todo: RootException should probably be in a separate file
+
+
+log = get_logger(__name__)
 
 
 class BackendSetupError(SetupError):
@@ -35,6 +39,8 @@ class BackendInstance(object):
     def __init__(self, config: Optional[BackendInstanceConfig]):
         self._configure(config)
         super(BackendInstance, self).__init__()
+
+        log.debug(f'Initialized {self.__class__.__qualname__} with {self._config}')
 
     def _configure(self, config: BackendInstanceConfig = None):   # todo: adapt to dataclass implementation
         """Handle a (flat) configuration dict
@@ -129,7 +135,7 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
 
     def _cached_call(self, method, *args, **kwargs):
         """Wrapper for a method, handles caching 'at both ends'
-        """  # todo can't use this as a decorator :(
+        """
         key = self._get_key(method, *args)
         if self._cache is not None:
             # Check if the file's already cached
@@ -138,36 +144,45 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
                 while self._is_blocked(key) and time.time() < t0 + self._config.block_timeout:
                     # Some other thread is currently reading the same frame
                     # Wait a bit and try to get from cache again
+                    log.vdebug(f'Cache: wait for {key} to be released...', 5)
                     time.sleep(0.01)  # todo: DiskCache-level events?
 
                 value = self._from_cache(key)
                 if isinstance(value, str) and value == __BLOCKED__:
-                    warnings.warn('Timed out waiting for blocked value.')
+                    log.warning(f'Timed out waiting for {key}.')
                     return None
                 else:
+                    log.vdebug(f"Cache: read {key}.")
                     return value
             if not self._config.cache_consumer:
                 # Cache a temporary string to 'block' the key
+                log.vdebug(f"Cache: block {key}.")
                 self._block(key)
+                log.vdebug(f"Execute {key}.")
                 value = method(*args, **kwargs)
                 if value is not None:
+                    log.vdebug(f"Cache: write {key}.")
                     self._to_cache(key, value)
                     return value
                 else:
+                    log.vdebug(f"Cache: drop {key}.")
                     self._drop(key)
                     return None
             else:
                 return None
         else:
+            log.vdebug(f"Execute {key}.")
             return method(*args, **kwargs)
 
     def __enter__(self):
         if self._config.do_cache:
+            log.debug(f'{self.__class__.__qualname__}: opening cache.')
             self._cache = diskcache.Cache(
                 directory=self._config.cache_dir,
                 size_limit=self._config.cache_size_limit,
             )
             if self._config.do_background:
+                log.debug(f'{self.__class__.__qualname__}: starting background thread.')
                 pass  # todo: can start caching frames in background thread here
 
         return self
@@ -175,10 +190,12 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
     def __exit__(self, exc_type, exc_value, tb):
         if self._config.do_cache:
             if self._cache is not None:
+                log.debug(f'{self.__class__.__qualname__}: closing cache.')
                 self._cache.close()
                 self._cache = None
 
             if self._background is not None and self._background.is_alive():
+                log.debug(f'{self.__class__.__qualname__}: stopping background thread.')
                 pass  # todo: can stop background thread here (gracefully)
                 #        ...also: self._background.is_alive() doesn't recognize self...
 
@@ -233,6 +250,8 @@ class BackendManager(BackendInstance, Manager):  # todo: naming :(
             e for e in self._instances if
             isinstance(e, CachingBackendInstance)
         ]
+        log.debug(f'{self.__class__.__qualname__}: propagate caching context '
+                  f'to {[i.__class__.__qualname__ for i in caching_instances]}')
         try:
             for element in caching_instances:
                 element.__enter__()

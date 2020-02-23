@@ -32,12 +32,10 @@ class guiPane(guiElement):
 class guiWindow(guiElement):
     """Abstract class for a GUI window
     """
-    _methods: Dict[str, Callable]
     _endpoints: List[Endpoint]
 
     def __init__(self):
         super().__init__()
-        self._methods = {}
 
     def open(self):  # todo: should check if all callbacks have been provided
         pass
@@ -48,9 +46,7 @@ class guiWindow(guiElement):
 
 class SetupWindow(guiWindow):
     _endpoints = [
-        backend.get_arguments,
-        backend.set_video_path,
-        backend.set_design_path,
+        backend.get_config,
         backend.set_config,
     ]
 
