@@ -2,6 +2,7 @@ import re
 import os
 import pandas as pd
 from typing import Any, Callable, Type, Dict
+import datetime
 
 import cv2
 
@@ -740,6 +741,7 @@ class VideoAnalyzer(BackendManager):
 
     def analyze(self):
         self._get_featuresets()
+        self.save_config()
         if self._gui is not None:
             update_callback = self._gui.get(gui.update_progresswindow)
             self._gui.get(gui.open_progresswindow)()
@@ -751,16 +753,14 @@ class VideoAnalyzer(BackendManager):
 
         self.save()
 
-
     def load_config(self, path: str = None):
         """Load video analysis configuration
         """
         if path is None and self._config.video_path:
-            path = os.path.splitext(
-                self._config.video_path
-            )[0] + __meta_ext__
+            path = self._config.video_path
 
         if path is not None:
+            path = os.path.splitext(path)[0] + __meta_ext__
             if os.path.isfile(path):
                 self._config = load(path)
         else:
@@ -770,11 +770,10 @@ class VideoAnalyzer(BackendManager):
         """Save video analysis configuration
         """
         if path is None and self._config.video_path:
-            path = os.path.splitext(
-                self._config.video_path
-            )[0] + __meta_ext__
+            path = self._config.video_path
 
         if path is not None:
+            path = os.path.splitext(path)[0] + __meta_ext__
             dump(self._gather_config(), path)
         else:
             log.warning(f"No path provided to `save_config`; no video file either.")
@@ -793,10 +792,17 @@ class VideoAnalyzer(BackendManager):
     def save(self, path: str = None):
         """Save video analysis results & metadata
         """
-        self.save_config()
-        config_yaml = dumps(self._gather_config())
+        name = str(os.path.splitext(self._config.video_path)[0])  # type: ignore
+        f = name + ' ' + datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S") + '.xlsx'
 
-        raise NotImplementedError
+        w = pd.ExcelWriter(f)
+        for k,v in self.value.items():
+            v.to_excel(w, sheet_name=k)
+
+        pd.DataFrame([dumps(self._config)]).to_excel(w, sheet_name='meta')
+
+        w.save()
+        w.close()
 
 
 class MultiVideoAnalyzer(BackendManager):
