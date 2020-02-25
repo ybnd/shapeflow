@@ -408,7 +408,6 @@ class DesignFileHandler(CachingBackendInstance):
     def __init__(self, path: str, config: DesignFileHandlerConfig = None, mask_config: Tuple[MaskConfig,...] = None):
         super(DesignFileHandler, self).__init__(config)
 
-
         if not os.path.isfile(path):
             raise FileNotFoundError
 
@@ -480,7 +479,11 @@ class DesignFileHandler(CachingBackendInstance):
         masks = []
         names = []
         for path in sorted_files:
-            masks.append(to_mask(cv2.imread(path), ckernel(self._config.smoothing)))
+            masks.append(
+                to_mask(
+                    cv2.imread(path), ckernel(self._config.smoothing)
+                )
+            )
 
             match = pattern.search(path)
             if match:
@@ -612,8 +615,9 @@ class VideoAnalyzer(BackendManager):
         self._gather_instances()
 
     def can_launch(self):
-        return os.path.isfile(self._config.video_path) \
-               and os.path.isfile(self._config.design_path)
+        if not (self._config.video_path is None and self._config.design_path is None):
+            return os.path.isfile(self._config.video_path) \
+                   and os.path.isfile(self._config.design_path)
 
     def launch(self):
         if self.can_launch():

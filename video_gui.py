@@ -1,4 +1,4 @@
-from isimple.core.config import VideoAnalyzerConfig
+from isimple.core.config import VideoAnalyzerConfig, DesignFileHandlerConfig
 from isimple.video import VideoAnalyzer
 from isimple.gui import VideoAnalyzerGui
 
@@ -28,11 +28,7 @@ def analysis(config=None):
 
 if __name__ == '__main__':
     analysis(
-        VideoAnalyzerConfig(**{  # type: ignore
-            'video_path': '/home/ybnd/projects/200210 - isimple/shuttle.mp4',
-            'design_path': '/home/ybnd/projects/200210 - isimple/shuttle.svg',
-            'dt': 5,
-            'height': 153e-3,
-            'video': {'do_cache': True}
-        })
+        VideoAnalyzerConfig(
+            design = DesignFileHandlerConfig(keep_renders=True)
+        )
     )
