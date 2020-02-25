@@ -1,0 +1,4 @@
+url: https://github.com/ybnd/isimple.git
+branch: master
+environment: .venv
+name: isimple-master
