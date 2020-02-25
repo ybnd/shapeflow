@@ -17,9 +17,14 @@ import matplotlib.pyplot as plt
 import screeninfo
 import json
 
-__monitor_w__ = min(m.width for m in screeninfo.get_monitors())
-__monitor_h__ = min(m.height for m in screeninfo.get_monitors())
-
+monitors = screeninfo.get_monitors()
+if len(monitors) > 0:
+    __monitor_w__ = min(m.width for m in monitors)
+    __monitor_h__ = min(m.height for m in monitors)
+else:
+    __monitor_w__ = 1920.0
+    __monitor_h__ = 1080.0
+    
 from isimple.video.visualization import *
 
 import asyncio
