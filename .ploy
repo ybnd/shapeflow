@@ -1,3 +1,4 @@
 url: https://github.com/ybnd/isimple
-name: isimple
+branch: develop
+name: isimple-develop
 setup: scripts/setup_windows.py
