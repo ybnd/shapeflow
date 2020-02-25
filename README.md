@@ -5,7 +5,7 @@
  
 0. Install [Python 3](https://www.python.org/downloads/) and [Git](https://git-scm.com/downloads) (or from the KUL Software Center)
 
-1. Download a deployment script from https://github.com/ybnd/isimple/releases to the folder you want to install the application in
+1. Download a deployment script [for the release you want](https://github.com/ybnd/isimple/releases) to the folder you want to install the application in
 
 2. Execute the deployment script (just double-clicking is fine!)
 
