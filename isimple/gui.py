@@ -1,10 +1,10 @@
-from typing import List, Dict, Type, Callable
-import abc
+from typing import List, Dict, Type
 import time
 
 import numpy as np
 
-from isimple.core.common import Manager, Endpoint
+from isimple.core.common import Manager
+from isimple.core.gui import guiElement, guiWindow
 from isimple.endpoints import GuiEndpoints
 from isimple.endpoints import BackendEndpoints as backend
 
@@ -12,36 +12,6 @@ import og.gui
 
 
 gui = GuiEndpoints()
-
-
-class guiElement(abc.ABC):
-    """Abstract class for GUI elements
-    """
-
-    def __init__(self):
-        pass
-
-    def build(self):
-        pass
-
-class guiPane(guiElement):
-    """Abstract class for a GUI pane
-    """
-    pass
-
-class guiWindow(guiElement):
-    """Abstract class for a GUI window
-    """
-    _endpoints: List[Endpoint]
-
-    def __init__(self):
-        super().__init__()
-
-    def open(self):  # todo: should check if all callbacks have been provided
-        pass
-
-    def close(self):
-        pass
 
 
 class SetupWindow(guiWindow):

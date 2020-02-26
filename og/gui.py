@@ -19,13 +19,14 @@ from matplotlib.figure import Figure
 import og.app
 
 from isimple.core.util import restrict, rotations
+from isimple.core.gui import load_file_dialog
 
 try:
     __monitor_w__ = min(m.width for m in screeninfo.get_monitors())
     __monitor_h__ = min(m.height for m in screeninfo.get_monitors())
 except ValueError:
-    __monitor_w__ = 0
-    __monitor_h__ = 0
+    __monitor_w__ = 1920
+    __monitor_h__ = 1080
 
 __coo__ = namedtuple('Coordinate', 'x y')
 __ratio__ = 0.6  # some kind of magic number?
@@ -181,14 +182,16 @@ class FileSelectWindow(og.app.HistoryApp):
         self.__path_width__ = restrict(self.__path_width__, 10, 200)
 
     def browse_video(self):
-        self.video_path.set(tkfd.askopenfilename(
-            filetypes=[('Video files', '*.mp4 *.mkv *.avi *.mpg *.mov')])
-        )
+        self.video_path.set(load_file_dialog(
+            'Select a video file...',
+            ['*.mp4', '*.mkv', '*.avi', '*.mpg', '*.mov'], 'Video files',
+        ))
 
     def browse_design(self):
-        self.design_path.set(tkfd.askopenfilename(
-            filetypes=[('SVG files', '*.svg')])
-        )
+        self.design_path.set(load_file_dialog(
+            'Select a design file...',
+            ['*.svg'], 'SVG files',
+        ))
 
     def commit(self, _=None):
         self.config.update({
@@ -454,6 +457,12 @@ class ImageDisplay:
             self.__width__ = __monitor_w__ * 0.90
             self.__ratio__ = self.__width__ \
                 / (self.shape[1] + overlay.shape[1])
+
+        if initial_coordinates is None:
+            video_coordinates = self.window.WRAPPER.get_coordinates()
+            if video_coordinates is not None:
+                initial_coordinates = np.array(video_coordinates) * self.__ratio__
+                initial_coordinates = initial_coordinates.tolist()
 
         self.canvas = tk.Canvas(
             self.window,
