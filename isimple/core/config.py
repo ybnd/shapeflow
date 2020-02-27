@@ -198,7 +198,10 @@ class Config(abc.ABC):
                 return obj.to_dict()
             if isinstance(obj, EnforcedStr):
                 # Return str value
-                return str(obj)
+                try:
+                    return str(obj)
+                except TypeError:
+                    return ''
             if isinstance(obj, tuple):
                 # Convert to str & bypass YAML tuple representation
                 return Config.__tuple2str__(obj)
