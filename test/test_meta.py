@@ -66,7 +66,7 @@ class BackendConfigTest(unittest.TestCase):
 
 
 __YAML_CONFIG__ = f'''
-version: 0.2
+version: '0.2'
 video_path: {__VIDEO__}
 design_path: {__DESIGN__}
 frame_interval_setting: dt
@@ -85,12 +85,12 @@ masks:
   - height: 0.127e-3
     filter: 
       type: hsv range
-      data:
+      filter:
         radius: (15, 50, 25)
   - height: 0.306e-3
     filter: 
       type: hsv range
-      data: 
+      filter: 
         radius: (30, 10, 10)
 features:
   - pixel sum

@@ -1,16 +1,19 @@
 # cheated off of https://testdriven.io/blog/developing-a-single-page-app-with-flask-and-vuejs/
 
-from typing import List
+import json
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
-from isimple.core.common import Manager
-from isimple.video import backend, VideoAnalyzer
+from isimple.core.log import get_logger
+from isimple.video import backend, BackendType
 
+log = get_logger('flask')
 
-# run a backend instance
-b = VideoAnalyzer()
+__instances__: dict = {
+    BackendType('VideoAnalyzer'): [],
+}
+
 
 # configuration
 DEBUG = True
@@ -20,28 +23,49 @@ app = Flask(__name__)
 app.config.from_object(__name__)
 
 # enable CORS
-CORS(app, resources={r'/*': {'origins': '*'}})
+CORS(app, resources={r'/*': {'origins': '*'}})  # todo: temporary!
 
-def respond(data: dict = None, errors: List[dict] = None) -> str:
-    if errors is None:
-        return jsonify({'data': data})
+def respond(*args) -> str:  # todo: use method schemas
+    return jsonify({'data': [*args]})
+
+
+
+@app.route('/<backendtype>/init', methods=['GET'])
+def init(backendtype: str):
+    bt = BackendType(backendtype)
+    __instances__[bt].append(bt.get()())  # todo: wow.
+    return respond(len(__instances__[bt])-1)  # todo: should return list of methods that don't rely on nested BackendInstances & their schemas
+
+
+@app.route('/<backendtype>/<index>/launch', methods=['GET'])
+def launch(backendtype: str, index: int):
+    bt = BackendType(backendtype)
+    index = int(index)
+    __instances__[bt][index].launch()  # todo: should also cache all method pointers for __instances__[bt][index] so we don't call .get() a million times
+    return respond()  # todo: should return all available methods & their schemas
+
+
+@app.route('/<backendtype>/<index>/<method>', methods=['GET'])
+def call(backendtype: str, index: int, method: str):
+    bt = BackendType(backendtype)
+    index = int(index)
+
+    log.info(f"we have a request: {request.args.to_dict()}")
+
+    if request.args.to_dict() != {}:
+        return respond(  # todo: dict ~ method return schema
+            __instances__[bt][index].get(  # todo: cache method pointers @ launch
+                getattr(backend, method)
+            )(**{k:json.loads(v) for k,v in request.args.to_dict().items()})  # todo: figure out how to route request data correctly ~ attr schema of method
+        )
     else:
-        return jsonify({'errors': errors})
+        return respond(  # todo: dict ~ method return schema
+            __instances__[bt][index].get(  # todo: cache method pointers @ launch
+                getattr(backend, method)
+            )()  # todo: figure out how to route request data correctly ~ attr schema of method
+        )
 
-
-@app.route('/get_config', methods=['GET'])
-def get_config():
-    return respond(
-        b.get(backend.get_config)()  # todo: doing a Manager 'get' every time is overkill, especially when e.g. requesting frames
-    )
-
-@app.route('/set_config', methods=['POST'])
-def set_config():
-    try:
-        b.get(backend.set_config)(request.get_json().get('config'))
-        return respond()
-    except Exception:
-        pass
 
 if __name__ == '__main__':
     app.run()
+

@@ -17,7 +17,7 @@ class BackendEndpoints(ImmutableRegistry):  # todo: confusing naming
     get_mask_name = Endpoint(Callable[[int], str])
     get_mask_names = Endpoint(Callable[[], tuple])
     set_filter_implementation = Endpoint(Callable[[str], str])
-    set_filter_parameters = Endpoint(Callable[[FilterConfig, Tuple[float,float,float]], FilterConfig])
+    set_filter_parameters = Endpoint(Callable[[FilterConfig, Tuple[float,float,float]], FilterConfig])  # todo: frontend shouldn't have to care about FilterConfig!
     get_filter_parameters = Endpoint(Callable[[], FilterConfig])
     get_filter_mean_color = Endpoint(Callable[[], Tuple[float,float,float]])
     get_overlay = Endpoint(Callable[[], np.ndarray])

@@ -811,3 +811,8 @@ class VideoAnalyzer(BackendManager):
 
 class MultiVideoAnalyzer(BackendManager):
     pass
+
+
+BackendType.extend({
+    'VideoAnalyzer': VideoAnalyzer,
+})

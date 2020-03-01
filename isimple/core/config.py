@@ -10,12 +10,13 @@ from collections.abc import Iterable
 import abc
 import datetime
 
+from isimple.core.util import before_version, after_version
 from isimple.core.log import get_logger
 
 
 log = get_logger(__name__)
 
-__version__: str = '0.2'
+__version__: str = '0.2.1'
 
 # Extension
 __meta_ext__ = '.meta'
@@ -64,6 +65,9 @@ class EnforcedStr(object):
     @property
     def default(self):
         return self._options[0]
+
+    def __hash__(self):
+        return hash(str(self))
 
 
 class Factory(EnforcedStr):
@@ -124,6 +128,10 @@ class FilterType(Factory):
 
 
 class VideoFeatureType(Factory):
+    _mapping: dict = {}
+
+
+class BackendType(Factory):
     _mapping: dict = {}
 
 
@@ -372,7 +380,7 @@ def load(path: str) -> VideoAnalyzerConfig:  # todo: internals should be replace
                 {
                     'name': mk,
                     'filter': {
-                        'filter': {'c0': mv['from'], 'c1': mv['to']}
+                        'data': {'c0': mv['from'], 'c1': mv['to']}
                     }
                 }
                 for mk, mv in zip(
@@ -381,6 +389,10 @@ def load(path: str) -> VideoAnalyzerConfig:  # todo: internals should be replace
                 )
             ]
         }
+    else:
+        if before_version(d['version'], '0.2.1'):
+            for m in d['masks']:
+                m['filter']['data'] = m['filter'].pop('filter')
 
     # Remove timestamp & version info
     d.pop('timestamp', None)
