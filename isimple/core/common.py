@@ -1,7 +1,7 @@
 from typing import Callable, Dict, List, Tuple, Type
 import abc
 
-from isimple.core.util import all_attributes, get_overridden_methods, timing
+from isimple.core.util import all_attributes, get_overridden_methods
 from isimple.core.log import get_logger
 
 
@@ -177,7 +177,7 @@ class Manager(object):
         log.debug(f'{self.__class__.__name__}: gather nested instances')
         self._instance_mapping = {}
         instances = []
-        attributes = [attr for attr in self.__dir__() if attr[0:2] != '__']  # using iterator doubles count as _instances is also an attribute
+        attributes = [attr for attr in self.__dir__() if attr[0] != '_']   # todo: all_attributes fails here because that's ~ class!
 
         for attr in sorted(attributes):
             value = getattr(self, attr)
@@ -196,7 +196,7 @@ class Manager(object):
 
     def _add_instance(self, instance: object):
         if isinstance(instance, self._instance_class):
-            for attr in [attr for attr in all_attributes(instance)]:
+            for attr in [attr for attr in all_attributes(instance, include_under=False, include_methods=True)]:
                 value = getattr(instance, attr)  # bound method
 
                 if hasattr(value, '__func__'):

@@ -117,7 +117,6 @@ class VideoInterfaceTest(FrameTest):
     def test_get_cached_frame_threaded(self):
         __INTERVAL__ = 0.1
 
-        @timing
         def read_frames_and_cache():
             with VideoFileHandler(__VIDEO__) as vi_source:
                 for frame_number in TEST_FRAME_HSV.keys():

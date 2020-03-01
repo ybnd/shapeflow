@@ -3,9 +3,12 @@ import os
 import time
 from functools import wraps
 import inspect
-from typing import Generator, Type, _GenericAlias, Union, Optional, Collection, Tuple  # type: ignore
+from inspect import _empty  # type: ignore
+from typing import Generator, Type, _GenericAlias, Union, Collection, Dict, Any, Tuple, Callable, List  # type: ignore
 import numpy as np
 import json
+
+from schema import Schema, Optional
 
 from isimple.core.log import get_logger
 from isimple.core.config import EnforcedStr, Config
@@ -47,7 +50,7 @@ def timing(f):
         ts = time.time()
         result = f(*args, **kwargs)
         te = time.time()
-        print(f"{f.__name__}() --> {te-ts} s elapsed.")
+        log.info(f"{f.__name__}() --> {te-ts} s elapsed.")
         return result
     return wrap
 
@@ -70,7 +73,7 @@ def describe_function(f):
     return f'{f.__module__}{name}'
 
 
-def bases(c: type) -> list:
+def bases(c: type) -> List[type]:
     b = [base for base in c.__bases__]
     for base in b:
         b += bases(base)
@@ -83,12 +86,46 @@ def nbases(c: type) -> int:
         return len(bases(c))
 
 
-def all_attributes(o: object) -> list:
-    b = [o.__class__] + bases(o.__class__)
+def all_attributes(
+        t: Union[object, type],
+        include_under: bool = True,
+        include_methods: bool = True,
+        include_mro: bool = False,
+) -> List[str]:
+    if not isinstance(t, type):
+        t = t.__class__
+
+    b = [t] + bases(t)
     attributes: list = []
     for base in b:
         attributes += base.__dict__
-    return list(set(attributes))
+    attributes = list(set(attributes))
+
+    if not include_under:
+        attributes = [a for a in attributes if a[0] != '_']
+    if not include_methods:
+        attributes = [a for a in attributes if not hasattr(getattr(t,a),'__call__')] # todo: this is hacky
+    if not include_mro:
+        attributes = [a for a in attributes if a[0:3] != 'mro']
+
+    return attributes
+
+def all_annotations(t: Union[object, type]) -> Dict[str, type]:
+    if not isinstance(t, type):
+        t = object.__class__
+
+    b = [t] + bases(t)
+    annotations: Dict[str, Any] = {}
+
+    # todo: in order to get the correct annotation, bases must be ordered from most generic to most specific
+    for base in sorted(b, key=nbases):
+        try:
+            annotations.update(base.__annotations__)
+        except AttributeError:
+            pass
+
+    return annotations
+
 
 def get_overridden_methods(c, m) -> list:
     b = [c] + bases(c)
@@ -162,145 +199,137 @@ def resolve_type_to_most_specific(t: _GenericAlias) -> _GenericAlias:
         return t
 
 
-def get_schema(config: Type[Config]):  # todo: check the schema package: https://github.com/keleshev/schema
-    TITLE = 'title'
-    TYPE = 'type'
-    ITEMS = 'items'
-    PROPERTIES = 'properties'
-    DEFINITIONS = 'definitions'
-    OBJECT = 'object'
-    STRING = 'string'
-    INTEGER = 'integer'
-    FLOAT = 'float'
-    BOOLEAN = 'boolean'
-    ARRAY = 'array'
-    NUMPY = {
-        'contentEncoding': 'base64',
-        'contentMediaType': 'application/x-numpy',
-    }
-    REF = '$ref'
+def _type_to_schema(t, container=None, k=None) -> dict:  # todo: how to type t here?
+    # todo: We're assuming everything is optional here!
+    if container is None:
+        container = t
+    if k is None:
+        k = t.__qualname__
 
+    sk = Optional(k)
 
-    def REFKEY(t) -> str:
-        return t.__qualname__
-
-
-    def DEFINITION(t) -> str:
-        return f"#/{DEFINITIONS}/{REFKEY(t)}"
-
-
-    def handle_type(t, config, k) -> Tuple[dict, dict]:  # todo: how to type t here?
-        definitions = {}
-
-        if isinstance(t, _GenericAlias):
-            # Extract typing info
-            if hasattr(t, '__origin__'):
-                if t.__origin__ == tuple:
-                    if t.__args__[1] == Ellipsis:
-                        item, item_def = handle_type(t.__args__[0], config, k)
-                        definitions.update(item_def)
-                        property = {
-                            TYPE: ARRAY,
-                            ITEMS: item
-                        }
-                    else:
-                        raise NotImplementedError(f"Tuple ~ {t.__args__}")
-                elif t.__origin__ == list:
-                    raise NotImplementedError(f"List ~ {t.__args__}")
-                elif t.__origin__ == dict:
-                    raise NotImplementedError(f"Dict ~ {t.__args__}")
+    if isinstance(t, _GenericAlias):
+        # Extract typing info
+        if hasattr(t, '__origin__'):
+            if t.__origin__ == tuple:
+                if t.__args__[1] == Ellipsis:
+                    return {
+                        sk: [Schema(_schemify(t.__args__[0]), name=k, as_reference=True)]
+                    }
                 else:
-                    raise NotImplementedError(f"Can't handle {t}")
+                    raise NotImplementedError(f"Tuple ~ {t.__args__}")
+            elif t.__origin__ == list:
+                raise NotImplementedError(f"List ~ {t.__args__}")
+            elif t.__origin__ == dict:
+                raise NotImplementedError(f"Dict ~ {t.__args__}")
+            elif t.__origin__ == Union:
+                return {
+                    sk: resolve_type_to_most_specific(t),  # todo: doesn't handle unresolvable Unions
+                }
             else:
-                raise NotImplementedError
-        elif issubclass(t, Config):
-            subschema = schemeify(t)
-            definitions.update({
-                REFKEY(t): {
-                    TYPE: OBJECT,
-                    **subschema[PROPERTIES]
-                },
-                **subschema[DEFINITIONS]
-            })
-            property = {
-                REF: DEFINITION(t),
-            }
-        elif issubclass(t, EnforcedStr):
-            log.warning(f"{config.__qualname__} property '{k}' is an EnforcedStr, "
-                        f"but its available options are not yet included in the schema.")
-            property = {
-                TYPE: STRING,  # todo: integrate options into schema
-            }
-        elif t == str:
-            property = {
-                TYPE: STRING,  # todo: integrate options into schema
-            }
-        elif t == int:
-            property = {
-                TYPE: INTEGER,
-            }
-        elif t == float:
-            property = {
-                TYPE: FLOAT,
-            }
-        elif t == bool:
-            property = {
-                TYPE: BOOLEAN,
-            }
-        elif t == np.ndarray:  # todo: consider using BSON instead!
-            property = {
-                TYPE: STRING,
-                **NUMPY
-            }
-        elif t == dict:
-            log.warning(
-                f"{config.__qualname__} property '{k}' is a {t.__qualname__}, "
-                f"consider making it a subclass of isimple.core.config.config instead.")
-            property = {
-                TYPE: OBJECT
-            }
-        elif t == list:
-            log.warning(
-                f"{config.__qualname__} property '{k}' is a {t.__qualname__}, "
-                f"consider making it more specific.")
-            property = {
-                TYPE: ARRAY,
-            }
-        elif t == tuple:
-            log.warning(
-                f"{config.__qualname__} property '{k}' is a {t.__qualname__}, "
-                f"consider making it more specific.")
-            property = {
-                TYPE: ARRAY,
-            }
+                raise NotImplementedError(f"Can't handle {t}")
         else:
             raise NotImplementedError(t)
-
-        return property, definitions
-
-    def schemeify(config: Type[Config]) -> dict:
-        schema: dict = {
-            TITLE: config.__name__,
-            TYPE: OBJECT,
-            PROPERTIES: {},
-            DEFINITIONS: {},
+    elif issubclass(t, Config):
+        return {
+            sk: Schema(_schemify(t), name=k, as_reference=True),
         }
-        for k in [k for k in config.__dict__.keys() if k[0] != '_']:  # todo: this is ugly :(
-            t = resolve_type_to_most_specific(config.__annotations__[k])
-            log.debug(f"{config.__qualname__} property '{k}' is a {t}")
+    elif t == str or t == int or t == float or t == bool:
+        return {
+            sk: t,
+        }
+    elif t == np.ndarray:  # todo: consider using BSON instead!
+        return {
+            sk: {
+                'type': 'string',
+                'contentEncoding': 'base64',
+                'contentMediaType': 'application/x-numpy',
+            },
+        }
+    elif issubclass(t, EnforcedStr):
+        log.warning(f"{container.__qualname__} property '{k}' is an EnforcedStr, "
+                    f"but its available options are not included in the schema.")
+        return {
+            sk: str,  # todo: integrate options into schema
+        }
+    elif t == dict:
+        log.warning(
+            f"{container.__qualname__} property '{k}' is a {t.__qualname__}, "
+            f"consider making it a subclass of isimple.core.config.config instead.")
+        return {
+            sk: t
+        }
+    elif t == list:
+        log.warning(
+            f"{container.__qualname__} property '{k}' is a {t.__qualname__}, "
+            f"consider making it more specific.")
+        return {
+            sk: t,
+        }
+    elif t == tuple:
+        log.warning(
+            f"{container.__qualname__} property '{k}' is a {t.__qualname__}, "
+            f"consider making it more specific.")
+        return {
+            sk: t,
+        }
+    else:
+        raise NotImplementedError(t)
 
-            property, definitions = handle_type(t, config, k)
 
-            if property is not None:
-                schema[PROPERTIES][k] = property
-            for k,v in definitions.items():
-                schema[DEFINITIONS][k] = v
-        return schema
+def _schemify(t: type) -> dict:
+    if issubclass(t, Config):
+        schema = {}
+        annotations = all_annotations(t)
+        for a in all_attributes(t, include_under=False, include_methods=False):
+            if hasattr(t, '__annotations__'):
+                at = annotations[a]
+            else:
+                at = type(getattr(t, a))
+            schema.update(
+                _type_to_schema(
+                    resolve_type_to_most_specific(at),
+                    t, a
+                )
+            )
+    else:
+        schema = _type_to_schema(t, t, t)
+    return schema
 
 
-    with open(
-            os.path.join(
-                os.path.dirname(__file__),
-                'schemas', config.__name__ + '.json'
-            ), 'w+') as f:
-        json.dump(schemeify(config), f, indent=2)
+def get_config_schema(config: Type[Config]) -> Schema:
+    return Schema(_schemify(config))
+
+
+# noinspection PyUnresolvedReferences
+def get_method_schema(method: Callable) -> Schema:
+    schema = {}
+    for a,p in inspect.signature(method).parameters.items():
+        t = p.annotation
+
+        if t is _empty:
+            raise TypeError(f"Can not generate schema for method {method.__qualname__}; "
+                            f"the type of argument '{a}' is not annotated.")
+        else:
+            if p.default is not _empty:
+                sa = Optional(a)
+            else:
+                sa = a
+            schema.update(
+                {sa: _type_to_schema(t, method, a)}
+            )
+    return Schema(schema)
+
+
+def dumps_schema(obj) -> str:
+    try:
+        if issubclass(obj, Config):
+            schema = get_config_schema(obj)
+        else:
+            raise TypeError
+    except TypeError:
+        schema = get_method_schema(obj)
+
+    return json.dumps(
+        schema.json_schema(obj.__qualname__ + '.json'), indent = 2,
+    )

@@ -41,12 +41,7 @@ def set_config():
         b.get(backend.set_config)(request.get_json().get('config'))
         return respond()
     except Exception:
-
-
-
-
-
-
+        pass
 
 if __name__ == '__main__':
     app.run()

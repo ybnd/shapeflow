@@ -4,7 +4,7 @@ from yaml.representer import SafeRepresenter
 import json
 from ast import literal_eval as make_tuple
 import numpy as np
-from typing import List, Optional, Tuple, Union, Type, _GenericAlias
+from typing import List, Optional, Tuple, Union
 from dataclasses import dataclass
 from collections.abc import Iterable
 import abc
@@ -297,11 +297,11 @@ class HsvRangeFilterConfig(FilterConfig):
 @dataclass
 class FilterHandlerConfig(BackendInstanceConfig):
     type: Union[FilterType,str] = ''
-    filter: Union[FilterConfig,dict,None] = None
+    data: Union[FilterConfig, dict, None] = None
 
     def __post_init__(self):
         self.type = self.resolve(self.type, FilterType)
-        self.filter = self.resolve(self.filter, self.type.get()._config_class)  # todo: something something typing in Factory
+        self.data = self.resolve(self.data, self.type.get()._config_class)  # todo: something something typing in Factory
 
 
 @dataclass

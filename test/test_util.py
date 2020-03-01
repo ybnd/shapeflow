@@ -3,9 +3,14 @@ import unittest
 import os
 import json
 
-from typing import _GenericAlias, Union, Tuple, List, Dict  #type: ignore
+from typing import _GenericAlias, Union, Tuple, List, Dict, Optional  #type: ignore
 
-from isimple.core.util import resolve_type_to_most_specific, get_schema
+from isimple.core.util import (
+    resolve_type_to_most_specific,
+    get_config_schema,
+    get_method_schema,
+    dumps_schema
+)
 from isimple.core.config import VideoAnalyzerConfig
 
 class ResolveTypeTest(unittest.TestCase):
@@ -31,13 +36,13 @@ class ResolveTypeTest(unittest.TestCase):
 
     def test_unspecifiable_union(self):
         self.assertEqual(
-            Union[dict, str, int],
+            dict,
             resolve_type_to_most_specific(
                 Union[dict, str, int]
             )
         )
         self.assertEqual(
-            Tuple[List[Dict[str, Union[dict, str, int]]],...],
+            Tuple[List[Dict[str, dict]],...],
             resolve_type_to_most_specific(
                 Tuple[List[Dict[str, Union[dict, str, int]]],...]
             )
@@ -45,29 +50,26 @@ class ResolveTypeTest(unittest.TestCase):
 
 
 class SchemaTest(unittest.TestCase):
-    def test_dump_schema(self):
-        path = '../isimple/core/schemas/VideoAnalyzerConfig.json'
-        try:
-            os.remove(path)
-        except FileNotFoundError:
-            pass
+    def test_get_schema_schema(self):
+        s = dumps_schema(VideoAnalyzerConfig)
 
-        get_schema(VideoAnalyzerConfig)
+    def test_get_method_schema(self):
+        def annotated_method(
+                arg1: int,
+                arg2: float,
+                arg3: Optional[bool] = False,
+                arg4: bool = None
+        ) -> list:
+            return []
 
-        self.assertTrue(os.path.isfile(path))
+        def unannotated_method(
+                arg1,
+                arg2: float,
+                arg3: Optional[bool] = False,
+                arg4: bool = None
+        ) -> list:
+            return []
 
-        with open(path, 'r') as f:
-            schema = json.load(f)
+        s = dumps_schema(annotated_method)
 
-        # Is the schema 'legal'?
-
-
-        # Are all Config attributes present in the schema's properties?
-        self.assertListEqual(
-            [k for k in VideoAnalyzerConfig.__dict__.keys() if k[0] != '_'],
-            [k for k in schema['properties'].keys()]
-        )
-
-        # Are all references in the
-
-
+        self.assertRaises(TypeError, get_method_schema, unannotated_method)

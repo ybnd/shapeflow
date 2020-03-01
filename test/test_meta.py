@@ -85,12 +85,12 @@ masks:
   - height: 0.127e-3
     filter: 
       type: hsv range
-      filter:
+      data:
         radius: (15, 50, 25)
   - height: 0.306e-3
     filter: 
       type: hsv range
-      filter: 
+      data: 
         radius: (30, 10, 10)
 features:
   - pixel sum
@@ -127,7 +127,3 @@ class VideoAnalyzerConfigTest(unittest.TestCase):
 
         if os.path.isfile('temp.yaml'):
             os.remove('temp.yaml')
-
-    def test_dump_schema(self):
-        get_schema(VideoAnalyzerConfig
-                   )

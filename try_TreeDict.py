@@ -43,9 +43,9 @@ oh = OptionsHandler(
         design=DesignFileHandlerConfig(),
         transform=TransformHandlerConfig(),
         masks=(
-            MaskConfig(name='mask1', filter=FilterHandlerConfig(filter=HsvRangeFilterConfig())),
-            MaskConfig(name='mask2', filter=FilterHandlerConfig(filter=HsvRangeFilterConfig())),
-            MaskConfig(name='mask3', filter=FilterHandlerConfig(filter=HsvRangeFilterConfig())),
+            MaskConfig(name='mask1', filter=FilterHandlerConfig(data=HsvRangeFilterConfig())),
+            MaskConfig(name='mask2', filter=FilterHandlerConfig(data=HsvRangeFilterConfig())),
+            MaskConfig(name='mask3', filter=FilterHandlerConfig(data=HsvRangeFilterConfig())),
         )
     )
 )

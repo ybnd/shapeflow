@@ -310,23 +310,23 @@ class FilterHandler(BackendInstance, DynamicHandler):
     def __init__(self, config: FilterHandlerConfig = None):
         super(FilterHandler, self).__init__(config)
         self.set_implementation(self._config.type)
-        if self._config.filter is None:
-            self._config.filter = self._implementation._config_class()
+        if self._config.data is None:
+            self._config.data = self._implementation._config_class()
 
     @backend.expose(backend.get_filter_mean_color)
     def mean_color(self) -> Color:
-        return self._implementation.mean_color(self._config.filter)
+        return self._implementation.mean_color(self._config.data)
 
     @backend.expose(backend.set_filter_parameters)
     def set_filter(self, filter: FilterConfig, color: Color) -> FilterConfig:
-        self._config.filter = self._implementation.set_filter(filter, color)
-        assert isinstance(self._config.filter, FilterConfig)
-        return self._config.filter
+        self._config.data = self._implementation.set_filter(filter, color)
+        assert isinstance(self._config.data, FilterConfig)
+        return self._config.data
 
     @backend.expose(backend.get_filter_parameters)
     def get_filter(self) -> FilterConfig:
-        assert isinstance(self._config.filter, FilterConfig)
-        return self._config.filter
+        assert isinstance(self._config.data, FilterConfig)
+        return self._config.data
 
     @backend.expose(backend.set_filter_implementation)
     def set_implementation(self, implementation: str) -> str:
@@ -334,8 +334,8 @@ class FilterHandler(BackendInstance, DynamicHandler):
 
     @backend.expose(backend.filter)
     def __call__(self, frame: np.ndarray) -> np.ndarray:
-        assert isinstance(self._config.filter, FilterConfig)
-        return self._implementation.filter(frame, self._config.filter)
+        assert isinstance(self._config.data, FilterConfig)
+        return self._implementation.filter(frame, self._config.data)
 
 
 
