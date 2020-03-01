@@ -127,3 +127,7 @@ class VideoAnalyzerConfigTest(unittest.TestCase):
 
         if os.path.isfile('temp.yaml'):
             os.remove('temp.yaml')
+
+    def test_dump_schema(self):
+        get_schema(VideoAnalyzerConfig
+                   )

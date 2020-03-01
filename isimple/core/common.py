@@ -43,7 +43,7 @@ class RegistryEntry(abc.ABC):  # todo: shouldn't allow instances
         return self._registered
 
 
-class Endpoint(RegistryEntry):
+class Endpoint(RegistryEntry):  # todo: a better name
     _signature: Type[Callable]
 
     def __init__(self, signature: Type[Callable]):
@@ -237,4 +237,3 @@ class Manager(object):
             elif len(methods) == 1:
                 index = 0  # Ignore the index if only one method is mapped
             return self._instance_mapping[endpoint][index]
-

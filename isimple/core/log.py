@@ -1,7 +1,12 @@
 import re
 import logging
 
+
 __log_file__ = '.log'
+__lvl_global__ = logging.DEBUG
+__lvl_console__ = logging.DEBUG
+__lvl_file__ = logging.DEBUG
+
 
 VDEBUG = 9
 logging.addLevelName(VDEBUG, "VDEBUG")
@@ -42,13 +47,13 @@ class CustomLogger(logging.Logger):
 
 def get_logger(name: str = __name__) -> CustomLogger:
     log = CustomLogger(name)
-    log.setLevel(logging.DEBUG)
+    log.setLevel(__lvl_global__)
 
     _console_handler = logging.StreamHandler()
-    _console_handler.setLevel(logging.WARNING)
+    _console_handler.setLevel(__lvl_console__)
 
     _file_handler = logging.FileHandler(__log_file__)
-    _file_handler.setLevel(logging.DEBUG)
+    _file_handler.setLevel(__lvl_file__)
 
     _formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
