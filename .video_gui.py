@@ -1,6 +1,6 @@
 from isimple.core.config import VideoAnalyzerConfig, DesignFileHandlerConfig
 from isimple.video import VideoAnalyzer
-from isimple.gui import VideoAnalyzerGui
+from og.gui import VideoAnalyzerGui
 
 
 def analysis(config=None):

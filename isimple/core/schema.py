@@ -1,12 +1,10 @@
 import inspect
 import json
 from inspect import _empty  # type: ignore
-from typing import Union, Collection, Type, Callable, _GenericAlias, Optional  # type: ignore
+from typing import Union, Collection, Type, Callable, _GenericAlias  # type: ignore
 
 import numpy as np
-from schema import Optional as scOptional
-from schema import Schema
-
+from schema import Optional, Schema
 from isimple.core.config import Config, EnforcedStr, HsvColor
 from isimple.core.util import nbases, log, all_annotations, all_attributes
 
@@ -52,11 +50,11 @@ def _type_to_schema(t, container=None, k=None) -> dict:  # todo: how to type t h
         except AttributeError:
             k = 'none'
 
-    sk = scOptional(k)
+    sk = Optional(k)
 
     print(t)
 
-    if isinstance(t, _GenericAlias):
+    if isinstance(t, _GenericAlias):  # todo: is there a way to check this without _GenericAlias?
         # Extract typing info
         if hasattr(t, '__origin__'):
             if t.__origin__ == tuple:
