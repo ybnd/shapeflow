@@ -5,7 +5,7 @@ from typing import Union, Collection, Type, Callable, _GenericAlias, Optional  #
 
 import numpy as np
 from schema import Optional as scOptional
-from schema import Schema
+from schema import Schema  # type: ignore
 
 from isimple.core.config import Config, EnforcedStr, HsvColor
 from isimple.core.util import nbases, log, all_annotations, all_attributes
@@ -65,7 +65,7 @@ def _type_to_schema(t, container=None, k=None) -> dict:  # todo: how to type t h
                         sk: [Schema(_schemify(t.__args__[0]), name=k, as_reference=True)]
                     }
                 else:
-                    NotImplementedError(f"Tuple ~ {t.__args__}")
+                    raise NotImplementedError(f"Tuple ~ {t.__args__}")
             elif t.__origin__ == list:
                 raise NotImplementedError(f"List ~ {t.__args__}")
             elif t.__origin__ == dict:
