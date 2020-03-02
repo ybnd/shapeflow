@@ -14,7 +14,7 @@ from isimple.core.common import Manager
 from isimple.core.backend import BackendInstance, CachingBackendInstance, DynamicHandler, BackendManager, BackendSetupError
 from isimple.core.features import Feature, FeatureSet
 from isimple.core.config import *
-from isimple.core.config import Color, __meta_ext__
+from isimple.core.config import HsvColor, __meta_ext__
 
 from isimple.maths.images import to_mask, crop_mask, area_pixelsum, ckernel
 
@@ -255,11 +255,11 @@ class FilterInterface(abc.ABC):
     _config_class: Type[FilterConfig]
 
     @abc.abstractmethod
-    def set_filter(self, filter, color: Color):
+    def set_filter(self, filter, color: HsvColor):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def mean_color(self, filter) -> Color:  # todo: add custom np.ndarray type 'hsvcolor'
+    def mean_color(self, filter) -> HsvColor:  # todo: add custom np.ndarray type 'hsvcolor'
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -275,18 +275,18 @@ class HsvRangeFilter(FilterInterface):  # todo: may be better to **wrap** this i
     def validate(self, filter):  # todo: may be better to 'normalize' the filter dict -- i.e. replace all fields that weren't found with the defaults
         return all(attr in self._config_class() for attr in filter)
 
-    def set_filter(self, filter: HsvRangeFilterConfig, color: Color) -> HsvRangeFilterConfig:
+    def set_filter(self, filter: HsvRangeFilterConfig, color: HsvColor) -> HsvRangeFilterConfig:
         log.debug(f'Setting filter {filter} ~ color {color}')
         c, r = color, filter.radius
         assert isinstance(r, tuple)
-        filter.c0 = (c[0]-r[0], c[1]-r[1], c[2]-r[2])
-        filter.c1 = (c[0]+r[0], c[1]+r[1], c[2]+r[2])
+        filter.c0 = HsvColor(c[0]-r[0], c[1]-r[1], c[2]-r[2])
+        filter.c1 = HsvColor(c[0]+r[0], c[1]+r[1], c[2]+r[2])
 
         return filter
 
-    def mean_color(self, filter: HsvRangeFilterConfig) -> Color:
+    def mean_color(self, filter: HsvRangeFilterConfig) -> HsvColor:
         # todo: S and V are arbitrary for now
-        return (float(np.mean([filter.c0[0], filter.c1[0]])), 255.0, 200.0)
+        return HsvColor(float(np.mean([filter.c0[0], filter.c1[0]])), 255.0, 200.0)
 
     def filter(self, img: np.ndarray, filter: HsvRangeFilterConfig) -> np.ndarray:
         return cv2.inRange(
@@ -314,11 +314,11 @@ class FilterHandler(BackendInstance, DynamicHandler):
             self._config.data = self._implementation._config_class()
 
     @backend.expose(backend.get_filter_mean_color)
-    def mean_color(self) -> Color:
+    def mean_color(self) -> HsvColor:
         return self._implementation.mean_color(self._config.data)
 
     @backend.expose(backend.set_filter_parameters)
-    def set_filter(self, filter: FilterConfig, color: Color) -> FilterConfig:
+    def set_filter(self, filter: FilterConfig, color: HsvColor) -> FilterConfig:
         self._config.data = self._implementation.set_filter(filter, color)
         assert isinstance(self._config.data, FilterConfig)
         return self._config.data
@@ -558,7 +558,7 @@ class MaskFilterFunction(Feature):
 
         super(MaskFilterFunction, self).__init__((mask, filter))
 
-    def _guideline_color(self) -> Color:
+    def _guideline_color(self) -> HsvColor:
         return self.filter.mean_color()
 
     def value(self, frame) -> Any:
@@ -630,7 +630,12 @@ class VideoAnalyzer(BackendManager):
             self.masks = self.design.masks
             self.filters = [mask.filter for mask in self.masks]
 
-            self._gather_instances()  # todo: annoying that we have to call this one explicilty, but doing it at super.__init__ makes it less dynamic
+            backend.expose(backend.get_frame)(self.get_transformed_frame)
+            backend.expose(backend.get_inverse_transformed_overlay)(self.get_inverse_transformed_overlay)
+            backend.expose(backend.get_overlaid_frame)(self.get_frame_overlay)
+            backend.expose(backend.get_colors)(self.get_colors)
+
+            self._gather_instances()
         else:
             raise ValueError("Either the video or the design wasn't provided")  # todo: make error message more specific
 
@@ -680,6 +685,25 @@ class VideoAnalyzer(BackendManager):
         log.debug(f"Setting VideoAnalyzerConfig to {config}")
         self._configure(VideoAnalyzerConfig(**config))  # todo: make sure that this doesn't set the attributes that **aren't** not provided to the defaults!
 
+    #@backend.expose(backend.get_frame)  # todo: nested methods, a bit ugly (:
+    def get_transformed_frame(self, frame_number: int) -> np.ndarray:
+        return self.transform(self.video.read_frame(
+            frame_number))  # todo: depending on self.frame is dangerous in case we want to run this in a different thread
+
+    #@backend.expose(backend.get_inverse_transformed_overlay)
+    def get_inverse_transformed_overlay(self) -> np.ndarray:
+        return self.transform.inverse(self.design.overlay())
+
+    #@backend.expose(backend.get_overlaid_frame)
+    def get_frame_overlay(self, frame_number: int) -> np.ndarray:
+        return self.design.overlay_frame(
+            self.get_transformed_frame(frame_number))
+
+    #@backend.expose(backend.get_colors)  # todo: per feature in each feature set; maybe better as a dict instead of a list of tuples?
+    def get_colors(self) -> List[Tuple[HsvColor, ...]]:
+        return [featureset.get_colors() for featureset in
+                self._featuresets.values()]
+
     def frame_numbers(self) -> Generator[int, None, None]:
         if self._config.frame_interval_setting == FrameIntervalSetting('Nf'):
             return frame_number_iterator(self.video.frame_count, Nf = self._config.Nf)
@@ -688,22 +712,6 @@ class VideoAnalyzer(BackendManager):
         else:
             raise ValueError(f"Unexpected frame interval setting "
                              f"{self._config.frame_interval_setting}")
-
-    @backend.expose(backend.get_frame)
-    def get_transformed_frame(self, frame_number: int) -> np.ndarray:
-        return self.transform(self.video.read_frame(frame_number))# todo: depending on self.frame is dangerous in case we want to run this in a different thread
-
-    @backend.expose(backend.get_inverse_transformed_overlay)
-    def get_inverse_transformed_overlay(self) -> np.ndarray:
-        return self.transform.inverse(self.design.overlay())
-
-    @backend.expose(backend.get_overlaid_frame)
-    def get_frame_overlay(self, frame_number: int) -> np.ndarray:
-        return self.design.overlay_frame(self.get_transformed_frame(frame_number))
-
-    @backend.expose(backend.get_colors)  # todo: per feature in each feature set; maybe better as a dict instead of a list of tuples?
-    def get_colors(self) -> List[Tuple[Color,...]]:
-        return [featureset.get_colors() for featureset in self._featuresets.values()]
 
     def calculate(self, frame_number: int, update_callback: Callable):
         """Return a state image for each FeatureSet

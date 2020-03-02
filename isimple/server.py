@@ -6,6 +6,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 from isimple.core.log import get_logger
+from isimple.core.schema import schema
 from isimple.video import backend, BackendType
 
 log = get_logger('flask')
@@ -43,6 +44,19 @@ def launch(backendtype: str, index: int):
     index = int(index)
     __instances__[bt][index].launch()  # todo: should also cache all method pointers for __instances__[bt][index] so we don't call .get() a million times
     return respond()  # todo: should return all available methods & their schemas
+
+
+@app.route('/<backendtype>/<index>/schemas', methods=['GET'])
+def get_schemas(backendtype: str, index: int):
+    bt = BackendType(backendtype)
+    index = int(index)
+    i = __instances__[bt][index]
+    return respond(
+        {
+            'config': schema(i._config.__class__),
+            'methods': {e._name:schema(m[0]) for e, m in i._instance_mapping.items()},
+        }
+    )
 
 
 @app.route('/<backendtype>/<index>/<method>', methods=['GET'])

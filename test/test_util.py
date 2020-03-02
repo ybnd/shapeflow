@@ -6,7 +6,7 @@ import json
 from typing import _GenericAlias, Union, Tuple, List, Dict, Optional  #type: ignore
 
 from isimple.core.schema import resolve_type_to_most_specific, \
-    get_config_schema, get_method_schema, dumps_schema
+    get_config_schema, get_method_schema, schema
 from isimple.core.config import VideoAnalyzerConfig
 
 class ResolveTypeTest(unittest.TestCase):
@@ -47,7 +47,7 @@ class ResolveTypeTest(unittest.TestCase):
 
 class SchemaTest(unittest.TestCase):
     def test_get_schema_schema(self):
-        s = dumps_schema(VideoAnalyzerConfig)
+        s = schema(VideoAnalyzerConfig)
 
     def test_get_method_schema(self):
         def annotated_method(
@@ -66,6 +66,6 @@ class SchemaTest(unittest.TestCase):
         ) -> list:
             return []
 
-        s = dumps_schema(annotated_method)
+        s = schema(annotated_method)
 
         self.assertRaises(TypeError, get_method_schema, unannotated_method)

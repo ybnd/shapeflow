@@ -111,7 +111,10 @@ class EndpointRegistry(Registry):  # todo: confusing names :)
             try:
                 self._entries.append(endpoint)
                 endpoint.add(method)
-                method._endpoint = endpoint
+                try:
+                    method._endpoint = endpoint
+                except AttributeError:
+                    method.__func__._endpoint = endpoint
                 self._callable_mapping.update({endpoint: method})
             except TypeError:
                 raise TypeError(
@@ -205,7 +208,7 @@ class Manager(object):
                     endpoint = None
                     for implementation in implementations:  # unbound methods
                         try:
-                            endpoint = implementation._endpoint  # todo: won't catch endpoints defined at multiple placec in the methods inheritance tree
+                            endpoint = implementation._endpoint  # todo: won't catch endpoints defined at multiple places in the methods inheritance tree
                         except AttributeError:
                             pass
 

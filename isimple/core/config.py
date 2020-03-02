@@ -7,6 +7,7 @@ import numpy as np
 from typing import List, Optional, Tuple, Union
 from dataclasses import dataclass
 from collections.abc import Iterable
+from collections import namedtuple
 import abc
 import datetime
 
@@ -25,7 +26,7 @@ __meta_ext__ = '.meta'
 __meta_sheet__ = 'metadata'
 
 
-Color = Tuple[float, float, float]
+HsvColor = namedtuple('HsvColor', ('h', 's', 'v'))
 
 
 class EnforcedStr(object):
@@ -292,10 +293,10 @@ class FilterConfig(Config):
 
 @dataclass
 class HsvRangeFilterConfig(FilterConfig):
-    radius: Union[Color, str] = (10, 75, 75)
+    radius: Union[HsvColor, str] = HsvColor(10, 75, 75)
 
-    c0: Union[Color, str] = (0,0,0)
-    c1: Union[Color, str] = (0,0,0)
+    c0: Union[HsvColor, str] = HsvColor(0, 0, 0)
+    c1: Union[HsvColor, str] = HsvColor(0, 0, 0)
 
     def __post_init__(self):
         self.c0 = self.resolve(self.c0, tuple)

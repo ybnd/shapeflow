@@ -1,12 +1,13 @@
 import inspect
 import json
 from inspect import _empty  # type: ignore
-from typing import Union, Collection, Type, Callable, _GenericAlias  # type: ignore
+from typing import Union, Collection, Type, Callable, _GenericAlias, Optional  # type: ignore
 
 import numpy as np
-from schema import Optional, Schema
+from schema import Optional as scOptional
+from schema import Schema
 
-from isimple.core.config import Config, EnforcedStr
+from isimple.core.config import Config, EnforcedStr, HsvColor
 from isimple.core.util import nbases, log, all_annotations, all_attributes
 
 
@@ -42,13 +43,18 @@ def resolve_type_to_most_specific(t: _GenericAlias) -> _GenericAlias:
 
 
 def _type_to_schema(t, container=None, k=None) -> dict:  # todo: how to type t here?
-    # todo: We're assuming everything is optional here!
+    # todo: We're assuming everything is Optional here! This is NOT always the case for return annotations!
     if container is None:
         container = t
     if k is None:
-        k = t.__qualname__
+        try:
+            k = t.__qualname__
+        except AttributeError:
+            k = 'none'
 
-    sk = Optional(k)
+    sk = scOptional(k)
+
+    print(t)
 
     if isinstance(t, _GenericAlias):
         # Extract typing info
@@ -59,7 +65,7 @@ def _type_to_schema(t, container=None, k=None) -> dict:  # todo: how to type t h
                         sk: [Schema(_schemify(t.__args__[0]), name=k, as_reference=True)]
                     }
                 else:
-                    raise NotImplementedError(f"Tuple ~ {t.__args__}")
+                    NotImplementedError(f"Tuple ~ {t.__args__}")
             elif t.__origin__ == list:
                 raise NotImplementedError(f"List ~ {t.__args__}")
             elif t.__origin__ == dict:
@@ -75,6 +81,10 @@ def _type_to_schema(t, container=None, k=None) -> dict:  # todo: how to type t h
     elif issubclass(t, Config):
         return {
             sk: Schema(_schemify(t), name=k, as_reference=True),
+        }
+    elif t == HsvColor:
+        return {
+            sk: Schema({'h': float, 's': float, 'v': float})
         }
     elif t == str or t == int or t == float or t == bool:
         return {
@@ -120,23 +130,26 @@ def _type_to_schema(t, container=None, k=None) -> dict:  # todo: how to type t h
 
 
 def _schemify(t: type) -> dict:
-    if issubclass(t, Config):
-        schema = {}
-        annotations = all_annotations(t)
-        for a in all_attributes(t, include_under=False, include_methods=False):
-            if hasattr(t, '__annotations__'):
-                at = annotations[a]
-            else:
-                at = type(getattr(t, a))
-            schema.update(
-                _type_to_schema(
-                    resolve_type_to_most_specific(at),
-                    t, a
+    try:
+        if issubclass(t, Config):
+            schema = {}
+            annotations = all_annotations(t)
+            for a in all_attributes(t, include_under=False, include_methods=False):
+                if hasattr(t, '__annotations__'):
+                    at = annotations[a]
+                else:
+                    at = type(getattr(t, a))
+                schema.update(
+                    _type_to_schema(
+                        resolve_type_to_most_specific(at),
+                        t, a
+                    )
                 )
-            )
-    else:
-        schema = _type_to_schema(t, t, t)
-    return schema
+            return schema
+        else:
+            return _type_to_schema(t, t, t)
+    except TypeError:
+        return _type_to_schema(t, t, t)
 
 
 def get_config_schema(config: Type[Config]) -> Schema:
@@ -152,25 +165,31 @@ def get_method_schema(method: Callable) -> Schema:
             raise TypeError(f"Can not generate schema for method {method.__qualname__}; "
                             f"the type of argument '{a}' is not annotated.")
         else:
-            if p.default is not _empty:
-                sa = Optional(a)
-            else:
-                sa = a
             schema.update(
-                {sa: _type_to_schema(t, method, a)}
+                _type_to_schema(t, method, a)
             )
     return Schema(schema)
 
 
-def dumps_schema(obj) -> str:
+def get_return_schema(method: Callable) -> Schema:
+    schema: dict = {'return': []}
+    if inspect.signature(method).return_annotation is not None:
+        for v in _type_to_schema(inspect.signature(method).return_annotation, method, 'return').values():
+            schema['return'].append(v)
+        return Schema(schema)
+    else:
+        return Schema({})
+
+
+def schema(obj) -> dict:
+    id = obj.__qualname__ + '.json'
     try:
         if issubclass(obj, Config):
-            schema = get_config_schema(obj)
+            return get_config_schema(obj).json_schema(id)
         else:
             raise TypeError
     except TypeError:
-        schema = get_method_schema(obj)
-
-    return json.dumps(
-        schema.json_schema(obj.__qualname__ + '.json'), indent = 2,
-    )
+        return {
+            'call': get_method_schema(obj).json_schema(id),
+            'return': get_return_schema(obj).json_schema(id)
+        }
