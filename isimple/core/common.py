@@ -172,7 +172,6 @@ class Manager(object):
     _instance_class = object
     _instance_mapping: Dict[Endpoint, List[Callable]]
 
-
     def connect(self, manager):
         raise NotImplementedError
 
@@ -199,7 +198,7 @@ class Manager(object):
 
     def _add_instance(self, instance: object):
         if isinstance(instance, self._instance_class):
-            for attr in [attr for attr in all_attributes(instance, include_under=False, include_methods=True)]:
+            for attr in [attr for attr in all_attributes(instance, include_under=True, include_methods=True)]:
                 value = getattr(instance, attr)  # bound method
 
                 if hasattr(value, '__func__'):
@@ -229,13 +228,13 @@ class Manager(object):
             raise SetupError(f"'{self.__class__.__name__}' does not map "
                              f"'{endpoint._name}' to a bound method.")
         else:
-            log.debug(f"{self.__class__.__name__}: get callback for "
+            log.vdebug(f"{self.__class__.__name__}: get callback for "
                      f"endpoint '{endpoint._name}' with index {index}")
             methods = self._instance_mapping[endpoint]
             if index is None:
                 index = 0
                 if index+1 < len(methods):
-                    log.debug(f"No index specified for endpoint '{endpoint._name}' "
+                    log.vdebug(f"No index specified for endpoint '{endpoint._name}' "
                                   f"-- defaulting to entry 0 ({len(methods)} in total)")  # todo: traceback
             elif len(methods) == 1:
                 index = 0  # Ignore the index if only one method is mapped

@@ -9,7 +9,7 @@ def analysis(config=None):
     VideoAnalyzerGui(backend)
 
     # Open setup window to gather arguments if necessary
-    if not backend.can_launch():
+    if not backend._can_launch():
         backend.configure()  # todo: make sure that this waits on the window (was implemented in ScriptWindow iirc?)
 
     # Once we have all arguments, launch the backend

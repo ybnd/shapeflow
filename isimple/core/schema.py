@@ -5,7 +5,7 @@ from typing import Union, Collection, Type, Callable, _GenericAlias, Optional  #
 
 import numpy as np
 from schema import Optional as scOptional
-from schema import Schema  # type: ignore
+from schema import Schema
 
 from isimple.core.config import Config, EnforcedStr, HsvColor
 from isimple.core.util import nbases, log, all_annotations, all_attributes
@@ -193,3 +193,4 @@ def schema(obj) -> dict:
             'call': get_method_schema(obj).json_schema(id),
             'return': get_return_schema(obj).json_schema(id)
         }
+

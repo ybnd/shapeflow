@@ -614,30 +614,26 @@ class VideoAnalyzer(BackendManager):
         self.value = {}
         self._gather_instances()
 
-    def can_launch(self):
+    def _can_launch(self):
         if not (self._config.video_path is None and self._config.design_path is None):
             return os.path.isfile(self._config.video_path) \
                    and os.path.isfile(self._config.design_path)
 
-    def launch(self):
-        if self.can_launch():
-            self.load_config()
-            log.debug(f'{self.__class__.__name__}: launch nested instances.')
-            self.video = VideoFileHandler(self._config.video_path, self._config.video)
-            self.video.set_requested_frames(list(self.frame_numbers()))
-            self.design = DesignFileHandler(self._config.design_path, self._config.design, self._config.masks)
-            self.transform = TransformHandler(self.design.shape, self._config.transform)
-            self.masks = self.design.masks
-            self.filters = [mask.filter for mask in self.masks]
+    def _launch(self):
+        self.load_config()
+        log.debug(f'{self.__class__.__name__}: launch nested instances.')
+        self.video = VideoFileHandler(self._config.video_path, self._config.video)
+        self.video.set_requested_frames(list(self.frame_numbers()))
+        self.design = DesignFileHandler(self._config.design_path, self._config.design, self._config.masks)
+        self.transform = TransformHandler(self.design.shape, self._config.transform)
+        self.masks = self.design.masks
+        self.filters = [mask.filter for mask in self.masks]
 
-            backend.expose(backend.get_frame)(self.get_transformed_frame)
-            backend.expose(backend.get_inverse_transformed_overlay)(self.get_inverse_transformed_overlay)
-            backend.expose(backend.get_overlaid_frame)(self.get_frame_overlay)
-            backend.expose(backend.get_colors)(self.get_colors)
-
-            self._gather_instances()
-        else:
-            raise ValueError("Either the video or the design wasn't provided")  # todo: make error message more specific
+        # todo: maybe add some stuff to do this automagically
+        backend.expose(backend.get_frame)(self.get_transformed_frame)
+        backend.expose(backend.get_inverse_transformed_overlay)(self.get_inverse_transformed_overlay)
+        backend.expose(backend.get_overlaid_frame)(self.get_frame_overlay)
+        backend.expose(backend.get_colors)(self.get_colors)
 
     def _get_featuresets(self):
         self._featuresets = {

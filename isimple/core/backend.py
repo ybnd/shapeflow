@@ -1,5 +1,6 @@
 import diskcache
 import sys
+import abc
 import copy
 import time
 import threading
@@ -240,6 +241,21 @@ class BackendManager(BackendInstance, Manager):  # todo: naming :(
 
     def __init__(self, config: BackendManagerConfig = None):
         super(BackendManager, self).__init__(config)
+
+    @abc.abstractmethod
+    def _can_launch(self):
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _launch(self):
+        raise NotImplementedError
+
+    def launch(self):
+        if self._can_launch():
+            self._launch()
+            self._gather_instances()
+        else:
+            raise BackendSetupError(f"{self.__class__.__qualname__} can not be launched.")  # todo: try to be more verbose
 
     @contextmanager
     def caching(self):
