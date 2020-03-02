@@ -1,10 +1,11 @@
 import os
+import re
 import yaml
 from yaml.representer import SafeRepresenter
 import json
 from ast import literal_eval as make_tuple
 import numpy as np
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, NamedTuple, Type
 from dataclasses import dataclass
 from collections.abc import Iterable
 from collections import namedtuple
@@ -172,8 +173,8 @@ class Config(abc.ABC):
             if isinstance(val, str):
                 if issubclass(type, EnforcedStr):
                     val = type(val)
-                elif type == tuple:
-                    val = Config.__str2tuple__(val)
+                elif issubclass(type, tuple):
+                    val = Config.__str2namedtuple__(val, type)
                 elif type == np.ndarray:
                     val = Config.__str2ndarray__(val)
             if isinstance(val, list):
@@ -214,7 +215,7 @@ class Config(abc.ABC):
                     return ''
             if isinstance(obj, tuple):
                 # Convert to str & bypass YAML tuple representation
-                return Config.__tuple2str__(obj)
+                return str(obj)
             if isinstance(obj, np.ndarray):
                 # Convert to str  & bypass YAML list representation
                 return Config.__ndarray2json__(obj)
@@ -243,14 +244,10 @@ class Config(abc.ABC):
         return np.array(json.loads(str(string)))
 
     @staticmethod
-    def __tuple2str__(t: tuple) -> str:
-        return str(t)
-
-    @staticmethod
-    def __str2tuple__(t: str) -> tuple:
-        t = make_tuple(t)
-        assert isinstance(t, tuple)
-        return t
+    def __str2namedtuple__(t: str, type: Type[tuple]) -> tuple:
+        return type(
+            **{k:float(v.strip("'")) for k,v,_ in re.findall('([A-Za-z0-9]*)=(.*?)(,|\))', t)}
+        )  # todo: we're assuming tuples of floats here, will break for cases that are not colors!
 
 
 class BackendInstanceConfig(Config):
@@ -299,8 +296,9 @@ class HsvRangeFilterConfig(FilterConfig):
     c1: Union[HsvColor, str] = HsvColor(0, 0, 0)
 
     def __post_init__(self):
-        self.c0 = self.resolve(self.c0, tuple)
-        self.c1 = self.resolve(self.c1, tuple)
+        self.radius = self.resolve(self.radius, HsvColor)
+        self.c0 = self.resolve(self.c0, HsvColor)
+        self.c1 = self.resolve(self.c1, HsvColor)
 
 
 @dataclass

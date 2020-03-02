@@ -286,11 +286,15 @@ class HsvRangeFilter(FilterInterface):  # todo: may be better to **wrap** this i
 
     def mean_color(self, filter: HsvRangeFilterConfig) -> HsvColor:
         # todo: S and V are arbitrary for now
-        return HsvColor(float(np.mean([filter.c0[0], filter.c1[0]])), 255.0, 200.0)
+        c0 = np.array(filter.c0)
+        c1 = np.array(filter.c1)
+        return HsvColor(float(np.mean([c0[0], c1[0]])), 255.0, 200.0)
 
     def filter(self, img: np.ndarray, filter: HsvRangeFilterConfig) -> np.ndarray:
+        c0 = np.array(filter.c0)
+        c1 = np.array(filter.c1)
         return cv2.inRange(
-            img, np.float32(filter.c0), np.float32(filter.c1), img
+            img, np.float32(c0), np.float32(c1), img
         )
 
 
