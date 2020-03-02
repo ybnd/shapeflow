@@ -1,29 +1,25 @@
-import re
-import os
 import pandas as pd
-from typing import Any, Callable, Type, Dict
-import datetime
+from typing import Callable
 
 import cv2
 
 from OnionSVG import OnionSVG, check_svg
 
 from isimple.core.util import *
-from isimple.core.log import get_logger
 from isimple.core.common import Manager
-from isimple.core.backend import BackendInstance, CachingBackendInstance, DynamicHandler, BackendManager, BackendSetupError
+from isimple.core.backend import BackendInstance, CachingBackendInstance, Handler, BackendManager, BackendSetupError
 from isimple.core.features import Feature, FeatureSet
 from isimple.core.config import *
 from isimple.core.config import HsvColor, __meta_ext__
 
 from isimple.maths.images import to_mask, crop_mask, area_pixelsum, ckernel
 
-from isimple.endpoints import BackendEndpoints
-from isimple.endpoints import GuiEndpoints as gui
+from isimple.core.endpoints import BackendRegistry
+from isimple.core.endpoints import GuiRegistry as gui
 
 
 log = get_logger(__name__)
-backend = BackendEndpoints()
+backend = BackendRegistry()
 
 
 class VideoFileTypeError(BackendSetupError):
@@ -181,7 +177,7 @@ TransformType.extend({
 })
 
 
-class TransformHandler(BackendInstance, DynamicHandler):
+class TransformHandler(BackendInstance, Handler):
     """Handles coordinate transforms.
     """
     _shape: tuple
@@ -303,7 +299,7 @@ FilterType.extend({
 })
 
 
-class FilterHandler(BackendInstance, DynamicHandler):
+class FilterHandler(BackendInstance, Handler):
     _implementation: FilterInterface
     _implementation_factory = FilterType
     _implementation_class = FilterInterface
@@ -603,7 +599,7 @@ class VideoAnalyzer(BackendManager):
     _config: VideoAnalyzerConfig
     _default = VideoAnalyzerConfig('', '')
     _gui: Optional[Manager]
-    _endpoints: BackendEndpoints = backend
+    _endpoints: BackendRegistry = backend
 
     video: VideoFileHandler
     design: DesignFileHandler

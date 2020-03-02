@@ -5,13 +5,13 @@ import numpy as np
 
 from isimple.core.common import Manager
 from isimple.core.gui import guiElement, guiWindow
-from isimple.endpoints import GuiEndpoints
-from isimple.endpoints import BackendEndpoints as backend
+from isimple.core.endpoints import GuiRegistry
+from isimple.core.endpoints import BackendRegistry as backend
 
 import og.gui
 
 
-gui = GuiEndpoints()
+gui = GuiRegistry()
 
 
 class SetupWindow(guiWindow):
@@ -119,7 +119,7 @@ class VideoAnalyzerGui(Manager, guiElement):  # todo: find a different name
     _instance_class = guiElement
 
     _backend: Manager
-    _endpoints: GuiEndpoints = gui
+    _endpoints: GuiRegistry = gui
 
     def __init__(self, backend: Manager):
         super().__init__()

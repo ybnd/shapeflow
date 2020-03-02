@@ -214,7 +214,7 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
             self.__exit__(*sys.exc_info())
 
 
-class DynamicHandler(object):  # todo: implementations of CachingBackendInstance in `_implementation` will not be found by `_gather_instances`
+class Handler(object):  # todo: implementations of CachingBackendInstance in `_implementation` will not be found by `_gather_instances`
     """
     """
 

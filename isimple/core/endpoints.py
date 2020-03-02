@@ -5,7 +5,7 @@ from isimple.core.common import ImmutableRegistry, Endpoint
 from isimple.core.config import HsvColor, FilterConfig
 
 
-class BackendEndpoints(ImmutableRegistry):  # todo: confusing naming
+class BackendRegistry(ImmutableRegistry):
     get_config = Endpoint(Callable[[], dict])
     set_config = Endpoint(Callable[[dict], None])
     get_name = Endpoint(Callable[[], str])
@@ -38,7 +38,7 @@ class BackendEndpoints(ImmutableRegistry):  # todo: confusing naming
     get_dpi = Endpoint(Callable[[], float])
 
 
-class GuiEndpoints(ImmutableRegistry):
+class GuiRegistry(ImmutableRegistry):
     open_setupwindow = Endpoint(Callable[[], None])
     open_transformwindow = Endpoint(Callable[[], None])
     open_filterwindow = Endpoint(Callable[[int], None])

@@ -1,5 +1,4 @@
 from typing import Callable, Dict, List, Tuple, Type
-import abc
 
 from isimple.core.util import all_attributes, get_overridden_methods
 from isimple.core.log import get_logger
@@ -19,7 +18,6 @@ class RootException(Exception):
         if not (args):
             args = (self.msg,)
 
-        # Call super constructor
         super(Exception, self).__init__(*args)
 
 
@@ -27,29 +25,15 @@ class SetupError(RootException):
     pass
 
 
-class RegistryEntry(abc.ABC):  # todo: shouldn't allow instances
+class Endpoint(object):
     _name: str
     _registered: bool
-
-    def __init__(self):
-        self._registered = False
-
-    def register(self, name: str):
-        self._registered = True
-        self._name = name
-
-    @property
-    def registered(self):
-        return self._registered
-
-
-class Endpoint(RegistryEntry):  # todo: a better name
     _signature: Type[Callable]
 
     def __init__(self, signature: Type[Callable]):
+        self._registered = False
         if not hasattr(signature, '__args__'):
-            raise TypeError('Cannot define an Endpoint without a signature!')
-        super(RegistryEntry, self).__init__()
+            raise SetupError('Cannot define an Endpoint without a signature!')
         self._signature = signature
 
     def compatible(self, method: Callable) -> bool:
@@ -59,7 +43,7 @@ class Endpoint(RegistryEntry):  # todo: a better name
                 if arg == type(None):
                     arg = None
                 args.append(arg)
-            # Don't be stringent with unannotated None-type return
+            # Don't be too pedantic unannotated None-type return
             return tuple(method.__annotations__.values()) == tuple(args)
         else:
             return False
@@ -68,37 +52,45 @@ class Endpoint(RegistryEntry):  # todo: a better name
     def signature(self):
         return self._signature.__args__
 
+    @property
+    def registered(self):
+        return self._registered
+
     def add(self, method):
         if not self.compatible(method):
             raise ValueError(f"Method '{method.__qualname__}' "
                              f"is incompatible with endpoint '{self._name}'. \n"
                              f"{method.__annotations__} vs. {self.signature}")  # todo: traceback to
 
+    def register(self, name: str):
+        self._registered = True
+        self._name = name
 
-class Registry(object):     # todo: make these three into a single EndpointRegistry class if possible
+
+class EndpointRegistry(object):
     _entries: List
 
     def __init__(self):
         if not hasattr(self, '_entries'):
             _entries = []
             for attr, val in self.__class__.__dict__.items():
-                if isinstance(val, RegistryEntry):
+                if isinstance(val, Endpoint):
                     val.register(attr)
                     _entries.append(val)
             self._entries = _entries
 
-    def _add_entry(self, entry: RegistryEntry):
+    def _add_entry(self, entry: Endpoint):
         self._entries.append(entry)
 
 
-class EndpointRegistry(Registry):  # todo: confusing names :)
+class InstanceRegistry(EndpointRegistry):
     """This one is global, collects callables that expose endpoints
     """
     _entries: List[Endpoint]
     _callable_mapping: Dict[Endpoint, Callable]
 
     def __init__(self):
-        super(EndpointRegistry, self).__init__()
+        super(InstanceRegistry, self).__init__()
         self._callable_mapping = {}
 
     def expose(self, endpoint: Endpoint):
@@ -132,26 +124,26 @@ class EndpointRegistry(Registry):  # todo: confusing names :)
         return list(self._callable_mapping.keys())
 
 
-class ImmutableRegistry(Registry):  # todo: confusing naming scheme
-    _entries: Tuple[RegistryEntry, ...]  #type: ignore
-    _endpoints: EndpointRegistry            # todo: also very confusing wrapping situation
+class ImmutableRegistry(EndpointRegistry):
+    _entries: Tuple[Endpoint, ...]  #type: ignore
+    _endpoints: InstanceRegistry
 
-    def __init__(self, endpoints: EndpointRegistry = None):
+    def __init__(self, endpoints: InstanceRegistry = None):
         _entries = []
         for attr, val in self.__class__.__dict__.items():
-            if isinstance(val, RegistryEntry):
+            if isinstance(val, Endpoint):
                 val.register(attr)
                 _entries.append(val)
 
         if endpoints is not None:
             self._endpoints = endpoints
         else:
-            self._endpoints = EndpointRegistry()
+            self._endpoints = InstanceRegistry()
 
         self._entries = tuple(_entries)
         super(ImmutableRegistry, self).__init__()
 
-    def _add_entry(self, entry: RegistryEntry):
+    def _add_entry(self, entry: Endpoint):
         raise NotImplementedError
 
     def expose(self, endpoint: Endpoint):
@@ -222,7 +214,7 @@ class Manager(object):
             pass
 
     def get(self, endpoint: Endpoint, index: int = None) -> Callable:
-        if endpoint not in self._endpoints._entries:  # todo: oh god save me from this hell
+        if endpoint not in self._endpoints._entries:
             raise SetupError(f"'{endpoint}' is not defined in '{self._endpoints}'.")
         elif endpoint not in self._instance_mapping:
             raise SetupError(f"'{self.__class__.__name__}' does not map "
