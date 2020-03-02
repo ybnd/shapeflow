@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 from typing import Callable
 
@@ -10,9 +11,10 @@ from isimple.core.common import Manager
 from isimple.core.backend import BackendInstance, CachingBackendInstance, Handler, BackendManager, BackendSetupError
 from isimple.core.features import Feature, FeatureSet
 from isimple.core.config import *
-from isimple.core.config import HsvColor, __meta_ext__
+from isimple.core.config import __meta_ext__
 
 from isimple.maths.images import to_mask, crop_mask, area_pixelsum, ckernel
+from isimple.maths.colors import HsvColor
 
 from isimple.core.endpoints import BackendRegistry
 from isimple.core.endpoints import GuiRegistry as gui

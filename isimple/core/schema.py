@@ -5,7 +5,8 @@ from typing import Union, Collection, Type, Callable, _GenericAlias  # type: ign
 
 import numpy as np
 from schema import Optional, Schema
-from isimple.core.config import Config, EnforcedStr, HsvColor
+from isimple.core.config import Config, EnforcedStr
+from isimple.maths.colors import HsvColor
 from isimple.core.util import nbases, log, all_annotations, all_attributes
 
 

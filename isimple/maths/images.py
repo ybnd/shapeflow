@@ -3,6 +3,7 @@ import cv2
 
 from typing import Tuple
 
+
 def ckernel(size: int) -> np.ndarray:
     """Circular filter kernel
     """
@@ -85,3 +86,4 @@ def to_mask(image: np.ndarray, kernel: np.ndarray) -> np.ndarray:
         )
     else:
         return image
+

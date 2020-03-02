@@ -1,20 +1,16 @@
-import os
 import re
 import yaml
-from yaml.representer import SafeRepresenter
 import json
-from ast import literal_eval as make_tuple
 import numpy as np
-from typing import List, Optional, Tuple, Union, NamedTuple, Type
+from typing import List, Optional, Tuple, Union, Type
 from dataclasses import dataclass
 from collections.abc import Iterable
-from collections import namedtuple
 import abc
 import datetime
 
-from isimple.core.util import before_version, after_version
+from isimple.core.util import before_version
 from isimple.core.log import get_logger
-
+from isimple.maths.colors import HsvColor
 
 log = get_logger(__name__)
 
@@ -25,9 +21,6 @@ __meta_ext__ = '.meta'
 
 # Excel sheet name
 __meta_sheet__ = 'metadata'
-
-
-HsvColor = namedtuple('HsvColor', ('h', 's', 'v'))
 
 
 class EnforcedStr(object):

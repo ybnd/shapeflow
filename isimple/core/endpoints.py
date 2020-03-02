@@ -2,7 +2,8 @@ from typing import Dict, Optional, List, Callable, Tuple, Type
 import numpy as np
 
 from isimple.core.common import ImmutableRegistry, Endpoint
-from isimple.core.config import HsvColor, FilterConfig
+from isimple.core.config import FilterConfig
+from isimple.maths.colors import HsvColor
 
 
 class BackendRegistry(ImmutableRegistry):

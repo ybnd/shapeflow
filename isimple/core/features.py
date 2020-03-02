@@ -3,7 +3,7 @@ import abc
 from typing import Tuple, Any, Optional
 
 from isimple.core.backend import BackendInstance
-from isimple.core.config import HsvColor
+from isimple.maths.colors import HsvColor
 
 
 class Feature(abc.ABC):
