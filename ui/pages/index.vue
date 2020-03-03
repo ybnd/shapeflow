@@ -1,6 +1,7 @@
 <template>
   <section class="container">
     <div>
+      <not-app-logo/>
       <app-logo/>
       <h1 class="title">
         ui
@@ -22,6 +23,7 @@
       <h1>aaaa</h1>
       <p>
         <nuxt-link to="/try">Go to try :(</nuxt-link>
+        <nuxt/>
       </p>
       </div>
     </div>
@@ -30,10 +32,12 @@
 
 <script>
 import AppLogo from '~/components/AppLogo.vue'
+import NotAppLogo from '~/components/NotAppLogo.vue'
 
 export default {
   components: {
-    AppLogo
+    AppLogo,
+    NotAppLogo,
   }
 }
 </script>

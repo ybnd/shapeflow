@@ -10,11 +10,8 @@ import shutil
 from OnionSVG import OnionSVG
 
 from isimple.video import VideoFileHandler, VideoFileTypeError, \
-    CachingBackendInstance
-from isimple.app import VideoAnalyzer
+    CachingBackendInstance, VideoAnalyzer
 from isimple.core.config import *
-from isimple.core.util import timing
-
 
 # Get validation frames from test video ~ "raw" OpenCV
 __VIDEO__ = 'test.mp4'

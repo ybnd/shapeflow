@@ -24,6 +24,4 @@ test/.log
 docs/build/
 deploy_*.py
 build/
-dist/
-ui/
 .venv/

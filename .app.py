@@ -1,6 +1,14 @@
 # cheated off of https://testdriven.io/blog/developing-a-single-page-app-with-flask-and-vuejs/
+# cheated off of https://stackoverflow.com/questions/39801718
 
+from functools import partial
 import json
+import shutil
+import yaml
+from threading import Thread
+import http.server
+import socketserver
+import webbrowser
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS
@@ -15,9 +23,6 @@ log = get_logger(__name__)
 __instances__: dict = {
     BackendType('VideoAnalyzer'): [],
 }
-
-# configuration
-DEBUG = True
 
 # instantiate the app
 app = Flask(__name__)
@@ -80,8 +85,37 @@ def call(backendtype: str, index: int, method: str):
         )
 
 
+@app.route('/quit', methods=['GET'])
+def quit():
+    request.environ.get('werkzeug.server.shutdown')()
+    return respond('Done.')
+
+
+def serve_gui():
+    address = "localhost"
+    port = 8080
+
+    print(f"Serving GUI @ http://{address}:{port}")
+
+    httpd = socketserver.TCPServer(
+        (address, port), partial(http.server.SimpleHTTPRequestHandler, directory='ui/dist')
+    )
+    httpd.serve_forever()
+
+
 if __name__ == '__main__':
     # todo: take CLI arguments for address, debug on/off, ...
     # todo: server-level configuration
-    app.run()
+
+    # Start GUI server thread
+    Thread(target=serve_gui, daemon=True).start()
+
+    # Open backend in browser
+    webbrowser.open_new_tab(f"http://localhost:7951")
+
+    # Open gui in browser
+    webbrowser.open_new_tab('http://localhost:8080')
+
+    # Start flask server
+    app.run(host = 'localhost', port = 7951)
 
