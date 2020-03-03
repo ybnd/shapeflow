@@ -103,7 +103,7 @@ class OG_FileSelectWindow(og.app.HistoryApp):
         self.video_path = tk.StringVar(value=self.video_path_history[0])
         self.design_path = tk.StringVar(value=self.design_path_history[0])
         self.timestep = tk.StringVar(value=self.config['dt'])
-        self.height = tk.StringVar(value=self.config['height'])
+        self.height = tk.StringVar(value=self.config['height'] * 1e3)  # m to mm
 
         video_list = list(filter(None, self.video_path_history))
         design_list = list(filter(None, self.design_path_history))
@@ -230,7 +230,12 @@ class OG_FileSelectWindow(og.app.HistoryApp):
 
         self.save_history()
 
-        self.WRAPPER.set_config(self.config)
+        self.WRAPPER.set_config({
+            'video_path': self.config['video_path'],
+            'design_path': self.config['design_path'],
+            'dt': self.config['dt'],
+            'height': self.config['height'] * 1e-3,  # mm to m
+        })
 
         self.window.destroy()
 
@@ -891,11 +896,6 @@ class OG_ProgressWindow(OG_ScriptWindow):
                 self.areas[i].append(value)
 
             elapsed = time.time() - self.t0
-
-            areas = np.transpose(areas) / (
-                    self.WRAPPER.get_dpi() / 25.4
-            ) ** 2 * self.WRAPPER.get_h()
-            # todo: do this at the VideoAnalyzer level!
 
             self.ax.clear()
             for i, curve in enumerate(self.areas):

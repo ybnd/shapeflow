@@ -620,7 +620,7 @@ class PixelSum(MaskFilterFunction):
 
 class Volume_uL(MaskFilterFunction):
     def _function(self, frame: np.ndarray) -> Any:
-        return area_pixelsum(frame) / (self.mask.dpi / 25.4) ** 2 * self.mask.h
+        return area_pixelsum(frame) / (self.mask.dpi / 25.4) ** 2 * self.mask.h * 1e3
 
 
 VideoFeatureType.extend({
