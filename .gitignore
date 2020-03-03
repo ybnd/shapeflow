@@ -1,11 +1,11 @@
 *.mp4
 .idea/
-render/*.png
+.render/*.png
 *.png
 __pycache__/
-source/__pycache__/
+isimple/__pycache__/
 *.pyc
-source/*.pyc
+isimple/*.pyc
 *.csv
 examples/
 *.xlsx
@@ -23,3 +23,6 @@ test/.log
 .mypy_cache/
 docs/build/
 deploy_*.py
+build/
+dist/
+ui/

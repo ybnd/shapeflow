@@ -1,0 +1,14 @@
+# Cheated off of https://github.com/beetbox/beets/blob/master/.coveragerc
+
+[report]
+omit =
+    */pyshared/*
+    */python?.?/*
+    */site-packages/nose/*
+    */test/*
+    */og/*
+exclude_lines =
+    assert False
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    def __repr__
