@@ -106,7 +106,7 @@ class Factory(EnforcedStr):
             else:
                 return None
 
-    @classmethod
+    @classmethod  # todo: what about some kind of @extend(<FactoryClass>) decorator instead?
     def extend(cls, mapping: dict):
         # todo: sanity check this
         log.debug(f"Extending Factory '{cls.__name__}' with {mapping}")
@@ -117,7 +117,7 @@ class ColorSpace(EnforcedStr):
     _options = ['hsv', 'bgr', 'rgb']
 
 
-class FrameIntervalSetting(EnforcedStr):  # todo: this is a horrible name
+class FrameIntervalSetting(EnforcedStr):
     _options = ['dt', 'Nf']
 
 
@@ -246,7 +246,7 @@ class Config(abc.ABC):
     @staticmethod
     def __str2namedtuple__(t: str, type: Type[tuple]) -> tuple:
         return type(
-            **{k:float(v.strip("'")) for k,v,_ in re.findall('([A-Za-z0-9]*)=(.*?)(,|\))', t)}  # type: ignore
+            **{k:float(v.strip("'")) for k,v,_ in re.findall('([A-Za-z0-9]*)=(.*?)(,|\))', t)}  #type: ignore
         )  # todo: we're assuming tuples of floats here, will break for cases that are not colors!
 
 

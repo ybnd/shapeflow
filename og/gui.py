@@ -1,11 +1,17 @@
+import abc
+import os
+import subprocess
 import sys
 import time
+import tkinter
 import tkinter as tk
 import tkinter.messagebox
 from collections import namedtuple
 
 import tkinter.ttk as ttk
 import tkinter.filedialog as tkfd
+from tkinter import filedialog as tkfd, ttk as ttk
+from typing import Dict, List, Type, Union, Callable
 
 import cv2
 import matplotlib.pyplot as plt
@@ -17,9 +23,11 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from matplotlib.figure import Figure
 
 import og.app
+from isimple.core.common import Manager, Endpoint
+from isimple.core.endpoints import GuiRegistry, BackendRegistry as backend
 
 from isimple.core.util import restrict, rotations
-from isimple.core.gui import load_file_dialog
+
 
 try:
     __monitor_w__ = min(m.width for m in screeninfo.get_monitors())
@@ -34,7 +42,7 @@ __ratio__ = 0.6  # some kind of magic number?
 __FIRST_FRAME__ = 1200
 
 
-class ScriptWindow(tk.Tk):
+class OG_ScriptWindow(tk.Tk):
     def __init__(self):
         self.done = False
         tk.Tk.__init__(self)
@@ -64,7 +72,7 @@ class ScriptWindow(tk.Tk):
                     sys.exit()
 
 
-class FileSelectWindow(og.app.HistoryApp):
+class OG_FileSelectWindow(og.app.HistoryApp):
     """
         - Select video & overlay files
         - Edit script parameters (dt, ...)
@@ -85,7 +93,7 @@ class FileSelectWindow(og.app.HistoryApp):
         self.WRAPPER = WRAPPER
         self.config = self.WRAPPER.get_config()
 
-        self.window = ScriptWindow()
+        self.window = OG_ScriptWindow()
         self.window.title('isimple-video')
         self.window.option_add('*Font', '12')
 
@@ -227,7 +235,7 @@ class FileSelectWindow(og.app.HistoryApp):
         self.window.destroy()
 
 
-class ReshapeSelection:
+class OG_ReshapeSelection:
     """Reshape-able rectangle ROI selection for tkinter canvases
     """
 
@@ -298,7 +306,7 @@ class ReshapeSelection:
         # Initialize corner objects
         for i, coordinate in enumerate(self.coordinates):
             self.corners.append(
-                Corner(self, coordinate, name=names[i])
+                OG_Corner(self, coordinate, name=names[i])
             )
 
         self.has_rectangle = True
@@ -335,7 +343,7 @@ class ReshapeSelection:
         self.canvas.master.destroy()
 
 
-class Corner:
+class OG_Corner:
     """Draggable corner for ROI selection rectangle
     """
 
@@ -431,14 +439,14 @@ class Corner:
     #         self.canvas.set_config(cursor='left_ptr')
 
 
-class ImageDisplay:
+class OG_ImageDisplay:
     """OpenCV image display in tkinter canvas with link to ROI selection
         and coordinate transform.
     """
     __ratio__ = __ratio__ * __monitor_w__
     __rotations__ = {str(p): p for p in rotations(list(range(4)))}
 
-    def __init__(self, window: ScriptWindow, order = (0, 1, 2, 3), initial_coordinates=None):
+    def __init__(self, window: OG_ScriptWindow, order = (0, 1, 2, 3), initial_coordinates=None):
         self.window = window  # todo: some of this should actually be in an 'app' or 'window' object
 
         self.Nf = self.window.WRAPPER.get_total_frames()
@@ -489,7 +497,7 @@ class ImageDisplay:
         self.tkimage = ImageTk.PhotoImage(image=img)
         self.canvas.create_image(0, 0, image=self.tkimage, anchor=tk.NW)
 
-        self.transform = TransformImage(
+        self.transform = OG_TransformImage(
             self.canvas,
             image,
             overlay,
@@ -499,7 +507,7 @@ class ImageDisplay:
             order,
             self.frame_number
         )
-        self.selection = ReshapeSelection(
+        self.selection = OG_ReshapeSelection(
             self,
             self.transform,
             initial_coordinates,
@@ -524,7 +532,7 @@ class ImageDisplay:
         self.selection.update()
 
 
-class TransformImage:
+class OG_TransformImage:
     """OpenCV perspective transform
         overlay alpha blending and display with tkinter
     """
@@ -637,7 +645,7 @@ def binimg2tk(image, ratio=1.0):
     return img
 
 
-class ColorPicker:
+class OG_ColorPicker:
     """Select colours by clicking image pixels.
     """
     __w_spacing__ = 3
@@ -738,27 +746,27 @@ class ColorPicker:
         self.window.destroy()
 
 
-class OverlayAlignWindow(ScriptWindow):
+class OG_OverlayAlignWindow(OG_ScriptWindow):
     __default_frame__ = 0.5
     __title__ = "Overlay alignment"
 
     def __init__(self, WRAPPER):
-        ScriptWindow.__init__(self)
+        OG_ScriptWindow.__init__(self)
         self.WRAPPER = WRAPPER
         self.title(self.__title__)
 
-        self.image = ImageDisplay(self)
+        self.image = OG_ImageDisplay(self)
 
 
-class MaskFilterWindow(ScriptWindow):
+class OG_MaskFilterWindow(OG_ScriptWindow):
     __title__ = 'Filter hue selection'
 
     def __init__(self, WRAPPER):
-        ScriptWindow.__init__(self)
+        OG_ScriptWindow.__init__(self)
         self.WRAPPER = WRAPPER
         self.title('Pick a color')
 
-        self.picker = ColorPicker(
+        self.picker = OG_ColorPicker(
             self, self.WRAPPER
         )
 
@@ -766,7 +774,7 @@ class MaskFilterWindow(ScriptWindow):
         self.done = True
 
 
-class ProgressWindow(ScriptWindow):
+class OG_ProgressWindow(OG_ScriptWindow):
     __ratio__ = 0.25
     __plot_pad__ = 0.075
     __pad__ = 2
@@ -775,7 +783,7 @@ class ProgressWindow(ScriptWindow):
     __title__ = 'Volume measurement'
 
     def __init__(self, WRAPPER):
-        ScriptWindow.__init__(self)
+        OG_ScriptWindow.__init__(self)
         self.WRAPPER = WRAPPER
         self.title(self.WRAPPER.get_name())
 
@@ -865,7 +873,7 @@ class ProgressWindow(ScriptWindow):
         self.update_image(state, frame)
 
         self.figcanvas.draw()
-        ScriptWindow.update(self)
+        OG_ScriptWindow.update(self)
 
     def plot(self, t, areas):  # todo: this should call a method in isimple.video.visualization
         """Update the plot.
@@ -938,3 +946,456 @@ class ProgressWindow(ScriptWindow):
         """
         self.focus()
         self.mainloop()
+
+
+def has_zenity():
+    with open(os.devnull, 'w') as null:
+        return not subprocess.check_call(['zenity', '--version'], stdout=null)
+
+
+def load_file_dialog(title: str = None, patterns: List[str] = None, patterns_str: str = None):
+    if title is None:
+        title = 'Load...'
+
+    if patterns is None:
+        patterns = []
+
+    if has_zenity():
+        try:
+            if len(patterns) > 0:
+                p = subprocess.Popen(
+                    [
+                        'zenity', '--file-selection',
+                        f'--file-filter', ' '.join(patterns),
+                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                )
+            else:
+                p = subprocess.Popen(
+                    [
+                        'zenity', '--file-selection',
+                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                )
+            out, err = p.communicate()
+            if not err:
+                return out.rstrip().decode('utf-8')
+        except subprocess.CalledProcessError:
+            return None
+
+    else:
+        if len(patterns) > 0:
+            return tkfd.askopenfilename(
+                title=title,
+                filetypes=[(patterns_str, ' '.join(patterns))]
+            )
+        else:
+            return tkfd.askopenfilename(
+                title=title,
+            )
+
+
+def save_file_dialog(title: str = None, patterns: List[str] = None, patterns_str: str = None):
+    if title is None:
+        title = 'Save as...'
+
+    if patterns is None:
+        patterns = []
+
+    if has_zenity():
+        try:
+            if len(patterns) > 0:
+                p = subprocess.Popen(
+                    [
+                        'zenity', '--file-selection', '--save'
+                        f'--file-filter', ' '.join(patterns),
+                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                )
+            else:
+                p = subprocess.Popen(
+                    [
+                        'zenity', '--file-selection', '--save'
+                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                )
+            out, err = p.communicate()
+            if not err:
+                return out.strip().decode('utf-8')
+        except subprocess.CalledProcessError:
+            return None
+
+    else:
+        if len(patterns) > 0:
+            return tkfd.asksaveasfilename(
+                title=title,
+                filetypes=[(patterns_str, ' '.join(patterns))]
+            )
+        else:
+            return tkfd.asksaveasfilename(
+                title=title,
+            )
+
+
+class EntryPopup(ttk.Entry):
+    """Pop-up widget to allow value editing in TreeDict
+    """
+    def __init__(self, parent, iid, index, item, callback, **kw):
+        ''' If relwidth is set, then width is ignored '''
+        super().__init__(parent, **kw)
+        self.tv = parent
+        self.iid = iid
+        self.item = item
+        self.callback = callback
+
+        self.index = index
+        self.insert(0, self.tv.item(self.iid, "values")[index])
+        # self['state'] = 'readonly'
+        # self['readonlybackground'] = 'white'
+        # self['selectbackground'] = '#1BA1E2'
+        self['exportselection'] = False
+
+        self.focus_force()
+        self.bind("<Return>", self.on_return)  # todo: this doesn't work too well. Also bind numpad enter & "click away / unfocus"
+        self.bind("<KP_Enter>", self.on_return)
+        self.bind("<Control-a>", self.select_all)
+        self.bind("<Escape>", lambda *ignore: self.destroy())
+        self.bind("<FocusOut>", lambda *ignore: self.destroy())
+
+    def on_return(self, event):
+        v = list(self.tv.item(self.iid, "values"))
+        v[self.index] = self.get()
+        self.tv.item(self.iid, values=tuple(v))  # todo: also update self.tv._data !!!
+
+        self.item = type(self.item)(v[0])
+
+        self.callback()
+        self.destroy()
+
+    def select_all(self, *ignore):
+        ''' Set selection on the whole text '''
+        self.selection_range(0, 'end')
+
+        # returns 'break' to interrupt default key-bindings
+        return 'break'
+
+
+class TreeDict(object):
+    """An editable representation of a dictionary in a ttk.Treeview
+    """
+
+    # cheated off of
+    #   - https://github.com/r2123b/tkinter-ttk-Treeview-Simple-Demo/blob/master/SimpleTreeview.py
+    #   - https://stackoverflow.com/questions/51762835/
+    #   - https://stackoverflow.com/questions/18562123/
+
+    _tk: Union[tkinter.Tk, tkinter.Misc]
+    _tree: ttk.Treeview
+    _data: dict
+
+    _values: Dict[str, list]
+    _edit_callback: Callable[[dict], dict]
+
+    _data_iid: dict
+
+    def __init__(self, tk: Union[tkinter.Tk, tkinter.Misc], data: dict, callback: Callable[[dict], dict]):
+        self._tk = tk
+        self._edit_callback = callback  # type: ignore
+        self.update(data)
+
+        self._tree.bind("<Double-1>", self.edit)
+
+    def set(self, data: dict):
+        self._data = data
+        self.build()
+
+    def set_value(self, iid, value):
+        raise NotImplementedError
+
+    def callback(self):
+        self._data = self._edit_callback(self._data)  # callback to handler; validate & update self._data
+
+    def build(self):
+        self._tree = ttk.Treeview(
+            self._tk, show="tree"
+        )
+        self._iid_mapping = {}
+
+        def handle_item(self, key, item, parent: str = ''):
+            if (isinstance(item, list) or isinstance(item, tuple)) and \
+                    not any(isinstance(i, dict) for i in item):
+                p = self._tree.insert(parent, 'end', text=key, values=[str(item)])
+                self._iid_mapping[p] = item
+            elif (isinstance(item, list) or isinstance(item, tuple)) and \
+                    any(isinstance(i, dict) for i in item):
+                p = self._tree.insert(parent, 'end', text=key)
+                self._iid_mapping[p] = item
+                for i, subitem in enumerate(item):
+                    if 'name' in subitem:
+                        title = subitem['name']
+                    else:
+                        title = f"{key} {i}"
+                    handle_item(self, title, subitem, p)
+            elif isinstance(item, dict):
+                p = self._tree.insert(parent, 'end', text=key)
+                self._iid_mapping[p] = item
+                for sk, sv in item.items():
+                    handle_item(self, sk, sv, p)
+            else:
+                p = self._tree.insert(parent, 'end', text=key, values=[item])
+                self._iid_mapping[p] = item
+            self._tree.item(p, open=True)  # expands everything by default
+
+        for k, v in self._data.items():
+            handle_item(self, k, v)
+
+        self._tree["columns"] = ('', '')  # doesn't work with *one* column or when not set, for some reason
+
+
+    def edit(self, event):
+        ''' Executed, when a row is double-clicked. Opens
+        read-only EntryPopup above the item's column, so it is possible
+        to select text '''
+
+        # close previous popups
+        if hasattr(self, 'entryPopup'):
+            try:
+                self.entryPopup.on_return(None)
+            except Exception:
+                pass
+            self.entryPopup.destroy()
+            del self.entryPopup
+
+        # what row and column was clicked on
+        rowid = self._tree.identify_row(event.y)
+        column = self._tree.identify_column(event.x)
+
+        print(f"Selected row {rowid} & column {column}")
+
+        # Don't allow editing keys
+        if column != '#0':
+            # get column position info
+            x, y, width, height = self._tree.bbox(rowid, column)
+
+            print(f"Cell: x{x}, y{y}, x{width}, h{height}")
+
+            # y-axis offset
+            pady = height // 2
+            # pady = 0
+
+            # place Entry popup properly
+            index = int(column[1:]) - 1
+            self.entryPopup = EntryPopup(self._tree, rowid, index, self._iid_mapping[rowid], self.callback)
+            self.entryPopup.place(x=x, y=y + pady, anchor='w', width=100)  # todo: set x to start at the right column, relwidth to cover the whole column
+
+    def update(self, data: dict):
+        self.set(data)
+        self._tree.pack()
+        self._tk.update()
+
+
+class guiElement(abc.ABC):
+    """Abstract class for GUI elements
+    """
+    def __init__(self):
+        pass
+
+    def build(self):
+        pass
+
+
+class guiPane(guiElement):
+    """Abstract class for a GUI pane
+    """
+    def __init__(self):
+        super().__init__()
+
+    def build(self):
+        pass
+
+
+gui = GuiRegistry()
+
+
+class guiWindow(guiElement):
+    """Abstract class for a GUI window
+    """
+    _endpoints: List[Endpoint]
+
+    def __init__(self):
+        super().__init__()
+
+    def open(self):  # todo: should check if all callbacks have been provided
+        pass
+
+    def close(self):
+        pass
+
+
+class SetupWindow(guiWindow):
+    _endpoints = [
+        backend.get_config,
+        backend.set_config,
+    ]
+
+    def __init__(self):  # todo: should limit configuration get/set to backend; metadata saving should be done from there too.
+        super().__init__()
+
+    def open(self):
+        og.gui.OG_FileSelectWindow(self)
+
+
+class TransformWindow(guiWindow):
+    """Allows the user to set up a transform interactively
+            * Callbacks:
+                - Get the raw and transformed frame at a certain frame number (scrollable)
+                - Estimate the transform for a set of coordinates
+        """
+    _endpoints = [
+        backend.get_total_frames,
+        backend.get_overlay,
+        backend.overlay_frame,
+        backend.get_raw_frame,
+        backend.transform,
+        backend.estimate_transform,
+        backend.get_coordinates,
+        backend.get_frame,
+        backend.get_overlaid_frame,
+        backend.get_inverse_transformed_overlay,
+    ]
+
+    def __init__(self):
+        super().__init__()
+
+    def open(self):
+        og.gui.OG_OverlayAlignWindow(self)
+
+
+class FilterWindow(guiWindow):
+    """Allows the user to set up a filter interactively
+        * Interaction:
+            - Scroll through the video to find the liquid of interest,
+              click on it and set the filter according to the selected pixel
+            - todo: extra GUI elements for more control over filter parameters
+            - todo: would be great to change the filter *type* dynamically; in that
+                    case the gui Manager would have to be involved in order to
+                    update the FilterWindow's callbacks...
+                    Otherwise: filter implementations wrapped by Filter, not
+                    inheriting from Filter
+        * Callbacks:
+            - Get the masked / masked & filtered frame at a certain frame number (scrollable)
+            - Set the filter
+    """
+    _endpoints = [
+        backend.get_total_frames,
+        backend.get_frame,
+        backend.mask,
+        backend.get_filter_parameters,
+        backend.set_filter_parameters,
+        backend.filter,
+    ]
+
+    def __init__(self):
+        super().__init__()
+
+    def open(self):
+        og.gui.OG_MaskFilterWindow(self)
+
+
+class ProgressWindow(guiWindow):
+    """Shows the progress of an analysis.
+        * No callbacks; not interactive, so the backend pushes to the GUI instead
+    """
+    _endpoints = [
+        backend.get_name,
+        backend.get_colors,
+        backend.get_frame,
+        backend.get_raw_frame,
+        backend.get_total_frames,
+        backend.get_fps,
+        backend.get_h,
+        backend.get_dpi,
+        backend.get_mask_names,
+    ]
+
+    def __init__(self):
+        super().__init__()
+
+    def open(self):
+        self.pw = og.gui.OG_ProgressWindow(self)
+
+    @gui.expose(gui.update_progresswindow)
+    def update(self, time: float, values: list, state: np.ndarray, frame: np.ndarray) -> None:
+        self.pw.update_window(time, values, state, frame)
+
+
+class VideoAnalyzerGui(Manager, guiElement):  # todo: find a different name
+    windows: Dict[type, guiWindow]
+    open_windows: List[guiWindow]
+
+    _instances: List[guiElement]
+    _instance_class = guiElement
+
+    _backend: Manager
+    _endpoints: GuiRegistry = gui
+
+    def __init__(self, backend: Manager):
+        super().__init__()
+
+        self.windows = {}
+        self.open_windows = []
+
+        self._backend = backend
+        self._backend.connect(self)
+
+        for c in [SetupWindow, TransformWindow, FilterWindow, ProgressWindow]:  # todo: cleaner way to define this, maybe as a _window_classes class attribute?
+            self.add_window(c)
+
+        self._gather_instances()
+
+    @gui.expose(gui.open_setupwindow)
+    def open_setupwindow(self) -> None:  # todo: probably a bad idea to give out references to the actual windows; maybe give index or key instead?
+        self.open_window(SetupWindow)
+
+    @gui.expose(gui.open_transformwindow)
+    def open_transformwindow(self) -> None:
+        self.open_window(TransformWindow)
+
+    @gui.expose(gui.open_filterwindow)
+    def open_filterwindow(self, index: int) -> None:
+        self.open_window(FilterWindow, index)
+
+    @gui.expose(gui.open_progresswindow)
+    def open_progresswindow(self) -> None:
+        self.open_window(ProgressWindow)
+
+    def add_window(self, window_type: Type[guiWindow]):
+        self.windows[window_type] = window_type()
+
+
+    def open_window(self, window_type: Type[guiWindow], index: int = None):
+        w = self.windows[window_type]
+
+        if isinstance(w, list):
+            if index is None:
+                index = 0
+            w = w[index]
+
+        self.open_windows.append(w)
+
+        for endpoint in w._endpoints:
+            setattr(w, endpoint._name, self._backend.get(endpoint, index))
+
+        w.open()
+
+    def close_window(self, index: int):
+        window = self.open_windows.pop(index)
+        window.close()
+
+    def wait_on_close(self, window):  # todo: windows should run in separate threads
+        # todo: check that window is in self.windows
+        while window.is_open:  # todo: wrap Thread.join() instead
+            time.sleep(0.05)
+
+    def close_all_windows(self):
+        if hasattr(self, 'windows'):
+            for window in self.open_windows:
+                window.close()
+
+            self.open_windows = []

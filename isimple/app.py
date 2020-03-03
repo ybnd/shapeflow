@@ -14,8 +14,7 @@ from isimple.core.backend import  BackendManager
 from isimple.core.features import FeatureSet
 
 from isimple.video import VideoAnalyzer
-from isimple.gui import VideoAnalyzerGui
-
+from og.gui import VideoAnalyzerGui
 
 if __name__ == '__main__':
     pass

@@ -9,7 +9,7 @@ from isimple.core.log import get_logger
 from isimple.core.schema import schema
 from isimple.video import backend, BackendType
 
-log = get_logger('flask')
+log = get_logger(__name__)
 
 __instances__: dict = {
     BackendType('VideoAnalyzer'): [],
@@ -81,5 +81,7 @@ def call(backendtype: str, index: int, method: str):
 
 
 if __name__ == '__main__':
+    # todo: take CLI arguments for address, debug on/off, ...
+    # todo: server-level configuration
     app.run()
 
