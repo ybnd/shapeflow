@@ -26,4 +26,3 @@ deploy_*.py
 build/
 dist/
 ui/
-.venv/
