@@ -246,7 +246,7 @@ class Config(abc.ABC):
     @staticmethod
     def __str2namedtuple__(t: str, type: Type[tuple]) -> tuple:
         return type(
-            **{k:float(v.strip("'")) for k,v,_ in re.findall('([A-Za-z0-9]*)=(.*?)(,|\))', t)}
+            **{k:float(v.strip("'")) for k,v,_ in re.findall('([A-Za-z0-9]*)=(.*?)(,|\))', t)}  # type: ignore
         )  # todo: we're assuming tuples of floats here, will break for cases that are not colors!
 
 
