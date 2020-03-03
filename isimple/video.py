@@ -622,7 +622,7 @@ class PixelSum(MaskFilterFunction):
 
 class Volume_uL(MaskFilterFunction):
     def _function(self, frame: np.ndarray) -> Any:
-        return area_pixelsum(frame) / (self.mask.dpi / 25.4) ** 2 * self.mask.h
+        return area_pixelsum(frame) / (self.mask.dpi / 25.4) ** 2 * self.mask.h * 1e3
 
 
 VideoFeatureType.extend({
@@ -811,11 +811,15 @@ class VideoAnalyzer(BackendManager):
         if path is not None:
             path = os.path.splitext(path)[0] + __meta_ext__
             if os.path.isfile(path):
-                # todo: this is a temporary workaround to not overwrite paths ~ .meta file
+                # todo: this is a temporary workaround to not overwrite current configuration ~ .meta file
                 #        should be done by setting the fields to None & more in-depth config handling in BackendInstance._configure
                 config = load(path)
                 config.video_path = self._config.video_path
                 config.design_path = self._config.design_path
+                config.dt = self._config.dt
+                config.Nf = self._config.Nf
+                config.frame_interval_setting = self._config.frame_interval_setting
+                config.height = self._config.height
 
                 self._configure(config)
         else:
