@@ -14,7 +14,7 @@ from isimple.maths.colors import HsvColor
 
 log = get_logger(__name__)
 
-__version__: str = '0.2.1'
+__version__: str = '0.2.2'
 
 # Extension
 __meta_ext__ = '.meta'
@@ -383,8 +383,19 @@ def load(path: str) -> VideoAnalyzerConfig:  # todo: internals should be replace
         }
     else:
         if before_version(d['version'], '0.2.1'):
+            # Rename mask[i].filter.filter to mask[].filter.data
             for m in d['masks']:
                 m['filter']['data'] = m['filter'].pop('filter')
+        if before_version(d['version'], '0.2.2'):
+            # Convert tuple string color '(0,0,0)' to HsvColor string 'HsvColor(h=0, s=0, v=0)'
+            from ast import literal_eval as make_tuple  # todo: this is unsafe!
+            for m in d['masks']:
+                if 'c0' in m['filter']['data']:
+                    m['filter']['data']['c0'] = str(HsvColor(*make_tuple(m['filter']['data']['c0'])))
+                if 'c1' in m['filter']['data']:
+                    m['filter']['data']['c1'] = str(HsvColor(*make_tuple(m['filter']['data']['c1'])))
+                if 'radius' in m['filter']['data']:
+                    m['filter']['data']['radius'] = str(HsvColor(*make_tuple(m['filter']['data']['radius'])))
 
     # Remove timestamp & version info
     d.pop('timestamp', None)

@@ -348,8 +348,18 @@ class Mask(BackendInstance):
     filter: FilterHandler
 
     _config: MaskConfig
+    _h: float
+    _dpi: float
 
-    def __init__(self, mask: np.ndarray, name: str, config: MaskConfig = None, filter: FilterHandler = None):
+    def __init__(
+            self,
+            mask: np.ndarray,
+            name: str,
+            config: MaskConfig = None,
+            filter: FilterHandler = None,
+            dpi: float = None,
+            h: float = None,
+    ):
         if config is None:
             config = MaskConfig()
 
@@ -368,6 +378,19 @@ class Mask(BackendInstance):
             assert isinstance(filter, FilterHandler), BackendSetupError
         self.filter = filter
         self._config.filter = self.filter._config
+
+        if h is None:
+            if self._config.height is not None:
+                self._h = self._config.height
+            else:
+                raise BackendSetupError(f'Mask {self._config.name} has no defined height.')
+        else:
+            self._h = h
+
+        if dpi is None:
+            raise BackendSetupError(f'Mask {self._config.name} has no defined DPI.')
+        else:
+            self._dpi = dpi
 
     @backend.expose(backend.mask)
     def __call__(self, img: np.ndarray) -> np.ndarray:
@@ -397,6 +420,14 @@ class Mask(BackendInstance):
     def name(self):
         return self._config.name
 
+    @property
+    def h(self):
+        return self._h
+
+    @property
+    def dpi(self):
+        return self._dpi
+
 
 
 
@@ -406,10 +437,11 @@ class DesignFileHandler(CachingBackendInstance):
 
     _config: DesignFileHandlerConfig
     _default = DesignFileHandlerConfig()
+    _h: float
 
-    def __init__(self, path: str, config: DesignFileHandlerConfig = None, mask_config: Tuple[MaskConfig,...] = None):
+    def __init__(self, path: str, h: float, config: DesignFileHandlerConfig = None, mask_config: Tuple[MaskConfig,...] = None):
         super(DesignFileHandler, self).__init__(config)
-
+        self._h = h
         if not os.path.isfile(path):
             raise FileNotFoundError
 
@@ -421,9 +453,9 @@ class DesignFileHandler(CachingBackendInstance):
             self._masks = []
             for i, (mask, name) in enumerate(zip(*self.read_masks(path))):
                 if mask_config is not None and len(mask_config) >= i+1:  # handle case len(mask_config) < len(self.read_masks(path))
-                    self._masks.append(Mask(mask, name, mask_config[i]))
+                    self._masks.append(Mask(mask, name, mask_config[i], h=self._h, dpi=self._config.dpi))
                 else:
-                    self._masks.append(Mask(mask, name))
+                    self._masks.append(Mask(mask, name, h=self._h, dpi=self._config.dpi))
 
     def _clear_renders(self):
         log.debug(f'Clearing render directory {self._config.render_dir}')
@@ -545,8 +577,6 @@ def frame_to_none(frame: np.ndarray) -> None:    # todo: this is dumb
 
 
 class MaskFilterFunction(Feature):
-    _function = staticmethod(frame_to_none)  # Override in child classes
-
     mask: Mask
     filter: FilterHandler
 
@@ -582,13 +612,22 @@ class MaskFilterFunction(Feature):
     def name(self) -> str:
         return self.mask.name
 
+    def _function(self, frame: np.ndarray) -> Any:
+        return None
+
 
 class PixelSum(MaskFilterFunction):
-    _function = staticmethod(area_pixelsum)  # todo: would be cleaner if we wouldn't need to have staticmethod here :/
+    def _function(self, frame: np.ndarray) -> Any:
+        return area_pixelsum(frame)
+
+class Volume_uL(MaskFilterFunction):
+    def _function(self, frame: np.ndarray) -> Any:
+        return area_pixelsum(frame) / (self.mask.dpi / 25.4) ** 2 * self.mask.h
 
 
 VideoFeatureType.extend({
-    'pixel sum':    PixelSum
+    'volume (uL)':  Volume_uL,
+    'pixel sum':    PixelSum,
 })
 
 
@@ -626,7 +665,7 @@ class VideoAnalyzer(BackendManager):
         log.debug(f'{self.__class__.__name__}: launch nested instances.')
         self.video = VideoFileHandler(self._config.video_path, self._config.video)
         self.video.set_requested_frames(list(self.frame_numbers()))
-        self.design = DesignFileHandler(self._config.design_path, self._config.design, self._config.masks)
+        self.design = DesignFileHandler(self._config.design_path, self._config.height, self._config.design, self._config.masks)
         self.transform = TransformHandler(self.design.shape, self._config.transform)
         self.masks = self.design.masks
         self.filters = [mask.filter for mask in self.masks]
@@ -772,7 +811,13 @@ class VideoAnalyzer(BackendManager):
         if path is not None:
             path = os.path.splitext(path)[0] + __meta_ext__
             if os.path.isfile(path):
-                self._config = load(path)
+                # todo: this is a temporary workaround to not overwrite paths ~ .meta file
+                #        should be done by setting the fields to None & more in-depth config handling in BackendInstance._configure
+                config = load(path)
+                config.video_path = self._config.video_path
+                config.design_path = self._config.design_path
+
+                self._configure(config)
         else:
             log.warning(f"No path provided to `load_config`; no video file either.")
 
