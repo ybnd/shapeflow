@@ -949,8 +949,11 @@ class OG_ProgressWindow(OG_ScriptWindow):
 
 
 def has_zenity():
-    with open(os.devnull, 'w') as null:
-        return not subprocess.check_call(['zenity', '--version'], stdout=null)
+    try:
+        with open(os.devnull, 'w') as null:
+            return not subprocess.check_call(['zenity', '--version'], stdout=null)
+    except FileNotFoundError:
+        return False
 
 
 def load_file_dialog(title: str = None, patterns: List[str] = None, patterns_str: str = None):
