@@ -8,6 +8,8 @@ omit =
     */test/*
     */og/*
     */scripts/*
+    */dist/*
+    ui/*
 exclude_lines =
     assert False
     raise NotImplementedError
