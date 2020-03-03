@@ -154,6 +154,7 @@ class VideoAnalyzerTest(FrameTest):
     config = VideoAnalyzerConfig(
         video_path=__VIDEO__,
         design_path=__DESIGN__,
+        height=0.153e-3,
         transform=TransformHandlerConfig(matrix=TRANSFORM),
         video=VideoFileHandlerConfig(do_cache=False),
         design=DesignFileHandlerConfig(keep_renders=True),

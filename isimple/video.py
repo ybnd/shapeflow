@@ -453,7 +453,7 @@ class DesignFileHandler(CachingBackendInstance):
                 if mask_config is not None and len(mask_config) >= i+1:  # handle case len(mask_config) < len(self.read_masks(path))
                     self._masks.append(Mask(mask, name, mask_config[i], h=self._h, dpi=self._config.dpi))
                 else:
-                    self._masks.append(Mask(mask, name))
+                    self._masks.append(Mask(mask, name, h=self._h, dpi=self._config.dpi))
 
     def _clear_renders(self):
         log.debug(f'Clearing render directory {self._config.render_dir}')

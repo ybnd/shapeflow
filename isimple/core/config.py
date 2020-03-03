@@ -397,9 +397,12 @@ def load(path: str) -> VideoAnalyzerConfig:  # todo: internals should be replace
             # Convert tuple string color '(0,0,0)' to HsvColor string 'HsvColor(h=0, s=0, v=0)'
             from ast import literal_eval as make_tuple  # todo: this is unsafe!
             for m in d['masks']:
-                m['filter']['data']['c0'] = str(HsvColor(*make_tuple(m['filter']['data']['c0'])))
-                m['filter']['data']['c1'] = str(HsvColor(*make_tuple(m['filter']['data']['c1'])))
-                m['filter']['data']['radius'] = str(HsvColor(*make_tuple(m['filter']['data']['radius'])))
+                if 'c0' in m['filter']['data']:
+                    m['filter']['data']['c0'] = str(HsvColor(*make_tuple(m['filter']['data']['c0'])))
+                if 'c1' in m['filter']['data']:
+                    m['filter']['data']['c1'] = str(HsvColor(*make_tuple(m['filter']['data']['c1'])))
+                if 'radius' in m['filter']['data']:
+                    m['filter']['data']['radius'] = str(HsvColor(*make_tuple(m['filter']['data']['radius'])))
 
     # Remove timestamp & version info
     d.pop('timestamp', None)
