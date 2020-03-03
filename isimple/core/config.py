@@ -379,7 +379,7 @@ def load(path: str) -> VideoAnalyzerConfig:  # todo: internals should be replace
                 {
                     'name': mk,
                     'filter': {
-                        'data': {'c0': mv['from'], 'c1': mv['to']}
+                        'data': {'c0': HsvColor(*mv['from']), 'c1': HsvColor(*mv['to'])}
                     }
                 }
                 for mk, mv in zip(
