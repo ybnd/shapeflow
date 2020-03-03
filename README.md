@@ -6,7 +6,7 @@
 
 
 ### Installation  
- 
+
 0. Install [Python 3](https://www.python.org/downloads/) and [Git](https://git-scm.com/downloads) (or from the KUL Software Center)
 
 1. Download a deployment script [for the release you want](https://github.com/ybnd/isimple/releases) to the folder you want to install the application in
@@ -15,7 +15,7 @@
 
 ### Usage
 
-Run [video_gui.py](video_gui.py).
+Run `video_gui.py`.
 
 ### Contributing
 
