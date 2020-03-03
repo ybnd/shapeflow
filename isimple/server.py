@@ -9,12 +9,12 @@ from isimple.core.log import get_logger
 from isimple.core.schema import schema
 from isimple.video import backend, BackendType
 
+
 log = get_logger(__name__)
 
 __instances__: dict = {
     BackendType('VideoAnalyzer'): [],
 }
-
 
 # configuration
 DEBUG = True
@@ -26,9 +26,9 @@ app.config.from_object(__name__)
 # enable CORS
 CORS(app, resources={r'/*': {'origins': '*'}})  # todo: temporary!
 
+
 def respond(*args) -> str:  # todo: use method schemas
     return jsonify({'data': [*args]})
-
 
 
 @app.route('/<backendtype>/init', methods=['GET'])
