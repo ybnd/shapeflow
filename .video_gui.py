@@ -1,4 +1,4 @@
-from isimple.core.config import VideoAnalyzerConfig, DesignFileHandlerConfig
+from isimple.config import DesignFileHandlerConfig, VideoAnalyzerConfig
 from isimple.video import VideoAnalyzer
 from og.gui import VideoAnalyzerGui
 

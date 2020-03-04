@@ -1,6 +1,7 @@
 import unittest
 
 from isimple.video import *
+from isimple.config import EnforcedStr, FilterType, Factory
 
 __VIDEO__ = 'test.mp4'
 __DESIGN__ = 'test.svg'
@@ -9,6 +10,11 @@ __DESIGN__ = 'test.svg'
 if os.getcwd() == '/home/travis/build/ybnd/isimple':
     __VIDEO__ = 'test/' + __VIDEO__
     __DESIGN__ = 'test/' + __DESIGN__
+
+
+class ColorSpace(EnforcedStr):
+    _options = ['hsv', 'bgr', 'rgb']
+
 
 
 class EnforcedStrTest(unittest.TestCase):

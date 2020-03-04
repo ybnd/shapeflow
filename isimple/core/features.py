@@ -3,6 +3,7 @@ import abc
 from typing import Tuple, Any, Optional
 
 from isimple.core.backend import BackendInstance
+from isimple.core.config import Factory
 from isimple.maths.colors import HsvColor
 
 
@@ -65,7 +66,7 @@ class Feature(abc.ABC):
 
 class FeatureSet(object):
     _features: Tuple[Feature, ...]
-    _colors: Tuple[tuple, ...]
+    _colors: Tuple[HsvColor, ...]
 
     def __init__(self, features: Tuple[Feature, ...]):
         self._features = features
@@ -94,13 +95,17 @@ class FeatureSet(object):
                 feature._color = color
                 colors.append(color)
 
-            self._colors = tuple(colors)
-        return self.colors  #type: ignore
+            self._colors = HsvColor(*colors)
+        return self.colors
 
     @property
-    def colors(self) -> Tuple[tuple, ...]:
+    def colors(self) -> Tuple[HsvColor, ...]:
         return self._colors
 
     @property
     def features(self) -> Tuple[Feature, ...]:
         return self._features
+
+
+class FeatureType(Factory):
+    _type = Feature

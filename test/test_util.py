@@ -7,7 +7,8 @@ from typing import _GenericAlias, Union, Tuple, List, Dict, Optional  #type: ign
 
 from isimple.core.schema import resolve_type_to_most_specific, \
     get_config_schema, get_method_schema, schema
-from isimple.core.config import VideoAnalyzerConfig
+from isimple.config import VideoAnalyzerConfig
+
 
 class ResolveTypeTest(unittest.TestCase):
     def test_specifiable_union(self):

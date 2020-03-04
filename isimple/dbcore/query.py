@@ -491,6 +491,251 @@ class FalseQuery(Query):
         return False
 
 
+# Time/date queries.
+
+def _to_epoch_time(date):
+    """Convert a `datetime` object to an integer number of seconds since
+    the (local) Unix epoch.
+    """
+    if hasattr(date, 'timestamp'):
+        # The `timestamp` method exists on Python 3.3+.
+        return int(date.timestamp())
+    else:
+        epoch = datetime.fromtimestamp(0)
+        delta = date - epoch
+        return int(delta.total_seconds())
+
+
+def _parse_periods(pattern):
+    """Parse a string containing two dates separated by two dots (..).
+    Return a pair of `Period` objects.
+    """
+    parts = pattern.split('..', 1)
+    if len(parts) == 1:
+        instant = Period.parse(parts[0])
+        return (instant, instant)
+    else:
+        start = Period.parse(parts[0])
+        end = Period.parse(parts[1])
+        return (start, end)
+
+
+class Period(object):
+    """A period of time given by a date, time and precision.
+
+    Example: 2014-01-01 10:50:30 with precision 'month' represents all
+    instants of time during January 2014.
+    """
+
+    precisions = ('year', 'month', 'day', 'hour', 'minute', 'second')
+    date_formats = (
+        ('%Y',),  # year
+        ('%Y-%m',),  # month
+        ('%Y-%m-%d',),  # day
+        ('%Y-%m-%dT%H', '%Y-%m-%d %H'),  # hour
+        ('%Y-%m-%dT%H:%M', '%Y-%m-%d %H:%M'),  # minute
+        ('%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M:%S')  # second
+    )
+    relative_units = {'y': 365, 'm': 30, 'w': 7, 'd': 1}
+    relative_re = '(?P<sign>[+|-]?)(?P<quantity>[0-9]+)' + \
+        '(?P<timespan>[y|m|w|d])'
+
+    def __init__(self, date, precision):
+        """Create a period with the given date (a `datetime` object) and
+        precision (a string, one of "year", "month", "day", "hour", "minute",
+        or "second").
+        """
+        if precision not in Period.precisions:
+            raise ValueError(u'Invalid precision {0}'.format(precision))
+        self.date = date
+        self.precision = precision
+
+    @classmethod
+    def parse(cls, string):
+        """Parse a date and return a `Period` object or `None` if the
+        string is empty, or raise an InvalidQueryArgumentValueError if
+        the string cannot be parsed to a date.
+
+        The date may be absolute or relative. Absolute dates look like
+        `YYYY`, or `YYYY-MM-DD`, or `YYYY-MM-DD HH:MM:SS`, etc. Relative
+        dates have three parts:
+
+        - Optionally, a ``+`` or ``-`` sign indicating the future or the
+          past. The default is the future.
+        - A number: how much to add or subtract.
+        - A letter indicating the unit: days, weeks, months or years
+          (``d``, ``w``, ``m`` or ``y``). A "month" is exactly 30 days
+          and a "year" is exactly 365 days.
+        """
+
+        def find_date_and_format(string):
+            for ord, format in enumerate(cls.date_formats):
+                for format_option in format:
+                    try:
+                        date = datetime.strptime(string, format_option)
+                        return date, ord
+                    except ValueError:
+                        # Parsing failed.
+                        pass
+            return (None, None)
+
+        if not string:
+            return None
+
+        # Check for a relative date.
+        match_dq = re.match(cls.relative_re, string)
+        if match_dq:
+            sign = match_dq.group('sign')
+            quantity = match_dq.group('quantity')
+            timespan = match_dq.group('timespan')
+
+            # Add or subtract the given amount of time from the current
+            # date.
+            multiplier = -1 if sign == '-' else 1
+            days = cls.relative_units[timespan]
+            date = datetime.now() + \
+                timedelta(days=int(quantity) * days) * multiplier
+            return cls(date, cls.precisions[5])
+
+        # Check for an absolute date.
+        date, ordinal = find_date_and_format(string)
+        if date is None:
+            raise InvalidQueryArgumentValueError(string,
+                                                 'a valid date/time string')
+        precision = cls.precisions[ordinal]
+        return cls(date, precision)
+
+    def open_right_endpoint(self):
+        """Based on the precision, convert the period to a precise
+        `datetime` for use as a right endpoint in a right-open interval.
+        """
+        precision = self.precision
+        date = self.date
+        if 'year' == self.precision:
+            return date.replace(year=date.year + 1, month=1)
+        elif 'month' == precision:
+            if (date.month < 12):
+                return date.replace(month=date.month + 1)
+            else:
+                return date.replace(year=date.year + 1, month=1)
+        elif 'day' == precision:
+            return date + timedelta(days=1)
+        elif 'hour' == precision:
+            return date + timedelta(hours=1)
+        elif 'minute' == precision:
+            return date + timedelta(minutes=1)
+        elif 'second' == precision:
+            return date + timedelta(seconds=1)
+        else:
+            raise ValueError(u'unhandled precision {0}'.format(precision))
+
+
+class DateInterval(object):
+    """A closed-open interval of dates.
+
+    A left endpoint of None means since the beginning of time.
+    A right endpoint of None means towards infinity.
+    """
+
+    def __init__(self, start, end):
+        if start is not None and end is not None and not start < end:
+            raise ValueError(u"start date {0} is not before end date {1}"
+                             .format(start, end))
+        self.start = start
+        self.end = end
+
+    @classmethod
+    def from_periods(cls, start, end):
+        """Create an interval with two Periods as the endpoints.
+        """
+        end_date = end.open_right_endpoint() if end is not None else None
+        start_date = start.date if start is not None else None
+        return cls(start_date, end_date)
+
+    def contains(self, date):
+        if self.start is not None and date < self.start:
+            return False
+        if self.end is not None and date >= self.end:
+            return False
+        return True
+
+    def __str__(self):
+        return '[{0}, {1})'.format(self.start, self.end)
+
+
+class DateQuery(FieldQuery):
+    """Matches date fields stored as seconds since Unix epoch time.
+
+    Dates can be specified as ``year-month-day`` strings where only year
+    is mandatory.
+
+    The value of a date field can be matched against a date interval by
+    using an ellipsis interval syntax similar to that of NumericQuery.
+    """
+
+    def __init__(self, field, pattern, fast=True):
+        super(DateQuery, self).__init__(field, pattern, fast)
+        start, end = _parse_periods(pattern)
+        self.interval = DateInterval.from_periods(start, end)
+
+    def match(self, item):
+        if self.field not in item:
+            return False
+        timestamp = float(item[self.field])
+        date = datetime.fromtimestamp(timestamp)
+        return self.interval.contains(date)
+
+    _clause_tmpl = "{0} {1} ?"
+
+    def col_clause(self):
+        clause_parts = []
+        subvals = []
+
+        if self.interval.start:
+            clause_parts.append(self._clause_tmpl.format(self.field, ">="))
+            subvals.append(_to_epoch_time(self.interval.start))
+
+        if self.interval.end:
+            clause_parts.append(self._clause_tmpl.format(self.field, "<"))
+            subvals.append(_to_epoch_time(self.interval.end))
+
+        if clause_parts:
+            # One- or two-sided interval.
+            clause = ' AND '.join(clause_parts)
+        else:
+            # Match any date.
+            clause = '1'
+        return clause, subvals
+
+
+class DurationQuery(NumericQuery):
+    """NumericQuery that allow human-friendly (M:SS) time interval formats.
+
+    Converts the range(s) to a float value, and delegates on NumericQuery.
+
+    Raises InvalidQueryError when the pattern does not represent an int, float
+    or M:SS time interval.
+    """
+
+    def _convert(self, s):
+        """Convert a M:SS or numeric string to a float.
+
+        Return None if `s` is empty.
+        Raise an InvalidQueryError if the string cannot be converted.
+        """
+        if not s:
+            return None
+        try:
+            return util.raw_seconds_short(s)
+        except ValueError:
+            try:
+                return float(s)
+            except ValueError:
+                raise InvalidQueryArgumentValueError(
+                    s,
+                    u"a M:SS string or a float")
+
+
 # Sorting.
 
 class Sort(object):

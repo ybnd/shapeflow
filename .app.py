@@ -15,13 +15,13 @@ from flask_cors import CORS
 
 from isimple.core.log import get_logger
 from isimple.core.schema import schema
-from isimple.video import backend, BackendType
-
+from isimple.video import backend
+from isimple.core.backend import AnalyzerType
 
 log = get_logger(__name__)
 
 __instances__: dict = {
-    BackendType('VideoAnalyzer'): [],
+    AnalyzerType('VideoAnalyzer'): [],
 }
 
 # instantiate the app
@@ -38,14 +38,14 @@ def respond(*args) -> str:  # todo: use method schemas
 
 @app.route('/<backendtype>/init', methods=['GET'])
 def init(backendtype: str):
-    bt = BackendType(backendtype)
+    bt = AnalyzerType(backendtype)
     __instances__[bt].append(bt.get()())  # todo: wow.
     return respond(len(__instances__[bt])-1)  # todo: should return list of methods that don't rely on nested BackendInstances & their schemas
 
 
 @app.route('/<backendtype>/<index>/launch', methods=['GET'])
 def launch(backendtype: str, index: int):
-    bt = BackendType(backendtype)
+    bt = AnalyzerType(backendtype)
     index = int(index)
     __instances__[bt][index].launch()  # todo: should also cache all method pointers for __instances__[bt][index] so we don't call .get() a million times
     return respond()  # todo: should return all available methods & their schemas
@@ -53,7 +53,7 @@ def launch(backendtype: str, index: int):
 
 @app.route('/<backendtype>/<index>/schemas', methods=['GET'])
 def get_schemas(backendtype: str, index: int):
-    bt = BackendType(backendtype)
+    bt = AnalyzerType(backendtype)
     index = int(index)
     i = __instances__[bt][index]
     return respond(
@@ -66,7 +66,7 @@ def get_schemas(backendtype: str, index: int):
 
 @app.route('/<backendtype>/<index>/<method>', methods=['GET'])
 def call(backendtype: str, index: int, method: str):
-    bt = BackendType(backendtype)
+    bt = AnalyzerType(backendtype)
     index = int(index)
 
     log.info(f"we have a request: {request.args.to_dict()}")

@@ -9,6 +9,8 @@ import shutil
 
 from OnionSVG import OnionSVG
 
+from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
+    DesignFileHandlerConfig, VideoAnalyzerConfig
 from isimple.video import VideoFileHandler, VideoFileTypeError, \
     CachingBackendInstance, VideoAnalyzer
 from isimple.core.config import *

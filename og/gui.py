@@ -8,8 +8,6 @@ import tkinter as tk
 import tkinter.messagebox
 from collections import namedtuple
 
-import tkinter.ttk as ttk
-import tkinter.filedialog as tkfd
 from tkinter import filedialog as tkfd, ttk as ttk
 from typing import Dict, List, Type, Union, Callable
 
@@ -24,7 +22,7 @@ from matplotlib.figure import Figure
 
 import og.app
 from isimple.core.common import RootInstance, Endpoint
-from isimple.core.endpoints import GuiRegistry, BackendRegistry as backend
+from isimple.endpoints import GuiRegistry, BackendRegistry as backend
 
 from isimple.util import restrict, rotations
 

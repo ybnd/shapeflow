@@ -207,6 +207,30 @@ class Boolean(Type):
     def parse(self, string):
         return str2bool(string)
 
+# originally from https://github.com/beetbox/beets/blob/545c65d903e38d37fd2c1734ec69eac609bea035/beets/library.py#L124-L145
+class DateType(Float):
+    # TODO representation should be `datetime` object
+    # TODO distinguish between date and time types
+    query = query.DateQuery
+
+    def format(self, value):
+        return time.strftime(beets.config['time_format'].as_str(),
+                             time.localtime(value or 0))
+
+    def parse(self, string):
+        try:
+            # Try a formatted date string.
+            return time.mktime(
+                time.strptime(string,
+                              beets.config['time_format'].as_str())
+            )
+        except ValueError:
+            # Fall back to a plain timestamp number.
+            try:
+                return float(string)
+            except ValueError:
+                return self.null
+
 
 # Shared instances of common types.
 DEFAULT = Default()
@@ -217,3 +241,4 @@ FLOAT = Float()
 NULL_FLOAT = NullFloat()
 STRING = String()
 BOOLEAN = Boolean()
+DATE = DateType()

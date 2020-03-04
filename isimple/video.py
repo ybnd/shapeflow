@@ -1,22 +1,33 @@
 import os
+import re
+import datetime
 import pandas as pd
-from typing import Callable, Any, Dict, Generator
+from typing import Callable, Any, Dict, Generator, Optional, List, Tuple
 
 import cv2
+import numpy as np
 
 from OnionSVG import OnionSVG, check_svg
 
+from isimple.core.log import get_logger
 from isimple.core.common import RootInstance
-from isimple.core.backend import BackendInstance, CachingBackendInstance, Handler, BackendRootInstance, BackendSetupError
-from isimple.core.features import Feature, FeatureSet
-from isimple.core.config import *
+from isimple.core.backend import BackendInstance, CachingBackendInstance, \
+    Handler, Analyzer, BackendSetupError, AnalyzerType
+from isimple.core.features import Feature, FeatureSet, FeatureType
+from isimple.core.config import (
+    extend)
+from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
+    FilterConfig, HsvRangeFilterConfig, FilterHandlerConfig, MaskConfig, \
+    DesignFileHandlerConfig, VideoAnalyzerConfig, load, dump, dumps, \
+    FrameIntervalSetting, TransformInterface, TransformType, FilterInterface, \
+    FilterType, normalize_config
 from isimple.core.config import __meta_ext__
 
 from isimple.maths.images import to_mask, crop_mask, area_pixelsum, ckernel
 from isimple.maths.colors import HsvColor
 
-from isimple.core.endpoints import BackendRegistry
-from isimple.core.endpoints import GuiRegistry as gui
+from isimple.endpoints import BackendRegistry
+from isimple.endpoints import GuiRegistry as gui
 from isimple.util import frame_number_iterator
 
 log = get_logger(__name__)
@@ -131,22 +142,7 @@ class VideoFileHandler(CachingBackendInstance):
             return self._cached_call(self._read_frame, self.path, frame_number)
 
 
-class TransformInterface(abc.ABC):
-    default = np.eye(3)
-
-    @abc.abstractmethod
-    def validate(self, transform: np.ndarray) -> bool:
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def estimate(self, coordinates: list, shape: tuple) -> np.ndarray:  # todo: explain what and why shape is
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def transform(self, img: np.ndarray, transform: np.ndarray, shape: tuple) -> np.ndarray:
-        raise NotImplementedError
-
-
+@extend(TransformType)
 class PerspectiveTransform(TransformInterface):
     def validate(self, transform: np.ndarray) -> bool:
         return transform.shape == (3, 3)
@@ -171,11 +167,6 @@ class PerspectiveTransform(TransformInterface):
         return cv2.warpPerspective(
             img, transform, shape,  # can't set destination image here! it's the wrong shape!
         )
-
-
-TransformType.extend({
-    'perspective': PerspectiveTransform,
-})
 
 
 class TransformHandler(BackendInstance, Handler):
@@ -246,24 +237,7 @@ class TransformHandler(BackendInstance, Handler):
         return self._config.matrix
 
 
-class FilterInterface(abc.ABC):
-    """Handles pixel filtering operations
-    """
-    _config_class: Type[FilterConfig]
-
-    @abc.abstractmethod
-    def set_filter(self, filter, color: HsvColor):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def mean_color(self, filter) -> HsvColor:  # todo: add custom np.ndarray type 'hsvcolor'
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def filter(self, image: np.ndarray, filter) -> np.ndarray:  # todo: add custom np.ndarray type 'image'
-        raise NotImplementedError
-
-
+@extend(FilterType)
 class HsvRangeFilter(FilterInterface):  # todo: may be better to **wrap** this in Filter instead of inheriting from it
     """Filters by a range of hues ~ HSV representation
     """
@@ -278,7 +252,6 @@ class HsvRangeFilter(FilterInterface):  # todo: may be better to **wrap** this i
         assert isinstance(r, tuple)
         filter.c0 = HsvColor(c[0]-r[0], c[1]-r[1], c[2]-r[2])
         filter.c1 = HsvColor(c[0]+r[0], c[1]+r[1], c[2]+r[2])
-
         return filter
 
     def mean_color(self, filter: HsvRangeFilterConfig) -> HsvColor:
@@ -293,11 +266,6 @@ class HsvRangeFilter(FilterInterface):  # todo: may be better to **wrap** this i
         return cv2.inRange(
             img, np.float32(c0), np.float32(c1), img
         )
-
-
-FilterType.extend({
-    'hsv range':    HsvRangeFilter,
-})
 
 
 class FilterHandler(BackendInstance, Handler):
@@ -426,8 +394,6 @@ class Mask(BackendInstance):
     @property
     def dpi(self):
         return self._dpi
-
-
 
 
 class DesignFileHandler(CachingBackendInstance):
@@ -615,22 +581,20 @@ class MaskFilterFunction(Feature):
         return None
 
 
+@extend(FeatureType)
 class PixelSum(MaskFilterFunction):
     def _function(self, frame: np.ndarray) -> Any:
         return area_pixelsum(frame)
 
+
+@extend(FeatureType)
 class Volume_uL(MaskFilterFunction):
     def _function(self, frame: np.ndarray) -> Any:
         return area_pixelsum(frame) / (self.mask.dpi / 25.4) ** 2 * self.mask.h * 1e3
 
 
-VideoFeatureType.extend({
-    'volume (uL)':  Volume_uL,
-    'pixel sum':    PixelSum,
-})
-
-
-class VideoAnalyzer(BackendRootInstance):
+@extend(AnalyzerType)
+class VideoAnalyzer(Analyzer):
     """Main video handling class
             * Load frames from video files
             * Load mask files
@@ -719,7 +683,7 @@ class VideoAnalyzer(BackendRootInstance):
     @backend.expose(backend.set_config)  # todo: this is more complex now! Should only write values, not whole config.
     def set_config(self, config: dict) -> None:
         log.debug(f"Setting VideoAnalyzerConfig to {config}")
-        self._configure(VideoAnalyzerConfig(**config))  # todo: make sure that this doesn't set the attributes that **aren't** not provided to the defaults!
+        self._configure(VideoAnalyzerConfig(**normalize_config(config)))  # todo: make sure that this doesn't set the attributes that **aren't** not provided to the defaults!
 
     #@backend.expose(backend.get_frame)  # todo: nested methods, a bit ugly (:
     def get_transformed_frame(self, frame_number: int) -> np.ndarray:
@@ -863,10 +827,6 @@ class VideoAnalyzer(BackendRootInstance):
         w.close()
 
 
-class MultiVideoAnalyzer(BackendRootInstance):
+@extend(AnalyzerType)
+class MultiVideoAnalyzer(Analyzer):
     pass
-
-
-BackendType.extend({
-    'VideoAnalyzer': VideoAnalyzer,
-})

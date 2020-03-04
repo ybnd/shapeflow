@@ -21,6 +21,7 @@ import sqlite3
 import unittest
 from six import assertRaisesRegex
 
+import isimple.config
 from isimple import dbcore
 from tempfile import mkstemp
 import six

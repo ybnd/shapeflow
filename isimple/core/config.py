@@ -1,20 +1,23 @@
 import re
-import yaml
 import json
 import numpy as np
-from typing import List, Optional, Tuple, Union, Type
+from typing import List, Optional, Union, Type, Dict
 from dataclasses import dataclass
 from collections.abc import Iterable
 import abc
-import datetime
 
-from isimple.util import before_version
 from isimple.core.log import get_logger
-from isimple.maths.colors import HsvColor
+
 
 log = get_logger(__name__)
 
-__version__: str = '0.2.2'
+__version__: str = '0.3'
+
+# Metadata tags
+VERSION: str = 'config_version'
+CLASS: str = 'config_class'
+
+TAGS = (VERSION, CLASS)
 
 # Extension
 __meta_ext__ = '.meta'
@@ -65,15 +68,16 @@ class EnforcedStr(object):
         return hash(str(self))
 
 
-class Factory(EnforcedStr):
-    _mapping: dict = {'': None}
+class Factory(EnforcedStr):  # todo: add a _class & issubclass check
+    _mapping: Dict[str, type]
     _default: Optional[str] = None
+    _type: type = object
 
     def get(self) -> type:
         if self._str in self._mapping:
             return self._mapping[self._str]
         else:
-            raise ValueError(f"Factory {self.__class__.__name__} doesn't map"
+            raise ValueError(f"Factory {self.__class__.__name__} doesn't map "
                              f"{self._str} to a class.")
 
     @classmethod
@@ -99,35 +103,39 @@ class Factory(EnforcedStr):
             else:
                 return None
 
-    @classmethod  # todo: what about some kind of @extend(<FactoryClass>) decorator instead?
-    def extend(cls, mapping: dict):
-        # todo: sanity check this
-        log.debug(f"Extending Factory '{cls.__name__}' with {mapping}")
-        cls._mapping.update(mapping)
+    @classmethod
+    def _extend(cls, key: str, extension: type):
+        if not hasattr(cls, '_mapping'):
+            cls._mapping = {}
+
+        if issubclass(extension, cls._type):
+            log.debug(f"Extending Factory '{cls.__name__}' with {key}:{extension}")
+            cls._mapping.update({key: extension})
+        else:
+            raise TypeError(f"Attempting to extend Factory '{cls.__name__}' "
+                            f"with incompatible class {extension.__name__}")
 
 
-class ColorSpace(EnforcedStr):
-    _options = ['hsv', 'bgr', 'rgb']
+class extend(object):  # todo: can this be a function instead?
+    _factory: Type[Factory]
+    _key: Optional[str]
+
+    def __init__(self, factory: Type[Factory], key: Optional[str] = None):
+        self._factory = factory
+        self._key = key
+
+    def __call__(self, cls):
+        if self._key is None:
+            self._key = cls.__name__
+        self._factory._extend(self._key, cls)
+        return cls
 
 
-class FrameIntervalSetting(EnforcedStr):
-    _options = ['dt', 'Nf']
-
-
-class TransformType(Factory):
-    _mapping: dict = {}
-
-
-class FilterType(Factory):
-    _mapping: dict = {}
-
-
-class VideoFeatureType(Factory):
-    _mapping: dict = {}
-
-
-class BackendType(Factory):
-    _mapping: dict = {}
+def untag(d: dict) -> dict:
+    for tag in TAGS:
+        if tag in d:
+            d.pop(tag)
+    return d
 
 
 @dataclass
@@ -143,7 +151,7 @@ class Config(abc.ABC):
         """Initialize instance and call post-initialization method
         """
         for kw, arg in kwargs.items():
-            if hasattr(self, kw):
+            if hasattr(self, kw) and kw[0] != '_':
                 setattr(self, kw, arg)
         self.__post_init__()
 
@@ -153,7 +161,7 @@ class Config(abc.ABC):
         pass
 
     @staticmethod
-    def resolve(val, type, iter=False):
+    def resolve(val, type, iter=False, do_tag=False):
         """Resolve the value of an attribute to match a specific type
         :param val: current value
         :param type: type to resolve to
@@ -176,7 +184,7 @@ class Config(abc.ABC):
                 else:
                     val = type(val)
             elif isinstance(val, dict) and issubclass(type, Config):
-                val = type(**val)
+                val = type(**untag(val))
             return val
 
         if not isinstance(val, type):
@@ -188,7 +196,7 @@ class Config(abc.ABC):
                 val = _resolve(val, type)
         return val
 
-    def to_dict(self) -> dict:
+    def to_dict(self, do_tag: bool = False) -> dict:
         """Return this instances value as a serializable dict.
         """
         output: dict = {}
@@ -226,7 +234,20 @@ class Config(abc.ABC):
                         output[attr].append(_represent(v))
                 else:
                     output[attr] = _represent(val)
+
+        # Add configuration metadata
+        output[VERSION] = __version__
+        output[CLASS] = self.__class__.__name__
+
+        if do_tag:
+            self.tag(output)
+
         return output
+
+    def tag(self, d: dict) -> dict:
+        d[VERSION] = __version__
+        d[CLASS] = self.__class__
+        return d
 
     @staticmethod
     def __ndarray2json__(array: np.ndarray) -> str:
@@ -243,182 +264,6 @@ class Config(abc.ABC):
         )  # todo: we're assuming tuples of floats here, will break for cases that are not colors!
 
 
-class BackendInstanceConfig(Config):
-    pass
-
-
-@dataclass
-class CachingBackendInstanceConfig(BackendInstanceConfig):
-    do_cache: bool = True
-    do_background: bool = False
-
-    cache_dir: str = '.cache'
-    cache_size_limit: int = 2**32
-
-    block_timeout: float = 1
-    cache_consumer: bool = False
-
-
-@dataclass
-class VideoFileHandlerConfig(CachingBackendInstanceConfig):
-    do_resolve_frame_number: bool = True
-
-
-@dataclass
-class TransformHandlerConfig(BackendInstanceConfig):
-    type: Union[TransformType,str] = ''
-    matrix: Union[np.ndarray,str] = np.eye(3)
-    coordinates: Union[list, str] = ''
-
-    def __post_init__(self):
-        self.type = self.resolve(self.type, TransformType)
-        self.matrix = self.resolve(self.matrix, np.ndarray)
-        if len(self.coordinates) > 0:
-            self.coordinates = self.resolve(self.coordinates, np.ndarray).tolist()
-
-
-class FilterConfig(Config):
-    pass
-
-
-@dataclass
-class HsvRangeFilterConfig(FilterConfig):
-    radius: Union[HsvColor, str] = HsvColor(10, 75, 75)
-
-    c0: Union[HsvColor, str] = HsvColor(0, 0, 0)
-    c1: Union[HsvColor, str] = HsvColor(0, 0, 0)
-
-    def __post_init__(self):
-        self.radius = self.resolve(self.radius, HsvColor)
-        self.c0 = self.resolve(self.c0, HsvColor)
-        self.c1 = self.resolve(self.c1, HsvColor)
-
-
-@dataclass
-class FilterHandlerConfig(BackendInstanceConfig):
-    type: Union[FilterType,str] = ''
-    data: Union[FilterConfig, dict, None] = None
-
-    def __post_init__(self):
-        self.type = self.resolve(self.type, FilterType)
-        self.data = self.resolve(self.data, self.type.get()._config_class)  # todo: something something typing in Factory
-
-
-@dataclass
-class MaskConfig(BackendInstanceConfig):
-    name: Optional[str] = None
-    height: Optional[float] = None
-    filter: Union[FilterHandlerConfig,dict,None] = None
-
-    def __post_init__(self):
-        self.filter = self.resolve(self.filter, FilterHandlerConfig)
-
-
-@dataclass
-class DesignFileHandlerConfig(CachingBackendInstanceConfig):
-    render_dir: str = '.render'
-    keep_renders: bool = False
-    dpi: int = 400
-
-    overlay_alpha: float = 0.1
-    smoothing: int = 7
-
-
-@dataclass
-class BackendManagerConfig(BackendInstanceConfig):
-    pass
-
-
-@dataclass
-class VideoAnalyzerConfig(BackendManagerConfig):
-    video_path: Optional[str] = None
-    design_path: Optional[str] = None
-
-    frame_interval_setting: Union[FrameIntervalSetting,str] = ''
-    dt: Optional[float] = 5.0
-    Nf: Optional[int] = 100
-
-    height: float = 0.153e-3
-
-    video: Union[VideoFileHandlerConfig,dict,None] = None
-    design: Union[DesignFileHandlerConfig,dict,None] = None
-    transform: Union[TransformHandlerConfig,dict,None] = None
-    masks: Tuple[Union[MaskConfig,dict,None], ...] = (None,)
-    features: Tuple[Union[VideoFeatureType,str], ...] = ('',)
-
-    def __post_init__(self):
-        self.frame_interval_setting = self.resolve(self.frame_interval_setting, FrameIntervalSetting)
-        self.video = self.resolve(self.video, VideoFileHandlerConfig)
-        self.design = self.resolve(self.design, DesignFileHandlerConfig)
-        self.transform = self.resolve(self.transform, TransformHandlerConfig)
-        self.masks = tuple(self.resolve(self.masks, MaskConfig, iter=True))
-        self.features = tuple(self.resolve(self.features, VideoFeatureType, iter=True))
-
-
-def load(path: str) -> VideoAnalyzerConfig:  # todo: internals should be replaced with more sensible methods for setting; reuse those in UI etc.
-    log.debug(f'Loading VideoAnalyzerConfig from {path}')
-    with open(path, 'r') as f:  # todo: assuming it is yaml, sanity check?
-        d = yaml.safe_load(f)
-
-    # Normalize legacy configuration dictionaries
-    if 'version' not in d:
-        log.info(f"Normalizing legacy configuration file {path}")
-        # Pre-v0.2 .meta file
-        d = {
-            'video_path': d['video'],
-            'design_path': d['design'],
-            'transform': {'matrix': d['transform']},
-            'masks': [
-                {
-                    'name': mk,
-                    'filter': {
-                        'data': {'c0': HsvColor(*mv['from']), 'c1': HsvColor(*mv['to'])}
-                    }
-                }
-                for mk, mv in zip(
-                    d['colors'].keys(),
-                    [json.loads(mv) for mv in d['colors'].values()]
-                )
-            ]
-        }
-    else:
-        if before_version(d['version'], '0.2.1'):
-            # Rename mask[i].filter.filter to mask[].filter.data
-            for m in d['masks']:
-                m['filter']['data'] = m['filter'].pop('filter')
-        if before_version(d['version'], '0.2.2'):
-            # Convert tuple string color '(0,0,0)' to HsvColor string 'HsvColor(h=0, s=0, v=0)'
-            from ast import literal_eval as make_tuple  # todo: this is unsafe!
-            for m in d['masks']:
-                if 'c0' in m['filter']['data']:
-                    m['filter']['data']['c0'] = str(HsvColor(*make_tuple(m['filter']['data']['c0'])))
-                if 'c1' in m['filter']['data']:
-                    m['filter']['data']['c1'] = str(HsvColor(*make_tuple(m['filter']['data']['c1'])))
-                if 'radius' in m['filter']['data']:
-                    m['filter']['data']['radius'] = str(HsvColor(*make_tuple(m['filter']['data']['radius'])))
-
-    # Remove timestamp & version info
-    d.pop('timestamp', None)
-    d.pop('version', None)
-
-    return VideoAnalyzerConfig(**d)
-
-
-def _get_dict(config: VideoAnalyzerConfig) -> dict:
-    # Add timestamp & version info
-    d = {
-        'timestamp': datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S.%f'),
-        'version': __version__,
-    }
-    d.update(config.to_dict())
-
-    return d
-
-
-def dump(config: VideoAnalyzerConfig, path:str):
-    with open(path, 'w+') as f:
-        yaml.safe_dump(_get_dict(config),f, width=999)
-
-
-def dumps(config: VideoAnalyzerConfig) -> str:
-    return yaml.safe_dump(_get_dict(config), width=999)
+class ConfigType(Factory):
+    _mapping: dict = {}
+    _type = Config

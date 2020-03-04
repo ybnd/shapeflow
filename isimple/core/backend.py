@@ -1,3 +1,5 @@
+from dataclasses import dataclass
+
 import diskcache
 import sys
 import abc
@@ -9,7 +11,7 @@ from typing import Any, Callable, List, Optional
 
 from isimple.util.meta import describe_function
 from isimple.core.log import get_logger
-from isimple.core.config import BackendInstanceConfig, CachingBackendInstanceConfig, BackendManagerConfig, Factory
+from isimple.core.config import Factory, Config
 from isimple.core.common import RootException, SetupError, RootInstance  # todo: RootException should probably be in a separate file
 
 
@@ -26,6 +28,22 @@ class BackendError(RootException):
 
 class CacheAccessError(RootException):
     msg = 'Trying to access cache out of context'
+
+
+class BackendInstanceConfig(Config):
+    pass
+
+
+@dataclass
+class CachingBackendInstanceConfig(BackendInstanceConfig):
+    do_cache: bool = True
+    do_background: bool = False
+
+    cache_dir: str = '.cache'
+    cache_size_limit: int = 2**32
+
+    block_timeout: float = 1
+    cache_consumer: bool = False
 
 
 class BackendInstance(object):
@@ -227,7 +245,7 @@ class Handler(object):  # todo: implementations of CachingBackendInstance in `_i
         assert issubclass(impl_type, self._implementation_class)
 
         self._implementation = impl_type()
-        return self._implementation_factory.get_str(
+        return self._implementation_factory.get_str(  # todo: this is not necessary when using @extend(<Factory>)
             self._implementation.__class__
         )
 
@@ -235,12 +253,17 @@ class Handler(object):  # todo: implementations of CachingBackendInstance in `_i
         return self._implementation.__class__.__qualname__
 
 
-class BackendRootInstance(BackendInstance, RootInstance):  # todo: naming :(
+@dataclass
+class AnalyzerConfig(BackendInstanceConfig):
+    pass
+
+
+class Analyzer(BackendInstance, RootInstance):
     _instances: List[BackendInstance]
     _instance_class = BackendInstance
 
-    def __init__(self, config: BackendManagerConfig = None):
-        super(BackendRootInstance, self).__init__(config)
+    def __init__(self, config: AnalyzerConfig = None):
+        super(Analyzer, self).__init__(config)
 
     @abc.abstractmethod
     def _can_launch(self):
@@ -278,3 +301,7 @@ class BackendRootInstance(BackendInstance, RootInstance):  # todo: naming :(
 
     def save(self):
         raise NotImplementedError
+
+
+class AnalyzerType(Factory):
+    _type = Analyzer

@@ -19,6 +19,7 @@
 import time
 import os
 from collections import defaultdict
+from typing import Optional, Tuple
 import threading
 import sqlite3
 import contextlib
@@ -209,11 +210,11 @@ class Model(object):
 
     # Abstract components (to be provided by subclasses).
 
-    _table = None
+    _table: Optional[str] = None
     """The main SQLite table name.
     """
 
-    _flex_table = None
+    _flex_table: Optional[str] = None
     """The flex field SQLite table name.
     """
 
@@ -222,7 +223,7 @@ class Model(object):
     keys are field names and the values are `Type` objects.
     """
 
-    _search_fields = ()
+    _search_fields: Tuple[str,...] = ()
     """The fields that should be queried by default by unqualified query
     terms.
     """
