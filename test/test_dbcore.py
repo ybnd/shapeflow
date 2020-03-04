@@ -15,18 +15,23 @@
 
 """Tests for the DBCore database abstraction.
 """
-from __future__ import division, absolute_import, print_function
-
 import os
 import shutil
 import sqlite3
 import unittest
 from six import assertRaisesRegex
 
-from test import _common
-from beets import dbcore
+from isimple import dbcore
 from tempfile import mkstemp
 import six
+
+
+def slow_test(unused=None):
+    def _id(obj):
+        return obj
+    if 'SKIP_SLOW_TESTS' in os.environ:
+        return unittest.skip(u'test is slow')
+    return _id
 
 
 # Fixture: concrete database and model classes. For migration tests, we
@@ -156,7 +161,7 @@ class ModelFixtureWithGetters(dbcore.Model):
         return {}
 
 
-@_common.slow_test()
+@slow_test()
 class MigrationTest(unittest.TestCase):
     """Tests the ability to change the database schema between
     versions.

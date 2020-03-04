@@ -20,7 +20,7 @@ def as_string(value: Any) -> str:
     """
     if value is None:
         return u''
-    elif isinstance(value, buffer_types):
+    elif isinstance(value, memoryview):
         return bytes(value).decode('utf-8', 'ignore')
     elif isinstance(value, bytes):
         return value.decode('utf-8', 'ignore')
