@@ -10,6 +10,7 @@ omit =
     */scripts/*
     */dist/*
     ui/*
+    */dbcore/*
 exclude_lines =
     assert False
     raise NotImplementedError
