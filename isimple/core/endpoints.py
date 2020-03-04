@@ -39,6 +39,10 @@ class BackendRegistry(ImmutableRegistry):
     get_dpi = Endpoint(Callable[[], float])
 
 
+class HistoryRegistry(ImmutableRegistry):
+    pass
+
+
 class GuiRegistry(ImmutableRegistry):
     open_setupwindow = Endpoint(Callable[[], None])
     open_transformwindow = Endpoint(Callable[[], None])
