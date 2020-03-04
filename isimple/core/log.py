@@ -1,8 +1,11 @@
+import os
 import re
 import logging
 
+from isimple.core import ROOT
 
-__log_file__ = '.log'
+
+__log_file__ = os.path.join(ROOT, 'log')
 __lvl_global__ = logging.DEBUG
 __lvl_console__ = logging.DEBUG
 __lvl_file__ = logging.DEBUG
