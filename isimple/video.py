@@ -1,6 +1,6 @@
 import os
 import pandas as pd
-from typing import Callable
+from typing import Callable, Any, Dict, Generator
 
 import cv2
 
@@ -17,7 +17,7 @@ from isimple.maths.colors import HsvColor
 
 from isimple.core.endpoints import BackendRegistry
 from isimple.core.endpoints import GuiRegistry as gui
-from isimple.util import log, frame_number_iterator
+from isimple.util import frame_number_iterator
 
 log = get_logger(__name__)
 backend = BackendRegistry()
