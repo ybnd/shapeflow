@@ -8,7 +8,7 @@ from collections.abc import Iterable
 import abc
 import datetime
 
-from isimple.core.util import before_version
+from isimple.util import before_version
 from isimple.core.log import get_logger
 from isimple.maths.colors import HsvColor
 

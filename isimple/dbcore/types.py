@@ -15,14 +15,8 @@
 
 """Representation of type information for DBCore model fields.
 """
-from __future__ import division, absolute_import, print_function
-
-from . import query
-from beets.util import str2bool
-import six
-
-if not six.PY2:
-    buffer = memoryview  # sqlite won't accept memoryview in python 2
+from isimple.dbcore import query
+from isimple.util import str2bool
 
 
 # Abstract base.
@@ -41,7 +35,7 @@ class Type(object):
     """The `Query` subclass to be used when querying the field.
     """
 
-    model_type = six.text_type
+    model_type = str
     """The Python type that is used to represent the value in the model.
 
     The model is guaranteed to return a value of this type if the field
@@ -67,7 +61,7 @@ class Type(object):
         if isinstance(value, bytes):
             value = value.decode('utf-8', 'ignore')
 
-        return six.text_type(value)
+        return str(value)
 
     def parse(self, string):
         """Parse a (possibly human-written) string and return the
@@ -104,9 +98,9 @@ class Type(object):
         `sql_value` is either a `buffer`/`memoryview` or a `unicode` object`
         and the method must handle these in addition.
         """
-        if isinstance(sql_value, buffer):
+        if isinstance(sql_value, memoryview):
             sql_value = bytes(sql_value).decode('utf-8', 'ignore')
-        if isinstance(sql_value, six.text_type):
+        if isinstance(sql_value, str):
             return self.parse(sql_value)
         else:
             return self.normalize(sql_value)
@@ -208,7 +202,7 @@ class Boolean(Type):
     model_type = bool
 
     def format(self, value):
-        return six.text_type(bool(value))
+        return str(bool(value))
 
     def parse(self, string):
         return str2bool(string)

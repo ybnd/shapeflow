@@ -6,7 +6,6 @@ import cv2
 
 from OnionSVG import OnionSVG, check_svg
 
-from isimple.core.util import *
 from isimple.core.common import RootInstance
 from isimple.core.backend import BackendInstance, CachingBackendInstance, Handler, BackendRootInstance, BackendSetupError
 from isimple.core.features import Feature, FeatureSet
@@ -18,7 +17,7 @@ from isimple.maths.colors import HsvColor
 
 from isimple.core.endpoints import BackendRegistry
 from isimple.core.endpoints import GuiRegistry as gui
-
+from isimple.util import log, frame_number_iterator
 
 log = get_logger(__name__)
 backend = BackendRegistry()

@@ -7,7 +7,8 @@ import numpy as np
 from schema import Optional, Schema
 from isimple.core.config import Config, EnforcedStr
 from isimple.maths.colors import HsvColor
-from isimple.core.util import nbases, log, all_annotations, all_attributes
+from isimple.util import log
+from isimple.util.meta import nbases, all_attributes, all_annotations
 
 
 def resolve_type_to_most_specific(t: _GenericAlias) -> _GenericAlias:

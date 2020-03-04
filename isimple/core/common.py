@@ -1,6 +1,6 @@
 from typing import Callable, Dict, List, Tuple, Type
 
-from isimple.core.util import all_attributes, get_overridden_methods
+from isimple.util.meta import all_attributes, get_overridden_methods
 from isimple.core.log import get_logger
 
 

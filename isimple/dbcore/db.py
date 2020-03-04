@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # This file is part of beets.
 # Copyright 2016, Adrian Sampson.
+# Copyright 2020, Yury Bondarenko.
 #
 # Permission is hereby granted, free of charge, to any person obtaining
 # a copy of this software and associated documentation files (the
@@ -15,8 +16,6 @@
 
 """The central Model and Database constructs for DBCore.
 """
-from __future__ import division, absolute_import, print_function
-
 import time
 import os
 from collections import defaultdict
@@ -24,10 +23,7 @@ import threading
 import sqlite3
 import contextlib
 
-import beets
-from beets.util import functemplate
-from beets.util import py3_path
-from beets.dbcore import types
+from isimple.dbcore import types
 from .query import MatchQuery, NullSort, TrueQuery
 import six
 if six.PY2:
@@ -83,7 +79,7 @@ class FormattedMapping(Mapping):
             value = value.decode('utf-8', 'ignore')
 
         if self.for_path:
-            sep_repl = beets.config['path_sep_replace'].as_str()
+            sep_repl = '/'
             for sep in (os.path.sep, os.path.altsep):
                 if sep:
                     value = value.replace(sep, sep_repl)
@@ -257,13 +253,6 @@ class Model(object):
         """
         # We could cache this if it becomes a performance problem to
         # gather the getter mapping every time.
-        raise NotImplementedError()
-
-    def _template_funcs(self):
-        """Return a mapping from function names to text-transformer
-        functions.
-        """
-        # As above: we could consider caching this result.
         raise NotImplementedError()
 
     # Basic operation.
@@ -590,16 +579,6 @@ class Model(object):
         """
         return self._formatter(self, for_path)
 
-    def evaluate_template(self, template, for_path=False):
-        """Evaluate a template (a string or a `Template` object) using
-        the object's fields. If `for_path` is true, then no new path
-        separators will be added to the template.
-        """
-        # Perform substitution.
-        if isinstance(template, six.string_types):
-            template = functemplate.template(template)
-        return template.substitute(self.formatted(for_path),
-                                   self._template_funcs())
 
     # Parsing.
 
@@ -910,9 +889,7 @@ class Database(object):
         # Make a new connection. The `sqlite3` module can't use
         # bytestring paths here on Python 3, so we need to
         # provide a `str` using `py3_path`.
-        conn = sqlite3.connect(
-            py3_path(self.path), timeout=self.timeout
-        )
+        conn = sqlite3.connect(self.path, timeout=self.timeout)
 
         if self.supports_extensions:
             conn.enable_load_extension(True)

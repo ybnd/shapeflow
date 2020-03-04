@@ -7,7 +7,7 @@ import threading
 from contextlib import contextmanager
 from typing import Any, Callable, List, Optional
 
-from isimple.core.util import describe_function
+from isimple.util.meta import describe_function
 from isimple.core.log import get_logger
 from isimple.core.config import BackendInstanceConfig, CachingBackendInstanceConfig, BackendManagerConfig, Factory
 from isimple.core.common import RootException, SetupError, RootInstance  # todo: RootException should probably be in a separate file
