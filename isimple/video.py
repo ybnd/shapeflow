@@ -7,8 +7,8 @@ import cv2
 from OnionSVG import OnionSVG, check_svg
 
 from isimple.core.util import *
-from isimple.core.common import Manager
-from isimple.core.backend import BackendInstance, CachingBackendInstance, Handler, BackendManager, BackendSetupError
+from isimple.core.common import RootInstance
+from isimple.core.backend import BackendInstance, CachingBackendInstance, Handler, BackendRootInstance, BackendSetupError
 from isimple.core.features import Feature, FeatureSet
 from isimple.core.config import *
 from isimple.core.config import __meta_ext__
@@ -631,7 +631,7 @@ VideoFeatureType.extend({
 })
 
 
-class VideoAnalyzer(BackendManager):
+class VideoAnalyzer(BackendRootInstance):
     """Main video handling class
             * Load frames from video files
             * Load mask files
@@ -639,7 +639,7 @@ class VideoAnalyzer(BackendManager):
     """
     _config: VideoAnalyzerConfig
     _default = VideoAnalyzerConfig('', '')
-    _gui: Optional[Manager]
+    _gui: Optional[RootInstance]
     _endpoints: BackendRegistry = backend
 
     video: VideoFileHandler
@@ -689,7 +689,7 @@ class VideoAnalyzer(BackendManager):
             )
 
 
-    def connect(self, gui: Manager):
+    def connect(self, gui: RootInstance):
         # todo: sanity checks
         self._gui = gui
 
@@ -864,7 +864,7 @@ class VideoAnalyzer(BackendManager):
         w.close()
 
 
-class MultiVideoAnalyzer(BackendManager):
+class MultiVideoAnalyzer(BackendRootInstance):
     pass
 
 

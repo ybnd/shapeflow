@@ -2,7 +2,7 @@ import unittest
 
 from typing import Callable
 
-from isimple.core.common import Endpoint, EndpointRegistry, ImmutableRegistry, InstanceRegistry, Manager, SetupError
+from isimple.core.common import Endpoint, EndpointRegistry, ImmutableRegistry, InstanceRegistry, RootInstance, SetupError
 
 
 class EndpointTest(unittest.TestCase):
@@ -110,11 +110,11 @@ class ManagerTest(EndpointRegistryTest):
         class I(object):
             pass
 
-        class TestManager(Manager, I):
+        class TestRootInstance(RootInstance, I):
             _endpoints = self.registry
             _instance_class = I
 
-        self.TM = TestManager
+        self.TM = TestRootInstance
         self.I = I
 
     def tearDown(self):

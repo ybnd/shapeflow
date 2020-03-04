@@ -23,7 +23,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolb
 from matplotlib.figure import Figure
 
 import og.app
-from isimple.core.common import Manager, Endpoint
+from isimple.core.common import RootInstance, Endpoint
 from isimple.core.endpoints import GuiRegistry, BackendRegistry as backend
 
 from isimple.core.util import restrict, rotations
@@ -1328,17 +1328,17 @@ class ProgressWindow(guiWindow):
         self.pw.update_window(time, values, state, frame)
 
 
-class VideoAnalyzerGui(Manager, guiElement):  # todo: find a different name
+class VideoAnalyzerGui(RootInstance, guiElement):  # todo: find a different name
     windows: Dict[type, guiWindow]
     open_windows: List[guiWindow]
 
     _instances: List[guiElement]
     _instance_class = guiElement
 
-    _backend: Manager
+    _backend: RootInstance
     _endpoints: GuiRegistry = gui
 
-    def __init__(self, backend: Manager):
+    def __init__(self, backend: RootInstance):
         super().__init__()
 
         self.windows = {}

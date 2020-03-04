@@ -10,7 +10,7 @@ from typing import Any, Callable, List, Optional
 from isimple.core.util import describe_function
 from isimple.core.log import get_logger
 from isimple.core.config import BackendInstanceConfig, CachingBackendInstanceConfig, BackendManagerConfig, Factory
-from isimple.core.common import RootException, SetupError, Manager  # todo: RootException should probably be in a separate file
+from isimple.core.common import RootException, SetupError, RootInstance  # todo: RootException should probably be in a separate file
 
 
 log = get_logger(__name__)
@@ -235,12 +235,12 @@ class Handler(object):  # todo: implementations of CachingBackendInstance in `_i
         return self._implementation.__class__.__qualname__
 
 
-class BackendManager(BackendInstance, Manager):  # todo: naming :(
+class BackendRootInstance(BackendInstance, RootInstance):  # todo: naming :(
     _instances: List[BackendInstance]
     _instance_class = BackendInstance
 
     def __init__(self, config: BackendManagerConfig = None):
-        super(BackendManager, self).__init__(config)
+        super(BackendRootInstance, self).__init__(config)
 
     @abc.abstractmethod
     def _can_launch(self):

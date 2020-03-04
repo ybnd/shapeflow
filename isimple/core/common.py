@@ -158,7 +158,7 @@ class ImmutableRegistry(EndpointRegistry):
 
 
 
-class Manager(object):
+class RootInstance(object):
     _endpoints: ImmutableRegistry
     _instances: List
     _instance_class = object
