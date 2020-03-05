@@ -1303,13 +1303,11 @@ class ProgressWindow(guiWindow):
         * No callbacks; not interactive, so the backend pushes to the GUI instead
     """
     _endpoints = [
-        backend.get_name,
         backend.get_colors,
         backend.get_frame,
         backend.get_raw_frame,
         backend.get_total_frames,
         backend.get_fps,
-        backend.get_h,
         backend.get_dpi,
         backend.get_mask_names,
     ]

@@ -15,6 +15,7 @@
 
 """Representation of type information for DBCore model fields.
 """
+from isimple import DB_DATETIME_FORMAT
 from isimple.dbcore import query
 from isimple.util import str2bool
 
@@ -214,7 +215,7 @@ class DateType(Float):
     query = query.DateQuery
 
     def format(self, value):
-        return time.strftime(beets.config['time_format'].as_str(),
+        return time.strftime(DB_DATETIME_FORMAT.as_str(),
                              time.localtime(value or 0))
 
     def parse(self, string):
@@ -222,7 +223,7 @@ class DateType(Float):
             # Try a formatted date string.
             return time.mktime(
                 time.strptime(string,
-                              beets.config['time_format'].as_str())
+                              DB_DATETIME_FORMAT.as_str())
             )
         except ValueError:
             # Fall back to a plain timestamp number.

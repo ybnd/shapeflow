@@ -1,7 +1,8 @@
 import unittest
 
 from isimple.video import *
-from isimple.config import EnforcedStr, FilterType, Factory
+from isimple.core.config import EnforcedStr, Factory, dataclass, Config
+from isimple.core.interface import FilterType
 
 __VIDEO__ = 'test.mp4'
 __DESIGN__ = 'test.svg'
@@ -14,7 +15,6 @@ if os.getcwd() == '/home/travis/build/ybnd/isimple':
 
 class ColorSpace(EnforcedStr):
     _options = ['hsv', 'bgr', 'rgb']
-
 
 
 class EnforcedStrTest(unittest.TestCase):
@@ -49,6 +49,54 @@ class EnforcedStrTest(unittest.TestCase):
         self.assertEqual(2, TestFactory1('').get())
 
         self.assertEqual(1, TestFactory2('').get())
+
+
+class ConfigTest(unittest.TestCase):
+    def test_from_kwargs(self):
+        @dataclass
+        class DummyConfig(Config):
+            a: int = 123
+            b: str = 'abc'
+            c: tuple = (4, 5, 6)
+            d: float = 7.89
+
+        conf = DummyConfig(b='not abc')
+
+        self.assertEqual(123, conf.a)
+        self.assertEqual('not abc', conf.b)
+        self.assertEqual((4,5,6), conf.c)
+        self.assertEqual(7.89, conf.d)
+
+        conf(d=1.23, a=789)
+
+        self.assertEqual(789, conf.a)
+        self.assertEqual('not abc', conf.b)
+        self.assertEqual((4, 5, 6), conf.c)
+        self.assertEqual(1.23, conf.d)
+
+    def test_instance_attributes(self):
+        @dataclass
+        class DummyConfig(Config):
+            a: int = 123
+            b: str = 'abc'
+            c: tuple = (4, 5, 6)
+            d: float = 7.89
+
+        conf1 = DummyConfig()
+        conf2 = DummyConfig()
+
+        self.assertEqual(conf1.a, conf2.a)
+        self.assertEqual(conf1.b, conf2.b)
+        self.assertEqual(conf1.c, conf2.c)
+        self.assertEqual(conf1.d, conf2.d)
+
+        conf2.b = 'not abc'
+        conf2.c = (7,8,9)
+
+        self.assertEqual(conf1.a, conf2.a)
+        self.assertNotEqual(conf1.b, conf2.b)
+        self.assertNotEqual(conf1.c, conf2.c)
+        self.assertEqual(conf1.d, conf2.d)
 
 
 class BackendConfigTest(unittest.TestCase):

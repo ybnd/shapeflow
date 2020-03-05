@@ -1,8 +1,7 @@
 from typing import Callable, Dict, List, Tuple, Type
 
 from isimple.util.meta import all_attributes, get_overridden_methods
-from isimple.core.log import get_logger
-
+from isimple.core import get_logger
 
 log = get_logger(__name__)
 

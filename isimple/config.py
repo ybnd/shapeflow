@@ -1,16 +1,16 @@
-import abc
-import datetime
-from dataclasses import dataclass
-from typing import Union, Optional, Tuple, Type
+from dataclasses import dataclass, field
+from typing import Union, Optional, Tuple
 
 import numpy as np
 import yaml
 
-from isimple.core.backend import BackendInstanceConfig, \
-    CachingBackendInstanceConfig, AnalyzerConfig
-from isimple.core.config import Config, extend, ConfigType, \
-    log, VERSION, CLASS, __version__, EnforcedStr, Factory, untag
-from isimple.core.features import FeatureType
+from isimple import RENDERDIR
+from isimple.core.backend import AnalyzerConfig, CachingBackendInstanceConfig, \
+    FeatureType
+from isimple.core.config import extend, ConfigType, \
+    log, VERSION, CLASS, EnforcedStr, untag, Config
+from isimple.core.interface import FilterConfig, \
+    FilterType, TransformType
 from isimple.maths.colors import HsvColor
 from isimple.util import before_version
 
@@ -26,35 +26,15 @@ class FrameIntervalSetting(EnforcedStr):
 @extend(ConfigType)
 @dataclass
 class VideoFileHandlerConfig(CachingBackendInstanceConfig):
-    do_resolve_frame_number: bool = True
-
-
-class TransformInterface(abc.ABC):
-    default = np.eye(3)
-
-    @abc.abstractmethod
-    def validate(self, transform: np.ndarray) -> bool:
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def estimate(self, coordinates: list, shape: tuple) -> np.ndarray:  # todo: explain what and why shape is
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def transform(self, img: np.ndarray, transform: np.ndarray, shape: tuple) -> np.ndarray:
-        raise NotImplementedError
-
-
-class TransformType(Factory):
-    _type = TransformInterface
+    do_resolve_frame_number: bool = field(default=True)
 
 
 @extend(ConfigType)
 @dataclass
-class TransformHandlerConfig(BackendInstanceConfig):
-    type: Union[TransformType, str] = ''
-    matrix: Union[np.ndarray,str] = np.eye(3)
-    coordinates: Union[list, str] = ''
+class TransformHandlerConfig(Config):
+    type: Union[TransformType, str] = field(default='')
+    matrix: Union[np.ndarray,str] = field(default=np.eye(3))
+    coordinates: Union[list, str] = field(default_factory=list)
 
     def __post_init__(self):
         self.type = self.resolve(self.type, TransformType)
@@ -63,39 +43,13 @@ class TransformHandlerConfig(BackendInstanceConfig):
             self.coordinates = self.resolve(self.coordinates, np.ndarray).tolist()
 
 
-class FilterConfig(Config):
-    pass
-
-
-class FilterInterface(abc.ABC):
-    """Handles pixel filtering operations
-    """
-    _config_class: Type[FilterConfig]
-
-    @abc.abstractmethod
-    def set_filter(self, filter, color: HsvColor):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def mean_color(self, filter) -> HsvColor:  # todo: add custom np.ndarray type 'hsvcolor'
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def filter(self, image: np.ndarray, filter) -> np.ndarray:  # todo: add custom np.ndarray type 'image'
-        raise NotImplementedError
-
-
-class FilterType(Factory):
-    _type = FilterInterface
-
-
 @extend(ConfigType)
 @dataclass
 class HsvRangeFilterConfig(FilterConfig):
-    radius: Union[HsvColor, str] = HsvColor(10, 75, 75)
+    radius: Union[HsvColor, str] = field(default=HsvColor(10, 75, 75))
 
-    c0: Union[HsvColor, str] = HsvColor(0, 0, 0)
-    c1: Union[HsvColor, str] = HsvColor(0, 0, 0)
+    c0: Union[HsvColor, str] = field(default=HsvColor(0, 0, 0))
+    c1: Union[HsvColor, str] = field(default=HsvColor(0, 0, 0))
 
     def __post_init__(self):
         self.radius = self.resolve(self.radius, HsvColor)
@@ -105,9 +59,9 @@ class HsvRangeFilterConfig(FilterConfig):
 
 @extend(ConfigType)
 @dataclass
-class FilterHandlerConfig(BackendInstanceConfig):
-    type: Union[FilterType, str] = ''
-    data: Union[FilterConfig, dict, None] = None
+class FilterHandlerConfig(Config):
+    type: Union[FilterType, str] = field(default='')
+    data: Union[FilterConfig, dict, None] = field(default=None)
 
     def __post_init__(self):
         self.type = self.resolve(self.type, FilterType)
@@ -116,10 +70,10 @@ class FilterHandlerConfig(BackendInstanceConfig):
 
 @extend(ConfigType)
 @dataclass
-class MaskConfig(BackendInstanceConfig):
-    name: Optional[str] = None
-    height: Optional[float] = None
-    filter: Union[FilterHandlerConfig,dict,None] = None
+class MaskConfig(Config):
+    name: Optional[str] = field(default=None)
+    height: Optional[float] = field(default=None)
+    filter: Union[FilterHandlerConfig,dict,None] = field(default=None)
 
     def __post_init__(self):
         self.filter = self.resolve(self.filter, FilterHandlerConfig)
@@ -128,31 +82,31 @@ class MaskConfig(BackendInstanceConfig):
 @extend(ConfigType)
 @dataclass
 class DesignFileHandlerConfig(CachingBackendInstanceConfig):
-    render_dir: str = '.render'
-    keep_renders: bool = False
-    dpi: int = 400
+    render_dir: str = field(default=RENDERDIR)
+    keep_renders: bool = field(default=False)
+    dpi: int = field(default=400)
 
-    overlay_alpha: float = 0.1
-    smoothing: int = 7
+    overlay_alpha: float = field(default=0.1)
+    smoothing: int = field(default=7)
 
 
 @extend(ConfigType)
 @dataclass
 class VideoAnalyzerConfig(AnalyzerConfig):
-    video_path: Optional[str] = None
-    design_path: Optional[str] = None
+    video_path: Optional[str] = field(default=None)
+    design_path: Optional[str] = field(default=None)
 
-    frame_interval_setting: Union[FrameIntervalSetting,str] = ''
-    dt: Optional[float] = 5.0
-    Nf: Optional[int] = 100
+    frame_interval_setting: Union[FrameIntervalSetting,str] = field(default=FrameIntervalSetting())
+    dt: Optional[float] = field(default=5.0)
+    Nf: Optional[int] = field(default=100)
 
-    height: float = 0.153e-3
+    height: float = field(default=0.153e-3)
 
-    video: Union[VideoFileHandlerConfig,dict,None] = None
-    design: Union[DesignFileHandlerConfig,dict,None] = None
-    transform: Union[TransformHandlerConfig,dict,None] = None
-    masks: Tuple[Union[MaskConfig,dict,None], ...] = (None,)
-    features: Tuple[Union[FeatureType, str], ...] = ('',)
+    video: Union[VideoFileHandlerConfig,dict,None] = field(default=None)
+    design: Union[DesignFileHandlerConfig,dict,None] = field(default=None)
+    transform: Union[TransformHandlerConfig,dict,None] = field(default=None)
+    masks: Tuple[Union[MaskConfig,dict,None], ...] = field(default=(None,))  # todo: would be better as Dict[str, MaskConfig]?
+    features: Tuple[Union[FeatureType, str], ...] = field(default=('',))
 
     def __post_init__(self):
         self.frame_interval_setting = self.resolve(self.frame_interval_setting, FrameIntervalSetting)
@@ -163,11 +117,10 @@ class VideoAnalyzerConfig(AnalyzerConfig):
         self.features = tuple(self.resolve(self.features, FeatureType, iter=True))
 
 
-def load(path: str) -> VideoAnalyzerConfig:  # todo: internals should be replaced with more sensible methods for setting; reuse those in UI etc.
+def load(path: str) -> VideoAnalyzerConfig:
     log.debug(f'Loading VideoAnalyzerConfig from {path}')
     with open(path, 'r') as f:  # todo: assuming it is yaml, sanity check?
-        d = yaml.safe_load(f)   # todo: if using sqlite, no reason to store YAML
-
+        d = yaml.safe_load(f)
     d = normalize_config(d)
 
     return VideoAnalyzerConfig(**d)

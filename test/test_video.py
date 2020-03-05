@@ -62,7 +62,7 @@ with vi.caching():
 
 
 class FrameTest(unittest.TestCase):
-    def assertEqualFrames(self, frame1, frame2):
+    def assertEqualArray(self, frame1, frame2):
         self.assertTrue(np.equal(frame1, frame2).all())
 
     def assertFrameInCache(self, vi, frame_number):
@@ -95,7 +95,7 @@ class VideoInterfaceTest(FrameTest):
         with VideoFileHandler(__VIDEO__) as vi:
             for frame_number in TEST_FRAME_HSV.keys():
                 # Read frames, which are cached
-                self.assertEqualFrames(
+                self.assertEqualArray(
                     TEST_FRAME_HSV[frame_number],
                     vi.read_frame(frame_number)
                 )
@@ -109,7 +109,7 @@ class VideoInterfaceTest(FrameTest):
             # Read frames
             for frame_number, frame in TEST_FRAME_HSV.items():
                 self.assertFrameInCache(vi, frame_number)
-                self.assertEqualFrames(
+                self.assertEqualArray(
                         frame, vi.read_frame(frame_number)
                 )
 
@@ -146,7 +146,15 @@ class VideoInterfaceTest(FrameTest):
         )
 
         for frame1, fn in zip(subthread_frames, TEST_FRAME_HSV.keys()):
-            self.assertEqualFrames(frame1, TEST_FRAME_HSV[fn])
+            self.assertEqualArray(frame1, TEST_FRAME_HSV[fn])
+
+
+class VAConfigTest(FrameTest):
+    def test_config_propagation(self):
+        t = TransformHandlerConfig(matrix=TRANSFORM)
+        va = VideoAnalyzerConfig(transform=t)
+
+        self.assertEqualArray(t.matrix, va.transform.matrix)
 
 
 class VideoAnalyzerTest(FrameTest):
@@ -205,7 +213,7 @@ class VideoAnalyzerTest(FrameTest):
         # self.assertEqual(self.config, config)  # todo: replace with a less problematic assertion
 
         self.assertListEqual(
-            sorted(list(os.listdir(va._config.design.render_dir))),
+            sorted(list(os.listdir(va.design._config.render_dir))),
             sorted([
                 '1 - WLC_SIMPLE.png',
                 '2 - PM_SIMPLE.png',
@@ -224,7 +232,7 @@ class VideoAnalyzerTest(FrameTest):
         self.assertTrue(hasattr(va.design, '_masks'))
         self.assertEqual(len(va.design._masks), 9)
         self.assertTrue(
-            np.all(np.equal(TRANSFORM, va._config.transform.matrix))
+            np.all(np.equal(TRANSFORM, va.transform._config.matrix))
         )
 
     def test_frame_number_generator(self):  # todo: don't need the design to load here
@@ -317,7 +325,15 @@ class VideoAnalyzerTest(FrameTest):
             for fn in va.frame_numbers():
                 frame = va.get_transformed_frame(fn)
                 if fn in FRAMES:  # todo: !!!!!! if this test checks out, transform is not applied (:
-                    self.assertEqualFrames(TEST_TRANSFORMED_FRAME_HSV[fn], frame)
+                    self.assertEqualArray(TEST_TRANSFORMED_FRAME_HSV[fn], frame)
+
+    def test_linked_config(self):
+        va = VideoAnalyzer(self.config)
+        va.launch()
+
+        DO_CACHE = True
+        DPI = 200
+        MASK_3_RADIUS = (123,123,123)
 
 
 if __name__ == '__main__':

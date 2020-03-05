@@ -7,7 +7,7 @@ import numpy as np
 from schema import Optional, Schema
 from isimple.core.config import Config, EnforcedStr
 from isimple.maths.colors import HsvColor
-from isimple.core.log import get_logger
+from isimple.core import get_logger
 from isimple.util.meta import nbases, all_attributes, all_annotations
 
 

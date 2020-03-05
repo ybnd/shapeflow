@@ -19,7 +19,7 @@
 import time
 import os
 from collections import defaultdict
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Type
 import threading
 import sqlite3
 import contextlib
@@ -831,7 +831,7 @@ class Database(object):
     the backend.
     """
 
-    _models = ()
+    _models: Tuple[Type[Model],...] = ()
     """The Model subclasses representing tables in this database.
     """
 

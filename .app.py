@@ -13,7 +13,7 @@ import webbrowser
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
-from isimple.core.log import get_logger
+from isimple.core import get_logger
 from isimple.core.schema import schema
 from isimple.video import backend
 from isimple.core.backend import AnalyzerType

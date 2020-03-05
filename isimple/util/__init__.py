@@ -1,11 +1,12 @@
 import time
+import contextlib
 from distutils.util import strtobool
 from functools import wraps
 from typing import Any, Generator
 
 import numpy as np
 
-from isimple.core.log import get_logger
+from isimple.core import get_logger
 
 log = get_logger(__name__)
 
@@ -52,7 +53,7 @@ def rotations(sequence) -> list:  # todo: clean up
     return rotation_list
 
 
-def timing(f):
+def timed(f):
     """Function decorator to measure elapsed time.
     :param f: function
     """

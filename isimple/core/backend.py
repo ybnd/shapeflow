@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import diskcache
 import sys
@@ -7,11 +7,15 @@ import copy
 import time
 import threading
 from contextlib import contextmanager
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, List, Optional, Union, Tuple
 
+import numpy as np
+
+from isimple import CACHEDIR
+from isimple.maths.colors import HsvColor
 from isimple.util.meta import describe_function
-from isimple.core.log import get_logger
-from isimple.core.config import Factory, Config
+from isimple.core import get_logger
+from isimple.core.config import Factory, untag, Config
 from isimple.core.common import RootException, SetupError, RootInstance  # todo: RootException should probably be in a separate file
 
 
@@ -30,82 +34,49 @@ class CacheAccessError(RootException):
     msg = 'Trying to access cache out of context'
 
 
-class BackendInstanceConfig(Config):
-    pass
-
-
-@dataclass
-class CachingBackendInstanceConfig(BackendInstanceConfig):
-    do_cache: bool = True
-    do_background: bool = False
-
-    cache_dir: str = '.cache'
-    cache_size_limit: int = 2**32
-
-    block_timeout: float = 1
-    cache_consumer: bool = False
-
-
 class BackendInstance(object):
-    _config: BackendInstanceConfig
-    _default = BackendInstanceConfig()
+    _config: Config
 
-    __attributes__: List[str]
-
-    # todo: interface with isimple.core.meta
-    #  define legal values for strings in isimple.core.meta
-
-    def __init__(self, config: Optional[BackendInstanceConfig]):
+    def __init__(self, config: Optional[Config]):
         self._configure(config)
         super(BackendInstance, self).__init__()
 
         log.debug(f'Initialized {self.__class__.__qualname__} with {self._config}')
 
-    def _configure(self, config: BackendInstanceConfig = None):   # todo: adapt to dataclass implementation
-        """Handle a (flat) configuration dict
-            - Look through __default__ dict of all classes in __bases__
-            - For all of the keys defined in __default__:
-                -> if key not in config, use the default key
-                -> if default value is an EnforcedStr and key is present in
-                    config, validate the value
-                -> if default value is a Factory and key is present in
-                    config, validate and resolve to the associated class
-            - Keys in config that are not defined in __default__ are skipped
-        :param config:
-        :return:
-        """
+    def _configure(self, config: Config = None):   # todo: adapt to dataclass implementation
+        _type = self.__annotations__['_config']
+
         if config is not None:
-        # # Gather default config from all bases
-        # default_config: dict = {}
-        # for base_class in self.__class__.__bases__:
-        #     if hasattr(base_class, '__default__'):
-        #         default_config.update(base_class.__default__)  #type: ignore
-        # default_config.update(self.__default__)
-        #
-        # self.__attributes__ = list(default_config.keys())
-        #
-        # _config = {}
-        # for key, default in default_config.items():
-        #     if key in config:
-        #         if isinstance(default, EnforcedStr):
-        #             # Pass config[key] through EnforcedStr
-        #             _config[key] = default.__class__(config[key])
-        #         else:
-        #             _config[key] = config[key]
-        #     else:
-        #         _config[key] = default
-        #
-        #     # Catch Factory instances, even if it's the default
-        #     if isinstance(_config[key], Factory):
-        #         # Get mapped class
-        #         _config[key] = _config[key].get()  # type: ignore
-
-            self._config = copy.deepcopy(config)  # Each instance should have a *copy* of the config, not references to the actual values
+            if isinstance(config, _type):
+                # Each instance should have a *copy* of the config, not references to the actual values
+                self._config = copy.deepcopy(config)
+            elif isinstance(config, dict):
+                log.warning(f"Initializing '{self.__class__.__name__}' from a dict, "
+                            f"please initialize from '{_type}' instead.")
+                self._config = _type(**untag(config))
+            else:
+                raise TypeError(f"Tried to initialize '{self.__class__.__name__}' with {type(config).__name__} '{config}'.")
         else:
-            self._config = copy.deepcopy(self._default)
+            self._config = _type()
+
+    @property
+    def config(self) -> Config:
+        return self._config
 
 
-__BLOCKED__ = 'BLOCKED'
+_BLOCKED = 'BLOCKED'
+
+
+@dataclass
+class CachingBackendInstanceConfig(abc.ABC, Config):
+    do_cache: bool = field(default=True)
+    do_background: bool = field(default=False)
+
+    cache_dir: str = field(default=CACHEDIR)
+    cache_size_limit: int = field(default=2**32)
+
+    block_timeout: float = field(default=0.1)
+    cache_consumer: bool = field(default=False)
 
 
 class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cache: e.g. 2 GB in-memory, 4GB on-disk, finally the actual video
@@ -116,7 +87,7 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
     _background_task: Callable
 
     _config: CachingBackendInstanceConfig
-    _default = CachingBackendInstanceConfig()
+    _class = CachingBackendInstanceConfig()
 
     def __init__(self, config: CachingBackendInstanceConfig = None):
         super(CachingBackendInstance, self).__init__(config)
@@ -140,13 +111,13 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
 
     def _block(self, key: str):
         assert self._cache is not None, CacheAccessError
-        self._cache.set(key, __BLOCKED__)
+        self._cache.set(key, _BLOCKED)
 
     def _is_blocked(self, key: str) -> bool:
         assert self._cache is not None, CacheAccessError
         return key in self._cache \
                and isinstance(self._cache[key], str) \
-               and self._from_cache(key) == __BLOCKED__
+               and self._from_cache(key) == _BLOCKED
 
     def _drop(self, key: str):
         assert self._cache is not None, CacheAccessError
@@ -167,7 +138,7 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
                     time.sleep(0.01)  # todo: DiskCache-level events?
 
                 value = self._from_cache(key)
-                if isinstance(value, str) and value == __BLOCKED__:
+                if isinstance(value, str) and value == _BLOCKED:
                     log.warning(f'Timed out waiting for {key}.')
                     return None
                 else:
@@ -253,17 +224,127 @@ class Handler(object):  # todo: implementations of CachingBackendInstance in `_i
         return self._implementation.__class__.__qualname__
 
 
+class Feature(abc.ABC):
+    """A feature implements interactions between BackendElements to
+        produce a certain value
+    """
+    _color: Optional[np.ndarray]
+    _state: Optional[np.ndarray]
+
+    _elements: Tuple[BackendInstance, ...]
+
+    def __init__(self, elements: Tuple[BackendInstance, ...]):
+        self._elements = elements
+
+    def calculate(self, frame: np.ndarray, state: np.ndarray = None) \
+            -> Tuple[Any, np.ndarray]:
+        """Calculate Feature for given frame
+            and update state image (optional)
+        """
+        if state is not None:
+            state = self.state(frame, state)
+        return self.value(frame), state
+
+    @property
+    def color(self) -> np.ndarray:
+        """Color of the Feature in figures.
+
+            A Feature's color must be set as not to overlap with
+            other Features in the same FeatureSet.
+            Therefore, <Feature>._color must be determined by FeatureSet!
+        """
+        return self._color
+
+    @abc.abstractmethod
+    def _guideline_color(self) -> np.ndarray:
+        """Returns the 'guideline color' of a Feature instance
+            Used by FeatureSet to determine the actual _color
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod  # todo: we're dealing with frames explicitly, so maybe this should be an isimple.video thing...
+    def state(self, frame: np.ndarray, state: np.ndarray = None) -> np.ndarray:
+        """Return the Feature instance's state image for a given frame
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def value(self, frame: np.ndarray) -> Any:
+        """Compute the value of the Feature instance for a given frame
+        """
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def name(self) -> str:
+        """Return the name of the feature
+        """
+        raise NotImplementedError
+
+
+class FeatureSet(object):
+    _features: Tuple[Feature, ...]
+    _colors: Tuple[HsvColor, ...]
+
+    def __init__(self, features: Tuple[Feature, ...]):
+        self._features = features
+
+    def get_colors(self) -> Tuple[HsvColor, ...]:
+        if not hasattr(self, '_colors'):
+            guideline_colors = [f._guideline_color() for f in self._features]
+            colors: list = []
+
+            # For all features in the FeatureSet
+            for feature, color in zip(self._features, guideline_colors):
+                # Dodge the other colors by hue
+                tolerance = 15
+                increment = 60  # todo: should be set *after* the number of repititions is determined
+                repetition = 0
+                for registered_color in colors:
+                    if abs(float(color[0]) - float(registered_color[0])) < tolerance:
+                        repetition += 1
+
+                color = (
+                    float(color[0]),
+                    float(220),
+                    float(255 - repetition * increment)
+                )
+
+                feature._color = color
+                colors.append(color)
+
+            self._colors = HsvColor(*colors)
+        return self.colors
+
+    @property
+    def colors(self) -> Tuple[HsvColor, ...]:
+        return self._colors
+
+    @property
+    def features(self) -> Tuple[Feature, ...]:
+        return self._features
+
+
+class FeatureType(Factory):
+    _type = Feature
+
+
 @dataclass
-class AnalyzerConfig(BackendInstanceConfig):
-    pass
+class AnalyzerConfig(abc.ABC, Config):
+    video_path: Optional[Union[list,str]] = None
+    design_path: Optional[Union[list, str]] = None
 
 
-class Analyzer(BackendInstance, RootInstance):
+class Analyzer(abc.ABC, BackendInstance, RootInstance):
     _instances: List[BackendInstance]
     _instance_class = BackendInstance
+    _config: AnalyzerConfig
+
+    _description: str
+    _elapsed: float
 
     def __init__(self, config: AnalyzerConfig = None):
         super(Analyzer, self).__init__(config)
+        self._description = ''
 
     @abc.abstractmethod
     def _can_launch(self):
@@ -272,6 +353,18 @@ class Analyzer(BackendInstance, RootInstance):
     @abc.abstractmethod
     def _launch(self):
         raise NotImplementedError
+
+    @abc.abstractmethod
+    def hash_video(self) -> int:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def hash_design(self) -> int:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def analyze(self):
+        pass
 
     def launch(self):
         if self._can_launch():
@@ -282,15 +375,15 @@ class Analyzer(BackendInstance, RootInstance):
 
     @contextmanager
     def caching(self):
-        """Caching contest on VideoAnalysis: propagate context to
-            every contained BackendElement that implements caching
+        """Caching context: propagated context to
+            every object in _instances that implements caching
         """
         caching_instances = [
             e for e in self._instances if
             isinstance(e, CachingBackendInstance)
         ]
-        log.debug(f'{self.__class__.__qualname__}: propagate caching context '
-                  f'to {[i.__class__.__qualname__ for i in caching_instances]}')
+        log.debug(f'{self.__class__.__name__}: propagate caching context '
+                  f'to {[i.__class__.__name__ for i in caching_instances]}')
         try:
             for element in caching_instances:
                 element.__enter__()
@@ -299,8 +392,29 @@ class Analyzer(BackendInstance, RootInstance):
             for element in caching_instances:
                 element.__exit__(*sys.exc_info())
 
+    @contextmanager
+    def timing(self, message: str = None):
+        if message is not None:
+            message = f"({message})"
+        t0 = None
+        try:
+            t0 = time.time()
+            log.debug(f"{self.__class__.__name__}: timer started {message}")
+        finally:
+            if t0 is not None:
+                self._elapsed = time.time() - t0
+                log.debug(f"{self.__class__.__name__}: {self._elapsed} s. elapsed {message}")
+
+
     def save(self):
         raise NotImplementedError
+
+    def describe(self, description: str):
+        self._description = description
+
+    @property
+    def description(self):
+        return self._description
 
 
 class AnalyzerType(Factory):
