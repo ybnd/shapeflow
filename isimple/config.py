@@ -4,7 +4,7 @@ from typing import Union, Optional, Tuple
 import numpy as np
 import yaml
 
-from isimple import RENDERDIR
+from isimple.core import settings
 from isimple.core.backend import AnalyzerConfig, CachingBackendInstanceConfig, \
     FeatureType
 from isimple.core.config import extend, ConfigType, \
@@ -82,7 +82,7 @@ class MaskConfig(Config):
 @extend(ConfigType)
 @dataclass
 class DesignFileHandlerConfig(CachingBackendInstanceConfig):
-    render_dir: str = field(default=RENDERDIR)
+    render_dir: str = field(default=settings.render.dir)
     keep_renders: bool = field(default=False)
     dpi: int = field(default=400)
 

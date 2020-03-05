@@ -1,6 +1,9 @@
 import os
+import glob
+import shutil
 import pathlib
 import re
+import datetime
 
 import yaml
 
@@ -26,11 +29,20 @@ if not os.path.isdir(ROOTDIR):
 
 
 @dataclass
-class Settings(object):
+class BaseSettings(object):
     def to_dict(self):
         d = {k:v or v for k,v in self.__dict__.items()}
-        d.update({k:v.to_dict() for k,v in d.items() if isinstance(v, Settings)})
+        d.update({k:v.to_dict() for k,v in d.items() if isinstance(v, BaseSettings)})
         return d
+
+
+@dataclass
+class FormatSettings(BaseSettings):
+    datetime_format: str = field(default='%Y/%m/%d %H:%M:%S.%f')
+    datetime_format_fs: str = field(default='%Y-%m-%d_%H-%M-%S_%f')
+
+    db_list_separator: str = field(default='\n')
+
 
 
 _levels: dict = defaultdict(default_factory=lambda: logging.INFO)
@@ -46,9 +58,10 @@ _levels.update({
 
 
 @dataclass
-class LogSettings(Settings):  # todo: this class should track whether path exists
-    path: str = field(default=os.path.join(ROOTDIR, 'log'))
-    lvl_global: int = field(default=logging.INFO)
+class LogSettings(BaseSettings):  # todo: this class should track whether path exists
+    path: str = field(default=os.path.join(ROOTDIR, 'current.log'))
+    dir: str = field(default=os.path.join(ROOTDIR, 'log'))
+    keep: int = field(default=3)
     lvl_console: int = field(default=logging.INFO)
     lvl_file: int = field(default=logging.INFO)
 
@@ -57,58 +70,90 @@ class LogSettings(Settings):  # todo: this class should track whether path exist
         _inverse = {v: k for k, v in _levels.items()}
         d.update(
             {k:_inverse[v] for k,v in d.items()
-            if k in ('lvl_global', 'lvl_console', 'lvl_file')}
+            if k in ('lvl_console', 'lvl_file')}
         )
         return d
 
 
 @dataclass
-class CacheSettings(Settings):  # todo: this class should track whether path exists
-    path: str = field(default=os.path.join(ROOTDIR, 'cache'))
+class CacheSettings(BaseSettings):  # todo: this class should track whether path exists
+    dir: str = field(default=os.path.join(ROOTDIR, 'cache'))
 
 
 @dataclass
-class RenderSettings(Settings):  # todo: this class should track whether path exists
-    path: str = field(default=os.path.join(ROOTDIR, 'render'))
+class RenderSettings(BaseSettings):  # todo: this class should track whether path exists
+    dir: str = field(default=os.path.join(ROOTDIR, 'render'))
 
 
 @dataclass
-class INI(Settings):
+class Settings(BaseSettings):
     log:    LogSettings = field(default=LogSettings())
     cache:  CacheSettings = field(default=CacheSettings())
     render: RenderSettings = field(default=RenderSettings())
+    format: FormatSettings = field(default=FormatSettings())
+
+    @classmethod
+    def from_dict(cls, settings: dict):
+        return cls(
+            log=LogSettings(
+                **{
+                    k: _levels[str(v).lower()]
+                    if k in ('lvl_console', 'lvl_file')
+                    else v for k, v in settings['log'].items()
+                }
+            ),
+            cache=CacheSettings(**settings['cache']),
+            render=RenderSettings(**settings['render']),
+            format=FormatSettings(**settings['format']),
+        )
 
 
-def _load_ini(path: str = _SETTINGS_FILE) -> INI:
+def _load_settings(path: str = _SETTINGS_FILE) -> Settings:
     with open(path, 'r') as f:
         settings = yaml.safe_load(f)
 
+        # Get settings
         if settings is not None:
-            return INI(  # todo: could be included as a factory method in INI
-                log=LogSettings(
-                    **{k:_levels[str(v).lower()] for k,v in settings['log'].items()
-                       if k in ('lvl_global', 'lvl_console', 'lvl_file')}
-                ),
-                cache=CacheSettings(**settings['cache']),
-                render=RenderSettings(**settings['render']),
-            )
+            ini = Settings.from_dict(settings)
         else:
-            return INI()
+            ini = Settings()
+
+        # Create directories if needed
+        for dir in (ini.log.dir, ini.render.dir, ini.cache.dir):
+            if not os.path.isdir(dir):
+                os.mkdir(dir)
+
+        # Move the previous log file to ROOTDIR/log
+        if os.path.isfile(ini.log.path):
+            shutil.move(
+                ini.log.path,
+                os.path.join(
+                    ini.log.dir,
+                    datetime.datetime.fromtimestamp(
+                        os.path.getmtime(ini.log.path)
+                    ).strftime(ini.format.datetime_format_fs) + '.log'
+                )
+            )
+
+        # If more files than specified in ini.log.keep, remove the oldest
+        files = glob.glob(os.path.join(ini.log.dir, '*.log'))
+        files.sort(key=lambda f: os.path.getmtime(f), reverse=True)
+        while len(files) > ini.log.keep:
+            os.remove(files.pop())
+
+        return ini
 
 
-
-def _save_ini(settings: Settings, path: str = _SETTINGS_FILE):
+def _save_settings(settings: BaseSettings, path: str = _SETTINGS_FILE):
     with open(path, 'w+') as f:
         yaml.safe_dump(settings.to_dict(),f)
 
 
 if not os.path.isfile(_SETTINGS_FILE):
-    SETTINGS = INI()
+    settings = Settings()
 else:
-    SETTINGS = _load_ini(_SETTINGS_FILE)
-_save_ini(SETTINGS)
-
-VDEBUG = 9
+    settings = _load_settings(_SETTINGS_FILE)
+_save_settings(settings)
 
 
 class CustomLogger(logging.Logger):
@@ -139,12 +184,12 @@ class CustomLogger(logging.Logger):
         return self._pattern.sub(' ', msg)
 
 
-def get_logger(name: str = __name__, settings: LogSettings = SETTINGS.log) -> CustomLogger:
+def get_logger(name: str = __name__, settings: LogSettings = settings.log) -> CustomLogger:
     if settings is None:
         settings = LogSettings()
 
     log = CustomLogger(name)
-    log.setLevel(settings.lvl_global)  # todo: should this be max([lvl_file, lvl_console])?
+    log.setLevel(max([settings.lvl_console, settings.lvl_file]))
 
     _console_handler = logging.StreamHandler()
     _console_handler.setLevel(settings.lvl_console)

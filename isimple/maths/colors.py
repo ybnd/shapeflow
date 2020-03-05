@@ -1,3 +1,5 @@
+import abc
+import re
 from collections import namedtuple
 from typing import Dict, Type
 
@@ -10,11 +12,15 @@ _BGR = 'bgr'
 _RGB = 'rgb'
 
 
-class _Color(object):
+class Color(object):
     _colorspace: str = ''
     _conversion_map: Dict = {}
 
-    def __new__(cls, *args) -> '_Color':
+    def __init__(self, *args, **kwargs):
+        # Overloaded by NamedTuple.__init__().
+        pass
+
+    def __new__(cls, *args) -> 'Color':
         raise NotImplementedError
 
     def np(self) -> np.ndarray:
@@ -26,16 +32,24 @@ class _Color(object):
         converted = cv2.cvtColor(self.np(), self._conversion_map[colorspace])
         return tuple(converted.flatten())
 
+    @classmethod
+    def from_str(cls, color: str) -> 'Color':
+        return cls(
+            **{k:int(v.strip("'")) for k,v,_
+               in re.findall('([A-Za-z0-9]*)=(.*?)([,)])', color)}
+        )
 
-class HsvColor(namedtuple('HsvColor', ('h', 's', 'v')), _Color):
+
+class HsvColor(namedtuple('HsvColor', ('h', 's', 'v')), Color):
     _colorspace: str = _HSV
     _conversion_map = {
         _RGB: cv2.COLOR_HSV2RGB,
         _BGR: cv2.COLOR_HSV2BGR,
     }
+    __metaclass__ = Color
 
 
-class RgbColor(namedtuple('RgbColor', ('r', 'g', 'b')), _Color):
+class RgbColor(namedtuple('RgbColor', ('r', 'g', 'b')), Color):
     _colorspace: str = _RGB
     _conversion_map = {
         _HSV: cv2.COLOR_RGB2HSV,
@@ -43,7 +57,7 @@ class RgbColor(namedtuple('RgbColor', ('r', 'g', 'b')), _Color):
     }
 
 
-class BgrColor(namedtuple('BgrColor', ('b', 'g', 'r')), _Color):
+class BgrColor(namedtuple('BgrColor', ('b', 'g', 'r')), Color):
     _colorspace: str = _BGR
     _conversion_map = {
         _HSV: cv2.COLOR_BGR2HSV,
@@ -52,7 +66,7 @@ class BgrColor(namedtuple('BgrColor', ('b', 'g', 'r')), _Color):
 
 
 # noinspection PyArgumentList
-def convert(color: _Color, to: Type[_Color]) -> _Color:
+def convert(color: Color, to: Type[Color]) -> Color:
     if type(color) == to:
         return color
     else:

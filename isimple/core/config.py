@@ -10,6 +10,7 @@ from collections.abc import Iterable
 import abc
 
 from isimple.core import get_logger
+from isimple.maths.colors import Color
 from isimple.util.meta import all_attributes
 
 
@@ -162,7 +163,7 @@ class Config(object):
                 setattr(self, kw, arg)
             else:
                 log.warning(f"{self.__class__.__name__}: "
-                            f"unexpected argument '{{'{kw}': {arg}}}.")
+                            f"unexpected argument {{'{kw}': {arg}}}.")
 
     def __post_init__(self):
         """Resolve attribute values here  todo: link specific resolve() calls to fields, these should be called at call also!
@@ -180,15 +181,14 @@ class Config(object):
         """
         def _resolve(val, type):
             if isinstance(val, type):
-                print("I'm a fucking instance, jeez...")
                 pass
             elif isinstance(val, str):
                 if issubclass(type, EnforcedStr):
                     val = type(val)
-                elif issubclass(type, NamedTuple):
-                    val = Config.__str2namedtuple__(val, type)
+                elif issubclass(type, Color):
+                    val = type.from_str(val)
                 elif type == np.ndarray:
-                    val = Config.__str2ndarray__(val)
+                    val = Config.__json2ndarray__(val)
             elif isinstance(val, list):
                 if type == np.ndarray:
                     val = np.array(val)
@@ -238,11 +238,14 @@ class Config(object):
 
         for attr, val in self.__dict__.items():
             if val is not None:
-                if (isinstance(val, list) or isinstance(val, tuple)) \
-                        and not issubclass(type(val), NamedTuple):
-                    output[attr] = []
-                    for v in val:
-                        output[attr].append(_represent(v))
+                if any([
+                    isinstance(val, list),
+                    isinstance(val, tuple),
+                    isinstance(val, dict),
+                ]) and not any([
+                    isinstance(val, Color),
+                ]):
+                    output[attr] = type(val)([*map(_represent, val)])
                 else:
                     output[attr] = _represent(val)
 
@@ -266,18 +269,8 @@ class Config(object):
         return str(json.dumps(array.tolist()))
 
     @staticmethod
-    def __str2ndarray__(string: str) -> np.ndarray:
+    def __json2ndarray__(string: str) -> np.ndarray:
         return np.array(json.loads(str(string)))
-
-    @staticmethod
-    def __str2namedtuple__(t: str, type: Type[NamedTuple]) -> tuple:
-        return type(
-            **{
-                k:float(v.strip("'")) for k,v,_ in re.findall(
-                    '([A-Za-z0-9]*)=(.*?)([,)])', t
-                )
-            }  # type: ignore
-        )  # todo: we're assuming tuples of floats here, will break for cases that are not colors!
 
 
 class ConfigType(Factory):

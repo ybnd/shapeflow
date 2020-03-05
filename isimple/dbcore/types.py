@@ -15,7 +15,10 @@
 
 """Representation of type information for DBCore model fields.
 """
-from isimple import DB_DATETIME_FORMAT
+
+import time
+
+from isimple.core import settings
 from isimple.dbcore import query
 from isimple.util import str2bool
 
@@ -215,7 +218,7 @@ class DateType(Float):
     query = query.DateQuery
 
     def format(self, value):
-        return time.strftime(DB_DATETIME_FORMAT.as_str(),
+        return time.strftime(settings.format.datetime_format.as_str(),
                              time.localtime(value or 0))
 
     def parse(self, string):
@@ -223,7 +226,7 @@ class DateType(Float):
             # Try a formatted date string.
             return time.mktime(
                 time.strptime(string,
-                              DB_DATETIME_FORMAT.as_str())
+                              settings.format.datetime_format.as_str())
             )
         except ValueError:
             # Fall back to a plain timestamp number.

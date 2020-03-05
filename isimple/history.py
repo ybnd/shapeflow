@@ -2,7 +2,7 @@ import os
 import time
 import json
 
-from isimple import ROOTDIR, DB_LIST_SEPARATOR
+from isimple.core import ROOTDIR, settings
 from isimple.core import get_logger
 from isimple.core.config import Config
 from isimple.core.common import RootException, RootInstance
@@ -52,9 +52,9 @@ class History(Database):
 
     def new_analysis(self, analyzer: Analyzer) -> AnalysisModel:
         if isinstance(analyzer._config.video_path, list):
-            DB_LIST_SEPARATOR.join(analyzer._config.video_path)
+            settings.format.db_list_separator.join(analyzer._config.video_path)
         if isinstance(analyzer._config.design_path, list):
-            DB_LIST_SEPARATOR.join(analyzer._config.design_path)
+            settings.format.db_list_separator.join(analyzer._config.design_path)
 
         return AnalysisModel(
             db=self,

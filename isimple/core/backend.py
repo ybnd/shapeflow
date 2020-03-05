@@ -11,7 +11,7 @@ from typing import Any, Callable, List, Optional, Union, Tuple
 
 import numpy as np
 
-from isimple import CACHEDIR
+from isimple.core import settings
 from isimple.maths.colors import HsvColor
 from isimple.util.meta import describe_function
 from isimple.core import get_logger
@@ -72,7 +72,7 @@ class CachingBackendInstanceConfig(abc.ABC, Config):
     do_cache: bool = field(default=True)
     do_background: bool = field(default=False)
 
-    cache_dir: str = field(default=CACHEDIR)
+    cache_dir: str = field(default=settings.cache.dir)
     cache_size_limit: int = field(default=2**32)
 
     block_timeout: float = field(default=0.1)
