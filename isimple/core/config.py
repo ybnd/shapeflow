@@ -16,7 +16,7 @@ from isimple.util.meta import all_attributes
 
 log = get_logger(__name__)
 
-__version__: str = '0.3'
+__version__: str = '0.3'  # todo: since this version is "global", maybe should merge all config stuff into isimple.core.config after all?
 
 # Metadata tags
 VERSION: str = 'config_version'
@@ -254,6 +254,7 @@ class Config(object):
         output[CLASS] = self.__class__.__name__
 
         if do_tag:
+            # todo: should only tag at the top-level (lots of unnecessary info otherwise)
             self.tag(output)
 
         return output

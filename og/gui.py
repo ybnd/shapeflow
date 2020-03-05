@@ -787,7 +787,7 @@ class OG_ProgressWindow(OG_ScriptWindow):
     def __init__(self, WRAPPER):
         OG_ScriptWindow.__init__(self)
         self.WRAPPER = WRAPPER
-        self.title(self.WRAPPER.get_name())
+        self.title(self.WRAPPER.get_config()['video_path'])
 
         self.canvas_height = self.__ratio__ * __monitor_h__
 
@@ -1303,6 +1303,7 @@ class ProgressWindow(guiWindow):
         * No callbacks; not interactive, so the backend pushes to the GUI instead
     """
     _endpoints = [
+        backend.get_config,
         backend.get_colors,
         backend.get_frame,
         backend.get_raw_frame,

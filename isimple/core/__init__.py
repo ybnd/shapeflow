@@ -1,4 +1,5 @@
 import os
+import abc
 import glob
 import shutil
 import pathlib
@@ -29,15 +30,15 @@ if not os.path.isdir(ROOTDIR):
 
 
 @dataclass
-class BaseSettings(object):
+class _Settings(abc.ABC):
     def to_dict(self):
         d = {k:v or v for k,v in self.__dict__.items()}
-        d.update({k:v.to_dict() for k,v in d.items() if isinstance(v, BaseSettings)})
+        d.update({k:v.to_dict() for k,v in d.items() if isinstance(v, _Settings)})
         return d
 
 
 @dataclass
-class FormatSettings(BaseSettings):
+class FormatSettings(_Settings):
     datetime_format: str = field(default='%Y/%m/%d %H:%M:%S.%f')
     datetime_format_fs: str = field(default='%Y-%m-%d_%H-%M-%S_%f')
 
@@ -58,7 +59,7 @@ _levels.update({
 
 
 @dataclass
-class LogSettings(BaseSettings):  # todo: this class should track whether path exists
+class LogSettings(_Settings):  # todo: this class should track whether path exists
     path: str = field(default=os.path.join(ROOTDIR, 'current.log'))
     dir: str = field(default=os.path.join(ROOTDIR, 'log'))
     keep: int = field(default=3)
@@ -76,24 +77,34 @@ class LogSettings(BaseSettings):  # todo: this class should track whether path e
 
 
 @dataclass
-class CacheSettings(BaseSettings):  # todo: this class should track whether path exists
+class CacheSettings(_Settings):  # todo: this class should track whether path exists
     dir: str = field(default=os.path.join(ROOTDIR, 'cache'))
 
 
 @dataclass
-class RenderSettings(BaseSettings):  # todo: this class should track whether path exists
+class RenderSettings(_Settings):  # todo: this class should track whether path exists
     dir: str = field(default=os.path.join(ROOTDIR, 'render'))
 
 
+@dataclass()
+class DatabaseSettings(_Settings):
+    path: str = field(default=os.path.join(ROOTDIR, 'history.db'))
+
+
 @dataclass
-class Settings(BaseSettings):
-    log:    LogSettings = field(default=LogSettings())
-    cache:  CacheSettings = field(default=CacheSettings())
+class Settings(_Settings):
+    log: LogSettings = field(default=LogSettings())
+    cache: CacheSettings = field(default=CacheSettings())
     render: RenderSettings = field(default=RenderSettings())
     format: FormatSettings = field(default=FormatSettings())
+    db: DatabaseSettings = field(default=DatabaseSettings())
 
     @classmethod
     def from_dict(cls, settings: dict):
+        for k in ('log', 'cache', 'render', 'format', 'db'):
+            if k not in settings:
+                settings.update({k:{}})
+
         return cls(
             log=LogSettings(
                 **{
@@ -105,6 +116,7 @@ class Settings(BaseSettings):
             cache=CacheSettings(**settings['cache']),
             render=RenderSettings(**settings['render']),
             format=FormatSettings(**settings['format']),
+            db=DatabaseSettings(**settings['db']),
         )
 
 
@@ -144,7 +156,7 @@ def _load_settings(path: str = _SETTINGS_FILE) -> Settings:
         return ini
 
 
-def _save_settings(settings: BaseSettings, path: str = _SETTINGS_FILE):
+def _save_settings(settings: _Settings, path: str = _SETTINGS_FILE):
     with open(path, 'w+') as f:
         yaml.safe_dump(settings.to_dict(),f)
 

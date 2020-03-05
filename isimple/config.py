@@ -138,26 +138,32 @@ def normalize_config(d: dict) -> dict:
             d[VERSION] = d.pop('version')
             d[CLASS] = VideoAnalyzerConfig.__name__
 
+    def normalizing_to(version):
+        log.info(f"Normalizing configuration (from v{d[VERSION]} to v{version})")
+
     if d[CLASS] == VideoAnalyzerConfig.__name__:
         if before_version(d[VERSION], '0.2.1'):
-            log.info(f"Normalizing configuration (from v{d[VERSION]} to v0.2.1)")
+            normalizing_to('0.2.1')
             # Rename mask[i].filter.filter to mask[i].filter.data
             for m in d['masks']:
                 m['filter']['data'] = m['filter'].pop('filter')
         if before_version(d[VERSION], '0.2.2'):
-            log.info(f"Normalizing configuration (from v{d[VERSION]} to v0.2.2)")
+            normalizing_to('0.2.2')
             # Convert tuple string color '(0,0,0)' to HsvColor string 'HsvColor(h=0, s=0, v=0)'
             from ast import literal_eval as make_tuple  # todo: this is unsafe!
             for m in d['masks']:
                 if 'c0' in m['filter']['data']:
                     m['filter']['data']['c0'] = str(
-                        HsvColor(*make_tuple(m['filter']['data']['c0'])))
+                        HsvColor(*make_tuple(m['filter']['data']['c0']))
+                    )
                 if 'c1' in m['filter']['data']:
                     m['filter']['data']['c1'] = str(
-                        HsvColor(*make_tuple(m['filter']['data']['c1'])))
+                        HsvColor(*make_tuple(m['filter']['data']['c1']))
+                    )
                 if 'radius' in m['filter']['data']:
                     m['filter']['data']['radius'] = str(
-                        HsvColor(*make_tuple(m['filter']['data']['radius'])))
+                        HsvColor(*make_tuple(m['filter']['data']['radius']))
+                    )
 
     # Deal with non-standard fields
     config_type = ConfigType(d[CLASS]).get()

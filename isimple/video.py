@@ -29,7 +29,7 @@ from isimple.maths.colors import HsvColor
 
 from isimple.endpoints import BackendRegistry
 from isimple.endpoints import GuiRegistry as gui
-from isimple.util import frame_number_iterator
+from isimple.util import frame_number_iterator, hash_file, timed
 
 log = get_logger(__name__)
 backend = BackendRegistry()
@@ -631,11 +631,10 @@ class VideoAnalyzer(Analyzer):
     features: Tuple[Feature,...]
 
     _featuresets: Dict[str, FeatureSet]
-    value: Dict[str, pd.DataFrame]
 
     def __init__(self, config: VideoAnalyzerConfig = None):
         super(VideoAnalyzer, self).__init__(config)
-        self.value = {}
+        self.results: dict = {}
         self._gather_instances()
 
     @property
@@ -679,7 +678,7 @@ class VideoAnalyzer(Analyzer):
         }
 
         for fs, feature in zip(self._featuresets.values(), self.config.features):
-            self.value[str(feature)] = pd.DataFrame(
+            self.results[str(feature)] = pd.DataFrame(
                 [], columns=['time'] + [f.name for f in fs.features], index=list(self.frame_numbers())
             )
 
@@ -767,7 +766,7 @@ class VideoAnalyzer(Analyzer):
             V.append(values)   # todo: value values value ugh
             S.append(state)
 
-            self.value[k].loc[frame_number] = [t] + values
+            self.results[k].loc[frame_number] = [t] + values
 
         update_callback(
             t,
@@ -777,7 +776,7 @@ class VideoAnalyzer(Analyzer):
         )
 
     def analyze(self):
-        with self.timing:
+        with self.timed():
             self._get_featuresets()
             self.save_config()
             if self._gui is not None:
@@ -789,7 +788,7 @@ class VideoAnalyzer(Analyzer):
             for fn in self.frame_numbers():
                 self.calculate(fn, update_callback)
 
-            self.save()
+            self.export()
 
     def load_config(self, path: str = None):
         """Load video analysis configuration
@@ -835,14 +834,14 @@ class VideoAnalyzer(Analyzer):
         self.config(masks=tuple([m.config for m in self.masks]))
         return self.config
 
-    def save(self, path: str = None):
+    def export(self, path: str = None):  # todo: export should work from the database instead!
         """Save video analysis results & metadata
         """
         name = str(os.path.splitext(self.config.video_path)[0])  # type: ignore
         f = name + ' ' + datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S") + '.xlsx'
 
         w = pd.ExcelWriter(f)
-        for k,v in self.value.items():
+        for k,v in self.results.items():
             v.to_excel(w, sheet_name=k)
 
         pd.DataFrame([dumps(self.config)]).to_excel(w, sheet_name='meta')
@@ -850,13 +849,14 @@ class VideoAnalyzer(Analyzer):
         w.save()
         w.close()
 
-    def hash_video(self) -> int:
-        log.warning(f"Video file hashing not implemented - returning 0")
-        return 0
+    @property
+    def _video_to_hash(self):
+        return self.config.video_path
 
-    def hash_design(self) -> int:
-        log.warning(f"Design file hashing not implemented - returning 0")
-        return 0
+    @property
+    def _design_to_hash(self):
+        return self.config.design_path
+
 
 
 @extend(AnalyzerType)

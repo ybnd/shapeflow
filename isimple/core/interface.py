@@ -48,15 +48,15 @@ class FilterInterface(abc.ABC):
 class FilterType(Factory):
     _type = FilterInterface
 
-    # def get(self) -> Type[FilterInterface]:
-    #     filter = super().get()
-    #     if issubclass(filter, FilterInterface):
-    #         return filter
-    #     else:
-    #         raise TypeError(
-    #             f"'{self.__class__.__name__}' tried to return an unexpected type '{filter}'. "
-    #             f"This is very weird and shouldn't happen, really."
-    #         )
+    def get(self) -> Type[FilterInterface]:
+        filter = super().get()
+        if issubclass(filter, FilterInterface):
+            return filter
+        else:
+            raise TypeError(
+                f"'{self.__class__.__name__}' tried to return an unexpected type '{filter}'. "
+                f"This is very weird and shouldn't happen, really."
+            )
 
 
 class TransformType(Factory):

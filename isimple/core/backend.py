@@ -1,19 +1,23 @@
 from dataclasses import dataclass, field
 
 import diskcache
+import asyncio
 import sys
 import abc
 import copy
 import time
 import threading
 from contextlib import contextmanager
-from typing import Any, Callable, List, Optional, Union, Tuple
+from typing import Any, Callable, List, Optional, Union, Tuple, Dict
+from collections import namedtuple
 
 import numpy as np
+import pandas as pd
 
 from isimple.core import settings
 from isimple.maths.colors import HsvColor
 from isimple.util.meta import describe_function
+from isimple.util import Timer, Timing, hash_file
 from isimple.core import get_logger
 from isimple.core.config import Factory, untag, Config
 from isimple.core.common import RootException, SetupError, RootInstance  # todo: RootException should probably be in a separate file
@@ -312,7 +316,7 @@ class FeatureSet(object):
                 feature._color = color
                 colors.append(color)
 
-            self._colors = HsvColor(*colors)
+            self._colors = tuple(HsvColor(*c) for c in colors)
         return self.colors
 
     @property
@@ -339,12 +343,22 @@ class Analyzer(abc.ABC, BackendInstance, RootInstance):
     _instance_class = BackendInstance
     _config: AnalyzerConfig
 
+    results: Dict[str, pd.DataFrame]
+
     _description: str
-    _elapsed: float
+
+    _timer: Timer
+
+    _video_hash: Optional[str]
+    _design_hash: Optional[str]
 
     def __init__(self, config: AnalyzerConfig = None):
         super(Analyzer, self).__init__(config)
         self._description = ''
+        self._timer = Timer(self)
+
+        self._hash_video = None
+        self._hash_design = None
 
     @abc.abstractmethod
     def _can_launch(self):
@@ -352,15 +366,29 @@ class Analyzer(abc.ABC, BackendInstance, RootInstance):
 
     @abc.abstractmethod
     def _launch(self):
+         raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def _video_to_hash(self):
         raise NotImplementedError
 
+    @property
+    def hash_video(self) -> Optional[str]:
+        if not hasattr(self, '_video_hash') or self._video_hash is None:
+            self._video_hash = hash_file(self._video_to_hash)  # todo: do this in a separate thread, flag to await return or not
+        return self._video_hash
+
+    @property
     @abc.abstractmethod
-    def hash_video(self) -> int:
+    def _design_to_hash(self):
         raise NotImplementedError
 
-    @abc.abstractmethod
-    def hash_design(self) -> int:
-        raise NotImplementedError
+    @property
+    def hash_design(self) -> Optional[str]:
+        if not hasattr(self, '_video_hash') or self._design_hash is None:
+            self._design_hash = hash_file(self._design_to_hash)  # todo: do this in a separate thread, flag to await return or not
+        return self._design_hash
 
     @abc.abstractmethod
     def analyze(self):
@@ -393,20 +421,22 @@ class Analyzer(abc.ABC, BackendInstance, RootInstance):
                 element.__exit__(*sys.exc_info())
 
     @contextmanager
-    def timing(self, message: str = None):
-        if message is not None:
-            message = f"({message})"
-        t0 = None
+    def timed(self, message: str = None):
         try:
-            t0 = time.time()
-            log.debug(f"{self.__class__.__name__}: timer started {message}")
+            self._timer.__enter__(message)
+            yield self
         finally:
-            if t0 is not None:
-                self._elapsed = time.time() - t0
-                log.debug(f"{self.__class__.__name__}: {self._elapsed} s. elapsed {message}")
+            self._timer.__exit__()
+
+    @property
+    def timing(self) -> Optional[Timing]:
+        if self._timer.timing is not None:
+            return Timing(*self._timer.timing)
+        else:
+            return None
 
 
-    def save(self):
+    def export(self):
         raise NotImplementedError
 
     def describe(self, description: str):

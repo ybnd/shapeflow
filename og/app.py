@@ -1,6 +1,8 @@
+import os
 import json
-from isimple import __history_path__
+from isimple.core import ROOTDIR
 
+__history_path__ = os.path.join(ROOTDIR, 'history.json')
 
 class HistoryApp(object):
     """Applications with history stored in JSON format in isimple/.history

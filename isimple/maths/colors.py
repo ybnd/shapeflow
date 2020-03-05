@@ -35,7 +35,7 @@ class Color(object):
     @classmethod
     def from_str(cls, color: str) -> 'Color':
         return cls(
-            **{k:int(v.strip("'")) for k,v,_
+            **{k:int(float(v.strip("'"))) for k,v,_
                in re.findall('([A-Za-z0-9]*)=(.*?)([,)])', color)}
         )
 

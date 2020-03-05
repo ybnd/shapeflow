@@ -1,8 +1,11 @@
+import os
 import time
-import contextlib
 from distutils.util import strtobool
-from functools import wraps
-from typing import Any, Generator
+from functools import wraps, lru_cache
+from typing import Any, Generator, Optional
+from collections import namedtuple
+import hashlib
+import asyncio
 
 import numpy as np
 
@@ -53,6 +56,9 @@ def rotations(sequence) -> list:  # todo: clean up
     return rotation_list
 
 
+Timing = namedtuple('Timing', ('t0', 't1', 'elapsed'))
+
+
 def timed(f):
     """Function decorator to measure elapsed time.
     :param f: function
@@ -65,6 +71,38 @@ def timed(f):
         log.info(f"{f.__name__}() --> {te-ts} s elapsed.")
         return result
     return wrap
+
+
+class Timer(object):
+    _t0: float
+    _t1: float
+    _parent: object
+    _message: Optional[str]
+    _elapsed: Optional[float]
+
+    def __init__(self, parent: object):
+        self._parent = parent
+        self._elapsed = None
+
+    def __enter__(self, message: Optional[str]):
+        self._message = message
+        self._t0 = time.time()
+        log.debug(f"{self._parent.__class__.__name__}: "
+                  f"timer started {message}")
+
+    def __exit__(self):
+        if hasattr(self, '_t0'):
+            self._t1 = time.time()
+            self._elapsed = self._t1 - self._t0
+            log.debug(f"{self._parent.__class__.__name__}: "
+                      f"{self._elapsed} s. elapsed {self._message}")
+
+    @property
+    def timing(self) -> Optional[tuple]:
+        if all([hasattr(self, attr) for attr in ('_t0', '_t1', '_elapsed')]):
+            return self._t0, self._t1, self._elapsed
+        else:
+            return None
 
 
 def frame_number_iterator(total: int,
@@ -93,3 +131,21 @@ def before_version(version_a, version_b):
 
 def after_version(version_a, version_b):
     return not before_version(version_a, version_b)
+
+
+@lru_cache(maxsize=256)
+def hash_file(path: str = None, blocksize: int = 1024) -> Optional[str]:
+    if not path is None:
+        if os.path.isfile:
+            m = hashlib.md5()
+            with open(path, 'rb') as f:
+                while True:
+                    buf = f.read(blocksize)
+                    if not buf:
+                        break
+                    m.update(buf)
+            return m.hexdigest()
+        else:
+            return None
+    else:
+        return None
