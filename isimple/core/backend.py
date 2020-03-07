@@ -336,7 +336,7 @@ class AnalyzerConfig(abc.ABC, Config):
     design_path: Optional[Union[list, str]] = None
 
 
-class Analyzer(abc.ABC, BackendInstance, RootInstance):
+class Analyzer(abc.ABC, RootInstance, BackendInstance):
     _instances: List[BackendInstance]
     _instance_class = BackendInstance
     _config: AnalyzerConfig

@@ -36,6 +36,7 @@ export default {
   beforeMount() {
       window.onload = this.ping;
       window.onunload = this.unload;
+      setInterval(this.ping, 500);
   },
 }
 </script>

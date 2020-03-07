@@ -55,10 +55,14 @@ class Endpoint(object):
     def registered(self):
         return self._registered
 
+    @property
+    def name(self):
+        return self._name
+
     def add(self, method):
         if not self.compatible(method):
             raise ValueError(f"Method '{method.__qualname__}' "
-                             f"is incompatible with endpoint '{self._name}'. \n"
+                             f"is incompatible with endpoint '{self.name}'. \n"
                              f"{method.__annotations__} vs. {self.signature}")  # todo: traceback to
 
     def register(self, name: str):
@@ -96,7 +100,7 @@ class InstanceRegistry(EndpointRegistry):
         def wrapper(method):
             if endpoint in self._callable_mapping:
                 log.debug(   # todo: add traceback
-                    f"Exposing '{method.__qualname__}' at endpoint '{endpoint._name}' will override "
+                    f"Exposing '{method.__qualname__}' at endpoint '{endpoint.name}' will override "
                     f"previously exposed method '{self._callable_mapping[endpoint].__qualname__}'."
                 )  # todo: keep in mind we're also marking the methods themselves
             try:
@@ -109,7 +113,7 @@ class InstanceRegistry(EndpointRegistry):
                 self._callable_mapping.update({endpoint: method})
             except TypeError:
                 raise TypeError(
-                    f"Cannot expose '{method.__qualname__}' at endpoint '{endpoint._name}'."
+                    f"Cannot expose '{method.__qualname__}' at endpoint '{endpoint.name}'."
                     f"incompatible signature: {method.__annotations__} vs. {endpoint.signature}"
                 )
             return method
@@ -166,6 +170,10 @@ class RootInstance(object):
     def connect(self, manager):
         raise NotImplementedError
 
+    @property
+    def instance_mapping(self):
+        return self._instance_mapping
+
     def _gather_instances(self):  # todo: needs major clean-up
         log.debug(f'{self.__class__.__name__}: gather nested instances')
         self._instance_mapping = {}
@@ -217,15 +225,15 @@ class RootInstance(object):
             raise SetupError(f"'{endpoint}' is not defined in '{self._endpoints}'.")
         elif endpoint not in self._instance_mapping:
             raise SetupError(f"'{self.__class__.__name__}' does not map "
-                             f"'{endpoint._name}' to a bound method.")
+                             f"'{endpoint.name}' to a bound method.")
         else:
             log.vdebug(f"{self.__class__.__name__}: get callback for "
-                     f"endpoint '{endpoint._name}' with index {index}")
+                     f"endpoint '{endpoint.name}' with index {index}")
             methods = self._instance_mapping[endpoint]
             if index is None:
                 index = 0
                 if index+1 < len(methods):
-                    log.vdebug(f"No index specified for endpoint '{endpoint._name}' "
+                    log.vdebug(f"No index specified for endpoint '{endpoint.name}' "
                                   f"-- defaulting to entry 0 ({len(methods)} in total)")  # todo: traceback
             elif len(methods) == 1:
                 index = 0  # Ignore the index if only one method is mapped

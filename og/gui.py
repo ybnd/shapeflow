@@ -1379,7 +1379,7 @@ class VideoAnalyzerGui(RootInstance, guiElement):  # todo: find a different name
         self.open_windows.append(w)
 
         for endpoint in w._endpoints:
-            setattr(w, endpoint._name, self._backend.get(endpoint, index))
+            setattr(w, endpoint.name, self._backend.get(endpoint, index))
 
         w.open()
 

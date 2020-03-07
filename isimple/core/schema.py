@@ -1,10 +1,9 @@
 import inspect
-import json
 from inspect import _empty  # type: ignore
 from typing import Union, Collection, Type, Callable, _GenericAlias  # type: ignore
 
 import numpy as np
-from schema import Optional, Schema
+from schema import Optional, Schema  # type: ignore
 from isimple.core.config import Config, EnforcedStr
 from isimple.maths.colors import HsvColor
 from isimple.core import get_logger
@@ -196,4 +195,3 @@ def schema(obj) -> dict:
             'call': get_method_schema(obj).json_schema(id),
             'return': get_return_schema(obj).json_schema(id)
         }
-
