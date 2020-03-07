@@ -33,7 +33,7 @@ app.config.from_object(__name__)
 UI = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ui', 'dist')
 
 
-class ServerThread(Thread):
+class ServerThread(Thread, metaclass=Singleton):
     _host: str
     _port: int
 
@@ -54,7 +54,7 @@ def respond(*args) -> str:  # todo: use method schemas
     return jsonify({'data': [*args]})
 
 
-class Main(metaclass=Singleton):
+class Main(object, metaclass=Singleton):
     _instances: Dict[AnalyzerType,List[Analyzer]] = {}
     _models: List[AnalysisModel]
     _history: History
@@ -67,6 +67,9 @@ class Main(metaclass=Singleton):
     _ping = Event()
     _unload = Event()
     _quit = Event()
+
+    _suppress_timeout = 0.5
+    _unload_timeout = 1
 
     def __init__(self):
         self._instances = {k:[] for k in AnalyzerType().options}
@@ -81,14 +84,16 @@ class Main(metaclass=Singleton):
                     f"http://{self._host}:{self._port}/"
                 )
             ).start()
-            time.sleep(0.5)  # Wait for Waitress to catch up
+            time.sleep(self._suppress_timeout)  # Wait for Waitress to catch up
 
     def loop(self):
         while not self._quit.is_set():
             self._ping.clear()
             if self._unload.is_set():
-                time.sleep(1)
+                log.debug(f'Unloaded from browser, waiting for ping.')
+                time.sleep(self._unload_timeout)
                 if not self._ping.is_set():
+                    log.debug('No ping received, quitting.')
                     self._quit.set()
 
     def add_instance(self, type: AnalyzerType) -> str:  # todo: should return list of methods that don't rely on nested BackendInstances & their schemas
@@ -151,6 +156,7 @@ def call(bt: str, index: int, method: str):
 
 @app.route('/api/ping')
 def ping():
+    log.debug('Ping received.')
     main._unload.clear()
     main._ping.set()
     return respond(True)
@@ -166,5 +172,3 @@ if __name__ == '__main__':
     # todo: server-level configuration
 
     main.loop()
-
-    log.info(f"Stopped serving.")
