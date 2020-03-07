@@ -1,9 +1,9 @@
 import inspect
 from inspect import _empty  # type: ignore
-from typing import Union, Collection, Type, Callable, _GenericAlias  # type: ignore
+from typing import Union, Collection, Type, Callable, _GenericAlias  #type: ignore
 
 import numpy as np
-from schema import Optional, Schema  # type: ignore
+from schema import Optional, Schema  #type: ignore
 from isimple.core.config import Config, EnforcedStr
 from isimple.maths.colors import HsvColor
 from isimple.core import get_logger

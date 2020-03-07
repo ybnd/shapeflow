@@ -5,16 +5,15 @@ import os
 import sys
 import time
 import json
-from threading import Thread, Event, Lock
+from threading import Thread, Event
 from typing import Dict, List
 import webbrowser
-from contextlib import contextmanager
 
 from flask import Flask, jsonify, request, send_from_directory
 import waitress
 
 from isimple.util import suppress_stdout, Singleton
-from isimple.core import get_logger, ROOTDIR
+from isimple.core import get_logger
 from isimple.core.schema import schema
 from isimple.video import Analyzer, AnalyzerType, backend
 from isimple.history import History, AnalysisModel
@@ -63,33 +62,37 @@ class Main(object, metaclass=Singleton):
     _unload = Event()
     _quit = Event()
 
-    _suppress_timeout = 0.5
-    _unload_timeout = 1
+    _timeout_suppress = 0.5
+    _timeout_unload = 1
+    _timeout_loop = 0.1
 
     def __init__(self):
         self._roots = {k:[] for k in AnalyzerType().options}
-
-        with suppress_stdout():  # Don't show waitress console output (wrong URL!)
+        # Don't show waitress console output (server URL)
+        with suppress_stdout():
             ServerThread(self._host, self._port).start()
-            # Run in separate thread to revent Ctrl+C from closing browser if no tabs were open before
+            # Run in separate thread to revent Ctrl+C from closing browser
+            #  if no tabs were open before
             Thread(
                 target=lambda: webbrowser.open(
                     f"http://{self._host}:{self._port}/"
                 )
             ).start()
-            time.sleep(self._suppress_timeout)  # Wait for Waitress to catch up
+            time.sleep(self._timeout_suppress)  # Wait for Waitress to catch up
 
     def loop(self):
         while not self._quit.is_set():
-            self._ping.clear()
+            if self._ping.is_set():
+                self._ping.clear()
             if self._unload.is_set():
                 log.debug(f'Unloaded from browser, waiting for ping.')
-                time.sleep(self._unload_timeout)
+                time.sleep(self._timeout_unload)
                 if not self._ping.is_set():
                     log.debug('No ping received; quitting.')
                     self._quit.set()
                 else:
                     log.debug('Ping received; cancelling.')
+            # time.sleep(self._timeout_loop)
 
     def add_instance(self, type: AnalyzerType) -> str:
         log.debug(f"Add instance of {type}")
@@ -116,7 +119,7 @@ class Main(object, metaclass=Singleton):
             }
         )
 
-    def call(self, type: AnalyzerType, index: int, endpoint: str, data: dict, do_lock: bool = False) -> str:
+    def call(self, type: AnalyzerType, index: int, endpoint: str, data: dict) -> str:
         log.debug(f"{type} {index}: call '{endpoint}'")
         # todo: sanity check this
         method = self._roots[type][index].get(getattr(backend, endpoint))
@@ -150,7 +153,7 @@ def init(bt: str):
 
 @app.route('/api/<bt>/<index>/launch', methods=['GET'])
 def launch(bt: str, index: int):
-    main.call(AnalyzerType(bt), int(index), 'launch', {}, do_lock=True)
+    main.call(AnalyzerType(bt), int(index), 'launch', {})
     return respond()
 
 @app.route('/api/<bt>/<index>/<endpoint>', methods=['GET'])
