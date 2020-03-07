@@ -707,8 +707,9 @@ class VideoAnalyzer(Analyzer):
 
     @backend.expose(backend.set_config)
     def set_config(self, config: dict) -> None:
-        log.debug(f"Setting VideoAnalyzerConfig to {config}")
-        self.config(**config)
+        with self.lock():
+            log.debug(f"Setting VideoAnalyzerConfig to {config}")
+            self.config(**config)
 
     #@backend.expose(backend.get_frame)  # todo: would like to have some kind of 'deferred expose' decorator?
     def get_transformed_frame(self, frame_number: int) -> np.ndarray:
@@ -776,19 +777,20 @@ class VideoAnalyzer(Analyzer):
         )
 
     def analyze(self):
-        with self.timed():
-            self._get_featuresets()
-            self.save_config()
-            if self._gui is not None:
-                update_callback = self._gui.get(gui.update_progresswindow)
-                self._gui.get(gui.open_progresswindow)()
-            else:
-                def update_callback(*args, **kwargs): pass
+        with self.lock():
+            with self.timed():
+                self._get_featuresets()
+                self.save_config()
+                if self._gui is not None:
+                    update_callback = self._gui.get(gui.update_progresswindow)
+                    self._gui.get(gui.open_progresswindow)()
+                else:
+                    def update_callback(*args, **kwargs): pass
 
-            for fn in self.frame_numbers():
-                self.calculate(fn, update_callback)
+                for fn in self.frame_numbers():
+                    self.calculate(fn, update_callback)
 
-            self.export()
+                self.export()
 
     def load_config(self, path: str = None):
         """Load video analysis configuration

@@ -340,6 +340,7 @@ class Analyzer(abc.ABC, RootInstance, BackendInstance):
     _instances: List[BackendInstance]
     _instance_class = BackendInstance
     _config: AnalyzerConfig
+    _lock: threading.Lock
 
     results: Dict[str, pd.DataFrame]
 
@@ -353,6 +354,7 @@ class Analyzer(abc.ABC, RootInstance, BackendInstance):
     def __init__(self, config: AnalyzerConfig = None):
         super(Analyzer, self).__init__(config)
         self._description = ''
+        self._lock = threading.Lock()
         self._timer = Timer(self)
 
         self._hash_video = None
@@ -393,11 +395,12 @@ class Analyzer(abc.ABC, RootInstance, BackendInstance):
         pass
 
     def launch(self):
-        if self._can_launch():
-            self._launch()
-            self._gather_instances()
-        else:
-            log.warning(f"{self.__class__.__qualname__} can not be launched.")  # todo: try to be more verbose
+        with self.lock():
+            if self._can_launch():
+                self._launch()
+                self._gather_instances()
+            else:
+                log.warning(f"{self.__class__.__qualname__} can not be launched.")  # todo: try to be more verbose
 
     @contextmanager
     def caching(self):
@@ -417,6 +420,16 @@ class Analyzer(abc.ABC, RootInstance, BackendInstance):
         finally:
             for element in caching_instances:
                 element.__exit__(*sys.exc_info())
+
+    @contextmanager
+    def lock(self):
+        lock = self._lock.acquire()
+        try:
+            log.debug(f"Locking {self}")
+            yield lock
+        finally:
+            log.debug(f"Unlocking {self}")
+            self._lock.release()
 
     @contextmanager
     def timed(self, message: str = None):

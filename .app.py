@@ -16,7 +16,7 @@ import waitress
 from isimple.util import suppress_stdout, Singleton
 from isimple.core import get_logger, ROOTDIR
 from isimple.core.schema import schema
-from isimple.video import Analyzer, AnalyzerType
+from isimple.video import Analyzer, AnalyzerType, backend
 from isimple.history import History, AnalysisModel
 
 log = get_logger('isimple')
@@ -50,8 +50,7 @@ def respond(*args) -> str:
 
 
 class Main(object, metaclass=Singleton):
-    _instances: Dict[AnalyzerType, List[Analyzer]] = {}
-    _locks: Dict[AnalyzerType, List[Lock]] = {}
+    _roots: Dict[AnalyzerType, List[Analyzer]] = {}
     _models: List[AnalysisModel] = []
     _history = History()
 
@@ -68,8 +67,7 @@ class Main(object, metaclass=Singleton):
     _unload_timeout = 1
 
     def __init__(self):
-        self._instances = {k:[] for k in AnalyzerType().options}
-        self._locks = {k: [] for k in AnalyzerType().options}
+        self._roots = {k:[] for k in AnalyzerType().options}
 
         with suppress_stdout():  # Don't show waitress console output (wrong URL!)
             ServerThread(self._host, self._port).start()
@@ -93,55 +91,38 @@ class Main(object, metaclass=Singleton):
                 else:
                     log.debug('Ping received; cancelling.')
 
-    @contextmanager
-    def lock(self, type: AnalyzerType, index: int, do_lock: bool = True):
-        if do_lock:
-            lock = self._locks[type][index].acquire()
-            try:
-                log.debug(f"Locking {type} {index}")
-                yield lock
-            finally:
-                log.debug(f"Unlocking {type} {index}")
-                self._locks[type][index].release()
-        else:
-            yield
-
     def add_instance(self, type: AnalyzerType) -> str:
         log.debug(f"Add instance of {type}")
         analyzer = type.get()()
-        self._instances[type].append(analyzer)
-        self._locks[type].append(Lock())
+        self._roots[type].append(analyzer)
         self._models.append(self._history.add_analysis(analyzer))
         return respond(
-            len(self._instances[type]) - 1
+            len(self._roots[type]) - 1
         )
 
     def get_schemas(self, type: AnalyzerType = None, index: int = None):
         if type is not None and index is not None:
-            instance = self._instances[type][index]
+            root = self._roots[type][index]
         elif type is not None:
-            instance = type.get()()
+            root = type.get()()
         else:
             return respond(None)
 
         return respond(
             {
-                'config': schema(instance._config.__class__),
+                'config': schema(root._config.__class__),
                 'methods': {e.name:[schema(m) for m in ms]
-                            for e,ms in instance.instance_mapping.items()}
+                            for e,ms in root.instance_mapping.items()}
             }
         )
 
-    def call(self, type: AnalyzerType, index: int, method: str, data: dict, do_lock: bool = False) -> str:
-        log.debug(f"{type} {index}: call '{method}'")
+    def call(self, type: AnalyzerType, index: int, endpoint: str, data: dict, do_lock: bool = False) -> str:
+        log.debug(f"{type} {index}: call '{endpoint}'")
         # todo: sanity check this
-        method = getattr(self._instances[type][index], method)
+        method = self._roots[type][index].get(getattr(backend, endpoint))
         assert hasattr(method, '__call__')
 
-        # todo: some logic ~ which methods to lock and which methods not to lock
-
-        with self.lock(type, index, do_lock):
-            return respond(method(**{k:json.loads(v) for k,v in data.items()})) # type: ignore
+        return respond(method(**{k:json.loads(v) for k,v in data.items()}))
 
 
 main = Main()
@@ -159,17 +140,9 @@ def get_file(directory, file):
 def get_file2(file):
     return send_from_directory(os.path.join(UI), file)
 
-@app.route('/api/<backendtype>/<index>/schemas', methods=['GET'])
-def get_schemas(backendtype: str, index: int):
-    bt = AnalyzerType(backendtype)
-    index = int(index)
-    i = __instances__[bt][index]
-    return respond(
-        {
-            'config': schema(i._config.__class__),
-            'methods': {e._name:schema(m[0]) for e, m in i._instance_mapping.items()},
-        }
-    )
+@app.route('/api/<bt>/<index>/schemas', methods=['GET'])
+def get_schemas(bt: str, index: int):
+    return respond(main.get_schemas(AnalyzerType(bt), int(index)))
 
 @app.route('/api/<bt>/init', methods=['GET'])
 def init(bt: str):
@@ -177,12 +150,12 @@ def init(bt: str):
 
 @app.route('/api/<bt>/<index>/launch', methods=['GET'])
 def launch(bt: str, index: int):
-    main.call(AnalyzerType(bt), int(index), 'launch', {})
+    main.call(AnalyzerType(bt), int(index), 'launch', {}, do_lock=True)
     return respond()
 
-@app.route('/api/<bt>/<index>/<method>', methods=['GET'])
-def call(bt: str, index: int, method: str):
-    return main.call(AnalyzerType(bt), int(index), method, request.args.to_dict())
+@app.route('/api/<bt>/<index>/<endpoint>', methods=['GET'])
+def call(bt: str, index: int, endpoint: str):
+    return main.call(AnalyzerType(bt), int(index), endpoint, request.args.to_dict())
 
 @app.route('/api/ping')
 def ping():
