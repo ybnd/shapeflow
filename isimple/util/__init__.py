@@ -78,14 +78,14 @@ class Timer(object):
     _t0: float
     _t1: float
     _parent: object
-    _message: Optional[str]
+    _message: str
     _elapsed: Optional[float]
 
     def __init__(self, parent: object):
         self._parent = parent
         self._elapsed = None
 
-    def __enter__(self, message: Optional[str]):
+    def __enter__(self, message: str = ''):
         self._message = message
         self._t0 = time.time()
         log.debug(f"{self._parent.__class__.__name__}: "

@@ -709,7 +709,7 @@ class VideoAnalyzer(Analyzer):
     def set_config(self, config: dict) -> None:
         with self.lock():
             log.debug(f"Setting VideoAnalyzerConfig to {config}")
-            self.config(**config)
+            self._config(**config)
 
     #@backend.expose(backend.get_frame)  # todo: would like to have some kind of 'deferred expose' decorator?
     def get_transformed_frame(self, frame_number: int) -> np.ndarray:
@@ -735,12 +735,13 @@ class VideoAnalyzer(Analyzer):
         elif self.config.frame_interval_setting == FrameIntervalSetting('dt'):
             return frame_number_iterator(self.video.frame_count, dt = self.config.dt, fps = self.video.fps)
         else:
-            raise ValueError(f"Unexpected frame interval setting "
-                             f"{self.config.frame_interval_setting}")
+            raise NotImplementedError(self.config.frame_interval_setting)
 
     def calculate(self, frame_number: int, update_callback: Callable):
         """Return a state image for each FeatureSet
         """
+        log.debug(f"Calculating for frame {frame_number}")
+
         t = self.video.get_time(frame_number)
         raw_frame = self.video.read_frame(frame_number)
         frame = self.transform(raw_frame)
@@ -778,9 +779,12 @@ class VideoAnalyzer(Analyzer):
 
     def analyze(self):
         with self.lock():
-            with self.timed():
+            with self.time():
                 self._get_featuresets()
                 self.save_config()
+
+                log.debug(f"Analyzing with features: {[f for f in self._featuresets]}.")
+
                 if self._gui is not None:
                     update_callback = self._gui.get(gui.update_progresswindow)
                     self._gui.get(gui.open_progresswindow)()

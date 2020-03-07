@@ -432,7 +432,7 @@ class Analyzer(abc.ABC, RootInstance, BackendInstance):
             self._lock.release()
 
     @contextmanager
-    def timed(self, message: str = None):
+    def time(self, message: str = ''):
         try:
             self._timer.__enter__(message)
             yield self
