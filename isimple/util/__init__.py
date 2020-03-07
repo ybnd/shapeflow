@@ -1,11 +1,12 @@
 import os
+import sys
 import time
 from distutils.util import strtobool
 from functools import wraps, lru_cache
 from typing import Any, Generator, Optional
 from collections import namedtuple
 import hashlib
-import asyncio
+from contextlib import contextmanager
 
 import numpy as np
 
@@ -149,3 +150,24 @@ def hash_file(path: str = None, blocksize: int = 1024) -> Optional[str]:
             return None
     else:
         return None
+
+
+@contextmanager
+def suppress_stdout():
+    """https://stackoverflow.com/questions/2125702/
+    """
+    with open(os.devnull, "w") as devnull:
+        old_stdout = sys.stdout
+        sys.stdout = devnull
+        try:
+            yield
+        finally:
+            sys.stdout = old_stdout
+
+
+class Singleton(type):
+    _instances: dict = {}
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+            return cls._instances[cls]

@@ -2,14 +2,14 @@
 
 <template>
   <div>
-    <p>this is our try component :(</p>
+    <p>wtf</p>
   </div>
 </template>
 
 <script>
-export default {
-  name: 'Try',
-};
+  export default {
+    name: 'Try',
+  };
 </script>
 
 <style scoped>

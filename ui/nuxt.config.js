@@ -13,6 +13,8 @@ module.exports = {
       { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }
     ]
   },
+ modules: [
+ ],
   /*
   ** Customize the progress bar color
   */
@@ -34,6 +36,6 @@ module.exports = {
         })
       }
     }
-  }
-}
+  },
+};
 

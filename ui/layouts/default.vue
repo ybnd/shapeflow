@@ -33,6 +33,7 @@ html {
 .button--green:hover {
   color: #fff;
   background-color: #3b8070;
+  cursor: pointer;
 }
 
 .button--grey {
@@ -48,6 +49,7 @@ html {
 .button--grey:hover {
   color: #fff;
   background-color: #35495e;
+  cursor: pointer;
 }
 </style>
 

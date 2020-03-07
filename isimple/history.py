@@ -112,7 +112,6 @@ class History(Database):
     def add_analysis(self, analyzer: Analyzer) -> AnalysisModel:
         model = AnalysisModel(analyzer)
         model.add(self)
-        # self._memotable = {}  # see https://github.com/beetbox/beets/blob/4dee523ba23dca211b44682a9287fdf6ffa41563/beets/library.py#L1345
         model.store()
         return model
 

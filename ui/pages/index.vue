@@ -1,44 +1,42 @@
 <template>
   <section class="container">
     <div>
-      <not-app-logo/>
-      <app-logo/>
-      <h1 class="title">
-        ui
-      </h1>
-      <h2 class="subtitle">
-        Nuxt.js project
-      </h2>
-      <div class="links">
-        <a
-          href="https://nuxtjs.org/"
-          target="_blank"
-          class="button--green">Documentation</a>
-        <a
-          href="https://github.com/nuxt/nuxt.js"
-          target="_blank"
-          class="button--grey">GitHub</a>
-      </div>
-      <div>
-      <h1>aaaa</h1>
-      <p>
-        <nuxt-link to="/try">Go to try :(</nuxt-link>
-        <nuxt/>
-      </p>
+      <div class="test">
+        <a @click="init()" class="button--grey">New VideoAnalyzer</a>
+        <a @click="setAss()" class="button--grey">Send ass</a>
+        <a @click="setGrass()" class="button--grey">Send grass</a>
       </div>
     </div>
   </section>
 </template>
 
 <script>
-import AppLogo from '~/components/AppLogo.vue'
-import NotAppLogo from '~/components/NotAppLogo.vue'
+import axios from 'axios'
 
 export default {
-  components: {
-    AppLogo,
-    NotAppLogo,
-  }
+  methods: {
+    ping () {
+      axios.get('/api/ping');
+    },
+    unload() {
+      // Called ~ onunload callback; axios doesn't work there.
+      // todo: Only tested on Linux+Firefox for now
+      navigator.sendBeacon('/api/unload', '');
+    },
+    init() {
+      axios.get('/api/VideoAnalyzer/init');
+    },
+    setAss() {
+      axios.get('/api/VideoAnalyzer/0/set_config?config={"video_path":"ass"}');
+    },
+    setGrass() {
+      axios.get('/api/VideoAnalyzer/0/set_config?config={"design_path":"grass"}');
+    },
+  },
+  beforeMount() {
+      window.onload = this.ping;
+      window.onunload = this.unload;
+  },
 }
 </script>
 

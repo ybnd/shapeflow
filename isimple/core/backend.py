@@ -1,7 +1,6 @@
 from dataclasses import dataclass, field
 
 import diskcache
-import asyncio
 import sys
 import abc
 import copy
@@ -9,7 +8,6 @@ import time
 import threading
 from contextlib import contextmanager
 from typing import Any, Callable, List, Optional, Union, Tuple, Dict
-from collections import namedtuple
 
 import numpy as np
 import pandas as pd
@@ -109,7 +107,7 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
         assert self._cache is not None, CacheAccessError
         self._cache.set(key, value)
 
-    def _from_cache(self, key: str) -> Optional[Any]:  # todo: implement memory/disk cache waterfall, maybe?
+    def _from_cache(self, key: str) -> Optional[Any]:
         assert self._cache is not None, CacheAccessError
         return self._cache.get(key)
 
@@ -138,8 +136,8 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
                 while self._is_blocked(key) and time.time() < t0 + self._config.block_timeout:
                     # Some other thread is currently reading the same frame
                     # Wait a bit and try to get from cache again
-                    log.vdebug(f'Cache: wait for {key} to be released...', 5)
-                    time.sleep(0.01)  # todo: DiskCache-level events?
+                    log.debug(f'Cache: wait for {key} to be released...', 5)
+                    time.sleep(0.01)
 
                 value = self._from_cache(key)
                 if isinstance(value, str) and value == _BLOCKED:
@@ -292,7 +290,7 @@ class FeatureSet(object):
     def __init__(self, features: Tuple[Feature, ...]):
         self._features = features
 
-    def get_colors(self) -> Tuple[HsvColor, ...]:
+    def get_colors(self) -> Tuple[HsvColor, ...]:  # todo: this is more of a frontend thing, maybe do it in JS?
         if not hasattr(self, '_colors'):
             guideline_colors = [f._guideline_color() for f in self._features]
             colors: list = []
@@ -399,7 +397,7 @@ class Analyzer(abc.ABC, BackendInstance, RootInstance):
             self._launch()
             self._gather_instances()
         else:
-            raise BackendSetupError(f"{self.__class__.__qualname__} can not be launched.")  # todo: try to be more verbose
+            log.warning(f"{self.__class__.__qualname__} can not be launched.")  # todo: try to be more verbose
 
     @contextmanager
     def caching(self):
