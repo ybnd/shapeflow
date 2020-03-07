@@ -2,7 +2,6 @@
 # cheated off of https://stackoverflow.com/questions/39801718
 
 import os
-import sys
 import time
 import json
 from threading import Thread, Event
@@ -13,48 +12,49 @@ from flask import Flask, jsonify, request, send_from_directory
 import waitress
 
 from isimple.util import suppress_stdout, Singleton
-from isimple.core import get_logger
+from isimple.core import get_logger, cache
 from isimple.core.schema import schema
 from isimple.video import Analyzer, AnalyzerType, backend
 from isimple.history import History, AnalysisModel
 
 log = get_logger('isimple')
 
-# instantiate the app
-app = Flask(__name__, static_url_path='')
-app.config.from_object(__name__)
 
 UI = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ui', 'dist')
-
-
-class ServerThread(Thread, metaclass=Singleton):
-    _host: str
-    _port: int
-
-    def __init__(self, host, port):
-        self._host = host
-        self._port = port
-        super().__init__(daemon=True)
-
-    def run(self):
-        waitress.serve(
-            app,
-            host=self._host,
-            port=self._port,
-        )
 
 
 def respond(*args) -> str:
     return jsonify({'data': [*args]})
 
 
+class ServerThread(Thread, metaclass=Singleton):
+    _app: Flask
+    _host: str
+    _port: int
+
+    def __init__(self, app, host, port):
+        self._app = app
+        self._host = host
+        self._port = port
+        super().__init__(daemon=True)
+
+    def run(self):
+        waitress.serve(
+            self._app,
+            host=self._host,
+            port=self._port,
+        )
+
+
 class Main(object, metaclass=Singleton):
+    _app: Flask
+
     _roots: Dict[AnalyzerType, List[Analyzer]] = {}
     _models: List[AnalysisModel] = []
     _history = History()
 
     _host: str = 'localhost'
-    _port: int = 8951
+    _port: int = 7951
 
     _server: Thread
 
@@ -68,9 +68,62 @@ class Main(object, metaclass=Singleton):
 
     def __init__(self):
         self._roots = {k:[] for k in AnalyzerType().options}
+        self.setup()
+
+    def setup(self):
+        app = Flask(__name__, static_url_path='')
+        app.config.from_object(__name__)
+
+        # Serve webapp
+        @app.route('/', methods=['GET'])
+        def open_gui():
+            return send_from_directory(UI, 'index.html')
+
+        @app.route('/<directory>/<file>', methods=['GET'])
+        def get_file(directory, file):
+            return send_from_directory(os.path.join(UI, directory), file)
+
+        @app.route('/<file>', methods=['GET'])
+        def get_file2(file):
+            return send_from_directory(UI, file)
+
+        # API
+        @app.route('/api/<bt>/<index>/schemas', methods=['GET'])
+        def get_schemas(bt: str, index: int):
+            return respond(self.get_schemas(AnalyzerType(bt), int(index)))
+
+        @app.route('/api/<bt>/init', methods=['GET'])
+        def init(bt: str):
+            return self.add_instance(AnalyzerType(bt))
+
+        @app.route('/api/<bt>/<index>/launch', methods=['GET'])
+        def launch(bt: str, index: int):
+            self.call(AnalyzerType(bt), int(index), 'launch', {})
+            return respond()
+
+        @app.route('/api/<bt>/<index>/<endpoint>', methods=['GET'])
+        def call(bt: str, index: int, endpoint: str):
+            return self.call(AnalyzerType(bt), int(index), endpoint,
+                             request.args.to_dict())
+
+        @app.route('/api/ping')
+        def ping():
+            self._unload.clear()
+            self._ping.set()
+            return respond(True)
+
+        @app.route('/api/unload', methods=['GET', 'POST'])
+        def unload():
+            self._unload.set()
+            return respond(True)
+
+        self._app = app
+
+    def serve(self):
         # Don't show waitress console output (server URL)
         with suppress_stdout():
-            ServerThread(self._host, self._port).start()
+            ServerThread(self._app, self._host, self._port).start()
+
             # Run in separate thread to revent Ctrl+C from closing browser
             #  if no tabs were open before
             Thread(
@@ -78,9 +131,9 @@ class Main(object, metaclass=Singleton):
                     f"http://{self._host}:{self._port}/"
                 )
             ).start()
+
             time.sleep(self._timeout_suppress)  # Wait for Waitress to catch up
 
-    def loop(self):
         while not self._quit.is_set():
             if self._ping.is_set():
                 self._ping.clear()
@@ -92,7 +145,7 @@ class Main(object, metaclass=Singleton):
                     self._quit.set()
                 else:
                     log.debug('Ping received; cancelling.')
-            # time.sleep(self._timeout_loop)
+            time.sleep(self._timeout_loop)
 
     def add_instance(self, type: AnalyzerType) -> str:
         log.debug(f"Add instance of {type}")
@@ -128,52 +181,9 @@ class Main(object, metaclass=Singleton):
         return respond(method(**{k:json.loads(v) for k,v in data.items()}))
 
 
-main = Main()
-
-
-@app.route('/', methods=['GET'])
-def open_gui():
-    return send_from_directory(UI, 'index.html')
-
-@app.route('/<directory>/<file>', methods=['GET'])
-def get_file(directory, file):
-    return send_from_directory(os.path.join(UI, directory), file)
-
-@app.route('/<file>', methods=['GET'])
-def get_file2(file):
-    return send_from_directory(os.path.join(UI), file)
-
-@app.route('/api/<bt>/<index>/schemas', methods=['GET'])
-def get_schemas(bt: str, index: int):
-    return respond(main.get_schemas(AnalyzerType(bt), int(index)))
-
-@app.route('/api/<bt>/init', methods=['GET'])
-def init(bt: str):
-    return main.add_instance(AnalyzerType(bt))
-
-@app.route('/api/<bt>/<index>/launch', methods=['GET'])
-def launch(bt: str, index: int):
-    main.call(AnalyzerType(bt), int(index), 'launch', {})
-    return respond()
-
-@app.route('/api/<bt>/<index>/<endpoint>', methods=['GET'])
-def call(bt: str, index: int, endpoint: str):
-    return main.call(AnalyzerType(bt), int(index), endpoint, request.args.to_dict())
-
-@app.route('/api/ping')
-def ping():
-    main._unload.clear()
-    main._ping.set()
-    return respond(True)
-
-@app.route('/api/unload', methods=['GET', 'POST'])
-def unload():
-    main._unload.set()
-    return respond(True)
-
-
 if __name__ == '__main__':
     # todo: take CLI arguments for address, debug on/off, ...
     # todo: server-level configuration
 
-    main.loop()
+    Main().serve()
+

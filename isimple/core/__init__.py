@@ -11,6 +11,8 @@ import yaml
 from _collections import defaultdict
 from dataclasses import dataclass, field
 
+import diskcache
+
 import logging
 VDEBUG = 9
 logging.addLevelName(VDEBUG, "VDEBUG")
@@ -27,6 +29,9 @@ if not os.path.isdir(ROOTDIR):
         _path = os.path.join(_path, _subdir)
         if not os.path.isdir(_path):
             os.mkdir(_path)
+
+
+MAIN = os.path.join(ROOTDIR, 'main')  # todo: can't pickle load/dump because of threading.Lock, workaround?
 
 
 @dataclass
@@ -166,6 +171,8 @@ if not os.path.isfile(_SETTINGS_FILE):
 else:
     settings = _load_settings(_SETTINGS_FILE)
 _save_settings(settings)
+
+cache = diskcache.Cache(settings.cache.dir, 2**32) # todo: size limit should be in settings.cache
 
 
 class CustomLogger(logging.Logger):

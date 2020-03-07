@@ -2,9 +2,15 @@
   <section class="container">
     <div>
       <div class="test">
-        <a @click="init()" class="button--grey">New VideoAnalyzer</a>
-        <a @click="setAss()" class="button--grey">Send ass</a>
-        <a @click="setGrass()" class="button--grey">Send grass</a>
+        <a
+          class="button--grey"
+          @click="init()" >New VideoAnalyzer</a>
+        <a
+          class="button--grey"
+          @click="setAss()">Send ass</a>
+        <a
+          class="button--grey"
+          @click="setGrass()">Send grass</a>
       </div>
     </div>
   </section>
@@ -14,6 +20,11 @@
 import axios from 'axios'
 
 export default {
+  beforeMount() {
+    window.onload = this.ping;
+    window.onunload = this.unload;
+    setInterval(this.ping, 500);
+  },
   methods: {
     ping () {
       axios.get('/api/ping');
@@ -32,11 +43,6 @@ export default {
     setGrass() {
       axios.get('/api/VideoAnalyzer/0/set_config?config={"design_path":"grass"}');
     },
-  },
-  beforeMount() {
-      window.onload = this.ping;
-      window.onunload = this.unload;
-      setInterval(this.ping, 500);
   },
 }
 </script>
