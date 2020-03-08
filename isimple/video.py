@@ -681,7 +681,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 [], columns=['time'] + [f.name for f in fs.features], index=list(self.frame_numbers())
             )
 
-    # <backend shouldn't care about this>
+    # <backend shouldn't care about this>  todo: in isimple.og, make LegacyVideoAnalyzer(VideoAnalyzer) that implements these
     def connect(self, gui: RootInstance):
         # todo: sanity checks
         self._gui = gui
@@ -707,7 +707,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     def set_config(self, config: dict) -> None:
         with self.lock():
             log.debug(f"Setting VideoAnalyzerConfig to {config}")
-            self._config(**config)  # todo: if video_path in config, launch self.hash_video in a new thread
+            self._config(**config)
 
     #@backend.expose(backend.get_frame)  # todo: would like to have some kind of 'deferred expose' decorator?
     def get_transformed_frame(self, frame_number: int) -> np.ndarray:

@@ -154,7 +154,7 @@ class DesignFileModel(FileModel):
 
 
 class VideoAnalysisModel(NoGetterModel):
-    _analyzer: Optional[VideoAnalyzer]
+    _analyzer: Optional[VideoAnalyzer]  # todo: try to be more VideoAnalyzer-agnostic
     _video: Optional[VideoFileModel]
     _design: Optional[DesignFileModel]
 
@@ -236,7 +236,7 @@ class VideoAnalysisModel(NoGetterModel):
 
         super().store(fields)
 
-    def get_latest_config(self) -> dict:
+    def get_latest_config(self) -> dict:  # todo: also: can actually set the config ~ endpoint
         """ todo: queries!
                     ->  self._video.resolve()
                     ->  query History for analyses with self._video['id']

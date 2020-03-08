@@ -46,7 +46,7 @@ class HistoryRegistry(ImmutableRegistry):
     pass
 
 
-class GuiRegistry(ImmutableRegistry):
+class GuiRegistry(ImmutableRegistry):  # todo: move to isimple.og, should only be used by LegacyVideoAnalyzer(VideoAnalyzer)
     open_setupwindow = Endpoint(Callable[[], None])
     open_transformwindow = Endpoint(Callable[[], None])
     open_filterwindow = Endpoint(Callable[[int], None])
