@@ -4,7 +4,7 @@ from typing import Union, Optional, Tuple
 import numpy as np
 import yaml
 
-from isimple.core import settings
+from isimple import settings
 from isimple.core.backend import AnalyzerConfig, CachingBackendInstanceConfig, \
     FeatureType
 from isimple.core.config import extend, ConfigType, \

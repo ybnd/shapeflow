@@ -12,14 +12,15 @@ from typing import Any, Callable, List, Optional, Union, Tuple, Dict
 import numpy as np
 import pandas as pd
 
+from isimple import settings, get_logger
 from isimple.endpoints import BackendRegistry
-from isimple.core import settings
+
+from isimple.core import RootException, SetupError, RootInstance
 from isimple.maths.colors import HsvColor
 from isimple.util.meta import describe_function
 from isimple.util import Timer, Timing, hash_file
-from isimple.core import get_logger
 from isimple.core.config import Factory, untag, Config
-from isimple.core.common import RootException, SetupError, RootInstance  # todo: RootException should probably be in a separate file
+
 
 
 log = get_logger(__name__)

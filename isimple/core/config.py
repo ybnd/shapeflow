@@ -9,9 +9,8 @@ from functools import partial
 from collections.abc import Iterable
 import abc
 
-from isimple.core import get_logger
+from isimple import get_logger
 from isimple.maths.colors import Color
-from isimple.util.meta import all_attributes
 from isimple.util import ndarray2str, str2ndarray
 
 

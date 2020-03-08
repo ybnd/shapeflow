@@ -9,13 +9,14 @@ import multiprocessing
 
 import numpy as np
 
-from isimple.core.common import RootException
+from isimple import settings, get_logger
+
+from isimple.core import RootException
+from isimple.dbcore import Model, Database, types, MatchQuery
 from isimple.util import hash_file, ndarray2str, str2ndarray
-from isimple.core import settings
-from isimple.core import get_logger
+
 from isimple.video import VideoAnalyzer
 
-from isimple.dbcore import Model, Database, types, MatchQuery
 
 
 log = get_logger(__name__)

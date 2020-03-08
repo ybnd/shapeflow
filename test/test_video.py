@@ -14,7 +14,7 @@ from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     DesignFileHandlerConfig, VideoAnalyzerConfig
 from isimple.video import VideoFileHandler, VideoFileTypeError, \
     CachingBackendInstance, VideoAnalyzer
-from isimple.core import settings
+from isimple import settings
 from isimple.core.config import *
 
 # Get validation frames from test video ~ "raw" OpenCV

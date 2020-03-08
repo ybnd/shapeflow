@@ -9,20 +9,19 @@ import numpy as np
 
 from OnionSVG import OnionSVG, check_svg
 
-from isimple.core import get_logger, settings
-from isimple.core.common import RootInstance
+from isimple import get_logger, settings
+from isimple.core import RootInstance
+
 from isimple.core.backend import BackendInstance, CachingBackendInstance, \
     Handler, BaseVideoAnalyzer, BackendSetupError, AnalyzerType, Feature, FeatureSet, \
     FeatureType, backend
-from isimple.core.config import (
-    extend)
+from isimple.core.config import (extend, __meta_ext__)
 from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     HsvRangeFilterConfig, FilterHandlerConfig, MaskConfig, \
     DesignFileHandlerConfig, VideoAnalyzerConfig, load, dump, dumps, \
     FrameIntervalSetting, normalize_config
 from isimple.core.interface import TransformInterface, FilterConfig, \
     FilterInterface, FilterType, TransformType
-from isimple.core.config import __meta_ext__
 
 from isimple.maths.images import to_mask, crop_mask, area_pixelsum, ckernel
 from isimple.maths.colors import HsvColor
@@ -794,14 +793,14 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
                 self.export()
 
-    def load_config(self, path: str = None):
+    def load_config(self, path: str = None):  # todo: in isimple.og, make LegacyVideoAnalyzer(VideoAnalyzer) that implements these
         """Load video analysis configuration
         """
         if path is None and self.config.video_path:
             path = self.config.video_path
 
         if path is not None:
-            path = os.path.splitext(path)[0] + __meta_ext__
+            path = os.path.splitext(path)[0] + __meta_ext__  # todo:
             assert path is not None
             if os.path.isfile(path):
                 # todo: this is a temporary workaround to not overwrite current configuration ~ .meta file
@@ -819,7 +818,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         else:
             log.warning(f"No path provided to `load_config`; no video file either.")
 
-    def save_config(self, path: str = None):
+    def save_config(self, path: str = None):  # todo: in isimple.og, make LegacyVideoAnalyzer(VideoAnalyzer) that implements these
         """Save video analysis configuration
         """
         if path is None and self.config.video_path:

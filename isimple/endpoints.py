@@ -1,7 +1,7 @@
 from typing import Dict, Optional, List, Callable, Tuple, Type
 import numpy as np
 
-from isimple.core.common import ImmutableRegistry, Endpoint
+from isimple.core import ImmutableRegistry, Endpoint
 from isimple.core.interface import FilterConfig
 from isimple.maths.colors import HsvColor
 

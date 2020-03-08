@@ -20,7 +20,7 @@ from PIL import Image, ImageTk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
-from isimple.core.common import RootInstance, Endpoint
+from isimple.core import RootInstance, Endpoint
 from isimple.endpoints import GuiRegistry, BackendRegistry as backend
 
 from isimple.util import restrict, rotations

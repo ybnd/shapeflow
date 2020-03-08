@@ -2,7 +2,7 @@ import unittest
 
 from typing import Callable
 
-from isimple.core.common import Endpoint, EndpointRegistry, ImmutableRegistry, InstanceRegistry, RootInstance, SetupError
+from isimple.core import Endpoint, EndpointRegistry, ImmutableRegistry, InstanceRegistry, RootInstance, SetupError
 
 
 class EndpointTest(unittest.TestCase):

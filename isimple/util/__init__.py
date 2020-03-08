@@ -12,7 +12,7 @@ from contextlib import contextmanager
 
 import numpy as np
 
-from isimple.core import get_logger
+from isimple import get_logger
 
 log = get_logger(__name__)
 

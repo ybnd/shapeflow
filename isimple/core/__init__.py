@@ -1,223 +1,240 @@
-import os
-import abc
-import glob
-import shutil
-import pathlib
-import re
-import datetime
+from typing import Callable, Dict, List, Tuple, Type
 
-import yaml
+from isimple import get_logger
+from isimple.util.meta import all_attributes, get_overridden_methods
 
-from _collections import defaultdict
-from dataclasses import dataclass, field
-
-import diskcache
-
-import logging
-VDEBUG = 9
-logging.addLevelName(VDEBUG, "VDEBUG")
-
-# Get root directory
-_user_dir = str(pathlib.Path.home())  # todo: where is this on Windows?
-_subdirs = ['.local', 'share', 'isimple']  # todo: does this make sense on windows?
-
-ROOTDIR = os.path.join(_user_dir, os.path.join(*_subdirs))
-_SETTINGS_FILE = os.path.join(ROOTDIR, 'settings.yaml')
-if not os.path.isdir(ROOTDIR):
-    _path = _user_dir
-    for _subdir in _subdirs:
-        _path = os.path.join(_path, _subdir)
-        if not os.path.isdir(_path):
-            os.mkdir(_path)
+log = get_logger(__name__)
 
 
-@dataclass
-class _Settings(abc.ABC):
-    def to_dict(self):
-        d = {k:v or v for k,v in self.__dict__.items()}
-        d.update({k:v.to_dict() for k,v in d.items() if isinstance(v, _Settings)})
-        return d
+class RootException(Exception):
+    msg = ''
+    def __init__(self, *args):
+        #https://stackoverflow.com/questions/49224770/
+        # if no arguments are passed set the first positional argument
+        # to be the default message. To do that, we have to replace the
+        # 'args' tuple with another one, that will only contain the message.
+        # (we cannot do an assignment since tuples are immutable)
+        if not (args):
+            args = (self.msg,)
+
+        super(Exception, self).__init__(*args)
 
 
-@dataclass
-class FormatSettings(_Settings):
-    datetime_format: str = field(default='%Y/%m/%d %H:%M:%S.%f')
-    datetime_format_fs: str = field(default='%Y-%m-%d_%H-%M-%S_%f')
+class SetupError(RootException):
+    pass
 
 
+class Endpoint(object):
+    _name: str
+    _registered: bool
+    _signature: Type[Callable]
 
-_levels: dict = defaultdict(default_factory=lambda: logging.INFO)
-_levels.update({
-    'critical': logging.CRITICAL,
-    'error': logging.ERROR,
-    'warning': logging.WARNING,
-    'info': logging.INFO,
-    'debug': logging.DEBUG,
-    'vdebug': VDEBUG,
-    'notset': logging.NOTSET,
-})
+    def __init__(self, signature: Type[Callable]):
+        self._registered = False
+        if not hasattr(signature, '__args__'):
+            raise SetupError('Cannot define an Endpoint without a signature!')
+        self._signature = signature
 
-
-@dataclass
-class LogSettings(_Settings):  # todo: this class should track whether path exists
-    path: str = field(default=os.path.join(ROOTDIR, 'current.log'))
-    dir: str = field(default=os.path.join(ROOTDIR, 'log'))
-    keep: int = field(default=3)
-    lvl_console: int = field(default=logging.INFO)
-    lvl_file: int = field(default=logging.INFO)
-
-    def to_dict(self):
-        d = super().to_dict()
-        _inverse = {v: k for k, v in _levels.items()}
-        d.update(
-            {k:_inverse[v] for k,v in d.items()
-            if k in ('lvl_console', 'lvl_file')}
-        )
-        return d
-
-
-@dataclass
-class CacheSettings(_Settings):  # todo: this class should track whether path exists
-    dir: str = field(default=os.path.join(ROOTDIR, 'cache'))
-    size_limit: int = field(default=2**32)
-
-
-@dataclass
-class RenderSettings(_Settings):  # todo: this class should track whether path exists
-    dir: str = field(default=os.path.join(ROOTDIR, 'render'))
-
-
-@dataclass()
-class DatabaseSettings(_Settings):
-    path: str = field(default=os.path.join(ROOTDIR, 'history.db'))
-
-
-@dataclass
-class Settings(_Settings):
-    log: LogSettings = field(default=LogSettings())
-    cache: CacheSettings = field(default=CacheSettings())
-    render: RenderSettings = field(default=RenderSettings())
-    format: FormatSettings = field(default=FormatSettings())
-    db: DatabaseSettings = field(default=DatabaseSettings())
-
-    @classmethod
-    def from_dict(cls, settings: dict):
-        for k in ('log', 'cache', 'render', 'format', 'db'):
-            if k not in settings:
-                settings.update({k:{}})
-
-        return cls(
-            log=LogSettings(
-                **{
-                    k: _levels[str(v).lower()]
-                    if k in ('lvl_console', 'lvl_file')
-                    else v for k, v in settings['log'].items()
-                }
-            ),
-            cache=CacheSettings(**settings['cache']),
-            render=RenderSettings(**settings['render']),
-            format=FormatSettings(**settings['format']),
-            db=DatabaseSettings(**settings['db']),
-        )
-
-
-def _load_settings(path: str = _SETTINGS_FILE) -> Settings:  # todo: if there are unexpected fields: warn, don't crash
-    with open(path, 'r') as f:
-        settings = yaml.safe_load(f)
-
-        # Get settings
-        if settings is not None:
-            ini = Settings.from_dict(settings)
+    def compatible(self, method: Callable) -> bool:
+        if hasattr(method, '__annotations__'):
+            args: List = []
+            for arg in self.signature:
+                if arg == type(None):
+                    arg = None
+                args.append(arg)
+            # Don't be too pedantic unannotated None-type return
+            return tuple(method.__annotations__.values()) == tuple(args)
         else:
-            ini = Settings()
+            return False
 
-        # Create directories if needed
-        for dir in (ini.log.dir, ini.render.dir, ini.cache.dir):
-            if not os.path.isdir(dir):
-                os.mkdir(dir)
+    @property
+    def signature(self):
+        return self._signature.__args__
 
-        # Move the previous log file to ROOTDIR/log
-        if os.path.isfile(ini.log.path):
-            shutil.move(
-                ini.log.path,
-                os.path.join(
-                    ini.log.dir,
-                    datetime.datetime.fromtimestamp(
-                        os.path.getmtime(ini.log.path)
-                    ).strftime(ini.format.datetime_format_fs) + '.log'
+    @property
+    def registered(self):
+        return self._registered
+
+    @property
+    def name(self):
+        return self._name
+
+    def add(self, method):
+        if not self.compatible(method):
+            raise ValueError(f"Method '{method.__qualname__}' "
+                             f"is incompatible with endpoint '{self.name}'. \n"
+                             f"{method.__annotations__} vs. {self.signature}")  # todo: traceback to
+
+    def register(self, name: str):
+        self._registered = True
+        self._name = name
+
+
+class EndpointRegistry(object):
+    _entries: List
+
+    def __init__(self):
+        if not hasattr(self, '_entries'):
+            _entries = []
+            for attr, val in self.__class__.__dict__.items():
+                if isinstance(val, Endpoint):
+                    val.register(attr)
+                    _entries.append(val)
+            self._entries = _entries
+
+    def _add_entry(self, entry: Endpoint):
+        self._entries.append(entry)
+
+
+class InstanceRegistry(EndpointRegistry):
+    """This one is global, collects callables that expose endpoints
+    """
+    _entries: List[Endpoint]
+    _callable_mapping: Dict[Endpoint, Callable]
+
+    def __init__(self):
+        super(InstanceRegistry, self).__init__()
+        self._callable_mapping = {}
+
+    def expose(self, endpoint: Endpoint):
+        def wrapper(method):
+            if endpoint in self._callable_mapping:
+                log.debug(   # todo: add traceback
+                    f"Exposing '{method.__qualname__}' at endpoint '{endpoint.name}' will override "
+                    f"previously exposed method '{self._callable_mapping[endpoint].__qualname__}'."
+                )  # todo: keep in mind we're also marking the methods themselves
+            try:
+                self._entries.append(endpoint)
+                endpoint.add(method)
+                try:
+                    method._endpoint = endpoint
+                except AttributeError:
+                    method.__func__._endpoint = endpoint
+                self._callable_mapping.update({endpoint: method})
+            except TypeError:
+                raise TypeError(
+                    f"Cannot expose '{method.__qualname__}' at endpoint '{endpoint.name}'."
+                    f"incompatible signature: {method.__annotations__} vs. {endpoint.signature}"
                 )
-            )
+            return method
+        return wrapper
 
-        # If more files than specified in ini.log.keep, remove the oldest
-        files = glob.glob(os.path.join(ini.log.dir, '*.log'))
-        files.sort(key=lambda f: os.path.getmtime(f), reverse=True)
-        while len(files) > ini.log.keep:
-            os.remove(files.pop())
+    def exposes(self, endpoint: Endpoint):
+        return endpoint in self._callable_mapping
 
-        return ini
-
-
-def _save_settings(settings: _Settings, path: str = _SETTINGS_FILE):
-    with open(path, 'w+') as f:
-        yaml.safe_dump(settings.to_dict(),f)
+    @property
+    def endpoints(self) -> List[Endpoint]:
+        return list(self._callable_mapping.keys())
 
 
-if not os.path.isfile(_SETTINGS_FILE):
-    settings = Settings()
-else:
-    settings = _load_settings(_SETTINGS_FILE)
-_save_settings(settings)
+class ImmutableRegistry(EndpointRegistry):
+    _entries: Tuple[Endpoint, ...]  #type: ignore
+    _endpoints: InstanceRegistry
 
-cache = diskcache.Cache(settings.cache.dir, 2**32) # todo: size limit should be in settings.cache
+    def __init__(self, endpoints: InstanceRegistry = None):
+        _entries = []
+        for attr, val in self.__class__.__dict__.items():
+            if isinstance(val, Endpoint):
+                val.register(attr)
+                _entries.append(val)
 
+        if endpoints is not None:
+            self._endpoints = endpoints
+        else:
+            self._endpoints = InstanceRegistry()
 
-class CustomLogger(logging.Logger):
-    _pattern = re.compile('(\n|\r|\t| [ ]+)')
+        self._entries = tuple(_entries)
+        super(ImmutableRegistry, self).__init__()
 
-    def debug(self, msg, *args, **kwargs):
-        super().debug(self._remove_newlines(msg))
+    def _add_entry(self, entry: Endpoint):
+        raise NotImplementedError
 
-    def info(self, msg, *args, **kwargs):
-        super().info(self._remove_newlines(msg))
+    def expose(self, endpoint: Endpoint):
+        return self._endpoints.expose(endpoint)
 
-    def warning(self, msg, *args, **kwargs):
-        super().warning(self._remove_newlines(msg))
+    def exposes(self, endpoint: Endpoint):
+        return self._endpoints.exposes(endpoint)
 
-    def error(self, msg, *args, **kwargs):
-        super().error(self._remove_newlines(msg))
-
-    def critical(self, msg, *args, **kwargs):
-        super().critical(self._remove_newlines(msg))
-
-    def vdebug(self, message, *args, **kwargs):
-        if self.isEnabledFor(VDEBUG):
-            self.log(
-                VDEBUG, self._remove_newlines(message), *args, **kwargs
-            )
-
-    def _remove_newlines(self, msg: str) -> str:
-        return self._pattern.sub(' ', msg)
+    @property
+    def endpoints(self) -> List[Endpoint]:
+        return self._endpoints.endpoints
 
 
-def get_logger(name: str = __name__, settings: LogSettings = settings.log) -> CustomLogger:
-    if settings is None:
-        settings = LogSettings()
 
-    log = CustomLogger(name)
-    log.setLevel(max([settings.lvl_console, settings.lvl_file]))
+class RootInstance(object):
+    _endpoints: ImmutableRegistry
+    _instances: List
+    _instance_class = object
+    _instance_mapping: Dict[Endpoint, List[Callable]]
 
-    _console_handler = logging.StreamHandler()
-    _console_handler.setLevel(settings.lvl_console)
+    def connect(self, manager):
+        raise NotImplementedError
 
-    _file_handler = logging.FileHandler(settings.path)
-    _file_handler.setLevel(settings.lvl_file)
+    @property
+    def instance_mapping(self):
+        return self._instance_mapping
 
-    _formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    _console_handler.setFormatter(_formatter)
-    _file_handler.setFormatter(_formatter)
+    def _gather_instances(self):  # todo: needs major clean-up
+        log.debug(f'{self.__class__.__name__}: gather nested instances')
+        self._instance_mapping = {}
+        instances = []
+        attributes = [attr for attr in self.__dir__()]   # todo: all_attributes fails here because that's ~ class!
 
-    log.addHandler(_console_handler)
-    log.addHandler(_file_handler)
+        for attr in sorted(attributes):
+            value = getattr(self, attr)
 
-    return log
+            if isinstance(value, self._instance_class) and not isinstance(value, list):
+                instances.append(value)
+            elif isinstance(value, list) and all(isinstance(v, self._instance_class) for v in value):
+                instances += list(value)
+            elif isinstance(value, dict) and all(isinstance(v, self._instance_class) for v in value.values()):
+                instances += [v for v in value.values()]
+
+        for instance in [self] + instances:
+            self._add_instance(instance)
+
+        self._instances = instances
+
+    def _add_instance(self, instance: object):
+        if isinstance(instance, self._instance_class):
+            for attr in [attr for attr in all_attributes(instance)]:
+                value = getattr(instance, attr)  # bound method
+
+                if hasattr(value, '__func__'):
+                    implementations = get_overridden_methods(instance.__class__, getattr(instance.__class__, attr))
+
+                    endpoint = None
+                    for implementation in implementations:  # unbound methods
+                        try:
+                            endpoint = implementation._endpoint  # todo: won't catch endpoints defined at multiple places in the methods inheritance tree
+                        except AttributeError:
+                            pass
+
+                    if endpoint is not None:
+                        if endpoint not in self._instance_mapping:
+                            self._instance_mapping[endpoint] = [value]
+                        else:
+                            if value not in self._instance_mapping[endpoint]:
+                                self._instance_mapping[endpoint].append(value)
+
+        else:
+            pass
+
+    def get(self, endpoint: Endpoint, index: int = None) -> Callable:
+        if endpoint not in self._endpoints._entries:
+            raise SetupError(f"'{endpoint}' is not defined in '{self._endpoints}'.")
+        elif endpoint not in self._instance_mapping:
+            raise SetupError(f"'{self.__class__.__name__}' does not map "
+                             f"'{endpoint.name}' to a bound method.")
+        else:
+            log.vdebug(f"{self.__class__.__name__}: get callback for "
+                     f"endpoint '{endpoint.name}' with index {index}")
+            methods = self._instance_mapping[endpoint]
+            if index is None:
+                index = 0
+                if index+1 < len(methods):
+                    log.vdebug(f"No index specified for endpoint '{endpoint.name}' "
+                                  f"-- defaulting to entry 0 ({len(methods)} in total)")  # todo: traceback
+            elif len(methods) == 1:
+                index = 0  # Ignore the index if only one method is mapped
+            return self._instance_mapping[endpoint][index]

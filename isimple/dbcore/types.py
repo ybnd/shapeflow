@@ -18,7 +18,7 @@
 
 import time
 
-from isimple.core import settings
+from isimple import settings
 from isimple.dbcore import query
 from isimple.util import str2bool
 

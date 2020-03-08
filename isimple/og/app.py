@@ -1,6 +1,6 @@
 import os
 import json
-from isimple.core import ROOTDIR
+from isimple import ROOTDIR
 
 __history_path__ = os.path.join(ROOTDIR, 'history.json')
 

@@ -4,9 +4,11 @@ from typing import Union, Collection, Type, Callable, _GenericAlias  #type: igno
 
 import numpy as np
 from schema import Optional, Schema, Or  #type: ignore
+
+from isimple import get_logger
+
 from isimple.core.config import Config, EnforcedStr
 from isimple.maths.colors import HsvColor
-from isimple.core import get_logger
 from isimple.util.meta import nbases, all_attributes, all_annotations
 
 
