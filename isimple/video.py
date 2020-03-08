@@ -9,10 +9,10 @@ import numpy as np
 
 from OnionSVG import OnionSVG, check_svg
 
-from isimple.core import get_logger
+from isimple.core import get_logger, settings
 from isimple.core.common import RootInstance
 from isimple.core.backend import BackendInstance, CachingBackendInstance, \
-    Handler, Analyzer, BackendSetupError, AnalyzerType, Feature, FeatureSet, \
+    Handler, BaseVideoAnalyzer, BackendSetupError, AnalyzerType, Feature, FeatureSet, \
     FeatureType, backend
 from isimple.core.config import (
     extend)
@@ -152,10 +152,10 @@ class PerspectiveTransform(TransformInterface):
     def validate(self, transform: np.ndarray) -> bool:
         return transform.shape == (3, 3)
 
-    def estimate(self, coordinates: list, shape: tuple) -> dict:
-        log.vdebug(f'Estimating transform ~ coordinates {coordinates} & shape {shape}')
+    def estimate(self, roi: list, shape: tuple) -> dict:
+        log.vdebug(f'Estimating transform ~ coordinates {roi} & shape {shape}')
         return cv2.getPerspectiveTransform(
-            np.float32(coordinates),
+            np.float32(roi),
             np.float32(
                 np.array(  # selection rectangle: bottom left to top right
                     [
@@ -183,8 +183,6 @@ class TransformHandler(BackendInstance, Handler):
     _implementation: TransformInterface
     _implementation_factory = TransformType
     _implementation_class = TransformInterface
-
-    transform_matrix: np.ndarray
 
     _config: TransformHandlerConfig
     _class = TransformHandlerConfig()
@@ -214,19 +212,19 @@ class TransformHandler(BackendInstance, Handler):
                              f"'{self._implementation.__class__.__name__}'")
 
     @backend.expose(backend.estimate_transform)
-    def estimate(self, coordinates: list) -> None:
+    def estimate(self, roi: list) -> None:
         """Estimate the transform matrix from a set of coordinates.
             Coordinates should correspond to the corners of the outline of
             the design, ordered from the bottom left to the top right.
         """
-        self.config(coordinates=coordinates)
-        self.set(self._implementation.estimate(coordinates, self._shape))
+        self.config(roi=roi)
+        self.set(self._implementation.estimate(roi, self._shape))
 
 
     @backend.expose(backend.get_coordinates)
     def get_coordinates(self) -> Optional[list]:
-        if isinstance(self.config.coordinates, list):
-            return self.config.coordinates
+        if isinstance(self.config.roi, list):
+            return self.config.roi
         else:
             return None
 
@@ -443,31 +441,31 @@ class DesignFileHandler(CachingBackendInstance):
         return self._config
 
     def _clear_renders(self):
-        log.debug(f'Clearing render directory {self.config.render_dir}')
-        renders = [f for f in os.listdir(self.config.render_dir)]
+        log.debug(f'Clearing render directory {settings.render.dir}')
+        renders = [f for f in os.listdir(settings.render.dir)]
         for f in renders:
-            os.remove(os.path.join(self.config.render_dir, f))
+            os.remove(os.path.join(settings.render.dir, f))
 
     def _peel_design(self, design_path) -> np.ndarray:
-        if not os.path.isdir(self.config.render_dir):
-            os.mkdir(self.config.render_dir)
+        if not os.path.isdir(settings.render.dir):
+            os.mkdir(settings.render.dir)
         else:
             self._clear_renders()
 
         check_svg(design_path)
         OnionSVG(design_path, dpi=self.config.dpi).peel(
-            'all', to=self.config.render_dir  # todo: should maybe prepend file name to avoid overwriting previous renders?
+            'all', to=settings.render.dir  # todo: should maybe prepend file name to avoid overwriting previous renders?
         )
         print("\n")
 
         overlay = cv2.imread(
-            os.path.join(self.config.render_dir, 'overlay.png')
+            os.path.join(settings.render.dir, 'overlay.png')
         )
 
         return overlay
 
     def _read_masks(self, _) -> Tuple[List[np.ndarray], List[str]]:
-        files = os.listdir(self.config.render_dir)
+        files = os.listdir(settings.render.dir)
         files.remove('overlay.png')
 
         # Catch file names of numbered layers
@@ -479,7 +477,7 @@ class DesignFileHandler(CachingBackendInstance):
 
         for path in files:
             match = pattern.search(os.path.splitext(path)[0])
-            path = os.path.join(self.config.render_dir, path)
+            path = os.path.join(settings.render.dir, path)
 
             if match:
                 matched.update(  # numbered layer
@@ -614,7 +612,7 @@ class Volume_uL(MaskFilterFunction):
 
 
 @extend(AnalyzerType)
-class VideoAnalyzer(Analyzer):
+class VideoAnalyzer(BaseVideoAnalyzer):
     """Main video handling class
             * Load frames from video files
             * Load mask files
@@ -699,7 +697,6 @@ class VideoAnalyzer(Analyzer):
     def pick(self, index: int):
         if self._gui is not None:
             self._gui.get(gui.open_filterwindow)(index)
-
     # </backend shouldn't care about this>
 
     @backend.expose(backend.get_config)
@@ -751,7 +748,7 @@ class VideoAnalyzer(Analyzer):
         S = []
         for k,fs in self._featuresets.items():  # todo: for each feature set -- export data for a separate legend to add to the state plot
             values = []
-            state = np.zeros(frame.shape, dtype=np.uint8)  # BGR state image
+            state = np.zeros(frame.shape, dtype=np.uint8)  # BGR state image  # todo: should only generate state images when explicitly requested
             # todo: may be faster / more memory-efficient to keep state[i] and set it to 0
 
             for feature in fs._features:  # todo: make featureset iterable maybe
@@ -805,6 +802,7 @@ class VideoAnalyzer(Analyzer):
 
         if path is not None:
             path = os.path.splitext(path)[0] + __meta_ext__
+            assert path is not None
             if os.path.isfile(path):
                 # todo: this is a temporary workaround to not overwrite current configuration ~ .meta file
                 #        should be done by setting the fields to None & more in-depth config handling in BackendInstance._configure
@@ -817,6 +815,7 @@ class VideoAnalyzer(Analyzer):
                 config.height = self.config.height
 
                 self._configure(config)
+
         else:
             log.warning(f"No path provided to `load_config`; no video file either.")
 

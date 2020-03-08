@@ -218,7 +218,7 @@ class Model(object):
     """The flex field SQLite table name.
     """
 
-    _fields = {}
+    _fields: dict = {}
     """A mapping indicating available "fixed" fields on this type. The
     keys are field names and the values are `Type` objects.
     """
@@ -228,16 +228,16 @@ class Model(object):
     terms.
     """
 
-    _types = {}
+    _types: dict = {}
     """Optional Types for non-fixed (i.e., flexible and computed) fields.
     """
 
-    _sorts = {}
+    _sorts: dict = {}
     """Optional named sort criteria. The keys are strings and the values
     are subclasses of `Sort`.
     """
 
-    _queries = {}
+    _queries: dict = {}
     """Named queries that use a field-like `name:value` syntax but which
     do not relate to any specific field.
     """

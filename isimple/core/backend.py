@@ -76,9 +76,6 @@ class CachingBackendInstanceConfig(abc.ABC, Config):
     do_cache: bool = field(default=True)
     do_background: bool = field(default=False)
 
-    cache_dir: str = field(default=settings.cache.dir)
-    cache_size_limit: int = field(default=2**32)
-
     block_timeout: float = field(default=0.1)
     cache_consumer: bool = field(default=False)
 
@@ -138,42 +135,34 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
                 while self._is_blocked(key) and time.time() < t0 + self._config.block_timeout:
                     # Some other thread is currently reading the same frame
                     # Wait a bit and try to get from cache again
-                    log.debug(f'Cache: wait for {key} to be released...', 5)
+                    log.debug(f'{self.__class__}: waiting for {key} to be released...', 5)
                     time.sleep(0.01)
 
                 value = self._from_cache(key)
                 if isinstance(value, str) and value == _BLOCKED:
-                    log.warning(f'Timed out waiting for {key}.')
-                    return None
+                    log.warning(f'{self.__class__}: timed out waiting for {key}.')
                 else:
                     log.vdebug(f"Cache: read {key}.")
                     return value
             if not self._config.cache_consumer:
                 # Cache a temporary string to 'block' the key
-                log.vdebug(f"Cache: block {key}.")
+                log.vdebug(f"{self.__class__}: block {key}.")
                 self._block(key)
-                log.vdebug(f"Execute {key}.")
+                log.vdebug(f"{self.__class__}: execute {key}.")
                 value = method(*args, **kwargs)
-                if value is not None:
-                    log.vdebug(f"Cache: write {key}.")
-                    self._to_cache(key, value)
-                    return value
-                else:
-                    log.vdebug(f"Cache: drop {key}.")
-                    self._drop(key)
-                    return None
-            else:
-                return None
-        else:
-            log.vdebug(f"Execute {key}.")
-            return method(*args, **kwargs)
+                log.vdebug(f"{self.__class__}: write {key}.")
+                self._to_cache(key, value)
+                return value
+
+        log.vdebug(f"Execute {key}.")
+        return method(*args, **kwargs)
 
     def __enter__(self):
         if self._config.do_cache:
             log.debug(f'{self.__class__.__qualname__}: opening cache.')
             self._cache = diskcache.Cache(
-                directory=self._config.cache_dir,
-                size_limit=self._config.cache_size_limit,
+                directory=settings.cache.dir,
+                size_limit=settings.cache.size_limit,
             )
             if self._config.do_background:
                 log.debug(f'{self.__class__.__qualname__}: starting background thread.')
@@ -292,7 +281,7 @@ class FeatureSet(object):
     def __init__(self, features: Tuple[Feature, ...]):
         self._features = features
 
-    def get_colors(self) -> Tuple[HsvColor, ...]:  # todo: this is more of a frontend thing, maybe do it in JS?
+    def get_colors(self) -> Tuple[HsvColor, ...]:  # todo: this is more of a frontend thing, should do this in JS
         if not hasattr(self, '_colors'):
             guideline_colors = [f._guideline_color() for f in self._features]
             colors: list = []
@@ -338,7 +327,7 @@ class AnalyzerConfig(abc.ABC, Config):
     design_path: Optional[Union[list, str]] = None
 
 
-class Analyzer(abc.ABC, RootInstance, BackendInstance):
+class BaseVideoAnalyzer(abc.ABC, RootInstance, BackendInstance):
     _instances: List[BackendInstance]
     _instance_class = BackendInstance
     _config: AnalyzerConfig
@@ -354,7 +343,7 @@ class Analyzer(abc.ABC, RootInstance, BackendInstance):
     _design_hash: Optional[str]
 
     def __init__(self, config: AnalyzerConfig = None):
-        super(Analyzer, self).__init__(config)
+        super(BaseVideoAnalyzer, self).__init__(config)
         self._description = ''
         self._lock = threading.Lock()
         self._timer = Timer(self)
@@ -372,26 +361,8 @@ class Analyzer(abc.ABC, RootInstance, BackendInstance):
          raise NotImplementedError
 
     @property
-    @abc.abstractmethod
-    def _video_to_hash(self):
-        raise NotImplementedError
-
-    @property
-    def hash_video(self) -> Optional[str]:
-        if not hasattr(self, '_video_hash') or self._video_hash is None:
-            self._video_hash = hash_file(self._video_to_hash)  # todo: do this in a separate thread, flag to await return or not
-        return self._video_hash
-
-    @property
-    @abc.abstractmethod
-    def _design_to_hash(self):
-        raise NotImplementedError
-
-    @property
-    def hash_design(self) -> Optional[str]:
-        if not hasattr(self, '_video_hash') or self._design_hash is None:
-            self._design_hash = hash_file(self._design_to_hash)  # todo: do this in a separate thread, flag to await return or not
-        return self._design_hash
+    def config(self) -> AnalyzerConfig:
+        return self._config
 
     @abc.abstractmethod
     @backend.expose(backend.analyze)
@@ -464,4 +435,4 @@ class Analyzer(abc.ABC, RootInstance, BackendInstance):
 
 
 class AnalyzerType(Factory):
-    _type = Analyzer
+    _type = BaseVideoAnalyzer

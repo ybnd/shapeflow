@@ -34,13 +34,13 @@ class VideoFileHandlerConfig(CachingBackendInstanceConfig):
 class TransformHandlerConfig(Config):
     type: Union[TransformType, str] = field(default='')
     matrix: Union[np.ndarray,str] = field(default=np.eye(3))
-    coordinates: Union[list, str] = field(default_factory=list)
+    roi: Union[np.ndarray, str] = field(default_factory=lambda: np.array([]))
 
     def __post_init__(self):
         self.type = self.resolve(self.type, TransformType)
         self.matrix = self.resolve(self.matrix, np.ndarray)
-        if len(self.coordinates) > 0:
-            self.coordinates = self.resolve(self.coordinates, np.ndarray).tolist()
+        if len(self.roi) > 0:
+            self.roi = self.resolve(self.roi, np.ndarray).tolist()
 
 
 @extend(ConfigType)
@@ -82,7 +82,6 @@ class MaskConfig(Config):
 @extend(ConfigType)
 @dataclass
 class DesignFileHandlerConfig(CachingBackendInstanceConfig):
-    render_dir: str = field(default=settings.render.dir)
     keep_renders: bool = field(default=False)
     dpi: int = field(default=400)
 
@@ -139,8 +138,12 @@ def normalize_config(d: dict) -> dict:
             d[CLASS] = VideoAnalyzerConfig.__name__
 
     def normalizing_to(version):
-        log.info(f"Normalizing configuration (from v{d[VERSION]} to v{version})")
+        log.debug(f"Normalizing configuration (from v{d[VERSION]} to v{version})")
 
+    # VideoAnalyzerConfig is the only class that should be deserialized!
+    #    -> other classes are contained within it or should only be used
+    #       internally. Otherwise, this function would have to be a lot
+    #       more complex.
     if d[CLASS] == VideoAnalyzerConfig.__name__:
         if before_version(d[VERSION], '0.2.1'):
             normalizing_to('0.2.1')
@@ -154,16 +157,31 @@ def normalize_config(d: dict) -> dict:
             for m in d['masks']:
                 if 'c0' in m['filter']['data']:
                     m['filter']['data']['c0'] = str(
-                        HsvColor(*make_tuple(m['filter']['data']['c0']))
-                    )
+                        HsvColor(*make_tuple(m['filter']['data']['c0'])))
                 if 'c1' in m['filter']['data']:
                     m['filter']['data']['c1'] = str(
-                        HsvColor(*make_tuple(m['filter']['data']['c1']))
-                    )
+                        HsvColor(*make_tuple(m['filter']['data']['c1'])))
                 if 'radius' in m['filter']['data']:
                     m['filter']['data']['radius'] = str(
-                        HsvColor(*make_tuple(m['filter']['data']['radius']))
-                    )
+                        HsvColor(*make_tuple(m['filter']['data']['radius'])))
+        if before_version(d[VERSION], '0.3.1'):
+            normalizing_to('0.3.1')
+            # Rename TransformHandlerConfig 'coordinates' to 'roi'
+            if 'transform' in d:
+                if 'coordinates' in d['transform']:
+                    d['transform']['roi'] = d['transform'].pop('coordinates')
+        if before_version(d[VERSION], '0.3.2'):
+            normalizing_to('0.3.2')
+            # Remove some fields that should be in the global settings
+            to_remove = ('cache_dir', 'cache_size_limit', 'render_dir')
+            if 'video' in d:
+                for k in to_remove:
+                    d['video'].pop(k, None)
+            if 'design' in d:
+                for k in to_remove:
+                    d['design'].pop(k, None)
+    else:
+        raise NotImplementedError
 
     # Deal with non-standard fields
     config_type = ConfigType(d[CLASS]).get()

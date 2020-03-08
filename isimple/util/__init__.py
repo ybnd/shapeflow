@@ -1,10 +1,12 @@
 import os
 import sys
 import time
+import json
 from distutils.util import strtobool
 from functools import wraps, lru_cache
 from typing import Any, Generator, Optional
 from collections import namedtuple
+import multiprocessing
 import hashlib
 from contextlib import contextmanager
 
@@ -31,6 +33,14 @@ def as_string(value: Any) -> str:
         return value.decode('utf-8', 'ignore')
     else:
         return str(value)
+
+
+def ndarray2str(array: np.ndarray) -> str:
+    return str(json.dumps(array.tolist()))
+
+
+def str2ndarray(string: str) -> np.ndarray:
+    return np.array(json.loads(str(string)))
 
 
 def restrict(val, minval, maxval):
@@ -135,22 +145,26 @@ def after_version(version_a, version_b):
 
 
 @lru_cache(maxsize=256)
-def hash_file(path: str = None, blocksize: int = 1024) -> Optional[str]:
+def hash_file(path: str = None, blocksize: int = 1024) -> Optional[multiprocessing.Queue]:
     if not path is None:
         if os.path.isfile:
-            m = hashlib.md5()
-            with open(path, 'rb') as f:
-                while True:
-                    buf = f.read(blocksize)
-                    if not buf:
-                        break
-                    m.update(buf)
-            return m.hexdigest()
+            q: multiprocessing.Queue = multiprocessing.Queue()
+            def _hash_file():
+                nonlocal q
+                m = hashlib.sha1()
+                with open(path, 'rb') as f:
+                    while True:
+                        buf = f.read(blocksize)
+                        if not buf:
+                            break
+                        m.update(buf)
+                    q.put(m.hexdigest())
+            multiprocessing.Process(target=_hash_file, daemon=True).start()
+            return q
         else:
             return None
     else:
         return None
-
 
 @contextmanager
 def suppress_stdout():

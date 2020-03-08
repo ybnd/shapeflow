@@ -3,6 +3,7 @@ from copy import deepcopy
 
 import os
 import time
+import numpy as np
 import cv2
 from threading import Thread
 import shutil
@@ -13,6 +14,7 @@ from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     DesignFileHandlerConfig, VideoAnalyzerConfig
 from isimple.video import VideoFileHandler, VideoFileTypeError, \
     CachingBackendInstance, VideoAnalyzer
+from isimple.core import settings
 from isimple.core.config import *
 
 # Get validation frames from test video ~ "raw" OpenCV
@@ -175,7 +177,7 @@ class VideoAnalyzerTest(FrameTest):
         # self.assertEqual(self.config, config)  # todo: replace with a less problematic assertion
 
         self.assertListEqual(
-            sorted(list(os.listdir(va._config.design.render_dir))),
+            sorted(list(os.listdir(settings.render.dir))),
             sorted([
                 '1 - WLC_SIMPLE.png',
                 '2 - PM_SIMPLE.png',
@@ -213,7 +215,7 @@ class VideoAnalyzerTest(FrameTest):
         # self.assertEqual(self.config, config)  # todo: replace with a less problematic assertion
 
         self.assertListEqual(
-            sorted(list(os.listdir(va.design._config.render_dir))),
+            sorted(list(os.listdir(settings.render.dir))),
             sorted([
                 '1 - WLC_SIMPLE.png',
                 '2 - PM_SIMPLE.png',

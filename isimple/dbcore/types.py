@@ -127,7 +127,7 @@ class Integer(Type):
     """
     sql = u'INTEGER'
     query = query.NumericQuery
-    model_type = int
+    model_type = int  # type: ignore
 
 
 class PaddedInt(Integer):
@@ -176,7 +176,7 @@ class Float(Type):
     """
     sql = u'REAL'
     query = query.NumericQuery
-    model_type = float
+    model_type = float  # type: ignore
 
     def __init__(self, digits=1):
         self.digits = digits
@@ -203,7 +203,7 @@ class Boolean(Type):
     """
     sql = u'INTEGER'
     query = query.BooleanQuery
-    model_type = bool
+    model_type = bool  # type: ignore
 
     def format(self, value):
         return str(bool(value))

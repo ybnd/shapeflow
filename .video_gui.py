@@ -10,12 +10,14 @@ def analysis(config=None):
     h = History()
     va = VideoAnalyzer(config)
     vm = h.add_analysis(va)
-
     VideoAnalyzerGui(va)
 
     # Open setup window to gather arguments if necessary
     if not va.can_launch():
         va.configure()  # todo: make sure that this waits on the window (was implemented in ScriptWindow iirc?)
+
+        # Store updated configuration in the database
+        vm.store()
 
     # Once we have all arguments, launch the backend
     va.launch()
@@ -30,6 +32,8 @@ def analysis(config=None):
         # Perform the video analysis & save the results
         va.analyze()
 
+    # Store everything in the database
+    vm.commit_files()
     vm.store()
 
 
@@ -39,3 +43,4 @@ if __name__ == '__main__':
             design = DesignFileHandlerConfig(keep_renders=True)
         )
     )
+

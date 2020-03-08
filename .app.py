@@ -15,8 +15,8 @@ from isimple.util import suppress_stdout, Singleton
 from isimple.core import get_logger
 from isimple.core.schema import schema
 from isimple.core.streaming import JpegStreamer
-from isimple.video import Analyzer, AnalyzerType, backend
-from isimple.history import History, AnalysisModel
+from isimple.video import VideoAnalyzer, AnalyzerType, backend
+from isimple.history import History, VideoAnalysisModel
 
 log = get_logger('isimple')
 
@@ -50,9 +50,9 @@ class ServerThread(Thread, metaclass=Singleton):
 class Main(object, metaclass=Singleton):
     _app: Flask
 
-    _roots: Dict[str, Analyzer] = {}
-    _models: Dict[str, AnalysisModel] = {}
-    _streams: Dict[str, Dict[JpegStreamer]] = {}
+    _roots: Dict[str, VideoAnalyzer] = {}
+    _models: Dict[str, VideoAnalysisModel] = {}
+    _streams: Dict[str, Dict[str, JpegStreamer]] = {}
     _history = History()
 
     _host: str = 'localhost'
@@ -167,8 +167,9 @@ class Main(object, metaclass=Singleton):
 
     def cleanup(self):
         self._server.join()
-        for stream in self._streams.values():
-            stream.stop()
+        for streams in self._streams.values():
+            for stream in streams.values():
+                stream.stop()
 
     def add_instance(self, id: str, type: AnalyzerType = None) -> bool:
         if type is None:

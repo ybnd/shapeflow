@@ -31,9 +31,6 @@ if not os.path.isdir(ROOTDIR):
             os.mkdir(_path)
 
 
-MAIN = os.path.join(ROOTDIR, 'main')  # todo: can't pickle load/dump because of threading.Lock, workaround?
-
-
 @dataclass
 class _Settings(abc.ABC):
     def to_dict(self):
@@ -46,8 +43,6 @@ class _Settings(abc.ABC):
 class FormatSettings(_Settings):
     datetime_format: str = field(default='%Y/%m/%d %H:%M:%S.%f')
     datetime_format_fs: str = field(default='%Y-%m-%d_%H-%M-%S_%f')
-
-    db_list_separator: str = field(default='\n')
 
 
 
@@ -84,6 +79,7 @@ class LogSettings(_Settings):  # todo: this class should track whether path exis
 @dataclass
 class CacheSettings(_Settings):  # todo: this class should track whether path exists
     dir: str = field(default=os.path.join(ROOTDIR, 'cache'))
+    size_limit: int = field(default=2**32)
 
 
 @dataclass
@@ -125,7 +121,7 @@ class Settings(_Settings):
         )
 
 
-def _load_settings(path: str = _SETTINGS_FILE) -> Settings:
+def _load_settings(path: str = _SETTINGS_FILE) -> Settings:  # todo: if there are unexpected fields: warn, don't crash
     with open(path, 'r') as f:
         settings = yaml.safe_load(f)
 

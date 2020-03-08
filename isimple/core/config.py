@@ -12,11 +12,12 @@ import abc
 from isimple.core import get_logger
 from isimple.maths.colors import Color
 from isimple.util.meta import all_attributes
+from isimple.util import ndarray2str, str2ndarray
 
 
 log = get_logger(__name__)
 
-__version__: str = '0.3'  # todo: since this version is "global", maybe should merge all config stuff into isimple.core.config after all?
+__version__: str = '0.3.2'  # todo: since this version is "global", maybe should merge all config stuff into isimple.core.config after all?
 
 # Metadata tags
 VERSION: str = 'config_version'
@@ -188,7 +189,7 @@ class Config(object):
                 elif issubclass(type, Color):
                     val = type.from_str(val)
                 elif type == np.ndarray:
-                    val = Config.__json2ndarray__(val)
+                    val = str2ndarray(val)
             elif isinstance(val, list):
                 if type == np.ndarray:
                     val = np.array(val)
@@ -230,7 +231,7 @@ class Config(object):
                 return str(obj)
             if isinstance(obj, np.ndarray):
                 # Convert to str to bypass YAML list representation
-                return Config.__ndarray2json__(obj)
+                return ndarray2str(obj)
             else:
                 # Assume that `obj` is serializable
                 return obj
@@ -259,19 +260,10 @@ class Config(object):
 
         return output
 
-
     def tag(self, d: dict) -> dict:
         d[VERSION] = __version__
         d[CLASS] = self.__class__.__name__
         return d
-
-    @staticmethod
-    def __ndarray2json__(array: np.ndarray) -> str:
-        return str(json.dumps(array.tolist()))
-
-    @staticmethod
-    def __json2ndarray__(string: str) -> np.ndarray:
-        return np.array(json.loads(str(string)))
 
 
 class ConfigType(Factory):

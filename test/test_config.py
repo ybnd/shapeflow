@@ -1,5 +1,7 @@
 import unittest
 
+import os
+
 from isimple.video import *
 from isimple.core.config import EnforcedStr, Factory, dataclass, Config
 from isimple.core.interface import FilterType
