@@ -20,11 +20,11 @@ from PIL import Image, ImageTk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 from matplotlib.figure import Figure
 
-import og.app
 from isimple.core.common import RootInstance, Endpoint
 from isimple.endpoints import GuiRegistry, BackendRegistry as backend
 
 from isimple.util import restrict, rotations
+import isimple.og.app
 
 try:
     __monitor_w__ = min(m.width for m in screeninfo.get_monitors())
@@ -69,7 +69,7 @@ class OG_ScriptWindow(tk.Tk):
                     sys.exit()
 
 
-class OG_FileSelectWindow(og.app.HistoryApp):
+class OG_FileSelectWindow(isimple.og.app.HistoryApp):
     """
         - Select video & overlay files
         - Edit script parameters (dt, ...)
@@ -1238,7 +1238,7 @@ class SetupWindow(guiWindow):
         super().__init__()
 
     def open(self):
-        og.gui.OG_FileSelectWindow(self)
+        isimple.og.gui.OG_FileSelectWindow(self)
 
 
 class TransformWindow(guiWindow):
@@ -1264,7 +1264,7 @@ class TransformWindow(guiWindow):
         super().__init__()
 
     def open(self):
-        og.gui.OG_OverlayAlignWindow(self)
+        isimple.og.gui.OG_OverlayAlignWindow(self)
 
 
 class FilterWindow(guiWindow):
@@ -1295,7 +1295,7 @@ class FilterWindow(guiWindow):
         super().__init__()
 
     def open(self):
-        og.gui.OG_MaskFilterWindow(self)
+        isimple.og.gui.OG_MaskFilterWindow(self)
 
 
 class ProgressWindow(guiWindow):
@@ -1317,7 +1317,7 @@ class ProgressWindow(guiWindow):
         super().__init__()
 
     def open(self):
-        self.pw = og.gui.OG_ProgressWindow(self)
+        self.pw = isimple.og.gui.OG_ProgressWindow(self)
 
     @gui.expose(gui.update_progresswindow)
     def update(self, time: float, values: list, state: np.ndarray, frame: np.ndarray) -> None:

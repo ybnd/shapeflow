@@ -131,7 +131,7 @@ class VideoFileModel(FileModel):
         'path': types.STRING,
         'added': types.DATE,
     }
-    _search_fields = {'path', 'hash'}
+    _search_fields = ('path', 'hash')
     LIST_SEPARATOR = '\n'
 
     def _check_file(self):
@@ -147,7 +147,7 @@ class DesignFileModel(FileModel):
         'path': types.STRING,
         'added': types.DATE,
     }
-    _search_fields = {'path', 'hash'}
+    _search_fields = ('path', 'hash')
 
     def _check_file(self):
         return super()._check_file()  # todo: override with design-specific stuff

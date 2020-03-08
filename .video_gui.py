@@ -1,8 +1,7 @@
 from isimple.config import DesignFileHandlerConfig, VideoAnalyzerConfig
 from isimple.video import VideoAnalyzer
 from isimple.history import History
-import asyncio
-from og.gui import VideoAnalyzerGui
+from isimple.og.gui import VideoAnalyzerGui
 
 
 def analysis(config=None):
