@@ -12,6 +12,7 @@ from typing import Any, Callable, List, Optional, Union, Tuple, Dict
 import numpy as np
 import pandas as pd
 
+from isimple.endpoints import BackendRegistry
 from isimple.core import settings
 from isimple.maths.colors import HsvColor
 from isimple.util.meta import describe_function
@@ -22,6 +23,7 @@ from isimple.core.common import RootException, SetupError, RootInstance  # todo:
 
 
 log = get_logger(__name__)
+backend = BackendRegistry()
 
 
 class BackendSetupError(SetupError):
@@ -361,7 +363,8 @@ class Analyzer(abc.ABC, RootInstance, BackendInstance):
         self._hash_design = None
 
     @abc.abstractmethod
-    def _can_launch(self):
+    @backend.expose(backend.can_launch)
+    def can_launch(self) -> bool:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -391,12 +394,14 @@ class Analyzer(abc.ABC, RootInstance, BackendInstance):
         return self._design_hash
 
     @abc.abstractmethod
-    def analyze(self):
-        pass
+    @backend.expose(backend.analyze)
+    def analyze(self) -> None:
+        raise NotImplementedError
 
-    def launch(self):
+    @backend.expose(backend.launch)
+    def launch(self) -> None:
         with self.lock():
-            if self._can_launch():
+            if self.can_launch():
                 self._launch()
                 self._gather_instances()
             else:

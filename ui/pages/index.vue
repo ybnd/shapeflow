@@ -4,13 +4,15 @@
       <div class="test">
         <a
           class="button--grey"
-          @click="init()" >New VideoAnalyzer</a>
+          @click="init();">New analysis
+        </a>
+        <a
+          class="button--green"
+          @click="launch();">Launch
+        </a>
         <a
           class="button--grey"
-          @click="setAss()">Send ass</a>
-        <a
-          class="button--grey"
-          @click="setGrass()">Send grass</a>
+          @click="list();">List</a>
       </div>
     </div>
   </section>
@@ -20,28 +22,32 @@
 import axios from 'axios'
 
 export default {
+  computed: {
+    nothing () {return null},
+  },
   beforeMount() {
     window.onload = this.ping;
     window.onunload = this.unload;
     setInterval(this.ping, 500);
   },
   methods: {
-    ping () {
+    async init (id = '') {
+      await this.$store.commit('analyzers/init', id);
+    },
+    launch (id = '') {
+      this.$store.commit('analyzers/launch', id);
+    },
+    list () {
+      this.$store.commit('analyzers/list');
+    },
+
+    ping() {
       axios.get('/api/ping');
     },
     unload() {
       // Called ~ onunload callback; axios doesn't work there.
       // todo: Only tested on Linux+Firefox for now
       navigator.sendBeacon('/api/unload', '');
-    },
-    init() {
-      axios.get('/api/VideoAnalyzer/init');
-    },
-    setAss() {
-      axios.get('/api/VideoAnalyzer/0/set_config?config={"video_path":"ass"}');
-    },
-    setGrass() {
-      axios.get('/api/VideoAnalyzer/0/set_config?config={"design_path":"grass"}');
     },
   },
 }

@@ -13,7 +13,7 @@ from isimple.core import get_logger
 from isimple.core.common import RootInstance
 from isimple.core.backend import BackendInstance, CachingBackendInstance, \
     Handler, Analyzer, BackendSetupError, AnalyzerType, Feature, FeatureSet, \
-    FeatureType
+    FeatureType, backend
 from isimple.core.config import (
     extend)
 from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
@@ -32,7 +32,7 @@ from isimple.endpoints import GuiRegistry as gui
 from isimple.util import frame_number_iterator, hash_file, timed
 
 log = get_logger(__name__)
-backend = BackendRegistry()
+
 
 
 class VideoFileTypeError(BackendSetupError):
@@ -641,10 +641,11 @@ class VideoAnalyzer(Analyzer):
     def config(self) -> VideoAnalyzerConfig:
         return self._config
 
-    def _can_launch(self):
-        if not (self.config.video_path is None and self.config.design_path is None):
-            return os.path.isfile(self.config.video_path) \
-                   and os.path.isfile(self.config.design_path)
+    def can_launch(self) -> bool:
+        if self.config.video_path is not None and self.config.design_path is not None:
+            return os.path.isfile(self.config.video_path) and os.path.isfile(self.config.design_path)
+        else:
+            return False
 
     def _launch(self):
         self.load_config()
@@ -709,7 +710,7 @@ class VideoAnalyzer(Analyzer):
     def set_config(self, config: dict) -> None:
         with self.lock():
             log.debug(f"Setting VideoAnalyzerConfig to {config}")
-            self._config(**config)
+            self._config(**config)  # todo: if video_path in config, launch self.hash_video in a new thread
 
     #@backend.expose(backend.get_frame)  # todo: would like to have some kind of 'deferred expose' decorator?
     def get_transformed_frame(self, frame_number: int) -> np.ndarray:
@@ -862,9 +863,3 @@ class VideoAnalyzer(Analyzer):
     @property
     def _design_to_hash(self):
         return self.config.design_path
-
-
-
-@extend(AnalyzerType)
-class MultiVideoAnalyzer(Analyzer):
-    pass

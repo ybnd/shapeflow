@@ -14,7 +14,7 @@ def analysis(config=None):
     VideoAnalyzerGui(va)
 
     # Open setup window to gather arguments if necessary
-    if not va._can_launch():
+    if not va.can_launch():
         va.configure()  # todo: make sure that this waits on the window (was implemented in ScriptWindow iirc?)
 
     # Once we have all arguments, launch the backend

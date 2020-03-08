@@ -3,7 +3,7 @@ from inspect import _empty  # type: ignore
 from typing import Union, Collection, Type, Callable, _GenericAlias  #type: ignore
 
 import numpy as np
-from schema import Optional, Schema  #type: ignore
+from schema import Optional, Schema, Or  #type: ignore
 from isimple.core.config import Config, EnforcedStr
 from isimple.maths.colors import HsvColor
 from isimple.core import get_logger
@@ -44,10 +44,8 @@ def resolve_type_to_most_specific(t: _GenericAlias) -> _GenericAlias:
         return t
 
 
-def _type_to_schema(t, container=None, k=None) -> dict:  # todo: how to type t here?
+def _type_to_schema(t, k=None) -> dict:  # todo: how to type t here?
     # todo: We're assuming everything is Optional here! This is NOT always the case for return annotations!
-    if container is None:
-        container = t
     if k is None:
         try:
             k = t.__qualname__
@@ -56,15 +54,13 @@ def _type_to_schema(t, container=None, k=None) -> dict:  # todo: how to type t h
 
     sk = Optional(k)
 
-    print(t)
-
     if isinstance(t, _GenericAlias):  # todo: is there a way to check this without _GenericAlias?
         # Extract typing info
         if hasattr(t, '__origin__'):
             if t.__origin__ == tuple:
                 if t.__args__[1] == Ellipsis:
                     return {
-                        sk: [Schema(_schemify(t.__args__[0]), name=k, as_reference=True)]
+                        sk: [Schema(_schemify(t.__args__[0], k), name=k, as_reference=True)]
                     }
                 else:
                     raise NotImplementedError(f"Tuple ~ {t.__args__}")
@@ -82,7 +78,7 @@ def _type_to_schema(t, container=None, k=None) -> dict:  # todo: how to type t h
             raise NotImplementedError(t)
     elif issubclass(t, Config):
         return {
-            sk: Schema(_schemify(t), name=k, as_reference=True),
+            sk: Schema(_schemify(t, k), name=k, as_reference=True),
         }
     elif t == HsvColor:
         return {
@@ -92,46 +88,32 @@ def _type_to_schema(t, container=None, k=None) -> dict:  # todo: how to type t h
         return {
             sk: t,
         }
-    elif t == np.ndarray:  # todo: consider using BSON instead!
+    elif t == np.ndarray:  # Covers small numpy arrays; transform matrix, coordinates
         return {
-            sk: {
-                'type': 'string',
-                'contentEncoding': 'base64',
-                'contentMediaType': 'application/x-numpy',
-            },
+            sk: str
         }
     elif issubclass(t, EnforcedStr):
-        log.warning(f"{container.__qualname__} property '{k}' is an EnforcedStr, "
-                    f"but its available options are not included in the schema.")
         return {
-            sk: str,  # todo: integrate options into schema
-        }
-    elif t == dict:
-        log.warning(
-            f"{container.__qualname__} property '{k}' is a {t.__qualname__}, "
-            f"consider making it a subclass of isimple.core.config.config instead.")
-        return {
-            sk: t
-        }
-    elif t == list:
-        log.warning(
-            f"{container.__qualname__} property '{k}' is a {t.__qualname__}, "
-            f"consider making it more specific.")
-        return {
-            sk: t,
+            sk: Or(*t().options, 'default'),
         }
     elif t == tuple:
         log.warning(
-            f"{container.__qualname__} property '{k}' is a {t.__qualname__}, "
+            f"Property '{k}' is a {t.__qualname__}, "
             f"consider making it more specific.")
         return {
             sk: t,
         }
+    elif t == _empty:
+        return {
+            sk: None,
+        }
     else:
-        raise NotImplementedError(t)
+        return {
+            sk: t,
+        }
 
 
-def _schemify(t: type) -> dict:
+def _schemify(t: type, k: str = None) -> dict:
     try:
         if issubclass(t, Config):
             schema = {}
@@ -143,15 +125,14 @@ def _schemify(t: type) -> dict:
                     at = type(getattr(t, a))
                 schema.update(
                     _type_to_schema(
-                        resolve_type_to_most_specific(at),
-                        t, a
+                        resolve_type_to_most_specific(at), a
                     )
                 )
             return schema
         else:
-            return _type_to_schema(t, t, t)
+            return _type_to_schema(t, k)
     except TypeError:
-        return _type_to_schema(t, t, t)
+        return _type_to_schema(t, k)
 
 
 def get_config_schema(config: Type[Config]) -> Schema:
@@ -168,7 +149,7 @@ def get_method_schema(method: Callable) -> Schema:
                             f"the type of argument '{a}' is not annotated.")
         else:
             schema.update(
-                _type_to_schema(t, method, a)
+                _type_to_schema(t, a)
             )
     return Schema(schema)
 
@@ -176,7 +157,7 @@ def get_method_schema(method: Callable) -> Schema:
 def get_return_schema(method: Callable) -> Schema:
     schema: dict = {'return': []}
     if inspect.signature(method).return_annotation is not None:
-        for v in _type_to_schema(inspect.signature(method).return_annotation, method, 'return').values():
+        for v in _type_to_schema(inspect.signature(method).return_annotation, 'return').values():
             schema['return'].append(v)
         return Schema(schema)
     else:

@@ -5,10 +5,10 @@ import os
 import time
 import json
 from threading import Thread, Event
-from typing import Dict, List
+from typing import Dict, List, Any
 import webbrowser
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, Response
 import waitress
 
 from isimple.util import suppress_stdout, Singleton
@@ -24,7 +24,7 @@ UI = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ui', 'dist')
 
 
 def respond(*args) -> str:
-    return jsonify({'data': [*args]})
+    return jsonify(*args)
 
 
 class ServerThread(Thread, metaclass=Singleton):
@@ -49,8 +49,8 @@ class ServerThread(Thread, metaclass=Singleton):
 class Main(object, metaclass=Singleton):
     _app: Flask
 
-    _roots: Dict[AnalyzerType, List[Analyzer]] = {}
-    _models: List[AnalysisModel] = []
+    _roots: Dict[str, Analyzer] = {}
+    _models: Dict[str, AnalysisModel] = {}
     _history = History()
 
     _host: str = 'localhost'
@@ -67,10 +67,6 @@ class Main(object, metaclass=Singleton):
     _timeout_loop = 0.1
 
     def __init__(self):
-        self._roots = {k:[] for k in AnalyzerType().options}
-        self.setup()
-
-    def setup(self):
         app = Flask(__name__, static_url_path='')
         app.config.from_object(__name__)
 
@@ -87,25 +83,7 @@ class Main(object, metaclass=Singleton):
         def get_file2(file):
             return send_from_directory(UI, file)
 
-        # API
-        @app.route('/api/<bt>/<index>/schemas', methods=['GET'])
-        def get_schemas(bt: str, index: int):
-            return respond(self.get_schemas(AnalyzerType(bt), int(index)))
-
-        @app.route('/api/<bt>/init', methods=['GET'])
-        def init(bt: str):
-            return self.add_instance(AnalyzerType(bt))
-
-        @app.route('/api/<bt>/<index>/launch', methods=['GET'])
-        def launch(bt: str, index: int):
-            self.call(AnalyzerType(bt), int(index), 'launch', {})
-            return respond()
-
-        @app.route('/api/<bt>/<index>/<endpoint>', methods=['GET'])
-        def call(bt: str, index: int, endpoint: str):
-            return self.call(AnalyzerType(bt), int(index), endpoint,
-                             request.args.to_dict())
-
+        # API: general
         @app.route('/api/ping')
         def ping():
             self._unload.clear()
@@ -117,6 +95,36 @@ class Main(object, metaclass=Singleton):
             self._unload.set()
             return respond(True)
 
+        # API: working with Analyzer instances
+        @app.route('/api/init/<id>', methods=['GET'])
+        def init(id: str):  # todo: also add a model instance to self._models
+            if 'type' in request.args.to_dict():
+                bt = request.args.to_dict()['type']
+            else:
+                bt = None
+
+            return respond(self.add_instance(id, AnalyzerType(bt)))
+
+        @app.route('/api/list', methods=['GET'])
+        def list():
+            return respond([k for k in self._roots.keys()])
+
+        @app.route('/api/<id>/schemas', methods=['GET'])
+        def get_schemas(id: str):
+            return respond(self.get_schemas(str(id)))
+
+        @app.route('/api/<id>/launch', methods=['GET'])
+        def launch(id: str):
+            respond(self.call(str(id), 'launch', {}))
+
+        @app.route('/api/<id>/can_launch', methods=['GET'])
+        def can_launch(id: str):
+            return respond(self.call(str(id), 'can_launch', {}))
+
+        @app.route('/api/<id>/call/<endpoint>', methods=['GET'])
+        def call(id: str, endpoint: str):
+            return respond(self.call(str(id), endpoint, request.args.to_dict()))
+
         self._app = app
 
     def serve(self):
@@ -125,7 +133,7 @@ class Main(object, metaclass=Singleton):
             ServerThread(self._app, self._host, self._port).start()
 
             # Run in separate thread to revent Ctrl+C from closing browser
-            #  if no tabs were open before
+            #  if no tabs were open before  todo: doesn't seem to work anymore?
             Thread(
                 target=lambda: webbrowser.open(
                     f"http://{self._host}:{self._port}/"
@@ -147,43 +155,38 @@ class Main(object, metaclass=Singleton):
                     log.debug('Ping received; cancelling.')
             time.sleep(self._timeout_loop)
 
-    def add_instance(self, type: AnalyzerType) -> str:
-        log.debug(f"Add instance of {type}")
+    def add_instance(self, id: str, type: AnalyzerType = None) -> bool:
+        if type is None:
+            type = AnalyzerType()
+        log.debug(f"Adding instance '{id}' (type: {type})")
         analyzer = type.get()()
-        self._roots[type].append(analyzer)
-        self._models.append(self._history.add_analysis(analyzer))
-        return respond(
-            len(self._roots[type]) - 1
-        )
+        self._roots[str(id)] = analyzer
+        self._models[str(id)] = self._history.add_analysis(analyzer)
+        return True
 
-    def get_schemas(self, type: AnalyzerType = None, index: int = None):
-        if type is not None and index is not None:
-            root = self._roots[type][index]
-        elif type is not None:
-            root = type.get()()
-        else:
-            return respond(None)
-
-        return respond(
-            {
+    def get_schemas(self, id: str) -> dict:
+        log.debug(f"Providing schemas for '{id}'")
+        root = self._roots[id]
+        return {
                 'config': schema(root._config.__class__),
-                'methods': {e.name:[schema(m) for m in ms]
-                            for e,ms in root.instance_mapping.items()}
-            }
-        )
+                'methods': {e.name:[schema(m) for m in ms] for e,ms in root.instance_mapping.items()}
+        }
 
-    def call(self, type: AnalyzerType, index: int, endpoint: str, data: dict) -> str:
-        log.debug(f"{type} {index}: call '{endpoint}'")
+    def call(self, id: str, endpoint: str, data: dict) -> Any:
+        log.debug(f"{self._roots[id]}: call '{endpoint}'")
         # todo: sanity check this
-        method = self._roots[type][index].get(getattr(backend, endpoint))
+        method = self._roots[id].get(getattr(backend, endpoint))
         assert hasattr(method, '__call__')
 
-        return respond(method(**{k:json.loads(v) for k,v in data.items()}))
+        if endpoint in ('set_config',):
+            pass  # todo: store to self._history
+
+        return method(**{k:json.loads(v) for k,v in data.items()})
 
 
 if __name__ == '__main__':
     # todo: take CLI arguments for address, debug on/off, ...
-    # todo: server-level configuration
+    # todo: server-level configuration?
 
     Main().serve()
 
