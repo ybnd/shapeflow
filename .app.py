@@ -12,8 +12,9 @@ from flask import Flask, jsonify, request, send_from_directory, Response
 import waitress
 
 from isimple.util import suppress_stdout, Singleton
-from isimple.core import get_logger, cache
+from isimple.core import get_logger
 from isimple.core.schema import schema
+from isimple.core.streaming import JpegStreamer
 from isimple.video import Analyzer, AnalyzerType, backend
 from isimple.history import History, AnalysisModel
 
@@ -51,6 +52,7 @@ class Main(object, metaclass=Singleton):
 
     _roots: Dict[str, Analyzer] = {}
     _models: Dict[str, AnalysisModel] = {}
+    _streams: Dict[str, Dict[JpegStreamer]] = {}
     _history = History()
 
     _host: str = 'localhost'
@@ -125,12 +127,20 @@ class Main(object, metaclass=Singleton):
         def call(id: str, endpoint: str):
             return respond(self.call(str(id), endpoint, request.args.to_dict()))
 
+        # Streaming
+        @app.route('/stream/<id>/<endpoint>')
+        def stream(id: str, endpoint: str):
+            if id in self._streams:
+                if endpoint in self._streams[id]:
+                    return Response(self._streams[id][endpoint].stream())
+
         self._app = app
 
     def serve(self):
         # Don't show waitress console output (server URL)
         with suppress_stdout():
-            ServerThread(self._app, self._host, self._port).start()
+            self._server = ServerThread(self._app, self._host, self._port)
+            self._server.start()
 
             # Run in separate thread to revent Ctrl+C from closing browser
             #  if no tabs were open before  todo: doesn't seem to work anymore?
@@ -154,6 +164,11 @@ class Main(object, metaclass=Singleton):
                 else:
                     log.debug('Ping received; cancelling.')
             time.sleep(self._timeout_loop)
+
+    def cleanup(self):
+        self._server.join()
+        for stream in self._streams.values():
+            stream.stop()
 
     def add_instance(self, id: str, type: AnalyzerType = None) -> bool:
         if type is None:
@@ -188,5 +203,6 @@ if __name__ == '__main__':
     # todo: take CLI arguments for address, debug on/off, ...
     # todo: server-level configuration?
 
-    Main().serve()
-
+    main = Main()
+    main.serve()
+    main.cleanup()
