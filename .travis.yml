@@ -44,5 +44,5 @@ matrix:
       install:
         - cd ui && npm install
       script:
-        - cd ui && ng lint
-        - cd ui && npm run test-headless
+        - ng lint
+        - npm run test-headless

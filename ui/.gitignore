@@ -41,6 +41,9 @@ yarn-error.log
 testem.log
 /typings
 
+# .travis.yml symlink
+.travis.yml
+
 # System Files
 .DS_Store
 Thumbs.db
