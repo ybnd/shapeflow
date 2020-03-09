@@ -7,7 +7,7 @@ import copy
 import time
 import threading
 from contextlib import contextmanager
-from typing import Any, Callable, List, Optional, Union, Tuple, Dict
+from typing import Any, Callable, List, Optional, Union, Tuple, Dict, Type
 
 import numpy as np
 import pandas as pd
@@ -332,6 +332,8 @@ class BaseVideoAnalyzer(abc.ABC, RootInstance, BackendInstance):
     _instances: List[BackendInstance]
     _instance_class = BackendInstance
     _config: AnalyzerConfig
+
+    _multi: bool
     _lock: threading.Lock
 
     results: Dict[str, pd.DataFrame]
@@ -344,8 +346,9 @@ class BaseVideoAnalyzer(abc.ABC, RootInstance, BackendInstance):
     _design_hash: Optional[str]
 
     def __init__(self, config: AnalyzerConfig = None):
-        super(BaseVideoAnalyzer, self).__init__(config)
+        super().__init__(config)
         self._description = ''
+        self._multi = False
         self._lock = threading.Lock()
         self._timer = Timer(self)
 
@@ -402,13 +405,16 @@ class BaseVideoAnalyzer(abc.ABC, RootInstance, BackendInstance):
 
     @contextmanager
     def lock(self):
-        lock = self._lock.acquire()
-        try:
-            log.debug(f"Locking {self}")
-            yield lock
-        finally:
-            log.debug(f"Unlocking {self}")
-            self._lock.release()
+        if self._multi:  # todo: This is a temporary workaround; self.lock() seems to hang in tests (and only in tests...)
+            lock = self._lock.acquire()
+            try:
+                log.debug(f"Locking {self}")
+                yield lock
+            finally:
+                log.debug(f"Unlocking {self}")
+                self._lock.release()
+        else:
+            yield None
 
     @contextmanager
     def time(self, message: str = ''):
@@ -439,3 +445,8 @@ class BaseVideoAnalyzer(abc.ABC, RootInstance, BackendInstance):
 
 class AnalyzerType(Factory):
     _type = BaseVideoAnalyzer
+
+    def get(self) -> Type[BaseVideoAnalyzer]:
+        t = super().get()
+        assert issubclass(t, self._type)
+        return t

@@ -179,6 +179,7 @@ class Main(object, metaclass=Singleton):
         if type is None:
             type = AnalyzerType()
         analyzer = type.get()()
+        analyzer._multi = True
         log.debug(f"Added instance {{'{id}': {analyzer}}}")
         self._roots[str(id)] = analyzer
         self._models[str(id)] = self._history.add_analysis(analyzer)

@@ -636,8 +636,9 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
     _cancel: threading.Event
 
-    def __init__(self, config: VideoAnalyzerConfig = None):
-        super(VideoAnalyzer, self).__init__(config)
+    def __init__(self, config: VideoAnalyzerConfig = None, multi: bool = False):
+        super().__init__(config)
+        self._multi = multi
         self.results: dict = {}
         self._cancel = threading.Event()
         self._gather_instances()
@@ -818,28 +819,27 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     def load_config(self, path: str = None):  # todo: in isimple.og, make LegacyVideoAnalyzer(VideoAnalyzer) that implements these
         """Load video analysis configuration
         """
-        with self.lock():
-            if path is None and self.config.video_path:
-                path = self.config.video_path
+        if path is None and self.config.video_path:
+            path = self.config.video_path
 
-            if path is not None:
-                path = os.path.splitext(path)[0] + __meta_ext__  # todo:
-                assert path is not None
-                if os.path.isfile(path):
-                    # todo: this is a temporary workaround to not overwrite current configuration ~ .meta file
-                    #        should be done by setting the fields to None & more in-depth config handling in BackendInstance._configure
-                    config = load(path)
-                    config.video_path = self.config.video_path
-                    config.design_path = self.config.design_path
-                    config.dt = self.config.dt
-                    config.Nf = self.config.Nf
-                    config.frame_interval_setting = self.config.frame_interval_setting
-                    config.height = self.config.height
+        if path is not None:
+            path = os.path.splitext(path)[0] + __meta_ext__  # todo:
+            assert path is not None
+            if os.path.isfile(path):
+                # todo: this is a temporary workaround to not overwrite current configuration ~ .meta file
+                #        should be done by setting the fields to None & more in-depth config handling in BackendInstance._configure
+                config = load(path)
+                config.video_path = self.config.video_path
+                config.design_path = self.config.design_path
+                config.dt = self.config.dt
+                config.Nf = self.config.Nf
+                config.frame_interval_setting = self.config.frame_interval_setting
+                config.height = self.config.height
 
-                    self._configure(config)
+                self._configure(config)
 
-            else:
-                log.warning(f"No path provided to `load_config`; no video file either.")
+        else:
+            log.warning(f"No path provided to `load_config`; no video file either.")
 
     def save_config(self, path: str = None):  # todo: in isimple.og, make LegacyVideoAnalyzer(VideoAnalyzer) that implements these
         """Save video analysis configuration
