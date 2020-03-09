@@ -1,0 +1,12 @@
+#!/bin/sh
+
+# Build ui/ before committing
+if [[ `git status --porcelain | grep ui` ]]
+then 
+    printf "Changes to ui/ -- building...\n"
+    cd ui && npm run build
+    
+else
+    printf "No changes to ui/\n"
+fi
+printf '\n'
