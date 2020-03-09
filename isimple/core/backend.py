@@ -405,16 +405,13 @@ class BaseVideoAnalyzer(abc.ABC, RootInstance, BackendInstance):
 
     @contextmanager
     def lock(self):
-        if self._multi:  # todo: This is a temporary workaround; self.lock() seems to hang in tests (and only in tests...)
-            lock = self._lock.acquire()
-            try:
-                log.debug(f"Locking {self}")
-                yield lock
-            finally:
-                log.debug(f"Unlocking {self}")
-                self._lock.release()
-        else:
-            yield None
+        lock = self._lock.acquire()
+        try:
+            log.debug(f"Locking {self}")
+            yield lock
+        finally:
+            log.debug(f"Unlocking {self}")
+            self._lock.release()
 
     @contextmanager
     def time(self, message: str = ''):
