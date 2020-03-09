@@ -37,7 +37,7 @@ matrix:
 
     # https://medium.com/faun/configuring-travis-ci-for-angular-application-34afee1715f
     - language: node_js   # https://stackoverflow.com/questions/27644586/
-      node_js: 8
+      node_js: 12
       cache:
         directories:
           - ./node_modules
