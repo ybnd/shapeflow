@@ -21,7 +21,7 @@ from isimple.history import History, VideoAnalysisModel
 log = get_logger('isimple')
 
 
-UI = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ui', 'dist')
+UI = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ui', 'dist', 'ui')
 
 
 def respond(*args) -> str:
@@ -117,7 +117,8 @@ class Main(object, metaclass=Singleton):
 
         @app.route('/api/<id>/launch', methods=['GET'])
         def launch(id: str):
-            respond(self.call(str(id), 'launch', {}))
+                return respond(self.call(str(id), 'launch', {}))
+
 
         @app.route('/api/<id>/can_launch', methods=['GET'])
         def can_launch(id: str):
@@ -125,7 +126,10 @@ class Main(object, metaclass=Singleton):
 
         @app.route('/api/<id>/call/<endpoint>', methods=['GET'])
         def call(id: str, endpoint: str):
-            return respond(self.call(str(id), endpoint, request.args.to_dict()))
+            result = self.call(str(id), endpoint, request.args.to_dict())
+            if result is None:
+                result = True
+            return respond(result)
 
         # Streaming
         @app.route('/stream/<id>/<endpoint>')
@@ -174,8 +178,8 @@ class Main(object, metaclass=Singleton):
     def add_instance(self, id: str, type: AnalyzerType = None) -> bool:
         if type is None:
             type = AnalyzerType()
-        log.debug(f"Adding instance '{id}' (type: {type})")
         analyzer = type.get()()
+        log.debug(f"Added instance {{'{id}': {analyzer}}}")
         self._roots[str(id)] = analyzer
         self._models[str(id)] = self._history.add_analysis(analyzer)
         return True

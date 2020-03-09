@@ -3,6 +3,7 @@ import re
 import datetime
 import pandas as pd
 from typing import Callable, Any, Dict, Generator, Optional, List, Tuple
+import threading
 
 import cv2
 import numpy as np
@@ -211,13 +212,17 @@ class TransformHandler(BackendInstance, Handler):
                              f"'{self._implementation.__class__.__name__}'")
 
     @backend.expose(backend.estimate_transform)
-    def estimate(self, roi: list) -> None:
+    def estimate(self, roi: list) -> bool:
         """Estimate the transform matrix from a set of coordinates.
             Coordinates should correspond to the corners of the outline of
             the design, ordered from the bottom left to the top right.
         """
-        self.config(roi=roi)
-        self.set(self._implementation.estimate(roi, self._shape))
+        if True:  # todo: sanity check roi
+            self.config(roi=roi)
+            self.set(self._implementation.estimate(roi, self._shape))
+            return True
+        else:
+            return False
 
 
     @backend.expose(backend.get_coordinates)
@@ -629,9 +634,12 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
     _featuresets: Dict[str, FeatureSet]
 
+    _cancel: threading.Event
+
     def __init__(self, config: VideoAnalyzerConfig = None):
         super(VideoAnalyzer, self).__init__(config)
         self.results: dict = {}
+        self._cancel = threading.Event()
         self._gather_instances()
 
     @property
@@ -703,10 +711,14 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         return self.config.to_dict()
 
     @backend.expose(backend.set_config)
-    def set_config(self, config: dict) -> None:
+    def set_config(self, config: dict) -> bool:
         with self.lock():
-            log.debug(f"Setting VideoAnalyzerConfig to {config}")
-            self._config(**config)
+            if True:  # todo: sanity check
+                log.debug(f"Setting VideoAnalyzerConfig to {config}")
+                self._config(**config)
+                return True
+            else:
+                return False
 
     #@backend.expose(backend.get_frame)  # todo: would like to have some kind of 'deferred expose' decorator?
     def get_transformed_frame(self, frame_number: int) -> np.ndarray:
@@ -774,49 +786,60 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             frame
         )
 
-    def analyze(self):
-        with self.lock():
-            with self.time():
-                self._get_featuresets()
-                self.save_config()
+    def analyze(self) -> bool:
+        with self.lock(), self.time():
+            self._get_featuresets()
+            self.save_config()
 
-                log.debug(f"Analyzing with features: {[f for f in self._featuresets]}.")
+            log.debug(f"Analyzing with features: {[f for f in self._featuresets]}.")
 
-                if self._gui is not None:
-                    update_callback = self._gui.get(gui.update_progresswindow)
-                    self._gui.get(gui.open_progresswindow)()
-                else:
-                    def update_callback(*args, **kwargs): pass
+            if self._gui is not None:
+                update_callback = self._gui.get(gui.update_progresswindow)  # todo: move this to LegacyVideoAnalyzer
+                self._gui.get(gui.open_progresswindow)()
+            else:
+                def update_callback(*args, **kwargs): pass
 
-                for fn in self.frame_numbers():
-                    self.calculate(fn, update_callback)
+            for fn in self.frame_numbers():
+                if self._cancel.is_set():
+                    break
+                self.calculate(fn, update_callback)  # todo: add a way to cancel an analysis gracefully (e.g. threading.Event)
 
-                self.export()
+            self.export()  # todo: think about where to put this in relation to VideoAnalyzer/VideoAnalysisModel
+        if not self._cancel.is_set():
+            return True
+        else:
+            self._cancel.clear()
+            return False
+
+    def cancel(self) -> bool:
+        self._cancel.set()
+        return True
 
     def load_config(self, path: str = None):  # todo: in isimple.og, make LegacyVideoAnalyzer(VideoAnalyzer) that implements these
         """Load video analysis configuration
         """
-        if path is None and self.config.video_path:
-            path = self.config.video_path
+        with self.lock():
+            if path is None and self.config.video_path:
+                path = self.config.video_path
 
-        if path is not None:
-            path = os.path.splitext(path)[0] + __meta_ext__  # todo:
-            assert path is not None
-            if os.path.isfile(path):
-                # todo: this is a temporary workaround to not overwrite current configuration ~ .meta file
-                #        should be done by setting the fields to None & more in-depth config handling in BackendInstance._configure
-                config = load(path)
-                config.video_path = self.config.video_path
-                config.design_path = self.config.design_path
-                config.dt = self.config.dt
-                config.Nf = self.config.Nf
-                config.frame_interval_setting = self.config.frame_interval_setting
-                config.height = self.config.height
+            if path is not None:
+                path = os.path.splitext(path)[0] + __meta_ext__  # todo:
+                assert path is not None
+                if os.path.isfile(path):
+                    # todo: this is a temporary workaround to not overwrite current configuration ~ .meta file
+                    #        should be done by setting the fields to None & more in-depth config handling in BackendInstance._configure
+                    config = load(path)
+                    config.video_path = self.config.video_path
+                    config.design_path = self.config.design_path
+                    config.dt = self.config.dt
+                    config.Nf = self.config.Nf
+                    config.frame_interval_setting = self.config.frame_interval_setting
+                    config.height = self.config.height
 
-                self._configure(config)
+                    self._configure(config)
 
-        else:
-            log.warning(f"No path provided to `load_config`; no video file either.")
+            else:
+                log.warning(f"No path provided to `load_config`; no video file either.")
 
     def save_config(self, path: str = None):  # todo: in isimple.og, make LegacyVideoAnalyzer(VideoAnalyzer) that implements these
         """Save video analysis configuration

@@ -61,9 +61,9 @@ class Endpoint(object):
 
     def add(self, method):
         if not self.compatible(method):
-            raise ValueError(f"Method '{method.__qualname__}' "
+            log.warning(f"Method '{method.__qualname__}' "
                              f"is incompatible with endpoint '{self.name}'. \n"
-                             f"{method.__annotations__} vs. {self.signature}")  # todo: traceback to
+                             f"{method.__annotations__} vs. {self.signature}")
 
     def register(self, name: str):
         self._registered = True

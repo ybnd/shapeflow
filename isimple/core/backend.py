@@ -367,17 +367,19 @@ class BaseVideoAnalyzer(abc.ABC, RootInstance, BackendInstance):
 
     @abc.abstractmethod
     @backend.expose(backend.analyze)
-    def analyze(self) -> None:
+    def analyze(self) -> bool:
         raise NotImplementedError
 
     @backend.expose(backend.launch)
-    def launch(self) -> None:
+    def launch(self) -> bool:
         with self.lock():
             if self.can_launch():
                 self._launch()
                 self._gather_instances()
+                return True
             else:
                 log.warning(f"{self.__class__.__qualname__} can not be launched.")  # todo: try to be more verbose
+                return False
 
     @contextmanager
     def caching(self):
