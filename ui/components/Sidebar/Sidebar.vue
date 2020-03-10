@@ -4,22 +4,15 @@
 <!--    <SidebarForm/>-->
     <SidebarHeader/>
     <nav class="sidebar-nav">
-      <ul class="nav">
-        <template v-for="(item) in navItems">
-          <template v-if="item.children">
-            <!-- First level dropdown -->
-            <SidebarNavAnalysis :name="item.name" :url="item.url" :icon="item.icon" v-bind:key="item.key" :progress="item.progress">
-              <template v-for="(childL1) in item.children">
-                <!-- eslint-disable -->
-                <SidebarNavItem :classes="item.class">
-                  <SidebarNavLink :name="childL1.name" :url="childL1.url" :icon="childL1.icon" :badge="childL1.badge" :variant="item.variant"/>
-                </SidebarNavItem>
-                <!-- eslint-enable -->
-              </template>
-            </SidebarNavAnalysis>
+      <div class="scroller">
+        <ul class="nav">
+          <template v-for="(item) in navItems">
+            <SidebarNavAnalysis :name="item.name" :url="item.url" :icon="item.icon" v-bind:key="item.key" :progress="item.progress" :state="item.state"/>
           </template>
-        </template>
-      </ul>
+          <SidebarNavLink name="New analysis" icon="fa fa-plus"/>
+        </ul>
+      </div>
+
       <slot></slot>
     </nav>
     <SidebarFooter/>

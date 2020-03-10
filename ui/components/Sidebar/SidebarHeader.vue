@@ -1,6 +1,6 @@
 <template>
   <header class="sidebar-header">
-    <SidebarNavLink name="New analysis..." icon="icon-plus"/>
+    <SidebarNavLink name="" icon="fa fa-home"/>
   </header>
 </template>
 
@@ -21,3 +21,7 @@
     },
   }
 </script>
+
+<style>
+
+</style>

@@ -1,129 +1,64 @@
 export default {
   items: [
     {
-      name: 'Dashboard',
-      url: '/',
-      icon: 'icon-home',
-    },
-    {
       name: "Analysis 1",
-      url: "/analysis/<id>",
-      progress: 50,
-      children: [
-        {
-          name: "Configure",
-          icon: "icon-equalizer",
-          url: "/analysis/<id>/configure",
-        },
-        {
-          name: "Set alignment",
-          icon: 'icon-frame',
-        },
-        {
-          name: "Set filters",
-          icon: 'icon-layers',
-        },
-        {
-          name: "Monitor",
-          icon: 'icon-graph',
-        }
-      ]
+      id: "123456789",
+      progress: 100,
+      state: 'done',
+      config: {
+        video_path: 'some video.mp4',
+        design_path: 'some_design.svg',
+      }
     },
     {
       name: "Analysis 2",
-      url: "/analysis/<id>",
+      id: '123456123',
       progress: 33.0,
-      children: [
-        {
-          name: "Configure",
-          icon: "icon-wrench",
-          url: "/analysis/<id>/configure",
-        },
-        {
-          name: "Set alignment",
-          icon: 'icon-frame',
-        },
-        {
-          name: "Set filters",
-          icon: 'icon-layers',
-        },
-        {
-          name: "Monitor",
-          icon: 'icon-graph',
-        }
-      ]
+      state: 'running',
+      config: {
+        video_path: 'some video.mp4',
+        design_path: 'some_design.svg',
+      }
     },
     {
       name: "Analysis 3",
-      url: "/analysis/<id>",
+      id: "123789456",
       progress: 20.0,
-      children: [
-        {
-          name: "Configure",
-          icon: "icon-wrench",
-          url: "/analysis/<id>/configure",
-        },
-        {
-          name: "Set alignment",
-          icon: 'icon-frame',
-        },
-        {
-          name: "Set filters",
-          icon: 'icon-layers',
-        },
-        {
-          name: "Monitor",
-          icon: 'icon-graph',
-        }
-      ]
+      state: 'canceled',
+      config: {
+        video_path: 'some video.mp4',
+        design_path: 'some_design.svg',
+      }
     },
     {
-      name: "Analysis 3",
-      url: "/analysis/<id>",
+      name: "Analysis 4",
+      id: "78974531829",
       progress: 20.0,
-      children: [
-        {
-          name: "Configure",
-          icon: "icon-wrench",
-          url: "/analysis/<id>/configure",
-        },
-        {
-          name: "Set alignment",
-          icon: 'icon-frame',
-        },
-        {
-          name: "Set filters",
-          icon: 'icon-layers',
-        },
-        {
-          name: "Monitor",
-          icon: 'icon-graph',
-        }
-      ]
+      state: "incomplete",
+      config: {
+        video_path: 'some video.mp4',
+        design_path: 'some_design.svg',
+      }
     },
     {
-      name: "Analysis 3",
-      url: "/analysis/<id>",
+      name: "Analysis 5",
+      id: "1562689",
       progress: 20.0,
-      children: [
-        {
-          name: "Configure",
-          icon: "icon-wrench",
-          url: "/analysis/<id>/configure",
-        },
-        {
-          name: "Set alignment",
-          icon: 'icon-frame',
-        },
-        {
-          name: "Set filters",
-          icon: 'icon-layers',
-        },
-        {
-          name: "Monitor",
-          icon: 'icon-graph',
-        }
-      ]
+      state: "error",
+      config: {
+        video_path: 'some video.mp4',
+        design_path: 'some_design.svg',
+      }
+    },
+    {
+      name: "Analysis 6",
+      id: "78974531829",
+      progress: 20.0,
+      state: "ready",
+      config: {
+        video_path: 'some video.mp4',
+        design_path: 'some_design.svg',
+      }
     },
   ]
 }
