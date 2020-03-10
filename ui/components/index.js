@@ -7,11 +7,11 @@ import Sidebar from './Sidebar/Sidebar.vue'
 import Switch from './Switch.vue'
 
 export {
-  // Aside,
+  Aside,
   Breadcrumb,
-  // Callout,
-  // Footer,
+  Callout,
+  Footer,
   Header,
   Sidebar,
-  // Switch
+  Switch
 }

@@ -1,10 +1,14 @@
 // scss-lint:disable NestingDepth, SelectorDepth
 .sidebar {
   display: flex;
+  flex-wrap: nowrap;
   flex-direction: column;
   padding: $sidebar-padding;
   color: $sidebar-color;
   background: $sidebar-bg;
+  max-width: $sidebar-width;
+
+  max-height: 100vh; /* Sidebar may not exceed viewport height */
   @include borders($sidebar-borders);
 
   .sidebar-close {
@@ -48,8 +52,11 @@
   .sidebar-nav {
     position: relative;
     flex: 1;
+    flex-direction: column;
+    max-width: $sidebar-width;
+    flex-wrap: nowrap;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: hidden;
     -ms-overflow-style: -ms-autohiding-scrollbar;
     @include sidebar-width($sidebar-borders, $sidebar-width);
 
@@ -74,6 +81,10 @@
       border-style: solid;
       border-width: 1px 2px;
     }
+  }
+
+  .sidebar-nav:hover {
+    overflow-y: auto;
   }
 
   .nav {

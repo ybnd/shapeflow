@@ -15,7 +15,6 @@
       classList () {
         return [
           'divider',
-          ...this.itemClasses
         ]
       },
       itemClasses () {

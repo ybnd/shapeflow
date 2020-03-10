@@ -1,6 +1,7 @@
 <template>
   <router-link tag="li" class="nav-item nav-dropdown" :to="url" disabled>
     <div class="nav-link nav-dropdown-toggle" @click="handleClick"> {{name}} </div>
+    <b-progress class="progress" height="2px" :value="progress"></b-progress>
     <ul class="nav-dropdown-items">
       <slot></slot>
     </ul>
@@ -25,6 +26,10 @@ export default {
     progress: {
       type: Number,
       default: 0,
+    },
+    state: {
+      type: String,
+      enum: [''],
     },
   },
   methods: {

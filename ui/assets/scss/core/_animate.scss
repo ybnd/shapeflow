@@ -1,6 +1,6 @@
 // scss-lint:disable all
 .animated {
-  animation-duration: 0.2s;  // todo: fix long-ass animations here
+  animation-duration: 0.2s;
   // animation-fill-mode: both;
 }
 
@@ -9,7 +9,7 @@
 }
 
 .animated.hinge {
-  animation-duration: 0.2s;  // todo: fix long-ass animations here
+  animation-duration: 0.2s;
 }
 
 @keyframes fadeIn {
