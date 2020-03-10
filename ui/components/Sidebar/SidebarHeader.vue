@@ -1,6 +1,6 @@
 <template>
   <header class="sidebar-header">
-    <SidebarNavLink name="" icon="fa fa-home"/>
+    <SidebarNavLink url="/" name="" icon="fa fa-home"/>
   </header>
 </template>
 

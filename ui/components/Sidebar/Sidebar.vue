@@ -1,23 +1,24 @@
 <template>
   <div class="sidebar">
-<!--    <SidebarHeader/>-->
-<!--    <SidebarForm/>-->
     <SidebarHeader/>
     <nav class="sidebar-nav">
       <div class="scroller">
         <ul class="nav">
-          <template v-for="(item) in navItems">
-            <SidebarNavAnalysis :name="item.name" :url="item.url" :icon="item.icon" v-bind:key="item.key" :progress="item.progress" :state="item.state"/>
+          <template v-for="(item) in navItems">   <!--connect to vuex store-->
+            <SidebarNavAnalysis
+              v-bind:key="item.id"
+              :name="item.name"
+              :url="item.url"
+              :id="item.id"
+              :progress="item.progress"
+              :state="item.state"/>
           </template>
-          <SidebarNavLink name="New analysis" icon="fa fa-plus"/>
+          <SidebarNewAnalysis/>
         </ul>
       </div>
-
       <slot></slot>
     </nav>
     <SidebarFooter/>
-
-<!--    <SidebarMinimizer/>-->
   </div>
 </template>
 <script>
@@ -28,6 +29,8 @@ import SidebarMinimizer from './SidebarMinimizer'
 import SidebarNavDivider from './SidebarNavDivider'
 import SidebarNavDropdown from './SidebarNavDropdown'
 import SidebarNavAnalysis from './SidebarNavAnalysis'
+import SidebarNavAnalysisLink from './SidebarNavAnalysisLink';
+import SidebarNewAnalysis from './SidebarNewAnalysis';
 import SidebarNavLink from './SidebarNavLink'
 import SidebarNavTitle from './SidebarNavTitle'
 import SidebarNavItem from './SidebarNavItem'
@@ -46,10 +49,12 @@ export default {
     SidebarFooter,
     // SidebarForm,
     SidebarHeader,
-    // SidebarMinimizer,
+    SidebarMinimizer,
     SidebarNavDivider,
     SidebarNavDropdown,
     SidebarNavAnalysis,
+    SidebarNavAnalysisLink,
+    SidebarNewAnalysis,
     SidebarNavLink,
     SidebarNavTitle,
     SidebarNavItem,
@@ -57,9 +62,9 @@ export default {
   },
   methods: {
     handleClick (e) {
-      e.preventDefault()
+      e.preventDefault();
       e.target.parentElement.classList.toggle('open')
-    }
+    },
   }
 }
 </script>

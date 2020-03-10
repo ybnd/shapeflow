@@ -1,5 +1,8 @@
 <template>
-  <div>empty</div>
+  <div class="fixed-page">
+    <header>Dashboard</header>
+    <p>some dashboard things go here, I guess?</p>
+  </div>
 </template>
 
 <script>
@@ -24,3 +27,18 @@ export default {
   },
 }
 </script>
+
+
+<style>
+  /*@import '../assets/scss/core/_variables';*/
+  .fixed-page {
+    max-height: 100vh;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    -ms-overflow-style: -ms-autohiding-scrollbar;
+    margin-left: -20px;
+    margin-right: -30px;
+  }
+</style>

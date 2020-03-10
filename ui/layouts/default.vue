@@ -18,11 +18,11 @@ import { Header as AppHeader, Sidebar, Aside as AppAside, Footer as AppFooter, B
 export default {
   name: 'full',
   components: {
-    AppHeader,
+    // AppHeader,
     Sidebar,
-    AppAside,
-    AppFooter,
-    Breadcrumb
+    // AppAside,
+    // AppFooter,
+    // Breadcrumb
   },
   data () {
     return {

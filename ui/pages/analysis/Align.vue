@@ -1,6 +1,6 @@
 <template>
   <div class="fixed-page">
-    <header>Configure</header>
+    <header>Align</header>
     <p>some dashboard things go here, I guess?</p>
   </div>
 </template>

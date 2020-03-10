@@ -1,30 +1,16 @@
 <template>
-  <div v-if="isExternalLink">
-    <a :href="url" :class="classList">
-      <i :class="icon"></i> {{name}}
-      <b-badge v-if="badge && badge.text" :variant="badge.variant">{{badge.text}}</b-badge>
-    </a>
-  </div>
-  <div v-else>
-    <router-link :to="url" :class="classList">
-      <i :class="icon"></i> {{name}}
-      <b-badge v-if="badge && badge.text" :variant="badge.variant">{{badge.text}}</b-badge>
-    </router-link>
+  <div @click="handleNewAnalysis" :class="classList">
+    <i :class="'fa fa-plus'"></i>
   </div>
 </template>
 
 <script>
+  import axios from 'axios'
+
   export default {
     name: 'sidebar-nav-link',
     props: {
-      name: {
-        type: String,
-        default: ''
-      },
-      url: {
-        type: String,
-        default: ''
-      },
+
       icon: {
         type: String,
         default: ''
@@ -37,10 +23,13 @@
         type: String,
         default: ''
       },
-      classes: {
-        type: String,
-        default: ''
-      }
+    },
+    methods: {
+      handleNewAnalysis () {
+        let response = axios.get('/api/analyzer/init');
+        let id = response['data']['id'];
+        this.$router.push( `/analysis/configure?id=${id}` )
+      },
     },
     computed: {
       classList () {
@@ -58,7 +47,10 @@
       },
       isExternalLink () {
         return this.url.substring(0, 4) === 'http';
-      }
-    }
+      },
+      isApiLink () {
+        return this.url.substring(0, 4) === '/api';
+      },
+    },
   }
 </script>
