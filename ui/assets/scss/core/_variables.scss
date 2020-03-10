@@ -74,7 +74,7 @@ $navbar-toggler-icon-hover:           str-replace(url("data:image/svg+xml;charse
 
 // Sidebar
 
-$sidebar-width:                       200px !default;
+$sidebar-width:                       160px !default;
 $sidebar-padding:                     0 !default;
 $sidebar-minimized-width:             50px !default;
 $sidebar-minimized-height:            $sidebar-minimized-width !default;
@@ -103,11 +103,11 @@ $sidebar-form-placeholder-color:      rgba(255,255,255,.7) !default;
 // Sidebar Navigation
 
 $sidebar-nav-color:                   #fff !default;
-$sidebar-nav-title-padding-y:         .75rem !default;
-$sidebar-nav-title-padding-x:         1rem !default;
+$sidebar-nav-title-padding-y:         .5rem !default;
+$sidebar-nav-title-padding-x:         .5rem !default;
 $sidebar-nav-title-color:             $gray-200 !default;
-$sidebar-nav-link-padding-y:          .75rem !default;
-$sidebar-nav-link-padding-x:          1rem !default;
+$sidebar-nav-link-padding-y:          .5rem !default;
+$sidebar-nav-link-padding-x:          .5rem !default;
 $sidebar-nav-link-color:              #fff !default;
 $sidebar-nav-link-bg:                 transparent !default;
 $sidebar-nav-link-icon-color:         $gray-600 !default;

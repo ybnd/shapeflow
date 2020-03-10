@@ -1,13 +1,12 @@
 <template>
-  <div
-    class="nav-item nav-dropdown">
-    <div class="nav-link" @click="handleClick" >
-      <template v-if="state === 'incomplete'"><i class="fa fa-cog" /></template>
-      <template v-else-if="state === 'ready'"><i class="fa fa-check-circle-o" /></template>
+  <div class="nav-item nav-dropdown">
+    <div class="nav-link nav-dropdown-toggle" @click="handleClick" >
+      <template v-if="state === 'incomplete'"><i class="fa fa-exclamation" /></template>
+      <template v-else-if="state === 'ready'"><i class="fa fa-check" /></template>
       <template v-else-if="state === 'running'"><i class="fa fa-spin fa-spinner" /></template>
       <template v-else-if="state === 'done'"><i class="fa fa-check-circle" /></template>
       <template v-else-if="state === 'canceled'"><i class="fa fa-ban" /></template>
-      <template v-else-if="state === 'error'"><i class="fa fa-exclamation" /></template>
+      <template v-else-if="state === 'error'"><i class="fa fa-bolt" /></template>
       {{name}}
     </div>
     <template v-if="state === 'incomplete'">
@@ -120,6 +119,15 @@ export default {
       e.preventDefault();
       e.target.parentElement.classList.toggle('open')
     },
-  }
+  },
+  computed: {
+    classList () {
+      return [
+        'nav-link',
+        this.linkVariant,
+        ...this.itemClasses
+      ]
+    },
+  },
 }
 </script>

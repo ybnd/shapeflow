@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="../../assets/scss/core/_sidebar.scss">
 <template>
   <div class="animated fadeIn">
     <b-row>

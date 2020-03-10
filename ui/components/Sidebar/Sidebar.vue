@@ -18,7 +18,7 @@
       </div>
       <slot></slot>
     </nav>
-    <SidebarFooter/>
+  <SidebarFooter/>
   </div>
 </template>
 <script>

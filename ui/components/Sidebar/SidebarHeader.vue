@@ -1,6 +1,8 @@
 <template>
   <header class="sidebar-header">
-    <SidebarNavLink url="/" name="" icon="fa fa-home"/>
+    <div>
+      <SidebarNavLink url="/" name="isimple" class="sidebar-header-link" icon="fa fa-home"/>
+    </div>
   </header>
 </template>
 
@@ -23,5 +25,9 @@
 </script>
 
 <style>
-
+  .sidebar-header-link {
+    font-size: 110%;
+    font-weight: bold;
+    text-align: left;
+  }
 </style>

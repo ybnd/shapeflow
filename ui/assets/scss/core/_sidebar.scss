@@ -108,7 +108,7 @@
   .nav-item {
     position: relative;
     margin: 0;
-    transition: background .3s ease-in-out;
+    transition: background .1s ease-in-out;
   }
 
   .nav-dropdown-items {
@@ -116,7 +116,7 @@
     padding: 0;
     margin: 0;
     overflow-y: hidden;
-    transition: max-height .3s ease-in-out;
+    transition: max-height .1s ease-in-out;
 
     .nav-item {
       padding: 0;
@@ -129,6 +129,9 @@
     padding: $sidebar-nav-link-padding-y $sidebar-nav-link-padding-x;
     color: $sidebar-nav-link-color;
     text-decoration: none;
+    user-select: none;         /* https://stackoverflow.com/questions/924916/ */
+    -moz-user-select: none;
+    -webkit-user-select: none;
     background: $sidebar-nav-link-bg;
     @include borders($sidebar-nav-link-borders);
     @if $enable-sidebar-nav-rounded {
@@ -206,7 +209,7 @@
       background-image: $sidebar-nav-dropdown-indicator;
       background-repeat: no-repeat;
       background-position: center;
-      transition: transform .3s;
+      transition: transform .1s;
     }
   }
 

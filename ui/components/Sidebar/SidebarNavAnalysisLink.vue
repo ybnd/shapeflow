@@ -2,16 +2,23 @@
   <div>
     <template v-if="isApiLink">
       <template v-if="two_stage">
-        <div @click="stageTwo = !stageTwo" :class="classList">
+        <div @click="show = !show" :class="classList" :id="id">
+          &ensp;
           <i :class="icon"></i> {{name}}
           <b-badge v-if="badge && badge.text" :variant="badge.variant">{{badge.text}}</b-badge>
-          <b-modal v-model="stageTwo" @ok="doRequest" title="Please confirm">
-            Really {{name.toLowerCase()}} {{id}}?
-          </b-modal>
+          <b-popover :target="id" :show.sync="show" @ok="doRequest" container="body" placement="right" boundary="viewport">
+            <b-button variant="primary" @click="doRequest">
+              <i class="fa fa-check"/> {{name}}
+            </b-button>
+            <b-button variant="danger" @click="show = false">
+              <i class="fa fa-times"/>
+            </b-button>
+          </b-popover>
         </div>
       </template>
       <template v-else>
         <div @click="doRequest" :class="classList">
+          &ensp;
           <i :class="icon"></i> {{name}}
           <b-badge v-if="badge && badge.text" :variant="badge.variant">{{badge.text}}</b-badge>
         </div>
@@ -19,6 +26,7 @@
     </template>
     <template v-else>
       <div @click="doNavigate" :class="classList">
+        &ensp;
         <i :class="icon"></i> {{name}}
         <b-badge v-if="badge && badge.text" :variant="badge.variant">{{badge.text}}</b-badge>
       </div>
@@ -68,6 +76,7 @@ template
         this.$router.push( this.url )
       },
       doRequest (rl) {
+        this.show = false;
         axios.post( this.url )
       },
     },
@@ -94,7 +103,7 @@ template
     },
     data() {
       return {
-        stageTwo: false
+        show: false
       }
     }
   }

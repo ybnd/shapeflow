@@ -1,13 +1,11 @@
 <template>
    <footer class="sidebar-footer">
-     <SidebarNavDropdown name="More stuff" icon = "fa fa-navicon">
-<!--         <SidebarNavLink name="Search" icon="icon-magnifier"/>-->
-       <SidebarNavLink name="Settings" icon="fa fa-sliders"/>
-       <SidebarNavLink name="Log" icon="fa fa-file-text-o"/>
+     <SidebarNavLink name="Settings" icon="fa fa-cogs" url="/settings"/>
+     <SidebarNavLink name="Log" icon="fa fa-file-text-o" url="/log"/>
+<!--       <SidebarNavLink name="Search" icon="icon-magnifier"/>-->
 <!--       <SidebarNavLink name="Export" icon="fa fa-download"/>-->
 <!--       <SidebarNavLink name="Import" icon="fa fa-upload"/>-->
-       <SidebarNavLink name="About" icon="fa fa-info"/>
-     </SidebarNavDropdown>
+     <SidebarNavLink name="About" icon="fa fa-info" url="/about"/>
    </footer>
 </template>
 
