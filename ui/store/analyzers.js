@@ -1,65 +1,68 @@
 import Vue from 'vue'
 import axios from 'axios'
-import { uuidv4 } from '~/static/util'
+import { analyzer_state as ast, init, get_schemas, list, launch, get_config, set_config } from '../assets/api'
 
 export const state = () => ({
-  init: true,
   ids: [],
-  analyzers: {},
-  current: {
-    id: '',
+  analyzers: {  // maps id to {state, config}
+
   },
-  launched: {},
-  return: {
-    id: '',
-  },
-  last_id: '',
+  queue: [      // ordered array of ids; dashboard & sidebar order, order of execution.
+
+  ],
+
 });
 
 export const mutations = {
-  async init (state, id = '') {
-    if (id === '') {
-      id = uuidv4();
-    }
-    state.last_id = id;
-    await axios.get(`/api/init/${id}`);
-    let response = await axios.get(`/api/${id}/schemas`);
-    if (response.status === 200){
-      console.log(response);
-      var schemas = response.data;
-      Vue.set(
-        state.analyzers, id, {
-          "schemas": schemas,
+  async init (state) {
+    init().then(
+      (id) => {
+        get_schemas(id).then(
+          (schemas) => {
+            state.queue = [ ...state.queue, id];
+            state.analyzers = {
+              ...state.analyzers,
+              [id]: {state: ast.INCOMPLETE, schemas: schemas,}
+            };
+          },
+          () => {
+            state.queue = [ ...state.queue, id];
+            state.analyzers = {
+              ...state.analyzers,
+              [id]: {state: ast.ERROR}
+            };
+          }
+        )
+      },
+      () => {
+        // do nothing.
       }
-      );
-    }
+    );
+  },
+  async list () {
+    list().then(
+      (list) => {
 
+      },
+
+    )
   },
-  setCurrent (state, id) {
-    state.current = state.analyzers[id];
-  },
-  async list (state) {
-    var response = await axios.get('/api/list');
-    var ids = response.data;
-    for (var i = 0; i < ids.length; i++) {
-      if (!state.ids.includes(ids[i])) {
-        state.ids.push(ids[i]);
+
+  async launch (state, id) {
+    launch().then(
+      (ok) => {
+        if (ok) {
+          state.analyzers[id].state = ast.LAUNCHED;
+        } else {
+          state.analyzers[id].state = ast.ERROR;
+        }
       }
-    }
-    console.log(state.ids)
-  },
-  async launch (state, id = '') {
-    if (id === ''){
-      id = state.last_id;
-    }
-    if (await axios.get(`/api/${id}/can_launch`)) {
-      axios.get(`/api/${id}/launch`);
-    }
+    )
   },
 };
 
 export const actions = {
-  async newAnalyzer({commit}, id = '') {
-    commit('init', id);
+  async newAnalyzer({commit}) {
+    commit('init');
   },
 };

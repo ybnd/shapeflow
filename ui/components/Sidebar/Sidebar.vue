@@ -3,8 +3,8 @@
     <SidebarHeader/>
     <nav class="sidebar-nav">
       <div class="scroller">
-          <draggable tag="ul" :list="navItems" class="nav-drag nav">
-            <template v-for="(item) in navItems">   <!--connect to vuex store-->
+          <draggable tag="ul" :list="this.$store.state.analyzers.queue" class="nav-drag nav">
+            <template v-for="(item) in this.$store.state.analyzers.queue">   <!--connect to vuex store-->
               <SidebarNavAnalysis
                 v-bind:key="item.id"
                 :name="item.name"
@@ -36,13 +36,6 @@ import draggable from 'vuedraggable'
 
 export default {
   name: 'sidebar',
-  props: {
-    navItems: {
-      type: Array,
-      required: true,
-      default: () => []
-    }
-  },
   components: {
     SidebarFooter,
     SidebarHeader,
@@ -59,7 +52,7 @@ export default {
       e.preventDefault();
       e.target.parentElement.classList.toggle('open')
     },
-  }
+  },
 }
 </script>
 

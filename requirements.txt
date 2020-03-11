@@ -26,3 +26,5 @@ pyyaml
 GitPython
 scipy
 schema
+waitress
+flask

@@ -68,6 +68,7 @@
 
 <script>
   import axios from 'axios'
+  import { init } from '../../assets/api'
 
   export default {
     name: 'sidebar-nav-link',
@@ -88,14 +89,9 @@
     },
     methods: {
       handleNewAnalysis () {
+        console.log('got to callback');
         this.show = false;
-        let response = axios.get('/api/analyzer/init');
-        if (response.status === 200) {
-          let id = response['data']['id'];
-          this.$router.push( `/analysis/align?id=${id}` )
-        } else {
-
-        }
+        this.$store.commit('analyzers/init');
       },
       selectFrameIntervalSetting (e) {
         // this.selected = e.target.value;
