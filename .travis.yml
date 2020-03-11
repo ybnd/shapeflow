@@ -35,14 +35,14 @@ matrix:
       script:
         - tox -e $TOX_ENV $SITE_PACKAGES
 
-    # https://medium.com/faun/configuring-travis-ci-for-angular-application-34afee1715f
-    - language: node_js   # https://stackoverflow.com/questions/27644586/
-      node_js: 12
-      cache:
-        directories:
-          - ./node_modules
-      install:
-        - cd ui && npm install
-      script:
-        - ng lint
-        - npm run test-headless
+#    # https://medium.com/faun/configuring-travis-ci-for-angular-application-34afee1715f
+#    - language: node_js   # https://stackoverflow.com/questions/27644586/
+#      node_js: 12
+#      cache:
+#        directories:
+#          - ./node_modules
+#      install:
+#        - cd ui && npm install
+#      script:
+#        - ng lint
+#        - npm run test-headless
