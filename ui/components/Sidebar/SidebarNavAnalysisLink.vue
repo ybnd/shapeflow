@@ -2,7 +2,7 @@
   <div>
     <template v-if="isApiLink">
       <template v-if="two_stage">
-        <div @click="show = !show" :class="classList" :id="id">
+        <div @click="show = !show" :class="classList" :id="id" class="sidebar-analysis-link">
           &ensp;
           <i :class="icon"></i> {{name}}
           <b-badge v-if="badge && badge.text" :variant="badge.variant">{{badge.text}}</b-badge>
@@ -17,18 +17,16 @@
         </div>
       </template>
       <template v-else>
-        <div @click="doRequest" :class="classList">
+        <div @click="doRequest" :class="classList" class="sidebar-analysis-link">
           &ensp;
           <i :class="icon"></i> {{name}}
-          <b-badge v-if="badge && badge.text" :variant="badge.variant">{{badge.text}}</b-badge>
         </div>
       </template>
     </template>
     <template v-else>
-      <div @click="doNavigate" :class="classList">
+      <div @click="doNavigate" :class="classList" class="sidebar-analysis-link">
         &ensp;
         <i :class="icon"></i> {{name}}
-        <b-badge v-if="badge && badge.text" :variant="badge.variant">{{badge.text}}</b-badge>
       </div>
     </template>
   </div>
@@ -108,3 +106,9 @@ template
     }
   }
 </script>
+
+<style>
+  .sidebar-analysis-link {
+    font-size: 85%;
+  }
+</style>

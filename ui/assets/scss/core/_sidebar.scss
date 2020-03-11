@@ -85,6 +85,12 @@
 
   .sidebar-nav:hover {
     overflow-y: auto;
+    -ms-overflow-style: none; /* IE 11 */
+    scrollbar-width: none; /* Firefox 64 */
+  }
+
+  .sidebar-nav:hover::-webkit-scrollbar {
+    display: none;
   }
 
   .nav {
@@ -215,12 +221,13 @@
 
   // ex.  <li class="nav-item nav-dropdown">
   .nav-dropdown.open {
-    background: $sidebar-nav-dropdown-bg;
+    //background: $sidebar-nav-dropdown-bg;
     @include borders($sidebar-nav-dropdown-borders);
     @if $enable-sidebar-nav-rounded {
       border-radius: $border-radius;
     }
     > .nav-dropdown-items {
+      background: $sidebar-nav-dropdown-bg;
       max-height: 1500px;
     }
 
