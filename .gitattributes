@@ -1,2 +1,3 @@
 ui/assets/scss/* liguist-vendored
+isimple/dbcore/* linguist-vendored
 ui/dist/* linguist-generated
