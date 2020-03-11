@@ -1,41 +1,48 @@
 <template>
   <div class="sidebar">
-    <SidebarHeader/>
+    <SidebarHeader />
     <nav class="sidebar-nav">
       <div class="scroller">
-          <draggable tag="ul" :list="this.$store.state.analyzers.queue" class="nav-drag nav">
-            <template v-for="(item) in this.$store.state.analyzers.queue">   <!--connect to vuex store-->
-              <SidebarNavAnalysis
-                v-bind:key="item.id"
-                :name="item.name"
-                :url="item.url"
-                :id="item.id"
-                :progress="item.progress"
-                :state="item.state"
-                :config="item.config"/>
-            </template>
-          </draggable>
-          <SidebarNewAnalysis/>
+        <draggable
+          tag="ul"
+          :list="this.$store.state.analyzers.queue"
+          class="nav-drag nav"
+        >
+          <template v-for="item in this.$store.state.analyzers.queue">
+            <!--connect to vuex store-->
+            <SidebarNavAnalysis
+              v-bind:key="item.id"
+              :name="item.name"
+              :url="item.url"
+              :id="item.id"
+              :progress="item.progress"
+              :state="item.state"
+              :config="item.config"
+            />
+          </template>
+        </draggable>
+        <SidebarNewAnalysis />
       </div>
       <slot></slot>
     </nav>
-  <SidebarFooter/>
+    <SidebarFooter />
   </div>
 </template>
-<script>
-import SidebarFooter from './SidebarFooter'
-import SidebarHeader from './SidebarHeader'
-import SidebarNavDropdown from './SidebarNavDropdown'
-import SidebarNavAnalysis from './SidebarNavAnalysis'
-import SidebarNavAnalysisLink from './SidebarNavAnalysisLink';
-import SidebarNewAnalysis from './SidebarNewAnalysis';
-import SidebarNavLink from './SidebarNavLink'
-import SidebarNavItem from './SidebarNavItem'
 
-import draggable from 'vuedraggable'
+<script>
+import SidebarFooter from "./SidebarFooter";
+import SidebarHeader from "./SidebarHeader";
+import SidebarNavDropdown from "./SidebarNavDropdown";
+import SidebarNavAnalysis from "./SidebarNavAnalysis";
+import SidebarNavAnalysisLink from "./SidebarNavAnalysisLink";
+import SidebarNewAnalysis from "./SidebarNewAnalysis";
+import SidebarNavLink from "./SidebarNavLink";
+import SidebarNavItem from "./SidebarNavItem";
+
+import draggable from "vuedraggable";
 
 export default {
-  name: 'sidebar',
+  name: "sidebar",
   components: {
     SidebarFooter,
     SidebarHeader,
@@ -45,19 +52,19 @@ export default {
     SidebarNewAnalysis,
     SidebarNavLink,
     SidebarNavItem,
-    draggable,
+    draggable
   },
   methods: {
-    handleClick (e) {
+    handleClick(e) {
       e.preventDefault();
-      e.target.parentElement.classList.toggle('open')
-    },
-  },
-}
+      e.target.parentElement.classList.toggle("open");
+    }
+  }
+};
 </script>
 
 <style>
-  .nav-link {
-    cursor:pointer;
-  }
+.nav-link {
+  cursor: pointer;
+}
 </style>

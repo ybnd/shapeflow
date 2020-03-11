@@ -22,7 +22,7 @@ from isimple.video import VideoAnalyzer
 
 log = get_logger('isimple')
 UI = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # todo: cleaner pls
     , 'ui', 'dist'
 )
 
@@ -122,7 +122,7 @@ class Main(object, metaclass=Singleton):
         def get_schemas(id: str):
             return respond(self.get_schemas(str(id)))
 
-        @app.route('/api/<id>/launch', methods=['GET'])
+        @app.route('/api/<id>/launch', methods=['POST'])
         def launch(id: str):
                 return respond(self.call(str(id), 'launch', {}))
 
@@ -130,7 +130,7 @@ class Main(object, metaclass=Singleton):
         def can_launch(id: str):
             return respond(self.call(str(id), 'can_launch', {}))
 
-        @app.route('/api/<id>/call/<endpoint>', methods=['GET'])
+        @app.route('/api/<id>/call/<endpoint>', methods=['GET','PUT','POST'])
         def call(id: str, endpoint: str):
             result = self.call(str(id), endpoint, request.args.to_dict())
             if result is None:
@@ -138,7 +138,7 @@ class Main(object, metaclass=Singleton):
             return respond(result)
 
         # Streaming
-        @app.route('/stream/<id>/<endpoint>')
+        @app.route('/stream/<id>/<endpoint>', methods=['PUT'])
         def stream(id: str, endpoint: str):
             if id in self._streams:
                 if endpoint in self._streams[id]:

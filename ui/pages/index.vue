@@ -1,6 +1,11 @@
 <template>
   <div class="fixed-page">
-    <draggable tag="ul" :list="this.$store.state.analyzers.queue" class="analysis-card-drag" handle=".handle">
+    <draggable
+      tag="ul"
+      :list="this.$store.state.analyzers.queue"
+      class="analysis-card-drag"
+      handle=".handle"
+    >
       <template v-for="(item, index) in this.$store.state.analyzers.queue">
         <AnalysisCard
           v-bind:key="item.id"
@@ -9,26 +14,26 @@
           :id="item.id"
           :progress="item.progress"
           :state="item.state"
-          :config="item.config"/>
+          :config="item.config"
+        />
       </template>
     </draggable>
   </div>
 </template>
 
 <script>
-
 // https://github.com/SortableJS/Vue.Draggable/blob/master/example/components/handle.vue
 
-import draggable from 'vuedraggable'
-import AnalysisCard from '../components/dashboard/AnalysisCard';
+import draggable from "vuedraggable";
+import AnalysisCard from "../components/dashboard/AnalysisCard";
 
-import { ping, unload } from '../assets/api'
+import { ping, unload } from "../assets/api";
 
 export default {
-  name: 'dashboard',
+  name: "dashboard",
   components: {
     AnalysisCard,
-    draggable,
+    draggable
   },
   beforeMount() {
     // ping the backend on load
@@ -41,10 +46,9 @@ export default {
     //   -> if one tab/window is closed, but others remain open,
     //      backend will hear some ping()'s and won't stop serving.
     setInterval(ping, 500);
-  },
-}
+  }
+};
 </script>
-
 
 <style>
 .analysis-card-drag {
