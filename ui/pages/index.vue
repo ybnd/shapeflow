@@ -1,18 +1,17 @@
 <template>
   <div class="fixed-page">
-    <div class="analysis-card-container">
-      <draggable tag="ul" :list="navItems" class="analysis-card-drag" handle=".handle">
-        <template v-for="(item) in navItems">
-          <AnalysisCard
-            v-bind:key="item.id"
-            :name="item.name"
-            :id="item.id"
-            :progress="item.progress"
-            :state="item.state"
-            :config="item.config"/>
-        </template>
-      </draggable>
-    </div>
+    <draggable tag="ul" :list="navItems" class="analysis-card-drag" handle=".handle">
+      <template v-for="(item, index) in navItems">
+        <AnalysisCard
+          v-bind:key="item.id"
+          :name="item.name"
+          :index="index"
+          :id="item.id"
+          :progress="item.progress"
+          :state="item.state"
+          :config="item.config"/>
+      </template>
+    </draggable>
   </div>
 </template>
 
@@ -51,20 +50,16 @@ export default {
 
 
 <style>
-  /*@import '../assets/scss/core/_variables';*/
-  .fixed-page {
-    max-height: 100vh;
-    flex-direction: column;
-    flex-wrap: nowrap;
-    overflow-x: hidden;
-    overflow-y: scroll;
-    -ms-overflow-style: -ms-autohiding-scrollbar;
-    margin-left: -20px;
-    margin-right: -30px;
-  }
-  .analysis-card-container {
-    flex: 1;
-    flex-flow: ro;
-    flex-direction: row;
-  }
+.analysis-card-drag {
+  max-height: 100vh;
+  height: 100vh;
+  flex: 1;
+  display: flex !important;
+  flex-direction: column !important;
+  flex-wrap: wrap !important;
+  justify-content: flex-start;
+  align-content: flex-start;
+  margin-left: -36px;
+  margin-right: 6px;
+}
 </style>

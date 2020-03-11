@@ -3,9 +3,7 @@
     <div class="app-body">
       <Sidebar :navItems="nav"/>
       <main class="main">
-        <div class="container-fluid">
-          <nuxt />
-        </div>
+        <nuxt />
       </main>
     </div>
   </div>

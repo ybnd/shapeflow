@@ -41,7 +41,7 @@
                     id="interval" type="text" :placeholder="interval_placeholder[selected]" class="interval"></b-form-input>
                 </b-input-group-prepend>
                   &emsp;
-                <b-form-input id="height" type="text" placeholder="global height (mm)"></b-form-input>
+                <b-form-input id="height" type="text" class="popover-form-height" placeholder="global height (mm)"></b-form-input>
               </b-input-group>
             </b-form-group>
           </b-row>
@@ -144,7 +144,7 @@
   }
   .hovertext:hover .nav-link {}
 
-  .popover-form-container {
+  .popover-form-container {  /* todo: should be a single component for the dashboard cards & this popover! Then we can recycle a bunch of stuff. */
     padding-top: 13px;
     padding-left: 15px;
     padding-right: 15px;
@@ -154,11 +154,14 @@
     margin-top: -10px;
     margin-bottom: -10px;
   }
+  .popover-form-height {
+
+  }
   .form-width-setter {
     width: 305px;
   }
   .popover {
-    max-width: 400px
+    max-width: 380px
   }
   .frame-interval-selector {
     margin-right: 4px;
@@ -168,5 +171,8 @@
   }
   .popover-buttons {
     margin-top: 8px;
+  }
+  .popover-form-height {
+    max-width: 140px;
   }
 </style>

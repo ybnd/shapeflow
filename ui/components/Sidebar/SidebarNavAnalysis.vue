@@ -7,17 +7,17 @@
       <template v-else-if="state === 'done'"><i class="fa fa-check-circle" /></template>
       <template v-else-if="state === 'canceled'"><i class="fa fa-ban" /></template>
       <template v-else-if="state === 'error'"><i class="fa fa-bolt" /></template>
-      <b-popover class="analysis-info-popover"
-        :target="'dropdown-'+id" container="body" placement="right" boundary="viewport"
-        triggers="hover focus" :delay="{'show': 500, 'hide': 25}">
-        <div class="analysis-info-line">
-          <i class="fa fa-file-video-o"/> {{config.video_path}}
-        </div>
-        <div class="analysis-info-line">
-          <i class="fa fa-file-code-o"/> {{config.design_path}}
-        </div>
+<!--      <b-popover class="analysis-info-popover"-->
+<!--        :target="'dropdown-'+id" container="body" placement="right" boundary="viewport"-->
+<!--        triggers="hover focus click" :delay="{'show': 500, 'hide': 25}">-->
+<!--        <div class="analysis-info-line">-->
+<!--          <i class="fa fa-file-video-o"/> {{config.video_path}}-->
+<!--        </div>-->
+<!--        <div class="analysis-info-line">-->
+<!--          <i class="fa fa-file-code-o"/> {{config.design_path}}-->
+<!--        </div>-->
 
-      </b-popover>
+<!--      </b-popover>-->
       {{name}}
     </div>
     <template v-if="state === 'incomplete'">

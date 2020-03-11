@@ -8,6 +8,9 @@ export default {
       config: {
         video_path: 'some video.mp4',
         design_path: 'some_design.svg',
+        height: '0.153',
+        frame_interval_setting: 'Nf',
+        interval: '500',
       }
     },
     {
@@ -18,6 +21,9 @@ export default {
       config: {
         video_path: "some video but it's a very long one let's see what that does to the thing and even more text what is this anyway please don't do this wtf.mp4",
         design_path: 'some_design.svg',
+        height: '0.153',
+        frame_interval_setting: 'dt',
+        interval: '5',
       }
     },
     {
@@ -28,6 +34,9 @@ export default {
       config: {
         video_path: 'some video.mp4',
         design_path: 'some_design.svg',
+        height: '0.153',
+        frame_interval_setting: 'dt',
+        interval: '5',
       }
     },
     {
@@ -38,6 +47,9 @@ export default {
       config: {
         video_path: 'some video.mp4',
         design_path: 'some_design.svg',
+        height: '0.153',
+        frame_interval_setting: 'dt',
+        interval: '5',
       }
     },
     {
@@ -48,6 +60,9 @@ export default {
       config: {
         video_path: 'some video.mp4',
         design_path: 'some_design.svg',
+        height: '0.153',
+        frame_interval_setting: 'dt',
+        interval: '5',
       }
     },
     {
@@ -58,6 +73,9 @@ export default {
       config: {
         video_path: 'some video.mp4',
         design_path: 'some_design.svg',
+        height: '0.153',
+        frame_interval_setting: 'Nf',
+        interval: '100',
       }
     },
   ]
