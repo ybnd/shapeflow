@@ -1,12 +1,23 @@
 <template>
   <div class="nav-item nav-dropdown">
-    <div class="nav-link nav-dropdown-toggle" @click="handleClick" >
+    <div class="nav-link nav-dropdown-toggle" @click="handleClick" :id="'dropdown-'+id">
       <template v-if="state === 'incomplete'"><i class="fa fa-exclamation" /></template>
       <template v-else-if="state === 'ready'"><i class="fa fa-check" /></template>
       <template v-else-if="state === 'running'"><i class="fa fa-spin fa-spinner" /></template>
       <template v-else-if="state === 'done'"><i class="fa fa-check-circle" /></template>
       <template v-else-if="state === 'canceled'"><i class="fa fa-ban" /></template>
       <template v-else-if="state === 'error'"><i class="fa fa-bolt" /></template>
+      <b-popover class="analysis-info-popover"
+        :target="'dropdown-'+id" container="body" placement="right" boundary="viewport"
+        triggers="hover focus" :delay="{'show': 500, 'hide': 25}">
+        <div class="analysis-info-line">
+          <i class="fa fa-file-video-o"/> {{config.video_path}}
+        </div>
+        <div class="analysis-info-line">
+          <i class="fa fa-file-code-o"/> {{config.design_path}}
+        </div>
+
+      </b-popover>
       {{name}}
     </div>
     <template v-if="state === 'incomplete'">
@@ -14,7 +25,7 @@
         <SidebarNavAnalysisLink name="Configure" icon="icon-equalizer" :url="`/analysis/configure?id=${id}`"/>
         <SidebarNavAnalysisLink name="Set alignment" icon="icon-frame" :url="`/analysis/align?id=${id}`"/>
         <SidebarNavAnalysisLink name="Set filters" icon="icon-layers" :url="`/analysis/filter?id=${id}`"/>
-        <SidebarNavAnalysisLink name="Remove" icon="icon-trash" :url="`/api/analyzer/quit/${id}`" two_stage="true"/>
+        <SidebarNavAnalysisLink name="Remove" icon="icon-trash" :url="`/api/analyzer/quit/${id}`" :two_stage="true"/>
       </ul>
     </template>
     <template v-else-if="state === 'ready'">
@@ -23,14 +34,14 @@
         <SidebarNavAnalysisLink name="Set alignment" icon="icon-frame" :url="`/analysis/align?id=${id}`"/>
         <SidebarNavAnalysisLink name="Set filters" icon="icon-layers" :url="`/analysis/filter?id=${id}`"/>
         <SidebarNavAnalysisLink name="Run" icon="icon-control-play" :url="`/api/analyzer/${id}/analyze`"/>
-        <SidebarNavAnalysisLink name="Remove" icon="icon-trash" :url="`/api/analyzer/${id}/quit`" two_stage="true" :id="id"/>
+        <SidebarNavAnalysisLink name="Remove" icon="icon-trash" :url="`/api/analyzer/${id}/quit`" :two_stage="true" :id="id"/>
       </ul>
     </template>
     <template v-else-if="state === 'running'">
       <b-progress class="progress" height="2px" :value="progress"></b-progress>
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink name="Monitor" icon="icon-graph" :url="`/analysis/monitor?id=${id}`"/>
-        <SidebarNavAnalysisLink name="Cancel" icon="icon-ban" :url="`/api/analyzer/${id}/cancel`" two_stage="true" :id="id"/>
+        <SidebarNavAnalysisLink name="Cancel" icon="icon-ban" :url="`/api/analyzer/${id}/cancel`" :two_stage="true" :id="id"/>
       </ul>
     </template>
     <template v-else-if="state === 'done'">
@@ -40,7 +51,7 @@
         <SidebarNavAnalysisLink name="Set alignment" icon="icon-frame" :url="`/analysis/align?id=${id}`"/>
         <SidebarNavAnalysisLink name="Set filters" icon="icon-layers" :url="`/analysis/filter?id=${id}`"/>
         <SidebarNavAnalysisLink name="Run" icon="icon-control-play" :url="`/api/analyzer/${id}/analyze`"/>
-        <SidebarNavAnalysisLink name="Remove" icon="icon-trash" :url="`/api/analyzer/${id}/quit`" two_stage="true" :id="id"/>
+        <SidebarNavAnalysisLink name="Remove" icon="icon-trash" :url="`/api/analyzer/${id}/quit`" :two_stage="true" :id="id"/>
       </ul>
     </template>
     <template v-else-if="state === 'canceled'">
@@ -50,7 +61,7 @@
         <SidebarNavAnalysisLink name="Set alignment" icon="icon-frame" :url="`/analysis/align?id=${id}`"/>
         <SidebarNavAnalysisLink name="Set filters" icon="icon-layers" :url="`/analysis/filter?id=${id}`"/>
         <SidebarNavAnalysisLink name="Run" icon="icon-control-play" :url="`/api/analyzer/${id}/analyze`"/>
-        <SidebarNavAnalysisLink name="Remove" icon="icon-trash" :url="`/api/analyzer/${id}/quit`" two_stage="true" :id="id"/>
+        <SidebarNavAnalysisLink name="Remove" icon="icon-trash" :url="`/api/analyzer/${id}/quit`" :two_stage="true" :id="id"/>
       </ul>
     </template>
     <template v-else-if="state === 'error'">
@@ -58,9 +69,9 @@
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink name="Configure" icon="icon-equalizer" :url="`/analysis/configure?id=${id}`"/>
         <SidebarNavAnalysisLink name="Set alignment" icon="icon-frame" :url="`/analysis/align?id=${id}`"/>
-        <SidebarNavAnalysisLink name="Set filters" icon="icon-layers" :url="`/analysis/${id}/configure`"/>
+        <SidebarNavAnalysisLink name="Set filters" icon="icon-layers" :url="`/analysis/filter?id=${id}`"/>
         <SidebarNavAnalysisLink name="Run" icon="icon-control-play" :url="`/api/analyzer/${id}/analyze`"/>
-        <SidebarNavAnalysisLink name="Remove" icon="icon-trash" :url="`/api/analyzer/${id}/quit`" two_stage="true" :id="id"/>
+        <SidebarNavAnalysisLink name="Remove" icon="icon-trash" :url="`/api/analyzer/${id}/quit`" :two_stage="true" :id="id"/>
       </ul>
     </template>
   </div>
@@ -81,6 +92,8 @@ import SidebarNavItem from './SidebarNavItem'
 import SidebarNavLabel from './SidebarNavLabel'
 
 import axios from 'axios'
+
+// todo: should do color/icon resolution in a separate .js module, should be shared with e.g. dashboard
 
 export default {
   props: {
@@ -129,5 +142,19 @@ export default {
       ]
     },
   },
+  data() {
+    return {
+      show: false,
+    }
+  }
 }
 </script>
+
+<style>
+  .analysis-info-popover {
+    min-width: 25px;
+    max-width: 400px;
+  }
+  .analysis-info-line {
+  }
+</style>

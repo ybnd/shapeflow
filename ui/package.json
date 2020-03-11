@@ -13,6 +13,7 @@
   "dependencies": {
     "@nuxtjs/axios": "^5.0.0",
     "@nuxtjs/style-resources": "^0.1.1",
+    "axios": "latest",
     "bootstrap": "^4.4.1",
     "bootstrap-vue": "^2.0.0-rc.1",
     "chart.js": "^2.7.1",
@@ -27,7 +28,7 @@
     "stylelint": "^13.2.1",
     "vue-chartjs": "^3.1.1",
     "vue-router": "^3.1.6",
-    "axios": "latest"
+    "vuedraggable": "^2.23.2"
   },
   "devDependencies": {
     "node-sass": "^4.7.2",

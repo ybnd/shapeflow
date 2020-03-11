@@ -11,7 +11,8 @@
               :url="item.url"
               :id="item.id"
               :progress="item.progress"
-              :state="item.state"/>
+              :state="item.state"
+              :config="item.config"/>
           </template>
           <SidebarNewAnalysis/>
         </ul>

@@ -16,7 +16,7 @@ export default {
       progress: 33.0,
       state: 'running',
       config: {
-        video_path: 'some video.mp4',
+        video_path: "some video but it's a very long one let's see what that does to the thing and even more text what is this anyway please don't do this wtf.mp4",
         design_path: 'some_design.svg',
       }
     },
