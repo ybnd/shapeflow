@@ -3,19 +3,19 @@
     <SidebarHeader/>
     <nav class="sidebar-nav">
       <div class="scroller">
-        <ul class="nav">
-          <template v-for="(item) in navItems">   <!--connect to vuex store-->
-            <SidebarNavAnalysis
-              v-bind:key="item.id"
-              :name="item.name"
-              :url="item.url"
-              :id="item.id"
-              :progress="item.progress"
-              :state="item.state"
-              :config="item.config"/>
-          </template>
+          <draggable tag="ul" :list="navItems" class="nav-drag nav">
+            <template v-for="(item) in navItems">   <!--connect to vuex store-->
+              <SidebarNavAnalysis
+                v-bind:key="item.id"
+                :name="item.name"
+                :url="item.url"
+                :id="item.id"
+                :progress="item.progress"
+                :state="item.state"
+                :config="item.config"/>
+            </template>
+          </draggable>
           <SidebarNewAnalysis/>
-        </ul>
       </div>
       <slot></slot>
     </nav>
@@ -36,6 +36,8 @@ import SidebarNavLink from './SidebarNavLink'
 import SidebarNavTitle from './SidebarNavTitle'
 import SidebarNavItem from './SidebarNavItem'
 import SidebarNavLabel from './SidebarNavLabel'
+
+import draggable from 'vuedraggable'
 
 export default {
   name: 'sidebar',
@@ -59,7 +61,8 @@ export default {
     SidebarNavLink,
     SidebarNavTitle,
     SidebarNavItem,
-    SidebarNavLabel
+    SidebarNavLabel,
+    draggable,
   },
   methods: {
     handleClick (e) {
