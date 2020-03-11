@@ -24,18 +24,13 @@
 </template>
 <script>
 import SidebarFooter from './SidebarFooter'
-import SidebarForm from './SidebarForm'
 import SidebarHeader from './SidebarHeader'
-import SidebarMinimizer from './SidebarMinimizer'
-import SidebarNavDivider from './SidebarNavDivider'
 import SidebarNavDropdown from './SidebarNavDropdown'
 import SidebarNavAnalysis from './SidebarNavAnalysis'
 import SidebarNavAnalysisLink from './SidebarNavAnalysisLink';
 import SidebarNewAnalysis from './SidebarNewAnalysis';
 import SidebarNavLink from './SidebarNavLink'
-import SidebarNavTitle from './SidebarNavTitle'
 import SidebarNavItem from './SidebarNavItem'
-import SidebarNavLabel from './SidebarNavLabel'
 
 import draggable from 'vuedraggable'
 
@@ -50,18 +45,13 @@ export default {
   },
   components: {
     SidebarFooter,
-    // SidebarForm,
     SidebarHeader,
-    SidebarMinimizer,
-    SidebarNavDivider,
     SidebarNavDropdown,
     SidebarNavAnalysis,
     SidebarNavAnalysisLink,
     SidebarNewAnalysis,
     SidebarNavLink,
-    SidebarNavTitle,
     SidebarNavItem,
-    SidebarNavLabel,
     draggable,
   },
   methods: {

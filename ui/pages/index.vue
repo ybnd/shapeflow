@@ -21,17 +21,7 @@
 
 import nav from '../layouts/menu'
 import draggable from 'vuedraggable'
-import CardLine1ChartExample from '~/components/dashboard/CardLine1ChartExample'
-import CardLine2ChartExample from '~/components/dashboard/CardLine2ChartExample'
-import CardLine3ChartExample from '~/components/dashboard/CardLine3ChartExample'
-import CardBarChartExample from '~/components/dashboard/CardBarChartExample'
-import MainChartExample from '~/components/dashboard/MainChartExample'
-import SocialBoxChartExample from '~/components/dashboard/SocialBoxChartExample'
-import CalloutChartExample from '~/components/dashboard/CalloutChartExample'
-import Callout from '~/components/'
 import AnalysisCard from '../components/dashboard/AnalysisCard';
-
-console.log(nav.items);
 
 export default {
   name: 'dashboard',
@@ -51,6 +41,7 @@ export default {
 
 <style>
 .analysis-card-drag {
+
   flex: 1;
   display: flex !important;
   flex-direction: column !important;

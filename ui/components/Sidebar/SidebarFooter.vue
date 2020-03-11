@@ -12,7 +12,6 @@
 <script>
   import SidebarNavDropdown from './SidebarNavDropdown';
   import SidebarNavLink from './SidebarNavLink'
-  import SidebarNavTitle from './SidebarNavTitle'
   import SidebarNavItem from './SidebarNavItem'
 
 export default {
@@ -20,7 +19,6 @@ export default {
   class: 'sidebar',
   components: {
     SidebarNavDropdown,
-    SidebarNavTitle,
     SidebarNavItem,
     SidebarNavLink,
   },
