@@ -15,7 +15,7 @@ module.exports = {
   ** Headers of the page
   */
   head: {
-    title: 'Nuxt CoreUI',
+    title: 'isimple',
     meta: [
       { charset: 'utf-8' },
       { name: 'viewport', content: 'width=device-width, initial-scale=1' },
@@ -31,7 +31,7 @@ module.exports = {
   */
   router: {
     linkActiveClass: 'active open'
-  },  
+  },
 
   /*
   ** Customize the progress bar color
@@ -58,7 +58,7 @@ module.exports = {
   ** Plugins to load before mounting the App
   */
   plugins: [
-    
+
   ],
 
   /*
@@ -103,7 +103,7 @@ module.exports = {
         const vueLoader = config.module.rules.find(
           ({loader}) => loader === 'vue-loader')
         const { options: {loaders} } = vueLoader || { options: {} }
-        
+
         if (loaders) {
           for (const loader of Object.values(loaders)) {
             changeLoaderOptions(Array.isArray(loader) ? loader : [loader])

@@ -51,8 +51,6 @@ export default {
 
 <style>
 .analysis-card-drag {
-  max-height: 100vh;
-  height: 100vh;
   flex: 1;
   display: flex !important;
   flex-direction: column !important;

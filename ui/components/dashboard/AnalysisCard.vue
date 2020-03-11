@@ -126,17 +126,14 @@ export default {
 
 <style scoped>
 .analysis-card {
-  text-align: left;
+  /*text-align: left;*/
   max-width: 800px;
-  height: 229px;
   max-height: 400px;
+  min-height: 160px;
   display: flex !important;
   flex-direction: column !important;
   flex-wrap: wrap !important;
-  margin-top: 5px;
-  margin-bottom: 0px;
-  margin-right: 5px;
-  margin-left: 0px;
+  margin: 5px 5px 0 0;
 }
 .column-container {
   margin-top: -15px;
@@ -168,9 +165,9 @@ export default {
   height: 26px;
 }
 .thumbnail {
-  height: 100px;
+  min-height: 60px;
+  min-width: 100px;
   max-height: 100px;
-  width: 178px;
   max-width: 178px;
 }
 </style>
