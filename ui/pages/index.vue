@@ -41,7 +41,6 @@ export default {
 
 <style>
 .analysis-card-drag {
-
   flex: 1;
   display: flex !important;
   flex-direction: column !important;
@@ -50,5 +49,7 @@ export default {
   align-content: flex-start;
   margin-left: -36px;
   margin-right: 6px;
+  max-height: 100vh;
+  max-width: 100vw;
 }
 </style>

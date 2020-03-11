@@ -182,6 +182,7 @@ class Main(object, metaclass=Singleton):
         analyzer._multi = True
         log.debug(f"Added instance {{'{id}': {analyzer}}}")
         self._roots[str(id)] = analyzer
+        assert isinstance(analyzer, VideoAnalyzer)
         self._models[str(id)] = self._history.add_analysis(analyzer)
         return True
 
