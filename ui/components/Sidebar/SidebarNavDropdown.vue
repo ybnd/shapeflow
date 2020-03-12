@@ -1,10 +1,15 @@
 <template>
   <router-link tag="li" class="nav-item nav-dropdown" :to="url" disabled>
-    <div class="nav-link nav-dropdown-toggle" @load="closedByDefault" @click="handleClick">
-      <i :class="icon"/>{{name}} </div>
-      <ul class="nav-dropdown-items">
-        <slot></slot>
-      </ul>
+    <div
+      class="nav-link nav-dropdown-toggle"
+      @load="closedByDefault"
+      @click="handleClick"
+    >
+      <i :class="icon" />{{ name }}
+    </div>
+    <ul class="nav-dropdown-items">
+      <slot></slot>
+    </ul>
   </router-link>
 </template>
 
@@ -13,30 +18,30 @@ export default {
   props: {
     name: {
       type: String,
-      default: ''
+      default: ""
     },
     url: {
       type: String,
-      default: ''
+      default: ""
     },
     icon: {
       type: String,
-      default: ''
+      default: ""
     },
     progress: {
       type: Number,
-      default: 0,
-    },
+      default: 0
+    }
   },
   methods: {
-    closedByDefault (e) {
+    closedByDefault(e) {
       e.preventDefault();
-      e.target.parentElement.toggleClass('nav-dropdown-toggle')
+      e.target.parentElement.toggleClass("nav-dropdown-toggle");
     },
-    handleClick (e) {
+    handleClick(e) {
       e.preventDefault();
-      e.target.parentElement.classList.toggle('open')
+      e.target.parentElement.classList.toggle("open");
     }
   }
-}
+};
 </script>

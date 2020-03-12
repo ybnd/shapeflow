@@ -1,7 +1,7 @@
 <template>
   <div class="app">
     <div class="app-body">
-      <Sidebar/>
+      <Sidebar />
       <main class="main">
         <nuxt />
       </main>
@@ -10,30 +10,36 @@
 </template>
 
 <script>
-import nav from './menu'
-import { Header as AppHeader, Sidebar, Aside as AppAside, Footer as AppFooter, Breadcrumb } from '~/components/'
+import nav from "./menu";
+import {
+  Header as AppHeader,
+  Sidebar,
+  Aside as AppAside,
+  Footer as AppFooter,
+  Breadcrumb
+} from "~/components/";
 
 export default {
-  name: 'full',
+  name: "full",
   components: {
     // AppHeader,
-    Sidebar,
+    Sidebar
     // AppAside,
     // AppFooter,
     // Breadcrumb
   },
-  data () {
+  data() {
     return {
-      nav: nav.items,
-    }
+      nav: nav.items
+    };
   },
   computed: {
-    name () {
-      return this.$route.name
+    name() {
+      return this.$route.name;
     },
-    list () {
-      return this.$route.matched
+    list() {
+      return this.$route.matched;
     }
   }
-}
+};
 </script>

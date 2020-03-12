@@ -1,5 +1,3 @@
-import Sidebar from './Sidebar/Sidebar.vue'
+import Sidebar from "./Sidebar/Sidebar.vue";
 
-export {
-  Sidebar,
-}
+export { Sidebar };
