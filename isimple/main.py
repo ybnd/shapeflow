@@ -8,6 +8,7 @@ import uuid
 import webbrowser
 from threading import Thread, Event
 from typing import Dict, Any
+from enum import IntEnum
 
 from flask import Flask, send_from_directory, jsonify, request, Response
 import waitress
@@ -27,6 +28,15 @@ UI = os.path.join(
 )
 
 
+class AnalyzerState(IntEnum):  # todo: would be cool to compare this and analyzer_state in api.js on load
+    UNKNOWN = 0
+    INCOMPLETE = 1
+    LAUNCHED = 2
+    RUNNING = 3
+    CANCELED = 4
+    ERROR = 5
+
+
 def respond(*args) -> str:
     return jsonify(*args)
 
@@ -35,6 +45,7 @@ class ServerThread(Thread, metaclass=Singleton):
     _app: Flask
     _host: str
     _port: int
+    _stop = Event()
 
     def __init__(self, app, host, port):
         self._app = app
@@ -43,17 +54,22 @@ class ServerThread(Thread, metaclass=Singleton):
         super().__init__(daemon=True)
 
     def run(self):
-        waitress.serve(
-            self._app,
-            host=self._host,
-            port=self._port,
-        )
+        while not self._stop.is_set():
+            waitress.serve(
+                self._app,
+                host=self._host,
+                port=self._port,
+            )
+
+    def stop(self):
+        self._stop.set()
 
 
 class Main(object, metaclass=Singleton):
     _app: Flask
 
     _roots: Dict[str, VideoAnalyzer] = {}
+    _states: Dict[str, int] = {}
     _models: Dict[str, VideoAnalysisModel] = {}
     _streams: Dict[str, Dict[str, JpegStreamer]] = {}
     _history = History()
@@ -61,14 +77,14 @@ class Main(object, metaclass=Singleton):
     _host: str = 'localhost'
     _port: int = 7951
 
-    _server: Thread
+    _server: ServerThread
 
     _ping = Event()
     _unload = Event()
     _quit = Event()
 
     _timeout_suppress = 0.5
-    _timeout_unload = 1
+    _timeout_unload = 5
     _timeout_loop = 0.1
 
     def __init__(self):
@@ -93,10 +109,13 @@ class Main(object, metaclass=Singleton):
             return send_from_directory(os.path.join(UI, directory1, directory2), file)
 
         # API: general
-        @app.route('/api/ping', methods=['GET'])
-        def ping():
+        def active():
             self._unload.clear()
             self._ping.set()
+
+        @app.route('/api/ping', methods=['GET'])
+        def ping():
+            active()
             return respond(True)
 
         @app.route('/api/unload', methods=['POST'])
@@ -107,6 +126,7 @@ class Main(object, metaclass=Singleton):
         # API: working with Analyzer instances
         @app.route('/api/init', methods=['POST'])
         def init():  # todo: also add a model instance to self._models
+            active()
             if 'type' in request.args.to_dict():
                 bt = request.args.to_dict()['type']
             else:
@@ -116,22 +136,31 @@ class Main(object, metaclass=Singleton):
 
         @app.route('/api/list', methods=['GET'])
         def list():
-            return respond([k for k in self._roots.keys()])
+            # also works as a ping
+            active()
+            return respond({
+                'ids': [k for k in self._roots.keys()],
+                'states': [int(self._states[k]) for k in self._roots.keys()]
+            })
 
-        @app.route('/api/<id>/schemas', methods=['GET'])
+        @app.route('/api/<id>/call/get_schemas', methods=['GET'])
         def get_schemas(id: str):
+            active()
             return respond(self.get_schemas(str(id)))
 
         @app.route('/api/<id>/launch', methods=['POST'])
         def launch(id: str):
-                return respond(self.call(str(id), 'launch', {}))
+            active()
+            return respond(self.call(str(id), 'launch', {}))
 
         @app.route('/api/<id>/can_launch', methods=['GET'])
         def can_launch(id: str):
+            active()
             return respond(self.call(str(id), 'can_launch', {}))
 
         @app.route('/api/<id>/call/<endpoint>', methods=['GET','PUT','POST'])
         def call(id: str, endpoint: str):
+            active()
             result = self.call(str(id), endpoint, request.args.to_dict())
             if result is None:
                 result = True
@@ -140,6 +169,7 @@ class Main(object, metaclass=Singleton):
         # Streaming
         @app.route('/stream/<id>/<endpoint>', methods=['PUT'])
         def stream(id: str, endpoint: str):
+            active()
             if id in self._streams:
                 if endpoint in self._streams[id]:
                     return Response(self._streams[id][endpoint].stream())
@@ -177,6 +207,7 @@ class Main(object, metaclass=Singleton):
             time.sleep(self._timeout_loop)
 
     def cleanup(self):
+        self._server.stop()
         self._server.join()
         for streams in self._streams.values():
             for stream in streams.values():
@@ -191,6 +222,7 @@ class Main(object, metaclass=Singleton):
         analyzer._multi = True
         log.debug(f"Added instance {{'{id}': {analyzer}}}")
         self._roots[id] = analyzer
+        self._states[id] = AnalyzerState.INCOMPLETE
         assert isinstance(analyzer, VideoAnalyzer)
         self._models[id] = self._history.add_analysis(analyzer)
         return id

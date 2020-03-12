@@ -1,12 +1,10 @@
 import axios from "axios";
-import { resolvePath } from "vue-router/src/util/path";
 
-let BACKEND_ROOT = "http://localhost:7951"; // todo: something something .env   https://stackoverflow.com/questions/49257650/
+let BACKEND_ROOT = ""; // todo: something something .env   https://stackoverflow.com/questions/49257650/
 //       but also need to use CORS...
 
 let API = BACKEND_ROOT + "/api/";
 let DB = BACKEND_ROOT + "/db/";
-let STREAM = BACKEND_ROOT + "/stream/";
 
 export function url_api(id, endpoint) {
   return API + `${id}/${endpoint}`;
@@ -19,8 +17,8 @@ export function url_stream(id, endpoint) {
 }
 
 // define analyzer state Enum
-export const analyzer_state = {
-  unset: 0,
+export const AnalyzerState = {
+  UNKNOWN: 0,
   INCOMPLETE: 1,
   LAUNCHED: 2,
   RUNNING: 3,
@@ -37,12 +35,16 @@ export function unload() {
   return navigator.sendBeacon(API + "unload");
 }
 export function list() {
-  axios.get(API + "list");
+  return axios.get(API + "list").then(response => {
+    if (response.status === 200) {
+      return response.data;
+    }
+  });
 }
 
 export function init() {
   // initialize an Analyzer in the backend & return its id
-  axios.post(API + "init").then(response => {
+  return axios.post(API + "init").then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -50,7 +52,7 @@ export function init() {
 }
 
 export function get_schemas(id) {
-  axios.get(url_api(id, "schemas")).then(response => {
+  return axios.get(url_api(id, "call/get_schemas")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -58,7 +60,7 @@ export function get_schemas(id) {
 }
 
 export function get_config(id) {
-  axios.get(url_api(id, "get_config")).then(response => {
+  return axios.get(url_api(id, "call/get_config")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -66,7 +68,7 @@ export function get_config(id) {
 }
 
 export function set_config(id, config) {
-  axios.post(url_api(id, "set_config"), config).then(response => {
+  return axios.post(url_api(id, "call/set_config"), config).then(response => {
     if (response.status === 200) {
       get_config(id).then(config => {
         return config;
@@ -76,7 +78,7 @@ export function set_config(id, config) {
 }
 
 export function launch(id) {
-  axios.get(url_api(id, "can_launch")).then(response => {
+  return axios.get(url_api(id, "call/can_launch")).then(response => {
     if (response.status === 200) {
       axios.put(url_api(id, "launch")).then(response => {
         if (response.status === 200) {
@@ -99,7 +101,7 @@ export function set_filter(id, coordinate) {
 }
 
 export function analyze(id) {
-  axios.put(url_api(id, "call/analyze")).then(response => {
+  return axios.put(url_api(id, "call/analyze")).then(response => {
     if (response.status === 200) {
       return true;
     }

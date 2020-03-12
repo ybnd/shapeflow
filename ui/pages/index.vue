@@ -2,11 +2,11 @@
   <div class="fixed-page">
     <draggable
       tag="ul"
-      :list="this.$store.state.analyzers.queue"
+      :list="queue"
       class="analysis-card-drag"
       handle=".handle"
     >
-      <template v-for="(item, index) in this.$store.state.analyzers.queue">
+      <template v-for="(item, index) in queue" :key="item">
         <AnalysisCard
           v-bind:key="item.id"
           :name="item.name"
@@ -26,6 +26,7 @@
 
 import draggable from "vuedraggable";
 import AnalysisCard from "../components/dashboard/AnalysisCard";
+import { mapState } from "vuex";
 
 import { ping, unload } from "../assets/api";
 
@@ -35,9 +36,14 @@ export default {
     AnalysisCard,
     draggable
   },
+  computed: mapState({
+    queue: state => state.queue
+  }),
   beforeMount() {
     // ping the backend on load
-    window.onload = ping;
+    window.onload = () => {
+      this.$store.dispatch("analyzers/sync");
+    };
     // notify the backend on unload
     window.onunload = unload;
 
@@ -45,7 +51,13 @@ export default {
     // once unload() is called; backend starts listening to ping()
     //   -> if one tab/window is closed, but others remain open,
     //      backend will hear some ping()'s and won't stop serving.
-    setInterval(ping, 500);
+    setInterval(() => {
+      this.$store.dispatch("analyzers/sync");
+      // this.$forceUpdate(); // https://michaelnthiessen.com/force-re-render/
+    }, 5000);
+    setInterval(() => {
+      ping;
+    }, 500);
   }
 };
 </script>

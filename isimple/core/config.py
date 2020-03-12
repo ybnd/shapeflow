@@ -217,8 +217,8 @@ class Config(object):
             :return:
             """
             if isinstance(obj, Config):
-                # Recurse
-                return obj.to_dict()
+                # Recurse, but don't tag
+                return obj.to_dict(do_tag = False)
             if isinstance(obj, EnforcedStr):
                 # Return str value
                 try:
@@ -248,10 +248,6 @@ class Config(object):
                     output[attr] = type(val)([*map(_represent, val)])
                 else:
                     output[attr] = _represent(val)
-
-        # Add configuration metadata
-        output[VERSION] = __version__
-        output[CLASS] = self.__class__.__name__
 
         if do_tag:
             # todo: should only tag at the top-level (lots of unnecessary info otherwise)
