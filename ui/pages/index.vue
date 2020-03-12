@@ -6,16 +6,8 @@
       class="analysis-card-drag"
       handle=".handle"
     >
-      <template v-for="(item, index) in queue" :key="item">
-        <AnalysisCard
-          v-bind:key="item.id"
-          :name="item.name"
-          :index="index"
-          :id="item.id"
-          :progress="item.progress"
-          :state="item.state"
-          :config="item.config"
-        />
+      <template v-for="id in queue">
+        <AnalysisCard v-bind:key="id" :id="id" />
       </template>
     </draggable>
   </div>
@@ -36,9 +28,11 @@ export default {
     AnalysisCard,
     draggable
   },
-  computed: mapState({
-    queue: state => state.queue
-  }),
+  computed: {
+    ...mapState({
+      queue: state => state.queue
+    })
+  },
   beforeMount() {
     // ping the backend on load
     window.onload = () => {

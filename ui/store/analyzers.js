@@ -28,8 +28,11 @@ export const state = () => ({
 
 export const mutations = {
   addAnalyzer(state, id) {
-    state.queue = [...state.queue, id];
     state.analyzers = { ...state.analyzers, [id]: {} };
+  },
+
+  queueAnalyzer(state, id) {
+    state.queue = [...state.queue, id];
   },
 
   setAnalyzerState(state, id, analyzer_state) {
@@ -57,6 +60,20 @@ export const mutations = {
     Vue.set(state, "queue", state.queue.splice(state.queue.indexOf(id, 1)));
   }
 };
+export const getters = {
+  getState: state => id => {
+    return state.analyzers[id].state;
+  },
+  getConfig: state => id => {
+    return state.analyzers[id].config;
+  },
+  getName: state => id => {
+    return state.analyzers[id].name;
+  },
+  getIndex: state => id => {
+    return state.queue.indexOf(id);
+  }
+};
 
 export const actions = {
   init({ commit }) {
@@ -69,6 +86,8 @@ export const actions = {
       });
       get_config(id).then(config => {
         commit("setAnalyzerConfig", { id: id, analyzer_config: config });
+        // only queue AFTER config is committed
+        commit("queueAnalyzer", id);
       });
     });
   },
@@ -96,11 +115,26 @@ export const actions = {
           if (!state.queue.includes(ids[i])) {
             // add new id to the queue
             commit("addAnalyzer", ids[i]);
+            get_schemas(ids[i]).then(schemas => {
+              commit("setAnalyzerSchemas", {
+                id: ids[i],
+                analyzer_schemas: schemas
+              });
+            });
             get_config(ids[i]).then(config => {
               commit("setAnalyzerConfig", { id: ids[i] }, config);
             });
+            commit("setAnalyzerState", {
+              id: ids[i],
+              analyzer_state: states[i]
+            });
+            commit("queueAnalyzer", ids[i]);
+          } else {
+            commit("setAnalyzerState", {
+              id: ids[i],
+              analyzer_state: states[i]
+            });
           }
-          commit("setAnalyzerState", { id: ids[i], analyzer_state: states[i] });
         }
       }
     });

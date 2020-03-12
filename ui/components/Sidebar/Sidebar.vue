@@ -3,22 +3,10 @@
     <SidebarHeader />
     <nav class="sidebar-nav">
       <div class="scroller">
-        <draggable
-          tag="ul"
-          :list="this.$store.state.analyzers.queue"
-          class="nav-drag nav"
-        >
-          <template v-for="item in this.$store.state.analyzers.queue">
+        <draggable tag="ul" :list="queue" class="nav-drag nav">
+          <template v-for="id in queue">
             <!--connect to vuex store-->
-            <SidebarNavAnalysis
-              v-bind:key="item.id"
-              :name="item.name"
-              :url="item.url"
-              :id="item.id"
-              :progress="item.progress"
-              :state="item.state"
-              :config="item.config"
-            />
+            <SidebarNavAnalysis v-bind:key="id" :id="id" />
           </template>
         </draggable>
         <SidebarNewAnalysis />
@@ -40,6 +28,7 @@ import SidebarNavLink from "./SidebarNavLink";
 import SidebarNavItem from "./SidebarNavItem";
 
 import draggable from "vuedraggable";
+import { mapState } from "vuex";
 
 export default {
   name: "sidebar",
@@ -53,6 +42,11 @@ export default {
     SidebarNavLink,
     SidebarNavItem,
     draggable
+  },
+  computed: {
+    ...mapState({
+      queue: state => state.queue
+    })
   },
   methods: {
     handleClick(e) {

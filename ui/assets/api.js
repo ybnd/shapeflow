@@ -20,10 +20,12 @@ export function url_stream(id, endpoint) {
 export const AnalyzerState = {
   UNKNOWN: 0,
   INCOMPLETE: 1,
-  LAUNCHED: 2,
-  RUNNING: 3,
-  CANCELED: 4,
-  ERROR: 5
+  READY: 2,
+  LAUNCHED: 3,
+  RUNNING: 4,
+  DONE: 5,
+  CANCELED: 6,
+  ERROR: 7
 };
 
 export function ping() {
