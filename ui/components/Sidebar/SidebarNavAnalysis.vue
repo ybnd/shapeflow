@@ -1,26 +1,44 @@
 <template>
   <div class="nav-item nav-dropdown">
     <div
-      class="nav-link nav-dropdown-toggle"
+      class="nav-link nav-dropdown-toggle"  <!--todo: there's nothing here to make this update on changes if the queue doesn't change-->
       @click="handleClick"
       :id="'dropdown-' + id"
     >
-      <template v-if="state(id) === ast.INCOMPLETE"
+      <template
+        v-if="
+          this.$store.state.analyzers.analyzers[id].state === ast.INCOMPLETE
+        "
         ><i class="fa fa-exclamation"
       /></template>
-      <template v-else-if="state(id) === ast.READY"
+      <template
+        v-else-if="
+          this.$store.state.analyzers.analyzers[id].state === ast.READY
+        "
         ><i class="fa fa-check"
       /></template>
-      <template v-else-if="state(id) === ast.RUNNING"
+      <template
+        v-else-if="
+          this.$store.state.analyzers.analyzers[id].state === ast.RUNNING
+        "
         ><i class="fa fa-spin fa-spinner"
       /></template>
-      <template v-else-if="state(id) === ast.DONE"
+      <template
+        v-else-if="
+          this.$store.state.analyzers.analyzers[id].state === ast.DONE
+        "
         ><i class="fa fa-check-circle"
       /></template>
-      <template v-else-if="state(id) === ast.CANCELED"
+      <template
+        v-else-if="
+          this.$store.state.analyzers.analyzers[id].state === ast.CANCELED
+        "
         ><i class="fa fa-ban"
       /></template>
-      <template v-else-if="state(id) === ast.ERROR"
+      <template
+        v-else-if="
+          this.$store.state.analyzers.analyzers[id].state === ast.ERROR
+        "
         ><i class="fa fa-bolt"
       /></template>
       <!--      <b-popover class="analysis-info-popover"-->
@@ -34,9 +52,13 @@
       <!--        </div>-->
 
       <!--      </b-popover>-->
-      {{ name }}
+      {{ id }}
     </div>
-    <template v-if="state(id) === ast.INCOMPLETE">
+    <template
+      v-if="
+        this.$store.state.analyzers.analyzers[id].state === ast.INCOMPLETE
+      "
+    >
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
           name="Configure"
@@ -61,7 +83,11 @@
         />
       </ul>
     </template>
-    <template v-else-if="state(id) === ast.READY">
+    <template
+      v-else-if="
+        this.$store.state.analyzers.analyzers[id].state === ast.READY
+      "
+    >
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
           name="Configure"
@@ -91,7 +117,11 @@
         />
       </ul>
     </template>
-    <template v-else-if="state(id) === ast.RUNNING">
+    <template
+      v-else-if="
+        this.$store.state.analyzers.analyzers[id].state === ast.RUNNING
+      "
+    >
       <b-progress class="progress" height="2px" :value="progress"></b-progress>
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
@@ -107,7 +137,11 @@
         />
       </ul>
     </template>
-    <template v-else-if="state(id) === ast.DONE">
+    <template
+      v-else-if="
+        this.$store.state.analyzers.analyzers[id].state === ast.DONE
+      "
+    >
       <b-progress
         class="progress"
         height="2px"
@@ -143,7 +177,11 @@
         />
       </ul>
     </template>
-    <template v-else-if="state(id) === ast.CANCELED">
+    <template
+      v-else-if="
+        this.$store.state.analyzers.analyzers[id].state === ast.CANCELED
+      "
+    >
       <b-progress
         class="progress"
         height="2px"
@@ -179,7 +217,9 @@
         />
       </ul>
     </template>
-    <template v-else-if="state(id) === ast.ERROR">
+    <template
+      v-else-if="this.$store.state.analyzers.analyzers[id].state === ast.ERROR"
+    >
       <b-progress
         class="progress"
         height="2px"
@@ -237,12 +277,6 @@ export default {
     SidebarNavAnalysisLink
   },
   methods: {
-    ...mapGetters({
-      name: "getName",
-      state: "getState",
-      config: "getConfig",
-      index: "getIndex"
-    }),
     handleClick(e) {
       e.preventDefault();
       e.target.parentElement.classList.toggle("open");

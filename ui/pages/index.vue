@@ -2,11 +2,11 @@
   <div class="fixed-page">
     <draggable
       tag="ul"
-      :list="queue"
+      :list="queue()"
       class="analysis-card-drag"
       handle=".handle"
     >
-      <template v-for="id in queue">
+      <template v-for="id in this.$store.state.analyzers.queue">
         <AnalysisCard v-bind:key="id" :id="id" />
       </template>
     </draggable>
@@ -28,7 +28,7 @@ export default {
     AnalysisCard,
     draggable
   },
-  computed: {
+  methods: {
     ...mapState({
       queue: state => state.queue
     })

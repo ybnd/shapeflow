@@ -28,36 +28,58 @@ export const state = () => ({
 
 export const mutations = {
   addAnalyzer(state, id) {
+    console.log(`addAnalyzer: ${id}`);
     state.analyzers = { ...state.analyzers, [id]: {} };
+    console.log(state.analyzers);
   },
 
   queueAnalyzer(state, id) {
+    console.log(`queueAnalyzer: ${id}`);
     state.queue = [...state.queue, id];
+    console.log(state.queue);
   },
 
-  setAnalyzerState(state, id, analyzer_state) {
+  setAnalyzerState(state, { id, analyzer_state }) {
+    console.log(`setAnalyzerState: ${id}`);
+    console.log(analyzer_state);
     if (state.analyzers[id] === undefined) {
       state.analyzers[id] = {};
     }
-    state.analyzers[id].state = analyzer_state;
+    state.analyzers[id].state = {
+      ...state.analyzers[id],
+      state: analyzer_state
+    };
+    console.log(state.analyzers);
   },
 
-  setAnalyzerConfig(state, id, analyzer_config) {
+  setAnalyzerConfig(state, { id, analyzer_config }) {
+    console.log(`setAnalyzerConfig: ${id}`);
+    console.log(analyzer_config);
     if (state.analyzers[id] === undefined) {
       state.analyzers[id] = {};
     }
-    state.analyzers[id].config = analyzer_config;
+    state.analyzers[id] = {
+      ...state.analyzers[id],
+      config: analyzer_config
+    };
+    console.log(state.analyzers);
   },
 
-  setAnalyzerSchemas(state, id, analyzer_schemas) {
+  setAnalyzerSchemas(state, { id, analyzer_schemas }) {
+    console.log(`setAnalyzerSchemas: ${id}`);
+    console.log(analyzer_schemas);
     if (state.analyzers[id] === undefined) {
       state.analyzers[id] = {};
     }
-    state.analyzers[id].schemas = analyzer_schemas;
+    state.analyzers[id].schemas = {
+      ...state.analyzers[id],
+      config: analyzer_schemas
+    };
+    console.log(state.analyzers);
   },
 
   dropAnalyzer(state, id) {
-    Vue.set(state, "queue", state.queue.splice(state.queue.indexOf(id, 1)));
+    Vue.set(state, "queue", state.queue.splice(state.queue.indexOf(id, 1))); // todo: probably wrong
   }
 };
 export const getters = {
@@ -65,10 +87,12 @@ export const getters = {
     return state.analyzers[id].state;
   },
   getConfig: state => id => {
-    return state.analyzers[id].config;
+    // return state.analyzers[id].config;
+    return {};
   },
   getName: state => id => {
-    return state.analyzers[id].name;
+    // return state.analyzers[id].name;
+    return id;
   },
   getIndex: state => id => {
     return state.queue.indexOf(id);

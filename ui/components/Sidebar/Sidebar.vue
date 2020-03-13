@@ -3,8 +3,12 @@
     <SidebarHeader />
     <nav class="sidebar-nav">
       <div class="scroller">
-        <draggable tag="ul" :list="queue" class="nav-drag nav">
-          <template v-for="id in queue">
+        <draggable
+          tag="ul"
+          :list="this.$store.state.analyzers.queue"
+          class="nav-drag nav"
+        >
+          <template v-for="id in this.$store.state.analyzers.queue">
             <!--connect to vuex store-->
             <SidebarNavAnalysis v-bind:key="id" :id="id" />
           </template>
@@ -43,12 +47,10 @@ export default {
     SidebarNavItem,
     draggable
   },
-  computed: {
+  methods: {
     ...mapState({
       queue: state => state.queue
-    })
-  },
-  methods: {
+    }),
     handleClick(e) {
       e.preventDefault();
       e.target.parentElement.classList.toggle("open");

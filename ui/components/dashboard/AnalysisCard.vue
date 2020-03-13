@@ -25,7 +25,11 @@
                   class="form-width-setter"
                   id="video_path"
                   type="text"
-                  :value="config(id)['video_path']"
+                  :value="
+                    this.$store.state.analyzers.analyzers[id].config[
+                      'video_path'
+                    ]
+                  "
                 ></b-form-input>
               </b-input-group>
             </b-form-group>
@@ -40,7 +44,11 @@
                   class="form-width-setter"
                   id="design_path"
                   type="text"
-                  :value="config(id)['design_path']"
+                  :value="
+                    this.$store.state.analyzers.analyzers[id].config[
+                      'design_path'
+                    ]
+                  "
                 ></b-form-input>
               </b-input-group>
             </b-form-group>
@@ -51,7 +59,11 @@
                 <b-input-group-prepend>
                   <b-form-select
                     id="frame_interval_setting"
-                    :value="config(id)['frame_interval_setting']"
+                    :value="
+                      this.$store.state.analyzers.analyzers[id].config[
+                        'frame_interval_setting'
+                      ]
+                    "
                     select="selectFrameIntervalSetting"
                     :plain="false"
                     :options="['Nf', 'dt']"
@@ -61,7 +73,11 @@
                   <b-form-input
                     id="interval"
                     type="text"
-                    :value="config(id)['interval']"
+                    :value="
+                      this.$store.state.analyzers.analyzers[id].config[
+                        'interval'
+                      ]
+                    "
                     class="interval"
                   ></b-form-input>
                 </b-input-group-prepend>
@@ -70,7 +86,9 @@
                   id="height"
                   type="text"
                   class="card-config-form"
-                  :value="config(id)['height']"
+                  :value="
+                    this.$store.state.analyzers.analyzers[id].config['height']
+                  "
                 ></b-form-input>
               </b-input-group>
             </b-form-group>
@@ -91,7 +109,7 @@
         <b-form-input
           id="name"
           type="text"
-          :value="name(id)"
+          :value="id"
           class="card-name-form"
         ></b-form-input>
       </b-input-group>
@@ -111,10 +129,10 @@ export default {
   },
   methods: {
     ...mapGetters({
-      name: "getName",
-      state: "getState",
-      config: "getConfig",
-      index: "getIndex"
+      name: "analyzers/getName",
+      state: "analyzers/getState",
+      config: "analyzers/getConfig",
+      index: "analyzers/getIndex"
     })
   },
   data() {
