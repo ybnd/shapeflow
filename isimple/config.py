@@ -95,6 +95,9 @@ class VideoAnalyzerConfig(AnalyzerConfig):
     video_path: Optional[str] = field(default=None)
     design_path: Optional[str] = field(default=None)
 
+    name: str = field(default='')
+    description: str = field(default='')
+
     frame_interval_setting: Union[FrameIntervalSetting,str] = field(default=FrameIntervalSetting())
     dt: Optional[float] = field(default=5.0)
     Nf: Optional[int] = field(default=100)

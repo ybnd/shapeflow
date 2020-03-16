@@ -16,7 +16,7 @@ from isimple.util import ndarray2str, str2ndarray
 
 log = get_logger(__name__)
 
-__version__: str = '0.3.2'  # todo: since this version is "global", maybe should merge all config stuff into isimple.core.config after all?
+__version__: str = '0.3.3'  # todo: since this version is "global", maybe should merge all config stuff into isimple.core.config after all?
 
 # Metadata tags
 VERSION: str = 'config_version'
