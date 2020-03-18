@@ -105,13 +105,13 @@
       <b-input-group>
         <b-input-group-prepend>
           <b-button
-            >#{{ this.$store.getters["analyzers/getIndex"](id) + 1 }}</b-button
+            >#{{ this.$store.getters["queue/getIndex"](id) + 1 }}</b-button
           >
         </b-input-group-prepend>
         <b-form-input
           id="name"
           type="text"
-          :value="id"
+          :value="this.$store.state.analyzers.analyzers[id].name"
           class="card-name-form"
         ></b-form-input>
       </b-input-group>

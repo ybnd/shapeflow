@@ -19,13 +19,14 @@ export function url_stream(id, endpoint) {
 // define analyzer state Enum
 export const AnalyzerState = {
   UNKNOWN: 0,
-  INCOMPLETE: 1,
+  NOT_READY: 1,
   READY: 2,
   LAUNCHED: 3,
-  RUNNING: 4,
-  DONE: 5,
-  CANCELED: 6,
-  ERROR: 7
+  CAN_RUN: 4,
+  RUNNING: 5,
+  DONE: 6,
+  CANCELED: 7,
+  ERROR: 8
 };
 
 export function ping() {

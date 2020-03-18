@@ -5,7 +5,7 @@
         <div
           @click="show = !show"
           :class="classList"
-          :id="id"
+          :id="url"
           class="sidebar-analysis-link"
         >
           &ensp;
@@ -14,7 +14,7 @@
             badge.text
           }}</b-badge>
           <b-popover
-            :target="id"
+            :target="url"
             :show.sync="show"
             @ok="doRequest"
             container="body"

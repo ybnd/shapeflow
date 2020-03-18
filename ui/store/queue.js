@@ -18,12 +18,21 @@ export const state = () => ({
 });
 
 export const mutations = {
-  addToQueue(state, id) {
-    console.log(`queueAnalyzer: ${id}`);
+  addToQueue(state, { id }) {
+    console.log(`addToQueue: ${id}`);
     state.queue = [...state.queue, id];
     console.log(state.queue);
   },
-  dropFromQueue(state, id) {
+  dropFromQueue(state, { id }) {
     Vue.set(state, "queue", state.queue.splice(state.queue.indexOf(id, 1))); // todo: probably wrong
+  }
+};
+
+export const getters = {
+  getQueue: state => {
+    return state.queue;
+  },
+  getIndex: state => id => {
+    return state.queue.indexOf(id);
   }
 };

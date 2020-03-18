@@ -5,38 +5,22 @@
       @click="handleClick"
       :id="'dropdown-' + id"
     >
-      <template
-        v-if="
-          this.$store.state.analyzers.analyzers[id].state === ast.INCOMPLETE
-        "
+      <template v-if="state === ast.NOT_READY"
         ><i class="fa fa-exclamation"
       /></template>
-      <template
-        v-else-if="
-          this.$store.state.analyzers.analyzers[id].state === ast.READY
-        "
+      <template v-else-if="state === ast.READY"
         ><i class="fa fa-check"
       /></template>
-      <template
-        v-else-if="
-          this.$store.state.analyzers.analyzers[id].state === ast.RUNNING
-        "
+      <template v-else-if="state === ast.RUNNING"
         ><i class="fa fa-spin fa-spinner"
       /></template>
-      <template
-        v-else-if="this.$store.state.analyzers.analyzers[id].state === ast.DONE"
+      <template v-else-if="state === ast.DONE"
         ><i class="fa fa-check-circle"
       /></template>
-      <template
-        v-else-if="
-          this.$store.state.analyzers.analyzers[id].state === ast.CANCELED
-        "
+      <template v-else-if="state === ast.CANCELED"
         ><i class="fa fa-ban"
       /></template>
-      <template
-        v-else-if="
-          this.$store.state.analyzers.analyzers[id].state === ast.ERROR
-        "
+      <template v-else-if="state === ast.ERROR"
         ><i class="fa fa-bolt"
       /></template>
       <!--      <b-popover class="analysis-info-popover"-->
@@ -50,11 +34,9 @@
       <!--        </div>-->
 
       <!--      </b-popover>-->
-      {{ id.split("-")[0] }}
+      {{ name }}
     </div>
-    <template
-      v-if="this.$store.state.analyzers.analyzers[id].state === ast.INCOMPLETE"
-    >
+    <template v-if="state === ast.NOT_READY">
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
           name="Configure"
@@ -79,9 +61,7 @@
         />
       </ul>
     </template>
-    <template
-      v-else-if="this.$store.state.analyzers.analyzers[id].state === ast.READY"
-    >
+    <template v-else-if="state === ast.READY">
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
           name="Configure"
@@ -111,11 +91,7 @@
         />
       </ul>
     </template>
-    <template
-      v-else-if="
-        this.$store.state.analyzers.analyzers[id].state === ast.RUNNING
-      "
-    >
+    <template v-else-if="state === ast.RUNNING">
       <b-progress class="progress" height="2px" :value="progress"></b-progress>
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
@@ -131,9 +107,7 @@
         />
       </ul>
     </template>
-    <template
-      v-else-if="this.$store.state.analyzers.analyzers[id].state === ast.DONE"
-    >
+    <template v-else-if="state === ast.DONE">
       <b-progress
         class="progress"
         height="2px"
@@ -169,11 +143,7 @@
         />
       </ul>
     </template>
-    <template
-      v-else-if="
-        this.$store.state.analyzers.analyzers[id].state === ast.CANCELED
-      "
-    >
+    <template v-else-if="state === ast.CANCELED">
       <b-progress
         class="progress"
         height="2px"
@@ -209,9 +179,7 @@
         />
       </ul>
     </template>
-    <template
-      v-else-if="this.$store.state.analyzers.analyzers[id].state === ast.ERROR"
-    >
+    <template v-else-if="state === ast.ERROR">
       <b-progress
         class="progress"
         height="2px"
@@ -257,7 +225,6 @@ import { AnalyzerState as ast } from "../../assets/api";
 import { mapGetters, mapState, mapActions } from "vuex";
 
 // todo: should do color/icon resolution in a separate .js module, should be shared with e.g. dashboard
-
 export default {
   props: {
     id: {
@@ -276,7 +243,15 @@ export default {
   },
   computed: {
     classList() {
-      return ["nav-link", this.linkVariant, ...this.itemClasses];
+      return ["nav-link"];
+    },
+    name() {
+      return this.$store.state.analyzers.analyzers[this.id].name;
+    },
+    state() {
+      console.log(`State is`);
+      console.log(this.$store.state.analyzers.analyzers[this.id].state);
+      return this.$store.state.analyzers.analyzers[this.id].state;
     }
   },
   data() {

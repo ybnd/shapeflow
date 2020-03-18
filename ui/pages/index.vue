@@ -2,11 +2,11 @@
   <div class="fixed-page">
     <draggable
       tag="ul"
-      :list="this.$store.state.analyzers.queue"
+      :list="this.$store.state.queue.queue"
       class="analysis-card-drag"
       handle=".handle"
     >
-      <template v-for="id in this.$store.state.analyzers.queue">
+      <template v-for="id in this.$store.state.queue.queue">
         <AnalysisCard v-bind:key="id" :id="id" />
       </template>
     </draggable>

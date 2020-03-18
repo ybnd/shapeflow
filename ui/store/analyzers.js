@@ -1,14 +1,10 @@
 import Vue from "vue";
-import axios from "axios";
 import {
   AnalyzerState as ast,
-  init,
-  get_schemas,
-  list,
-  launch,
   get_config,
-  set_config,
-  analyze
+  get_schemas,
+  init,
+  list
 } from "../assets/api";
 
 export const state = () => ({
@@ -20,14 +16,8 @@ export const state = () => ({
 export const mutations = {
   addAnalyzer(state, id) {
     console.log(`addAnalyzer: ${id}`);
-    state.analyzers = { ...state.analyzers, [id]: {} };
+    state.analyzers = { ...state.analyzers, [id]: { name: id.split("-")[0] } };
     console.log(state.analyzers);
-  },
-
-  queueAnalyzer(state, id) {
-    console.log(`queueAnalyzer: ${id}`);
-    state.queue = [...state.queue, id];
-    console.log(state.queue);
   },
 
   setAnalyzerState(state, { id, analyzer_state }) {
@@ -36,10 +26,10 @@ export const mutations = {
     if (state.analyzers[id] === undefined) {
       state.analyzers[id] = {};
     }
-    state.analyzers[id].state = {
-      ...state.analyzers[id],
-      state: analyzer_state
-    };
+    if (analyzer_state === undefined) {
+      analyzer_state = ast.UNKNOWN;
+    }
+    state.analyzers[id].state = analyzer_state;
     console.log(state.analyzers);
   },
 
@@ -62,15 +52,12 @@ export const mutations = {
     if (state.analyzers[id] === undefined) {
       state.analyzers[id] = {};
     }
-    state.analyzers[id].schemas = {
-      ...state.analyzers[id],
-      config: analyzer_schemas
-    };
+    state.analyzers[id].schemas = analyzer_schemas;
     console.log(state.analyzers);
   },
 
   dropAnalyzer(state, id) {
-    Vue.set(state, "queue", state.queue.splice(state.queue.indexOf(id, 1))); // todo: probably wrong
+    delete state.analyzers[id]; // todo: probably wrong
   }
 };
 export const getters = {
@@ -94,68 +81,72 @@ export const actions = {
   init({ commit }) {
     console.log("Adding an analyzer...");
     init().then(id => {
-      commit("analyzers/addAnalyzer", id);
-      commit("analyzers/setAnalyzerState", {
+      commit("addAnalyzer", id);
+      commit("setAnalyzerState", {
         id: id,
-        analyzer_state: ast.INCOMPLETE
+        analyzer_state: ast.NOT_READY
       });
       get_schemas(id).then(schemas => {
-        commit("analyzers/setAnalyzerSchemas", {
+        commit("setAnalyzerSchemas", {
           id: id,
           analyzer_schemas: schemas
         });
       });
       get_config(id).then(config => {
-        commit("analyzers/setAnalyzerConfig", {
+        commit("setAnalyzerConfig", {
           id: id,
           analyzer_config: config
         });
         // only queue AFTER config is committed
-        commit("queue/queueAnalyzer", id);
+        commit("queue/queueAnalyzer", { id: id }, { root: true });
       });
     });
   },
 
-  async sync({ commit, state }) {
+  async sync({ commit, rootGetters }) {
     await list().then(data => {
       let ids = data.ids;
       let states = data.states;
 
       // remove dead ids from the queue
-      if (state.queue.length > 0) {
-        for (let i = 0; i < state.queue.length; i++) {
-          // todo: can probably be replaced with a filter
-          if (ids.includes(state.queue[i])) {
+      let q = rootGetters["queue/getQueue"];
+      if (q.length > 0) {
+        for (let i = 0; i < q.length; i++) {
+          if (ids.includes(q[i])) {
             // this id is still alive
           } else {
-            commit("queue/dropFromQueue", { id: state.queue[i] });
-            commit("analyzers/dropAnalyzer", { id: state.queue[i] });
+            commit("queue/dropFromQueue", { id: q[i] }, { root: true });
+            commit("dropAnalyzer", { id: q[i] });
           }
         }
       }
 
       // set id state
       if (ids.length > 0) {
+        let q = rootGetters["queue/getQueue"];
         for (let i = 0; i < ids.length; i++) {
-          if (!state.queue.includes(ids[i])) {
+          if (!q.includes(ids[i])) {
             // add new id to the queue
-            commit("analyzers/addAnalyzer", ids[i]);
+            commit("addAnalyzer", ids[i]);
             get_schemas(ids[i]).then(schemas => {
-              commit("analyzers/setAnalyzerSchemas", {
+              commit("setAnalyzerSchemas", {
                 id: ids[i],
                 analyzer_schemas: schemas
               });
             });
             get_config(ids[i]).then(config => {
-              commit("analyzers/setAnalyzerConfig", { id: ids[i] }, config);
+              commit("setAnalyzerConfig", {
+                id: ids[i],
+                analyzer_config: config
+              });
+              commit("setAnalyzerState", {
+                id: ids[i],
+                analyzer_state: states[i]
+              });
+              commit("queue/addToQueue", { id: ids[i] }, { root: true });
             });
-            commit("analyzers/setAnalyzerState", {
-              id: ids[i],
-              analyzer_state: states[i]
-            });
-            commit("queue/addToQueue", { id: ids[i] });
           } else {
-            commit("analyzers/setAnalyzerState", {
+            commit("setAnalyzerState", {
               id: ids[i],
               analyzer_state: states[i]
             });
