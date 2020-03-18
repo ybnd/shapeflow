@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Union, Optional, Tuple
 
+import datetime
+
 import numpy as np
 import yaml
 
@@ -117,6 +119,9 @@ class VideoAnalyzerConfig(AnalyzerConfig):
         self.transform = self.resolve(self.transform, TransformHandlerConfig)
         self.masks = tuple(self.resolve(self.masks, MaskConfig, iter=True))
         self.features = tuple(self.resolve(self.features, FeatureType, iter=True))
+
+        if not self.name:
+            self.name = datetime.datetime.now().strftime(settings.format.datetime_format)
 
 
 def load(path: str) -> VideoAnalyzerConfig:

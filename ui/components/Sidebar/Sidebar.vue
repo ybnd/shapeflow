@@ -48,9 +48,6 @@ export default {
     draggable
   },
   methods: {
-    ...mapState({
-      queue: state => state.queue
-    }),
     handleClick(e) {
       e.preventDefault();
       e.target.parentElement.classList.toggle("open");

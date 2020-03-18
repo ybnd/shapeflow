@@ -1,7 +1,7 @@
 <template>
   <div class="nav-item nav-dropdown">
     <div
-      class="nav-link nav-dropdown-toggle"  <!--todo: there's nothing here to make this update on changes if the queue doesn't change-->
+      class="nav-link nav-dropdown-toggle"
       @click="handleClick"
       :id="'dropdown-' + id"
     >
@@ -24,9 +24,7 @@
         ><i class="fa fa-spin fa-spinner"
       /></template>
       <template
-        v-else-if="
-          this.$store.state.analyzers.analyzers[id].state === ast.DONE
-        "
+        v-else-if="this.$store.state.analyzers.analyzers[id].state === ast.DONE"
         ><i class="fa fa-check-circle"
       /></template>
       <template
@@ -52,12 +50,10 @@
       <!--        </div>-->
 
       <!--      </b-popover>-->
-      {{ id }}
+      {{ id.split("-")[0] }}
     </div>
     <template
-      v-if="
-        this.$store.state.analyzers.analyzers[id].state === ast.INCOMPLETE
-      "
+      v-if="this.$store.state.analyzers.analyzers[id].state === ast.INCOMPLETE"
     >
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
@@ -84,9 +80,7 @@
       </ul>
     </template>
     <template
-      v-else-if="
-        this.$store.state.analyzers.analyzers[id].state === ast.READY
-      "
+      v-else-if="this.$store.state.analyzers.analyzers[id].state === ast.READY"
     >
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
@@ -138,9 +132,7 @@
       </ul>
     </template>
     <template
-      v-else-if="
-        this.$store.state.analyzers.analyzers[id].state === ast.DONE
-      "
+      v-else-if="this.$store.state.analyzers.analyzers[id].state === ast.DONE"
     >
       <b-progress
         class="progress"

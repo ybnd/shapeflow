@@ -1,18 +1,18 @@
 <template>
   <b-card show-footer class="analysis-card">
     <b-row>
-      <b-col>
-        <!-- todo: would be cool to have a triangl/triangle combo thumbnail that reveals the video/design fully on hover-->
-        <div class="thumbnail column-container">
-          <b-img fluid-grow :src="`/api/analyzer/thumbnail-design/${id}`" />
-          <!-- todo: connect to file input instead: https://stackoverflow.com/questions/49106045 -->
-        </div>
-      </b-col>
-      <b-col>
-        <div class="thumbnail column-container">
-          <b-img fluid-grow :src="`/api/analyzer/thumbnail-design/${id}`" />
-        </div>
-      </b-col>
+      <!--      <b-col>-->
+      <!--        &lt;!&ndash; todo: would be cool to have a triangl/triangle combo thumbnail that reveals the video/design fully on hover&ndash;&gt;-->
+      <!--        <div class="thumbnail column-container">-->
+      <!--          <b-img fluid-grow :src="`/api/analyzer/thumbnail-design/${id}`" />-->
+      <!--          &lt;!&ndash; todo: connect to file input instead: https://stackoverflow.com/questions/49106045 &ndash;&gt;-->
+      <!--        </div>-->
+      <!--      </b-col>-->
+      <!--      <b-col>-->
+      <!--        <div class="thumbnail column-container">-->
+      <!--          <b-img fluid-grow :src="`/api/analyzer/thumbnail-design/${id}`" />-->
+      <!--        </div>-->
+      <!--      </b-col>-->
       <b-col>
         <b-container class="column-container">
           <b-row class="card-form-row">
@@ -104,7 +104,9 @@
     <div slot="footer" class="handle">
       <b-input-group>
         <b-input-group-prepend>
-          <b-button>#{{ index(id) + 1 }}</b-button>
+          <b-button
+            >#{{ this.$store.getters["analyzers/getIndex"](id) + 1 }}</b-button
+          >
         </b-input-group-prepend>
         <b-form-input
           id="name"

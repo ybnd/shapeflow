@@ -12,18 +12,9 @@ import {
 } from "../assets/api";
 
 export const state = () => ({
-  options: {
-    // arrays of available
-    feature: [], // features to compute
-    transform: [], // transform implementations
-    filter: [] // filter implementations
-  },
   analyzers: {
     // maps id to {state, config}
-  },
-  queue: [
-    // ordered array of ids; dashboard & sidebar order, order of execution.
-  ]
+  }
 });
 
 export const mutations = {
@@ -103,21 +94,30 @@ export const actions = {
   init({ commit }) {
     console.log("Adding an analyzer...");
     init().then(id => {
-      commit("addAnalyzer", id);
-      commit("setAnalyzerState", { id: id, analyzer_state: ast.INCOMPLETE });
+      commit("analyzers/addAnalyzer", id);
+      commit("analyzers/setAnalyzerState", {
+        id: id,
+        analyzer_state: ast.INCOMPLETE
+      });
       get_schemas(id).then(schemas => {
-        commit("setAnalyzerSchemas", { id: id, analyzer_schemas: schemas });
+        commit("analyzers/setAnalyzerSchemas", {
+          id: id,
+          analyzer_schemas: schemas
+        });
       });
       get_config(id).then(config => {
-        commit("setAnalyzerConfig", { id: id, analyzer_config: config });
+        commit("analyzers/setAnalyzerConfig", {
+          id: id,
+          analyzer_config: config
+        });
         // only queue AFTER config is committed
-        commit("queueAnalyzer", id);
+        commit("queue/queueAnalyzer", id);
       });
     });
   },
 
-  sync({ commit, state }) {
-    list().then(data => {
+  async sync({ commit, state }) {
+    await list().then(data => {
       let ids = data.ids;
       let states = data.states;
 
@@ -128,7 +128,8 @@ export const actions = {
           if (ids.includes(state.queue[i])) {
             // this id is still alive
           } else {
-            commit("dropAnalyzer", { id: state.queue[i] });
+            commit("queue/dropFromQueue", { id: state.queue[i] });
+            commit("analyzers/dropAnalyzer", { id: state.queue[i] });
           }
         }
       }
@@ -138,23 +139,23 @@ export const actions = {
         for (let i = 0; i < ids.length; i++) {
           if (!state.queue.includes(ids[i])) {
             // add new id to the queue
-            commit("addAnalyzer", ids[i]);
+            commit("analyzers/addAnalyzer", ids[i]);
             get_schemas(ids[i]).then(schemas => {
-              commit("setAnalyzerSchemas", {
+              commit("analyzers/setAnalyzerSchemas", {
                 id: ids[i],
                 analyzer_schemas: schemas
               });
             });
             get_config(ids[i]).then(config => {
-              commit("setAnalyzerConfig", { id: ids[i] }, config);
+              commit("analyzers/setAnalyzerConfig", { id: ids[i] }, config);
             });
-            commit("setAnalyzerState", {
+            commit("analyzers/setAnalyzerState", {
               id: ids[i],
               analyzer_state: states[i]
             });
-            commit("queueAnalyzer", ids[i]);
+            commit("queue/addToQueue", { id: ids[i] });
           } else {
-            commit("setAnalyzerState", {
+            commit("analyzers/setAnalyzerState", {
               id: ids[i],
               analyzer_state: states[i]
             });

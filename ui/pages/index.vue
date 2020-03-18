@@ -2,7 +2,7 @@
   <div class="fixed-page">
     <draggable
       tag="ul"
-      :list="queue()"
+      :list="this.$store.state.analyzers.queue"
       class="analysis-card-drag"
       handle=".handle"
     >
@@ -28,11 +28,7 @@ export default {
     AnalysisCard,
     draggable
   },
-  methods: {
-    ...mapState({
-      queue: state => state.queue
-    })
-  },
+  methods: {},
   beforeMount() {
     // ping the backend on load
     window.onload = () => {
@@ -47,7 +43,7 @@ export default {
     //      backend will hear some ping()'s and won't stop serving.
     setInterval(() => {
       this.$store.dispatch("analyzers/sync");
-      // this.$forceUpdate(); // https://michaelnthiessen.com/force-re-render/
+      this.$forceUpdate(); // https://michaelnthiessen.com/force-re-render/
     }, 5000);
     setInterval(() => {
       ping;
