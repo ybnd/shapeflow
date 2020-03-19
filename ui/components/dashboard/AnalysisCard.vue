@@ -87,7 +87,8 @@
                   type="text"
                   class="card-config-form"
                   :value="
-                    this.$store.state.analyzers.analyzers[id].config['height']
+                    this.$store.state.analyzers.analyzers[id].config['height'] *
+                      1000
                   "
                 ></b-form-input>
               </b-input-group>

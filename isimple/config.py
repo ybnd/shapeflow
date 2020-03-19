@@ -22,7 +22,7 @@ class ColorSpace(EnforcedStr):
 
 
 class FrameIntervalSetting(EnforcedStr):
-    _options = ['dt', 'Nf']
+    _options = ['Nf', 'dt']
 
 
 @extend(ConfigType)
@@ -188,6 +188,11 @@ def normalize_config(d: dict) -> dict:
             if 'design' in d:
                 for k in to_remove:
                     d['design'].pop(k, None)
+        if before_version(d[VERSION], '0.3.4'):
+            normalizing_to('0.3.4')
+            # Set frame_interval_setting to dt, the previous default
+            if 'dt' in d:
+                d['frame_initerval_setting'] = FrameIntervalSetting('dt')
     else:
         raise NotImplementedError
 

@@ -108,7 +108,7 @@ class BackendConfigTest(unittest.TestCase):
         self.assertEqual(__VIDEO__, vac.video_path)
         self.assertEqual(__DESIGN__, vac.design_path)
 
-        self.assertEqual('dt', vac.frame_interval_setting)
+        self.assertEqual('Nf', vac.frame_interval_setting)
 
     def test_instantiate_factories(self):
         vac = VideoAnalyzerConfig(__VIDEO__, __DESIGN__)
