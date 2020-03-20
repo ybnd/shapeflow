@@ -43,8 +43,8 @@ export default {
     //      backend will hear some ping()'s and won't stop serving.
     setInterval(() => {
       this.$store.dispatch("analyzers/sync");
-      this.$forceUpdate(); // https://michaelnthiessen.com/force-re-render/
-    }, 5000);
+      // this.$forceUpdate(); // https://michaelnthiessen.com/force-re-render/
+    }, 250);
     setInterval(() => {
       ping;
     }, 500);

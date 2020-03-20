@@ -46,6 +46,11 @@ export default {
     SidebarNavItem,
     draggable
   },
+  beforeMount() {
+    window.onload = () => {
+      this.$store.dispatch("analyzers/sync");
+    };
+  },
   methods: {
     handleClick(e) {
       e.preventDefault();

@@ -96,17 +96,12 @@ class Main(object, metaclass=Singleton):
         def index_html():
             return send_from_directory(UI, 'index.html')
 
-        @app.route('/<directory>/<file>', methods=['GET'])  # todo: these three should be ONE method!
-        def get_file(directory, file):
-            return send_from_directory(os.path.join(UI, directory), file)
-
-        @app.route('/<file>', methods=['GET'])
-        def get_file2(file):
-            return send_from_directory(UI, file)
-
-        @app.route('/<directory1>/<directory2>/<file>', methods=['GET'])
-        def get_file3(directory1, directory2, file):
-            return send_from_directory(os.path.join(UI, directory1, directory2), file)
+        @app.route('/<file>')
+        @app.route('/<directory1>/<file>')
+        @app.route('/<directory1>/<directory2>/<file>')
+        def get_file(file, directory1 = '', directory2 = ''):
+            directory = os.path.join(UI, directory1, directory2)
+            return send_from_directory(directory, file)
 
         # API: general
         def active():

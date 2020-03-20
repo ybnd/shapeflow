@@ -33,7 +33,8 @@ module.exports = {
    ** Set the link active classes
    */
   router: {
-    linkActiveClass: "active open"
+    linkActiveClass: "active open",
+    mode: "hash"
   },
 
   /*
