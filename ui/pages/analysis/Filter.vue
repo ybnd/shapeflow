@@ -6,12 +6,16 @@
 </template>
 
 <script>
-export default {
-  name: "dashboard",
-  components: {},
-  data: function() {
-    return {};
-  },
-  methods: {}
-};
+  export default {
+    name: 'dashboard',
+    components: {
+    },
+    data: function () {
+      return { }
+    },
+    methods: {
+
+    },
+  }
 </script>
+

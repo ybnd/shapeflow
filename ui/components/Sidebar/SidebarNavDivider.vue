@@ -3,21 +3,23 @@
 </template>
 
 <script>
-export default {
-  name: "sidebar-nav-divider",
-  props: {
-    classes: {
-      type: String,
-      default: ""
-    }
-  },
-  computed: {
-    classList() {
-      return ["divider"];
+  export default {
+    name: 'sidebar-nav-divider',
+    props: {
+      classes: {
+        type: String,
+        default: ''
+      }
     },
-    itemClasses() {
-      return this.classes ? this.classes.split(" ") : "";
+    computed: {
+      classList () {
+        return [
+          'divider',
+        ]
+      },
+      itemClasses () {
+        return this.classes ? this.classes.split(' ') : ''
+      }
     }
   }
-};
 </script>

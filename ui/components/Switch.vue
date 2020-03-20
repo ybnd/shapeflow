@@ -1,12 +1,10 @@
 <template>
   <label :class="classList">
-    <input
-      type="checkbox"
-      class="switch-input"
-      :value="value"
-      :checked="isChecked"
-      @change="handleChange"
-    />
+    <input type="checkbox"
+           class="switch-input"
+           :value="value"
+           :checked="isChecked"
+           @change="handleChange">
     <template v-if="isOn">
       <span class="switch-label" :data-on="on" :data-off="off"></span>
     </template>
@@ -20,8 +18,8 @@
 <script>
 export default {
   model: {
-    prop: "checked",
-    event: "change"
+    prop: 'checked',
+    event: 'change'
   },
   props: {
     value: {
@@ -35,11 +33,11 @@ export default {
     },
     type: {
       type: String,
-      default: "default"
+      default: 'default'
     },
     variant: {
       type: String,
-      default: ""
+      default: ''
     },
     pill: {
       type: Boolean,
@@ -59,38 +57,38 @@ export default {
     }
   },
   computed: {
-    classList() {
+    classList () {
       return [
-        "switch",
+        'switch',
         this.switchType,
         this.switchVariant,
         this.switchPill,
         this.switchSize
-      ];
+      ]
     },
-    switchType() {
-      return this.type ? `switch-${this.type}` : `switch-default`;
+    switchType () {
+      return this.type ? `switch-${this.type}` : `switch-default`
     },
-    switchVariant() {
-      return this.variant ? `switch-${this.variant}` : `switch-secondary`;
+    switchVariant () {
+      return this.variant ? `switch-${this.variant}` : `switch-secondary`
     },
-    switchPill() {
-      return !this.pill ? null : `switch-pill`;
+    switchPill () {
+      return !this.pill ? null : `switch-pill`
     },
-    switchSize() {
-      return this.size ? `switch-${this.size}` : "";
+    switchSize () {
+      return this.size ? `switch-${this.size}` : ''
     },
-    isChecked() {
-      return this.checked === this.value;
+    isChecked () {
+      return this.checked === this.value
     },
-    isOn() {
-      return !this.on ? null : true;
+    isOn () {
+      return !this.on ? null : true
     }
   },
   methods: {
-    handleChange({ target: { checked } }) {
-      this.$emit("change", checked ? this.value : this.uncheckedValue);
+    handleChange ({ target: { checked } }) {
+      this.$emit('change', checked ? this.value : this.uncheckedValue)
     }
   }
-};
+}
 </script>

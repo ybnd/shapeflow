@@ -3,16 +3,21 @@
     <SidebarHeader />
     <nav class="sidebar-nav">
       <div class="scroller">
-        <draggable tag="ul" :list="get_queue()" class="nav-drag nav">
-          <template v-for="id in get_queue()">
+        <draggable
+          tag="ul"
+          :list="this.$store.state.analyzers.queue"
+          class="nav-drag nav"
+        >
+          <template v-for="item in this.$store.state.analyzers.queue">
             <!--connect to vuex store-->
             <SidebarNavAnalysis
-              v-bind:key="id"
-              :name="get_analyzer(id).config.name"
-              :id="id"
-              :progress="get_analyzer(id).progress"
-              :state="get_analyzer(id).state"
-              :config="get_analyzer(id).config"
+              v-bind:key="item.id"
+              :name="item.name"
+              :url="item.url"
+              :id="item.id"
+              :progress="item.progress"
+              :state="item.state"
+              :config="item.config"
             />
           </template>
         </draggable>
@@ -53,12 +58,6 @@ export default {
     handleClick(e) {
       e.preventDefault();
       e.target.parentElement.classList.toggle("open");
-    },
-    get_queue() {
-      return this.$store.state.analyzers.queue;
-    },
-    get_analyzer(id) {
-      return this.$store.state.analyzers.analyzers[id];
     }
   }
 };

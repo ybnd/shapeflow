@@ -2,19 +2,19 @@
   <div class="fixed-page">
     <draggable
       tag="ul"
-      :list="get_queue()"
+      :list="queue"
       class="analysis-card-drag"
       handle=".handle"
     >
-      <template v-for="(id, index) in get_queue()">
+      <template v-for="(item, index) in queue" :key="item">
         <AnalysisCard
-          v-bind:key="id"
+          v-bind:key="item.id"
+          :name="item.name"
           :index="index"
-          :name="get_analyzers(id).config.name"
-          :id="id"
-          :progress="get_analyzers(id).progress"
-          :state="get_analyzers(id).state"
-          :config="get_analyzers(id).config"
+          :id="item.id"
+          :progress="item.progress"
+          :state="item.state"
+          :config="item.config"
         />
       </template>
     </draggable>
@@ -58,14 +58,6 @@ export default {
     setInterval(() => {
       ping;
     }, 500);
-  },
-  methods: {
-    get_queue() {
-      return this.$store.state.analyzers.queue;
-    },
-    get_analyzer(id) {
-      return this.$store.state.analyzers.analyzers[id];
-    }
   }
 };
 </script>

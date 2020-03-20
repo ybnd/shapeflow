@@ -1,5 +1,3 @@
-import datetime
-
 from dataclasses import dataclass, field
 from typing import Union, Optional, Tuple
 
@@ -94,9 +92,6 @@ class DesignFileHandlerConfig(CachingBackendInstanceConfig):
 @extend(ConfigType)
 @dataclass
 class VideoAnalyzerConfig(AnalyzerConfig):
-    name: str = field(default='')
-    description: str = field(default='')
-
     video_path: Optional[str] = field(default=None)
     design_path: Optional[str] = field(default=None)
 
@@ -113,9 +108,6 @@ class VideoAnalyzerConfig(AnalyzerConfig):
     features: Tuple[Union[FeatureType, str], ...] = field(default=('',))
 
     def __post_init__(self):
-        if self.name == '':
-            self.name = datetime.datetime.now().strftime('%y/%m/%d %H:%M:%S')
-
         self.frame_interval_setting = self.resolve(self.frame_interval_setting, FrameIntervalSetting)
         self.video = self.resolve(self.video, VideoFileHandlerConfig)
         self.design = self.resolve(self.design, DesignFileHandlerConfig)
