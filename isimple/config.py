@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Union, Optional, Tuple
 
+import datetime
+
 import numpy as np
 import yaml
 
@@ -20,7 +22,7 @@ class ColorSpace(EnforcedStr):
 
 
 class FrameIntervalSetting(EnforcedStr):
-    _options = ['dt', 'Nf']
+    _options = ['Nf', 'dt']
 
 
 @extend(ConfigType)
@@ -95,6 +97,9 @@ class VideoAnalyzerConfig(AnalyzerConfig):
     video_path: Optional[str] = field(default=None)
     design_path: Optional[str] = field(default=None)
 
+    name: str = field(default='')
+    description: str = field(default='')
+
     frame_interval_setting: Union[FrameIntervalSetting,str] = field(default=FrameIntervalSetting())
     dt: Optional[float] = field(default=5.0)
     Nf: Optional[int] = field(default=100)
@@ -114,6 +119,9 @@ class VideoAnalyzerConfig(AnalyzerConfig):
         self.transform = self.resolve(self.transform, TransformHandlerConfig)
         self.masks = tuple(self.resolve(self.masks, MaskConfig, iter=True))
         self.features = tuple(self.resolve(self.features, FeatureType, iter=True))
+
+        if not self.name:
+            self.name = datetime.datetime.now().strftime(settings.format.datetime_format)
 
 
 def load(path: str) -> VideoAnalyzerConfig:
@@ -180,6 +188,11 @@ def normalize_config(d: dict) -> dict:
             if 'design' in d:
                 for k in to_remove:
                     d['design'].pop(k, None)
+        if before_version(d[VERSION], '0.3.4'):
+            normalizing_to('0.3.4')
+            # Set frame_interval_setting to dt, the previous default
+            if 'dt' in d:
+                d['frame_initerval_setting'] = FrameIntervalSetting('dt')
     else:
         raise NotImplementedError
 

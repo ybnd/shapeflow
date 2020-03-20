@@ -126,6 +126,7 @@ export default {
     handleNewAnalysis() {
       this.show = false;
       this.$store.dispatch("analyzers/init");
+      this.$forceUpdate();
     },
     selectFrameIntervalSetting(e) {
       this.selected = e.target.value;

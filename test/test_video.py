@@ -247,7 +247,7 @@ class VideoAnalyzerTest(FrameTest):
         va.launch()
         frames = [f for f in va.frame_numbers()]
 
-        self.assertEqual(68, len(frames))
+        self.assertEqual(67, len(frames))
 
         config.frame_interval_setting = 'dt'
         config.dt = 60

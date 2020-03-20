@@ -8,7 +8,7 @@
   background: $sidebar-bg;
   max-width: $sidebar-width;
 
-  max-height: 100vh; /* Sidebar may not exceed viewport height */
+  max-height: 100vh; /* sidebar may not exceed viewport height */
   @include borders($sidebar-borders);
 
   .sidebar-close {
@@ -359,7 +359,7 @@
     }
   }
 
-  // Minimized Sidebar
+  // Minimized sidebar
   .sidebar-minimized {
     .hidden-cn {
       display: none;

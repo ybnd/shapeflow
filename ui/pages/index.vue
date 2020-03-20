@@ -2,20 +2,12 @@
   <div class="fixed-page">
     <draggable
       tag="ul"
-      :list="queue"
+      :list="this.$store.state.queue.queue"
       class="analysis-card-drag"
       handle=".handle"
     >
-      <template v-for="(item, index) in queue" :key="item">
-        <AnalysisCard
-          v-bind:key="item.id"
-          :name="item.name"
-          :index="index"
-          :id="item.id"
-          :progress="item.progress"
-          :state="item.state"
-          :config="item.config"
-        />
+      <template v-for="id in this.$store.state.queue.queue">
+        <AnalysisCard v-bind:key="id" :id="id" />
       </template>
     </draggable>
   </div>
@@ -36,9 +28,7 @@ export default {
     AnalysisCard,
     draggable
   },
-  computed: mapState({
-    queue: state => state.queue
-  }),
+  methods: {},
   beforeMount() {
     // ping the backend on load
     window.onload = () => {
@@ -54,7 +44,7 @@ export default {
     setInterval(() => {
       this.$store.dispatch("analyzers/sync");
       // this.$forceUpdate(); // https://michaelnthiessen.com/force-re-render/
-    }, 5000);
+    }, 250);
     setInterval(() => {
       ping;
     }, 500);

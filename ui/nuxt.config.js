@@ -1,115 +1,120 @@
 const changeLoaderOptions = loaders => {
   if (loaders) {
     for (const loader of loaders) {
-      if (loader.loader === 'sass-loader') {
+      if (loader.loader === "sass-loader") {
         Object.assign(loader.options, {
-          includePaths: ['./assets']
-        })
+          includePaths: ["./assets"]
+        });
       }
     }
   }
-}
+};
 
 module.exports = {
   /*
-  ** Headers of the page
-  */
+   ** Headers of the page
+   */
   head: {
-    title: 'isimple',
+    title: "isimple",
     meta: [
-      { charset: 'utf-8' },
-      { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-      { hid: 'description', name: 'description', content: 'Unofficial Nuxt + CoreUI project, free to use boilerplate for every need.' }
+      { charset: "utf-8" },
+      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      {
+        hid: "description",
+        name: "description",
+        content:
+          "Unofficial Nuxt + CoreUI project, free to use boilerplate for every need."
+      }
     ],
-    link: [
-      { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }
-    ]
+    link: [{ rel: "icon", type: "image/x-icon", href: "/favicon.ico" }]
   },
 
   /*
-  ** Set the link active classes
-  */
+   ** Set the link active classes
+   */
   router: {
-    linkActiveClass: 'active open'
+    linkActiveClass: "active open",
+    mode: "hash"
   },
 
   /*
-  ** Customize the progress bar color
-  */
-  loading: { color: '#42A5CC' },
+   ** Customize the progress bar color
+   */
+  loading: { color: "#42A5CC" },
 
   /**
    * Import CSS
    */
   css: [
     /* Import Font Awesome Icons Set */
-    '~/node_modules/font-awesome/css/font-awesome.min.css',
+    "~/node_modules/font-awesome/css/font-awesome.min.css",
     /* Import Simple Line Icons Set */
-    '~/node_modules/simple-line-icons/css/simple-line-icons.css',
+    "~/node_modules/simple-line-icons/css/simple-line-icons.css",
     /* Import Bootstrap Vue Styles */
-    '~/node_modules/bootstrap-vue/dist/bootstrap-vue.css',
+    "~/node_modules/bootstrap-vue/dist/bootstrap-vue.css",
     /* Import Core SCSS */
-    { src: '~/assets/scss/style.scss', lang: 'scss' }
+    { src: "~/assets/scss/style.scss", lang: "scss" }
   ],
 
   /*
-  ** Plugins to load before mounting the App
-  */
-  plugins: [
-
-  ],
+   ** Plugins to load before mounting the App
+   */
+  plugins: [],
 
   /*
-  ** Nuxt.js modules
-  */
+   ** Nuxt.js modules
+   */
   modules: [
     // Doc: https://github.com/nuxt-community/axios-module#usage
-    '@nuxtjs/axios',
+    "@nuxtjs/axios",
     // Doc: https://github.com/bootstrap-vue/bootstrap-vue
-    'bootstrap-vue/nuxt'
+    "bootstrap-vue/nuxt"
   ],
   /*
-  ** Axios module configuration
-  */
+   ** Axios module configuration
+   */
   axios: {
     // See https://github.com/nuxt-community/axios-module#options
   },
 
   /*
-  ** Style resources configuration
-  */
+   ** Style resources configuration
+   */
   styleResources: {
-    scss: './assets/scss/style.scss'
+    scss: "./assets/scss/style.scss"
   },
 
   /*
-  ** Build configuration
-  */
+   ** Build configuration
+   */
   build: {
     /*
-    ** You can extend webpack config here
-    */
-    extend (config, { isDev, isClient }) {
+     ** You can extend webpack config here
+     */
+    extend(config, { isDev, isClient }) {
       if (isDev && isClient) {
         config.module.rules.push({
-          enforce: 'pre',
+          enforce: "pre",
           test: /\.(js|vue)$/,
-          loader: 'eslint-loader',
+          loader: "eslint-loader",
           exclude: /(node_modules)/
-        })
+        });
 
         const vueLoader = config.module.rules.find(
-          ({loader}) => loader === 'vue-loader')
-        const { options: {loaders} } = vueLoader || { options: {} }
+          ({ loader }) => loader === "vue-loader"
+        );
+        const {
+          options: { loaders }
+        } = vueLoader || { options: {} };
 
         if (loaders) {
           for (const loader of Object.values(loaders)) {
-            changeLoaderOptions(Array.isArray(loader) ? loader : [loader])
+            changeLoaderOptions(Array.isArray(loader) ? loader : [loader]);
           }
         }
 
-        config.module.rules.forEach(rule => changeLoaderOptions(rule.use))
+        config.module.rules.forEach(rule => changeLoaderOptions(rule.use));
       }
     }
   }
-}
+};

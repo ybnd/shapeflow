@@ -5,20 +5,11 @@
       <div class="scroller">
         <draggable
           tag="ul"
-          :list="this.$store.state.analyzers.queue"
+          :list="this.$store.state.queue.queue"
           class="nav-drag nav"
         >
-          <template v-for="item in this.$store.state.analyzers.queue">
-            <!--connect to vuex store-->
-            <SidebarNavAnalysis
-              v-bind:key="item.id"
-              :name="item.name"
-              :url="item.url"
-              :id="item.id"
-              :progress="item.progress"
-              :state="item.state"
-              :config="item.config"
-            />
+          <template v-for="id in this.$store.state.queue.queue">
+            <SidebarNavAnalysis v-bind:key="id" :id="id" />
           </template>
         </draggable>
         <SidebarNewAnalysis />
@@ -40,6 +31,7 @@ import SidebarNavLink from "./SidebarNavLink";
 import SidebarNavItem from "./SidebarNavItem";
 
 import draggable from "vuedraggable";
+import { mapState } from "vuex";
 
 export default {
   name: "sidebar",
@@ -53,6 +45,11 @@ export default {
     SidebarNavLink,
     SidebarNavItem,
     draggable
+  },
+  beforeMount() {
+    window.onload = () => {
+      this.$store.dispatch("analyzers/sync");
+    };
   },
   methods: {
     handleClick(e) {

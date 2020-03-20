@@ -741,9 +741,9 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
     def frame_numbers(self) -> Generator[int, None, None]:
         if self.config.frame_interval_setting == FrameIntervalSetting('Nf'):
-            return frame_number_iterator(self.video.frame_count, Nf = self.config.Nf)
+            return frame_number_iterator(self.video.frame_count-1, Nf = self.config.Nf)
         elif self.config.frame_interval_setting == FrameIntervalSetting('dt'):
-            return frame_number_iterator(self.video.frame_count, dt = self.config.dt, fps = self.video.fps)
+            return frame_number_iterator(self.video.frame_count-1, dt = self.config.dt, fps = self.video.fps)
         else:
             raise NotImplementedError(self.config.frame_interval_setting)
 

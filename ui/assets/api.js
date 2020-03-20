@@ -19,11 +19,14 @@ export function url_stream(id, endpoint) {
 // define analyzer state Enum
 export const AnalyzerState = {
   UNKNOWN: 0,
-  INCOMPLETE: 1,
-  LAUNCHED: 2,
-  RUNNING: 3,
-  CANCELED: 4,
-  ERROR: 5
+  NOT_READY: 1,
+  READY: 2,
+  LAUNCHED: 3,
+  CAN_RUN: 4,
+  RUNNING: 5,
+  DONE: 6,
+  CANCELED: 7,
+  ERROR: 8
 };
 
 export function ping() {
@@ -34,7 +37,7 @@ export function unload() {
   // axios can't be called on page unload, use sendBeacon instead
   return navigator.sendBeacon(API + "unload");
 }
-export function list() {
+export async function list() {
   return axios.get(API + "list").then(response => {
     if (response.status === 200) {
       return response.data;
@@ -42,7 +45,7 @@ export function list() {
   });
 }
 
-export function init() {
+export async function init() {
   // initialize an Analyzer in the backend & return its id
   return axios.post(API + "init").then(response => {
     if (response.status === 200) {
@@ -51,7 +54,7 @@ export function init() {
   });
 }
 
-export function get_schemas(id) {
+export async function get_schemas(id) {
   return axios.get(url_api(id, "call/get_schemas")).then(response => {
     if (response.status === 200) {
       return response.data;
@@ -59,7 +62,7 @@ export function get_schemas(id) {
   });
 }
 
-export function get_config(id) {
+export async function get_config(id) {
   return axios.get(url_api(id, "call/get_config")).then(response => {
     if (response.status === 200) {
       return response.data;
@@ -67,7 +70,7 @@ export function get_config(id) {
   });
 }
 
-export function set_config(id, config) {
+export async function set_config(id, config) {
   return axios.post(url_api(id, "call/set_config"), config).then(response => {
     if (response.status === 200) {
       get_config(id).then(config => {
@@ -77,7 +80,7 @@ export function set_config(id, config) {
   });
 }
 
-export function launch(id) {
+export async function launch(id) {
   return axios.get(url_api(id, "call/can_launch")).then(response => {
     if (response.status === 200) {
       axios.put(url_api(id, "launch")).then(response => {
@@ -89,7 +92,7 @@ export function launch(id) {
   });
 }
 
-export function estimate_transform(id, roi) {
+export async function estimate_transform(id, roi) {
   // todo: check url
   axios.put(url_api(id, "call/estimate_transform"), roi);
 }
