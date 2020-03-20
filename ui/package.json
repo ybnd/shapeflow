@@ -26,6 +26,7 @@
     "stylelint": "^13.2.1",
     "uuid": "^7.0.2",
     "vue-chartjs": "^3.1.1",
+    "vue-no-ssr": "^1.1.1",
     "vue-router": "^3.1.6",
     "vue-slider-component": "^3.1.1",
     "vuedraggable": "^2.23.2"

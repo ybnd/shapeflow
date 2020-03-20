@@ -16,7 +16,7 @@ import waitress
 from isimple import get_logger
 from isimple.core.backend import AnalyzerType, backend
 from isimple.core.schema import schema
-from isimple.core.streaming import JpegStreamer
+from isimple.core.streaming import streams
 from isimple.history import VideoAnalysisModel, History
 from isimple.util import Singleton, suppress_stdout
 from isimple.video import VideoAnalyzer, BaseVideoAnalyzer
@@ -71,7 +71,6 @@ class Main(object, metaclass=Singleton):
     _roots: Dict[str, BaseVideoAnalyzer] = {}
     _states: Dict[str, int] = {}
     _models: Dict[str, VideoAnalysisModel] = {}
-    _streams: Dict[str, Dict[str, JpegStreamer]] = {}
     _history = History()
 
     _host: str = 'localhost'
@@ -162,12 +161,13 @@ class Main(object, metaclass=Singleton):
             return respond(result)
 
         # Streaming
-        @app.route('/stream/<id>/<endpoint>', methods=['PUT'])
+        @app.route('/api/<id>/stream/<endpoint>', methods=['GET'])
         def stream(id: str, endpoint: str):
             active()
-            if id in self._streams:
-                if endpoint in self._streams[id]:
-                    return Response(self._streams[id][endpoint].stream())
+            return Response(
+                self.stream(str(id), endpoint).stream(),
+                mimetype = "multipart/x-mixed-replace; boundary=frame",
+            )
 
         self._app = app
 
@@ -204,9 +204,7 @@ class Main(object, metaclass=Singleton):
     def cleanup(self):
         self._server.stop()
         self._server.join()
-        for streams in self._streams.values():
-            for stream in streams.values():
-                stream.stop()
+        streams.stop()
 
     def add_instance(self, type: AnalyzerType = None) -> str:
         if type is None:
@@ -234,9 +232,14 @@ class Main(object, metaclass=Singleton):
         log.debug(f"{self._roots[id]}: call '{endpoint}'")
         # todo: sanity check this
         method = self._roots[id].get(getattr(backend, endpoint))
-        assert hasattr(method, '__call__')
 
         if endpoint in ('set_config',):
             pass  # todo: store to self._history
 
         return method(**{k:json.loads(v) for k,v in data.items()})
+
+    def stream(self, id: str, endpoint: str):
+        log.debug(f"{self._roots[id]}: stream '{endpoint}'")
+        # todo: sanity check this also
+        method = self._roots[id].get(getattr(backend, endpoint))
+        return streams.register(method)

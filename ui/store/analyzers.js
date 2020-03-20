@@ -86,12 +86,12 @@ export const actions = {
         id: id,
         analyzer_state: ast.NOT_READY
       });
-      get_schemas(id).then(schemas => {
-        commit("setAnalyzerSchemas", {
-          id: id,
-          analyzer_schemas: schemas
-        });
-      });
+      // get_schemas(id).then(schemas => {
+      //   commit("setAnalyzerSchemas", {
+      //     id: id,
+      //     analyzer_schemas: schemas
+      //   });
+      // });
       get_config(id).then(config => {
         commit("setAnalyzerConfig", {
           id: id,
@@ -128,12 +128,12 @@ export const actions = {
           if (!q.includes(ids[i])) {
             // add new id to the queue
             commit("addAnalyzer", ids[i]);
-            get_schemas(ids[i]).then(schemas => {
-              commit("setAnalyzerSchemas", {
-                id: ids[i],
-                analyzer_schemas: schemas
-              });
-            });
+            // get_schemas(ids[i]).then(schemas => {
+            //   commit("setAnalyzerSchemas", {
+            //     id: ids[i],
+            //     analyzer_schemas: schemas
+            //   });
+            // });
             get_config(ids[i]).then(config => {
               commit("setAnalyzerConfig", {
                 id: ids[i],

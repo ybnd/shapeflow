@@ -345,12 +345,15 @@ class BaseVideoAnalyzer(abc.ABC, RootInstance, BackendInstance):
     _video_hash: Optional[str]
     _design_hash: Optional[str]
 
+    _launched: bool
+
     def __init__(self, config: AnalyzerConfig = None):
         super().__init__(config)
         self._description = ''
         self._multi = False
         self._lock = threading.Lock()
         self._timer = Timer(self)
+        self._launched = False
 
         self._hash_video = None
         self._hash_design = None
@@ -359,6 +362,10 @@ class BaseVideoAnalyzer(abc.ABC, RootInstance, BackendInstance):
     @backend.expose(backend.can_launch)
     def can_launch(self) -> bool:
         raise NotImplementedError
+
+    @property
+    def launched(self):
+        return self._launched
 
     @abc.abstractmethod
     def _launch(self):

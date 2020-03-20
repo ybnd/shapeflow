@@ -12,9 +12,6 @@ export function url_api(id, endpoint) {
 export function url_db(id, endpoint = "") {
   return DB + `${id}/${endpoint}`;
 }
-export function url_stream(id, endpoint) {
-  return STREAM + `${id}/${endpoint}`;
-}
 
 // define analyzer state Enum
 export const AnalyzerState = {
@@ -88,6 +85,20 @@ export async function launch(id) {
           return true;
         }
       });
+    }
+  });
+}
+
+export async function stream(id, endpoint) {
+  return axios.get(url_api(id, `stream/${endpoint}`));
+}
+
+export async function seek(id, position) {
+  axios.get(url_api(id, "call/seek"), position).then(response => {
+    if (response.status === 200) {
+      return response.data;
+    } else {
+      return null;
     }
   });
 }

@@ -17,6 +17,7 @@ from isimple.core.backend import BackendInstance, CachingBackendInstance, \
     Handler, BaseVideoAnalyzer, BackendSetupError, AnalyzerType, Feature, FeatureSet, \
     FeatureType, backend
 from isimple.core.config import (extend, __meta_ext__)
+from isimple.core.streaming import stream, streams
 from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     HsvRangeFilterConfig, FilterHandlerConfig, MaskConfig, \
     DesignFileHandlerConfig, VideoAnalyzerConfig, load, dump, dumps, \
@@ -43,11 +44,14 @@ class VideoFileHandler(CachingBackendInstance):
     """Interface to video files ~ OpenCV
     """
     _requested_frames: List[int]
+    frame_number: int
 
     colorspace: str
 
     _config: VideoFileHandlerConfig
     _class = VideoFileHandlerConfig()
+
+
 
     def __init__(self, video_path, config: VideoFileHandlerConfig = None):
         super(VideoFileHandler, self).__init__(config)
@@ -83,11 +87,12 @@ class VideoFileHandler(CachingBackendInstance):
         log.debug(f"Requested frames: {requested_frames}")
         self._requested_frames = requested_frames
 
-    def _resolve_frame(self, frame_number: int) -> int:
+    def _resolve_frame(self, frame_number) -> int:
         """Resolve a frame_number to the nearest requested frame number
             This is used to limit the polled frames to the
             frames that are to be cached or are cached already.
         """
+
         if hasattr(self, '_requested_frames'):
             return min(
                 self._requested_frames,
@@ -110,12 +115,15 @@ class VideoFileHandler(CachingBackendInstance):
         self.frame_number = self._capture.get(cv2.CAP_PROP_POS_FRAMES)
         return self.frame_number
 
-    def _read_frame(self, _: str, frame_number: int) -> np.ndarray:
+    def _read_frame(self, _: str, frame_number: int = None) -> np.ndarray:
         """Read frame from video file, HSV color space
             the `_` parameter is a placeholder for the (unused) path of the
             video file, which is used to make the cache key in order to make
             this function cachable across multiple files.
         """
+        if frame_number is None:
+            frame_number = self.frame_number
+
         self._set_position(frame_number)  # todo: check if it's a problem for multiple cv2.VideoCapture instances to read from the same file at the same time (case of background caching while seeking in the video)
         ret, frame = self._capture.read()
 
@@ -128,23 +136,47 @@ class VideoFileHandler(CachingBackendInstance):
         return self.frame_count
 
     @backend.expose(backend.get_time)
-    def get_time(self, frame_number: int) -> float:
+    def get_time(self, frame_number: int = None) -> float:
+        if frame_number is None:
+            frame_number = self.frame_number
+
         return self._resolve_frame(frame_number) / self.fps
 
     @backend.expose(backend.get_fps)
     def get_fps(self) -> float:
         return self.fps
 
+    @stream
     @backend.expose(backend.get_raw_frame)
-    def read_frame(self, frame_number: int) -> Optional[np.ndarray]:
+    def read_frame(self, frame_number: int = None) -> Optional[np.ndarray]:
         """Wrapper for `_read_frame`.
             Enables caching (if in a caching context!) and provides the video
             file's path to determine the cache key.
         """
+        if frame_number is None:
+            frame_number = self.frame_number
+
         if self.config.do_resolve_frame_number:
             return self._cached_call(self._read_frame, self.path, self._resolve_frame(frame_number))
         else:
             return self._cached_call(self._read_frame, self.path, frame_number)
+
+    @backend.expose(backend.seek)
+    def seek(self, position: float = None) -> float:
+        """Seek to the relative position ~ [0,1]
+        """
+        if position is not None:
+            frame_number = int(position * self.frame_count)
+            if self.config.do_resolve_frame_number:
+                self.frame_number = self._resolve_frame(frame_number)
+            else:
+                self.frame_number = frame_number
+
+        for method in (self.read_frame):
+            if streams.is_registered(method):
+                streams.push(method, method())
+
+        return self.frame_number / self.frame_count
 
 
 @extend(TransformType)
@@ -718,8 +750,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 log.debug(f"Setting VideoAnalyzerConfig to {config}")
                 self._config(**config)
                 return True
-            else:
-                return False
 
     #@backend.expose(backend.get_frame)  # todo: would like to have some kind of 'deferred expose' decorator?
     def get_transformed_frame(self, frame_number: int) -> np.ndarray:

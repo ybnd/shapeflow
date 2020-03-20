@@ -1,16 +1,11 @@
 <template>
   <div class="fixed-page">
-    <div class="align-image"></div>
+    <div class="align-image">
+      <img :src="stream_url" alt="" />
+    </div>
     <div class="controls">
-      <div class="seek">
-        {{ id }}
-        <vue-slider
-          v-model="value"
-          max="1"
-          interval="0.01"
-          @change="handleSeek"
-        />
-      </div>
+      {{ id }}
+      {{ stream_url }}
       <div class="clear">
         <b-button @click="handleClear">Clear</b-button>
       </div>
@@ -19,28 +14,40 @@
 </template>
 
 <script>
-import VueSlider from "vue-slider-component";
+import { seek, stream, url_api } from "../../assets/api";
 
 export default {
   name: "dashboard",
+  props: {
+    position: {
+      type: Number,
+      default: 0.0
+    }
+  },
   beforeMount() {
     window.onload = () => {
       this.$store.dispatch("analyzers/sync");
     };
   },
-  components: {
-    VueSlider
-  },
+  components: {},
   data: function() {
     return {};
   },
   methods: {
-    handleSeek({ value }) {},
+    handleSeek() {
+      seek(this.id, this.position).then(actual_position => {
+        // todo: does this work like this?
+        this.position = actual_position;
+      });
+    },
     handleClear() {}
   },
   computed: {
     id() {
       return this.$route.query.id; // todo: this should get ?id=<...> from the url query
+    },
+    stream_url() {
+      return url_api(this.$route.query.id, `stream/get_raw_frame`);
     }
   }
 };

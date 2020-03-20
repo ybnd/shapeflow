@@ -14,6 +14,7 @@ class BackendRegistry(ImmutableRegistry):
     set_config = Endpoint(Callable[[dict], bool])
     get_name = Endpoint(Callable[[], str])
     get_total_frames = Endpoint(Callable[[], int])
+    seek = Endpoint(Callable[[float], float])
     get_raw_frame = Endpoint(Callable[[int], Optional[np.ndarray]])
     set_transform_implementation = Endpoint(Callable[[str], str])
     transform = Endpoint(Callable[[np.ndarray], np.ndarray])

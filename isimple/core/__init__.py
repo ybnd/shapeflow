@@ -201,9 +201,14 @@ class RootInstance(object):
                 value = getattr(instance, attr)  # bound method
 
                 if hasattr(value, '__func__'):
+                    endpoint = None
                     implementations = get_overridden_methods(instance.__class__, getattr(instance.__class__, attr))
 
-                    endpoint = None
+                    # Returns an empty list for wrapped methods -> workaround
+                    if len(implementations) == 0:
+                        endpoint = value._endpoint
+                        # todo: there will probably be some bugs with inheritance & wrapping
+
                     for implementation in implementations:  # unbound methods
                         try:
                             endpoint = implementation._endpoint  # todo: won't catch endpoints defined at multiple places in the methods inheritance tree
