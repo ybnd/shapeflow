@@ -19,7 +19,7 @@ from isimple.core.schema import schema
 from isimple.core.streaming import JpegStreamer
 from isimple.history import VideoAnalysisModel, History
 from isimple.util import Singleton, suppress_stdout
-from isimple.video import VideoAnalyzer
+from isimple.video import VideoAnalyzer, BaseVideoAnalyzer
 
 log = get_logger('isimple')
 UI = os.path.join(
@@ -68,7 +68,7 @@ class ServerThread(Thread, metaclass=Singleton):
 class Main(object, metaclass=Singleton):
     _app: Flask
 
-    _roots: Dict[str, VideoAnalyzer] = {}
+    _roots: Dict[str, BaseVideoAnalyzer] = {}
     _states: Dict[str, int] = {}
     _models: Dict[str, VideoAnalysisModel] = {}
     _streams: Dict[str, Dict[str, JpegStreamer]] = {}
