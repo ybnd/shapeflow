@@ -4,13 +4,13 @@
       <!--      <b-col>-->
       <!--        &lt;!&ndash; todo: would be cool to have a triangl/triangle combo thumbnail that reveals the video/design fully on hover&ndash;&gt;-->
       <!--        <div class="thumbnail column-container">-->
-      <!--          <b-img fluid-grow :src="`/api/analyzer/thumbnail-design/${id}`" />-->
+      <!--          <b-img fluid-grow :src="`/api/roi/thumbnail-design/${id}`" />-->
       <!--          &lt;!&ndash; todo: connect to file input instead: https://stackoverflow.com/questions/49106045 &ndash;&gt;-->
       <!--        </div>-->
       <!--      </b-col>-->
       <!--      <b-col>-->
       <!--        <div class="thumbnail column-container">-->
-      <!--          <b-img fluid-grow :src="`/api/analyzer/thumbnail-design/${id}`" />-->
+      <!--          <b-img fluid-grow :src="`/api/roi/thumbnail-design/${id}`" />-->
       <!--        </div>-->
       <!--      </b-col>-->
       <b-col>

@@ -79,7 +79,7 @@ export const getters = {
 
 export const actions = {
   init({ commit }) {
-    console.log("Adding an analyzer...");
+    console.log("Adding an roi...");
     init().then(id => {
       commit("addAnalyzer", id);
       commit("setAnalyzerState", {

@@ -13,7 +13,7 @@ export function url_db(id, endpoint = "") {
   return DB + `${id}/${endpoint}`;
 }
 
-// define analyzer state Enum
+// define roi state Enum
 export const AnalyzerState = {
   UNKNOWN: 0,
   NOT_READY: 1,
