@@ -15,14 +15,11 @@
           <span>This thing is moveable</span>
         </Moveable>
       </div>
-      <div class="controls">
-        {{ id }}
-        {{ stream_url }}
-        <div class="clear">
-          <b-button @click="handleClear">Clear</b-button>
-        </div>
-      </div>
     </seek-container>
+    <div class="controls">
+      {{ id }}
+      {{ stream_url }}
+    </div>
   </div>
 </template>
 
