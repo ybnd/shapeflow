@@ -59,6 +59,14 @@ export async function get_schemas(id) {
   });
 }
 
+export async function check_files(files) {
+  return axios.put(API + "check_files", { files: files }).then(response => {
+    if (response.status === 200) {
+      return response.data;
+    }
+  });
+}
+
 export async function get_config(id) {
   return axios.get(url_api(id, "call/get_config")).then(response => {
     if (response.status === 200) {
@@ -68,13 +76,16 @@ export async function get_config(id) {
 }
 
 export async function set_config(id, config) {
-  return axios.post(url_api(id, "call/set_config"), config).then(response => {
-    if (response.status === 200) {
-      get_config(id).then(config => {
-        return config;
-      });
-    }
-  });
+  return axios
+    .post(url_api(id, "call/set_config"), { config: config })
+    .then(response => {
+      if (response.status === 200) {
+        get_config(id).then(config => {
+          // todo: backend set_config should return config
+          return config;
+        });
+      }
+    });
 }
 
 export async function launch(id) {
@@ -110,7 +121,7 @@ export async function estimate_transform(id, roi) {
 
 export function set_filter(id, coordinate) {
   // todo: check url
-  // provide coordinate ~ full frame, it's the backend's responsibility to resolve to the corresponding mask & color
+  // todo: provide coordinate ~ full frame, it's the backend's responsibility to resolve to the corresponding mask & color
   axios.put(url_path(id, "call/set_filter"), coordinate);
 }
 

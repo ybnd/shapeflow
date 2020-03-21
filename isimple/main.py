@@ -117,6 +117,12 @@ class Main(object, metaclass=Singleton):
             self._unload.set()
             return respond(True)
 
+        @app.route('/api/check_files', methods=['PUT'])
+        def check_files():
+            return respond(
+                all([os.path.isfile(file) for file in json.loads(request.data)['files']])
+            )
+
         # API: working with Analyzer instances
         @app.route('/api/init', methods=['POST'])
         def init():  # todo: also add a model instance to self._models
@@ -155,7 +161,12 @@ class Main(object, metaclass=Singleton):
         @app.route('/api/<id>/call/<endpoint>', methods=['GET','PUT','POST'])
         def call(id: str, endpoint: str):
             active()
-            result = self.call(str(id), endpoint, request.args.to_dict())
+            if request.data:
+                print(request.data)
+                data = json.loads(request.data)
+            else:
+                data = {k:json.loads(v) for k,v in request.args.to_dict().items()}
+            result = self.call(str(id), endpoint, data)
             if result is None:
                 result = True
             return respond(result)
@@ -236,7 +247,7 @@ class Main(object, metaclass=Singleton):
         if endpoint in ('set_config',):
             pass  # todo: store to self._history
 
-        return method(**{k:json.loads(v) for k,v in data.items()})
+        return method(**data)
 
     def stream(self, id: str, endpoint: str):
         log.debug(f"{self._roots[id]}: stream '{endpoint}'")

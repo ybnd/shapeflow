@@ -47,8 +47,8 @@
 
 <script>
 import axios from "axios";
-import { init } from "../../assets/api";
 import BasicConfig from "../config/BasicConfig";
+import { set_config } from "../../assets/api";
 
 export default {
   name: "sidebar-nav-link",
@@ -69,9 +69,32 @@ export default {
   components: { BasicConfig },
   methods: {
     handleNewAnalysis() {
-      this.show = false;
-      this.$store.dispatch("analyzers/init");
-      this.$forceUpdate();
+      let config = this.$refs.new_analyzer_form.getConfig();
+      console.log(`trying to set config to:`);
+      console.log(config);
+      this.$refs.new_analyzer_form.isComplete().then(ok => {
+        if (ok) {
+          this.show = false;
+          console.log("Initializing...");
+          this.$store.dispatch("analyzers/init").then(id => {
+            console.log(`Initialized @`);
+            console.log(id);
+            console.log(`Setting config to:`);
+            console.log(config);
+            set_config(id, config).then(config => {
+              // todo: should be a $store action
+              this.$store.commit("setAnalyzerConfig", {
+                id: id,
+                config: config
+              });
+              this.$forceUpdate();
+            });
+          });
+        } else {
+          // todo: some visual warning that it's incomplete...
+          console.log("FORM IS NOT COMPLETE");
+        }
+      });
     },
     selectFrameIntervalSetting(e) {
       this.selected = e.target.value;
@@ -113,7 +136,7 @@ export default {
 };
 </script>
 
-<style>
+<style scoped>
 .hovertext .nav-link {
   color: transparent;
 }

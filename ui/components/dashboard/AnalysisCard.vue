@@ -1,6 +1,10 @@
 <template>
   <b-card show-footer class="analysis-card">
-    <basic-config :id="id" :ref="form_ref" />
+    <basic-config
+      :ref="form_ref"
+      :formStyle="{ width: '300px', direction: 'rtl' }"
+      v-bind:config="this.$store.state.analyzers.analyzers[id].config"
+    />
     <div slot="footer" class="handle">
       <b-input-group>
         <b-input-group-prepend>
@@ -11,7 +15,7 @@
         <b-form-input
           id="name"
           type="text"
-          :value="this.$store.state.analyzers.analyzers[id].name"
+          v-bind:value="this.$store.state.analyzers.analyzers[id].name"
           class="card-name-form"
         ></b-form-input>
       </b-input-group>
@@ -27,7 +31,7 @@ export default {
   props: {
     id: {
       type: String,
-      default: ""
+      required: true
     }
   },
   components: { BasicConfig },
@@ -41,7 +45,7 @@ export default {
   },
   computed: {
     form_ref() {
-      return id + "-form";
+      return this.id + "-form";
     }
   },
   data() {

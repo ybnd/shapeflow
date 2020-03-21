@@ -2,6 +2,7 @@ import Vue from "vue";
 import {
   AnalyzerState as ast,
   get_config,
+  set_config,
   get_schemas,
   init,
   list
@@ -15,14 +16,10 @@ export const state = () => ({
 
 export const mutations = {
   addAnalyzer(state, id) {
-    console.log(`addAnalyzer: ${id}`);
     state.analyzers = { ...state.analyzers, [id]: { name: id.split("-")[0] } };
-    console.log(state.analyzers);
   },
 
   setAnalyzerState(state, { id, analyzer_state }) {
-    console.log(`setAnalyzerState: ${id}`);
-    console.log(analyzer_state);
     if (state.analyzers[id] === undefined) {
       state.analyzers[id] = {};
     }
@@ -30,12 +27,9 @@ export const mutations = {
       analyzer_state = ast.UNKNOWN;
     }
     state.analyzers[id].state = analyzer_state;
-    console.log(state.analyzers);
   },
 
   setAnalyzerConfig(state, { id, analyzer_config }) {
-    console.log(`setAnalyzerConfig: ${id}`);
-    console.log(analyzer_config);
     if (state.analyzers[id] === undefined) {
       state.analyzers[id] = {};
     }
@@ -43,17 +37,13 @@ export const mutations = {
       ...state.analyzers[id],
       config: analyzer_config
     };
-    console.log(state.analyzers);
   },
 
   setAnalyzerSchemas(state, { id, analyzer_schemas }) {
-    console.log(`setAnalyzerSchemas: ${id}`);
-    console.log(analyzer_schemas);
     if (state.analyzers[id] === undefined) {
       state.analyzers[id] = {};
     }
     state.analyzers[id].schemas = analyzer_schemas;
-    console.log(state.analyzers);
   },
 
   dropAnalyzer(state, id) {
@@ -78,9 +68,8 @@ export const getters = {
 };
 
 export const actions = {
-  init({ commit }) {
-    console.log("Adding an roi...");
-    init().then(id => {
+  async init({ commit }) {
+    return init().then(id => {
       commit("addAnalyzer", id);
       commit("setAnalyzerState", {
         id: id,
@@ -100,6 +89,7 @@ export const actions = {
         // only queue AFTER config is committed
         commit("queue/queueAnalyzer", { id: id }, { root: true });
       });
+      return id;
     });
   },
 

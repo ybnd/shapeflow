@@ -24,7 +24,7 @@
                 v-bind:style="formStyle"
                 ref="video_path"
                 type="text"
-                v-bind:value="config.video_path"
+                v-model="config.video_path"
               ></b-form-input>
             </b-input-group>
           </b-form-group>
@@ -39,7 +39,7 @@
                 v-bind:style="formStyle"
                 ref="design_path"
                 type="text"
-                v-bind:value="config.design_path"
+                v-model="config.design_path"
               ></b-form-input>
             </b-input-group>
           </b-form-group>
@@ -50,7 +50,7 @@
               <b-input-group-prepend>
                 <b-form-select
                   ref="frame_interval_setting"
-                  v-bind:value="config.frame_interval_setting"
+                  v-model="config.frame_interval_setting"
                   select="selectFrameIntervalSetting"
                   :plain="false"
                   :options="['Nf', 'dt']"
@@ -58,9 +58,9 @@
                 >
                 </b-form-select>
                 <b-form-input
-                  id="interval"
+                  ref="interval"
                   type="text"
-                  v-bind:value="config[`${config.frame_interval_setting}`]"
+                  v-model="config[`${config.frame_interval_setting}`]"
                   class="interval"
                 ></b-form-input>
               </b-input-group-prepend>
@@ -69,7 +69,7 @@
                 ref="height_mm"
                 type="text"
                 class="card-config-form"
-                v-bind:value="config.height * 1000"
+                v-model="config.height_mm"
               ></b-form-input>
             </b-input-group>
           </b-form-group>
@@ -85,6 +85,8 @@
 </template>
 
 <script>
+import { check_files } from "../../assets/api";
+
 export default {
   name: "BasicConfig",
   props: {
@@ -98,25 +100,39 @@ export default {
       type: Object,
       default: () => {
         return {
-          video_path: "",
-          design_path: "",
+          video_path: "/home/ybnd/projects/200210 - isimple/data/",
+          design_path: "/home/ybnd/projects/200210 - isimple/data/",
           frame_interval_setting: "Nf",
           Nf: 100,
-          height: 0.153e-3
+          dt: 5,
+          height_mm: 0.153
         };
       }
     }
   },
   methods: {
     getConfig() {
-      this.output = {
-        video_path: this.$refs.video_path.value,
-        design_path: this.$refs.design_path.value,
-        frame_interval_setting: this.$refs.frame_interval_setting.value,
-        [`${this.$refs.frame_interval_setting.value}`]: this.$refs.interval
-          .value,
-        height: this.$refs.height_mm.value / 1000
+      return {
+        video_path: this.config.video_path,
+        design_path: this.config.design_path,
+        frame_interval_setting: this.config.frame_interval_setting,
+        [`${this.config.frame_interval_setting}`]: this.config[
+          `${this.config.frame_interval_setting}`
+        ],
+        height: this.config.height_mm / 1000
       };
+    },
+    async isComplete() {
+      // todo: should separate video & design file validation; highlight the invalid one.
+      console.log("Calling `isComplete()`");
+      console.log(`Video: ${this.config.video_path}`);
+      console.log(`Design: ${this.config.design_path}`);
+      return check_files([
+        this.$refs.video_path.value,
+        this.$refs.design_path.value
+      ]).then(ok => {
+        return ok;
+      });
     }
   },
   data() {
