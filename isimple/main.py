@@ -8,13 +8,15 @@ import uuid
 import webbrowser
 from threading import Thread, Event
 from typing import Dict, Any
-from enum import IntEnum
 
+import cv2
 from flask import Flask, send_from_directory, jsonify, request, Response
 import waitress
 
+from OnionSVG import check_svg
+
 from isimple import get_logger
-from isimple.core.backend import AnalyzerType, backend
+from isimple.core.backend import AnalyzerType, backend, AnalyzerState
 from isimple.core.schema import schema
 from isimple.core.streaming import streams
 from isimple.history import VideoAnalysisModel, History
@@ -26,15 +28,6 @@ UI = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # todo: cleaner pls
     , 'ui', 'dist'
 )
-
-
-class AnalyzerState(IntEnum):  # todo: would be cool to compare this and analyzer_state in api.js on load
-    UNKNOWN = 0
-    INCOMPLETE = 1
-    LAUNCHED = 2
-    RUNNING = 3
-    CANCELED = 4
-    ERROR = 5
 
 
 def respond(*args) -> str:
@@ -69,7 +62,6 @@ class Main(object, metaclass=Singleton):
     _app: Flask
 
     _roots: Dict[str, BaseVideoAnalyzer] = {}
-    _states: Dict[str, int] = {}
     _models: Dict[str, VideoAnalysisModel] = {}
     _history = History()
 
@@ -117,11 +109,28 @@ class Main(object, metaclass=Singleton):
             self._unload.set()
             return respond(True)
 
-        @app.route('/api/check_files', methods=['PUT'])
-        def check_files():
-            return respond(
-                all([os.path.isfile(file) for file in json.loads(request.data)['files']])
-            )
+        @app.route('/api/check_video_path', methods=['PUT'])
+        def check_video():
+            path = json.loads(request.data)['video_path']
+            if os.path.isfile(path):
+                try:
+                    capture = cv2.VideoCapture(path)
+                    if int(capture.get(cv2.CAP_PROP_FRAME_COUNT)) > 0:
+                        return respond(True)
+                finally:
+                    pass
+            return respond(False)
+
+        @app.route('/api/check_design_path', methods=['PUT'])
+        def check_design():
+            path = json.loads(request.data)['design_path']
+            if os.path.isfile(path):
+                try:
+                    check_svg(path)
+                    return respond(True)
+                finally:
+                    pass
+            return respond(False)
 
         # API: working with Analyzer instances
         @app.route('/api/init', methods=['POST'])
@@ -140,7 +149,7 @@ class Main(object, metaclass=Singleton):
             active()
             return respond({
                 'ids': [k for k in self._roots.keys()],
-                'states': [int(self._states[k]) for k in self._roots.keys()]
+                'states': [v.state for v in self._roots.values()]
             })
 
         @app.route('/api/<id>/call/get_schemas', methods=['GET'])
@@ -226,7 +235,6 @@ class Main(object, metaclass=Singleton):
         analyzer._multi = True
         log.debug(f"Added instance {{'{id}': {analyzer}}}")
         self._roots[id] = analyzer
-        self._states[id] = AnalyzerState.INCOMPLETE
         assert isinstance(analyzer, VideoAnalyzer)
         self._models[id] = self._history.add_analysis(analyzer)
         return id

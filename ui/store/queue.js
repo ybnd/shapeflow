@@ -25,6 +25,12 @@ export const mutations = {
   },
   dropFromQueue(state, { id }) {
     Vue.set(state, "queue", state.queue.splice(state.queue.indexOf(id, 1))); // todo: probably wrong
+  },
+  clearQueue(state) {
+    state.queue = [];
+  },
+  setQueue(state, { queue }) {
+    state.queue = queue;
   }
 };
 
@@ -34,5 +40,17 @@ export const getters = {
   },
   getIndex: state => id => {
     return state.queue.indexOf(id);
+  }
+};
+
+export const actions = {
+  refresh({ state, commit }) {
+    let temp_queue = state.queue;
+    console.log(temp_queue);
+    console.log("Clearing queue...");
+    commit("clearQueue");
+    console.log("Restoring queue...");
+    console.log(temp_queue);
+    commit("setQueue", { queue: temp_queue });
   }
 };

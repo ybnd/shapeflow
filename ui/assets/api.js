@@ -16,8 +16,8 @@ export function url_db(id, endpoint = "") {
 // define roi state Enum
 export const AnalyzerState = {
   UNKNOWN: 0,
-  NOT_READY: 1,
-  READY: 2,
+  INCOMPLETE: 1,
+  CAN_LAUNCH: 2,
   LAUNCHED: 3,
   CAN_RUN: 4,
   RUNNING: 5,
@@ -59,12 +59,24 @@ export async function get_schemas(id) {
   });
 }
 
-export async function check_files(files) {
-  return axios.put(API + "check_files", { files: files }).then(response => {
-    if (response.status === 200) {
-      return response.data;
-    }
-  });
+export async function check_video_path(video_path) {
+  return axios
+    .put(API + "check_video_path", { video_path: video_path })
+    .then(response => {
+      if (response.status === 200) {
+        return response.data;
+      }
+    });
+}
+
+export async function check_design_path(design_path) {
+  return axios
+    .put(API + "check_design_path", { design_path: design_path })
+    .then(response => {
+      if (response.status === 200) {
+        return response.data;
+      }
+    });
 }
 
 export async function get_config(id) {
@@ -80,7 +92,7 @@ export async function set_config(id, config) {
     .post(url_api(id, "call/set_config"), { config: config })
     .then(response => {
       if (response.status === 200) {
-        get_config(id).then(config => {
+        return get_config(id).then(config => {
           // todo: backend set_config should return config
           return config;
         });
@@ -89,13 +101,20 @@ export async function set_config(id, config) {
 }
 
 export async function launch(id) {
+  console.log("Sending call/can_launch");
   return axios.get(url_api(id, "call/can_launch")).then(response => {
+    console.log("call/can_launch got response");
+    console.log(response);
     if (response.status === 200) {
-      axios.put(url_api(id, "launch")).then(response => {
+      return axios.post(url_api(id, "launch")).then(response => {
         if (response.status === 200) {
-          return true;
+          return response.data;
+        } else {
+          return false;
         }
       });
+    } else {
+      return false;
     }
   });
 }

@@ -9,7 +9,7 @@
           class="nav-drag nav"
         >
           <template v-for="id in this.$store.state.queue.queue">
-            <SidebarNavAnalysis v-bind:key="id" :id="id" />
+            <SidebarNavAnalysis v-bind:key="id" v-bind:id="id" />
           </template>
         </draggable>
         <SidebarNewAnalysis />

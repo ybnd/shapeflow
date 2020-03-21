@@ -25,6 +25,10 @@
                 ref="video_path"
                 type="text"
                 v-model="config.video_path"
+                v-bind:class="{
+                  'is-valid': validVideo,
+                  'is-invalid': invalidVideo
+                }"
               ></b-form-input>
             </b-input-group>
           </b-form-group>
@@ -40,6 +44,10 @@
                 ref="design_path"
                 type="text"
                 v-model="config.design_path"
+                v-bind:class="{
+                  'is-valid': validDesign,
+                  'is-invalid': invalidDesign
+                }"
               ></b-form-input>
             </b-input-group>
           </b-form-group>
@@ -85,7 +93,7 @@
 </template>
 
 <script>
-import { check_files } from "../../assets/api";
+import { check_design_path, check_video_path } from "../../assets/api";
 
 export default {
   name: "BasicConfig",
@@ -100,8 +108,8 @@ export default {
       type: Object,
       default: () => {
         return {
-          video_path: "/home/ybnd/projects/200210 - isimple/data/",
-          design_path: "/home/ybnd/projects/200210 - isimple/data/",
+          video_path: "/home/ybnd/projects/200210 - isimple/data/shuttle.mp4",
+          design_path: "/home/ybnd/projects/200210 - isimple/data/shuttle.svg",
           frame_interval_setting: "Nf",
           Nf: 100,
           dt: 5,
@@ -122,22 +130,32 @@ export default {
         height: this.config.height_mm / 1000
       };
     },
-    async isComplete() {
-      // todo: should separate video & design file validation; highlight the invalid one.
-      console.log("Calling `isComplete()`");
-      console.log(`Video: ${this.config.video_path}`);
-      console.log(`Design: ${this.config.design_path}`);
-      return check_files([
-        this.$refs.video_path.value,
-        this.$refs.design_path.value
-      ]).then(ok => {
+    async hasValidFiles() {
+      let video_ok = await this.checkVideoPath();
+      let design_ok = await this.checkDesignPath();
+      return video_ok && design_ok;
+    },
+    async checkVideoPath() {
+      return check_video_path(this.config.video_path).then(ok => {
+        this.validVideo = ok;
+        this.invalidVideo = !ok;
+        return ok;
+      });
+    },
+    async checkDesignPath() {
+      return check_design_path(this.config.design_path).then(ok => {
+        this.validDesign = ok;
+        this.invalidDesign = !ok;
         return ok;
       });
     }
   },
   data() {
     return {
-      output: {}
+      validVideo: false,
+      invalidVideo: false,
+      validDesign: false,
+      invalidDesign: false
     };
   }
 };

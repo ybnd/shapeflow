@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from enum import IntEnum
 
 import diskcache
 import sys
@@ -328,10 +329,23 @@ class AnalyzerConfig(abc.ABC, Config):
     design_path: Optional[Union[list, str]] = None
 
 
+class AnalyzerState(IntEnum):  # todo: would be cool to compare this and analyzer_state in api.js on load
+    UNKNOWN = 0
+    INCOMPLETE = 1
+    CAN_LAUNCH = 2
+    LAUNCHED = 3
+    CAN_RUN = 4
+    RUNNING = 5
+    DONE = 6
+    CANCELED = 7
+    ERROR = 8
+
+
 class BaseVideoAnalyzer(abc.ABC, RootInstance, BackendInstance):
     _instances: List[BackendInstance]
     _instance_class = BackendInstance
     _config: AnalyzerConfig
+    _state: int
 
     _multi: bool
     _lock: threading.Lock
@@ -358,6 +372,8 @@ class BaseVideoAnalyzer(abc.ABC, RootInstance, BackendInstance):
         self._hash_video = None
         self._hash_design = None
 
+        self._state = AnalyzerState.INCOMPLETE
+
     @abc.abstractmethod
     @backend.expose(backend.can_launch)
     def can_launch(self) -> bool:
@@ -366,6 +382,10 @@ class BaseVideoAnalyzer(abc.ABC, RootInstance, BackendInstance):
     @property
     def launched(self):
         return self._launched
+
+    @property
+    def state(self):
+        return self._state
 
     @abc.abstractmethod
     def _launch(self):
@@ -386,6 +406,7 @@ class BaseVideoAnalyzer(abc.ABC, RootInstance, BackendInstance):
             if self.can_launch():
                 self._launch()
                 self._gather_instances()
+                self._state = AnalyzerState.LAUNCHED
                 return True
             else:
                 log.warning(f"{self.__class__.__qualname__} can not be launched.")  # todo: try to be more verbose

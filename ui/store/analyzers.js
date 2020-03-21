@@ -5,7 +5,8 @@ import {
   set_config,
   get_schemas,
   init,
-  list
+  list,
+  launch
 } from "../assets/api";
 
 export const state = () => ({
@@ -71,10 +72,6 @@ export const actions = {
   async init({ commit }) {
     return init().then(id => {
       commit("addAnalyzer", id);
-      commit("setAnalyzerState", {
-        id: id,
-        analyzer_state: ast.NOT_READY
-      });
       // get_schemas(id).then(schemas => {
       //   commit("setAnalyzerSchemas", {
       //     id: id,
@@ -93,10 +90,16 @@ export const actions = {
     });
   },
 
-  async sync({ commit, rootGetters }) {
+  async sync({ commit, rootGetters, dispatch }) {
     await list().then(data => {
       let ids = data.ids;
       let states = data.states;
+
+      console.log("ids");
+      console.log(ids);
+
+      console.log("states");
+      console.log(states);
 
       // remove dead ids from the queue
       let q = rootGetters["queue/getQueue"];
@@ -143,6 +146,8 @@ export const actions = {
           }
         }
       }
+
+      commit("queue/refresh", {}, { root: true });
     });
   }
 };

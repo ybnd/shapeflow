@@ -15,7 +15,7 @@ from isimple.core import RootInstance
 
 from isimple.core.backend import BackendInstance, CachingBackendInstance, \
     Handler, BaseVideoAnalyzer, BackendSetupError, AnalyzerType, Feature, FeatureSet, \
-    FeatureType, backend
+    FeatureType, backend, AnalyzerState
 from isimple.core.config import (extend, __meta_ext__)
 from isimple.core.streaming import stream, streams
 from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
@@ -749,6 +749,13 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             if True:  # todo: sanity check
                 log.debug(f"Setting VideoAnalyzerConfig to {config}")
                 self._config(**config)
+
+                # Check for state transitions
+                if self._state == AnalyzerState.INCOMPLETE:
+                    if self.can_launch():
+                        self._state = AnalyzerState.CAN_LAUNCH
+                if self._state == AnalyzerState.LAUNCHED:
+                    pass  # todo: check if transform & all filters are set, transition to CAN_RUN
                 return True
 
     #@backend.expose(backend.get_frame)  # todo: would like to have some kind of 'deferred expose' decorator?
@@ -818,6 +825,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         )
 
     def analyze(self) -> bool:
+        self._state = AnalyzerState.RUNNING
         with self.lock(), self.time():
             self._get_featuresets()
             self.save_config()
@@ -837,6 +845,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
             self.export()  # todo: think about where to put this in relation to VideoAnalyzer/VideoAnalysisModel
         if not self._cancel.is_set():
+            self._state = AnalyzerState.DONE
             return True
         else:
             self._cancel.clear()
@@ -844,6 +853,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
     def cancel(self) -> bool:
         self._cancel.set()
+        self._state = AnalyzerState.CANCELED
         return True
 
     def load_config(self, path: str = None):  # todo: in isimple.og, make LegacyVideoAnalyzer(VideoAnalyzer) that implements these
@@ -907,7 +917,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         w.save()
         w.close()
 
-    @property
+    @property  # todo: this was deprecated, right?
     def _video_to_hash(self):
         return self.config.video_path
 
