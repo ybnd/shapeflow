@@ -81,6 +81,7 @@ export default {
     initial_coordinates() {
       // todo: query backend for initial coordinates
       //  -> https://daybrush.com/moveable/release/latest/doc/Moveable.html#updateRect
+      return {};
     }
   },
   data: () => ({

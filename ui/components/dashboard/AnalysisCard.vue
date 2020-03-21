@@ -1,107 +1,6 @@
 <template>
   <b-card show-footer class="analysis-card">
-    <b-row>
-      <!--      <b-col>-->
-      <!--        &lt;!&ndash; todo: would be cool to have a triangl/triangle combo thumbnail that reveals the video/design fully on hover&ndash;&gt;-->
-      <!--        <div class="thumbnail column-container">-->
-      <!--          <b-img fluid-grow :src="`/api/roi/thumbnail-design/${id}`" />-->
-      <!--          &lt;!&ndash; todo: connect to file input instead: https://stackoverflow.com/questions/49106045 &ndash;&gt;-->
-      <!--        </div>-->
-      <!--      </b-col>-->
-      <!--      <b-col>-->
-      <!--        <div class="thumbnail column-container">-->
-      <!--          <b-img fluid-grow :src="`/api/roi/thumbnail-design/${id}`" />-->
-      <!--        </div>-->
-      <!--      </b-col>-->
-      <b-col>
-        <b-container class="column-container">
-          <b-row class="card-form-row">
-            <b-form-group>
-              <b-input-group class="popover-field">
-                <b-input-group-prepend>
-                  <b-button><i class="fa fa-file-video-o"></i></b-button>
-                </b-input-group-prepend>
-                <b-form-input
-                  class="form-width-setter"
-                  id="video_path"
-                  type="text"
-                  :value="
-                    this.$store.state.analyzers.analyzers[id].config[
-                      'video_path'
-                    ]
-                  "
-                ></b-form-input>
-              </b-input-group>
-            </b-form-group>
-          </b-row>
-          <b-row class="card-form-row">
-            <b-form-group>
-              <b-input-group>
-                <b-input-group-prepend>
-                  <b-button><i class="fa fa-file-code-o"></i></b-button>
-                </b-input-group-prepend>
-                <b-form-input
-                  class="form-width-setter"
-                  id="design_path"
-                  type="text"
-                  :value="
-                    this.$store.state.analyzers.analyzers[id].config[
-                      'design_path'
-                    ]
-                  "
-                ></b-form-input>
-              </b-input-group>
-            </b-form-group>
-          </b-row>
-          <b-row class="card-form-row">
-            <b-form-group>
-              <b-input-group>
-                <b-input-group-prepend>
-                  <b-form-select
-                    id="frame_interval_setting"
-                    :value="
-                      this.$store.state.analyzers.analyzers[id].config[
-                        'frame_interval_setting'
-                      ]
-                    "
-                    select="selectFrameIntervalSetting"
-                    :plain="false"
-                    :options="['Nf', 'dt']"
-                    class="frame-interval-selector"
-                  >
-                  </b-form-select>
-                  <b-form-input
-                    id="interval"
-                    type="text"
-                    :value="
-                      this.$store.state.analyzers.analyzers[id].config[
-                        'interval'
-                      ]
-                    "
-                    class="interval"
-                  ></b-form-input>
-                </b-input-group-prepend>
-                &ensp;
-                <b-form-input
-                  id="height"
-                  type="text"
-                  class="card-config-form"
-                  :value="
-                    this.$store.state.analyzers.analyzers[id].config['height'] *
-                      1000
-                  "
-                ></b-form-input>
-              </b-input-group>
-            </b-form-group>
-          </b-row>
-          <b-row class="card-form-row">
-            <b-form-group>
-              <b-input-group> </b-input-group>
-            </b-form-group>
-          </b-row>
-        </b-container>
-      </b-col>
-    </b-row>
+    <basic-config :id="id" :ref="form_ref" />
     <div slot="footer" class="handle">
       <b-input-group>
         <b-input-group-prepend>
@@ -122,6 +21,7 @@
 
 <script>
 import { mapGetters, mapState, mapActions } from "vuex";
+import BasicConfig from "../config/BasicConfig";
 
 export default {
   props: {
@@ -130,6 +30,7 @@ export default {
       default: ""
     }
   },
+  components: { BasicConfig },
   methods: {
     ...mapGetters({
       name: "analyzers/getName",
@@ -137,6 +38,11 @@ export default {
       config: "analyzers/getConfig",
       index: "analyzers/getIndex"
     })
+  },
+  computed: {
+    form_ref() {
+      return id + "-form";
+    }
   },
   data() {
     return {
@@ -161,26 +67,6 @@ export default {
   flex-direction: column !important;
   flex-wrap: wrap !important;
   margin: 5px 5px 0 0;
-}
-.column-container {
-  margin-top: -15px;
-  margin-left: -16px;
-  padding-right: 3px;
-  margin-bottom: -37px;
-  vertical-align: bottom;
-}
-.card-form-row {
-  margin-top: -10px;
-  margin-bottom: -10px;
-}
-.card-config-form {
-  max-width: 140px;
-}
-.frame-interval-selector {
-  margin-right: 4px;
-}
-.interval {
-  width: 86px;
 }
 .card-name-form {
   margin-left: -3px;
