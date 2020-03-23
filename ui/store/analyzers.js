@@ -95,12 +95,6 @@ export const actions = {
       let ids = data.ids;
       let states = data.states;
 
-      console.log("ids");
-      console.log(ids);
-
-      console.log("states");
-      console.log(states);
-
       // remove dead ids from the queue
       let q = rootGetters["queue/getQueue"];
       if (q.length > 0) {

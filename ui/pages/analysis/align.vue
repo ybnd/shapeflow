@@ -1,25 +1,29 @@
 <template>
   <div class="fixed-page">
     <seek-container :id="id">
-      <div class="align-image">
-        <img :src="stream_url" alt="" />
+      <div class="align" ref="align">
+        <img
+          :src="stream_url"
+          alt=""
+          class="streamed-image"
+          ref="frame"
+          @load="updateFrame"
+        />
+        <!-- todo: callback doesn't do anything -->
         <Moveable
           class="moveable"
+          ref="moveable"
           v-bind="moveable"
           @drag="handleDrag"
           @resize="handleResize"
           @scale="handleScale"
           @rotate="handleRotate"
           @warp="handleWarp"
-        >
-          <span>This thing is moveable</span>
-        </Moveable>
+          @render="updateRoiCoordinates"
+        />
       </div>
     </seek-container>
-    <div class="controls">
-      {{ id }}
-      {{ stream_url }}
-    </div>
+    <div class="controls"></div>
   </div>
 </template>
 
@@ -27,19 +31,27 @@
 import { estimate_transform, url_api } from "../../assets/api";
 import SeekContainer from "../../components/SeekContainer";
 import Moveable from "vue-moveable";
+import { roiRectInfoToCoordinates } from "../../assets/align";
 
 export default {
-  name: "dashboard",
+  name: "align",
   props: {
-    position: {
-      type: Number,
-      default: 0.0
+    coordinates: {
+      type: Object,
+      default: {
+        TL: { x: 0.25, y: 0.75 },
+        TR: { x: 0.75, y: 0.75 },
+        BL: { x: 0.25, y: 0.25 },
+        BR: { x: 0.75, y: 0.25 }
+      }
     }
   },
   beforeMount() {
     window.onload = () => {
+      this.updateFrame;
       this.$store.dispatch("analyzers/sync");
     };
+    window.onresize = this.updateFrame;
   },
   components: {
     SeekContainer,
@@ -49,13 +61,15 @@ export default {
     toBackend() {
       // todo: send rect coordinates to backend
       //  -> https://daybrush.com/moveable/release/latest/doc/Moveable.html#getRect
+      //  -> todo: should be debounced a bit
     },
     handleDrag({ target, transform }) {
       target.style.transform = transform;
       // todo: connect to backend transform estimation
     },
-    handleResize({ target, transform }) {
-      target.style.transform = transform;
+    handleResize({ target, width, height }) {
+      target.style.width = `${width}px`;
+      target.style.height = `${height}px`;
       // todo: connect to backend transform estimation
     },
     handleScale({ target, transform }) {
@@ -69,6 +83,19 @@ export default {
     handleWarp({ target, transform }) {
       target.style.transform = transform;
       // todo: connect to backend transform estimation
+    },
+    updateRoiCoordinates() {
+      this.$refs.moveable.updateRect();
+      this.$props.coordinates = roiRectInfoToCoordinates(
+        this.$refs.moveable.getRect(),
+        this.frame
+      );
+    },
+    updateFrame() {
+      if (this.frame === {}) {
+        this.frame = this.$refs.frame.getBoundingClientRect();
+      }
+      this.moveable.bounds = this.frame;
     }
   },
   computed: {
@@ -87,19 +114,52 @@ export default {
   data: () => ({
     moveable: {
       draggable: true,
-      throttleDrag: 0,
-      resizable: true,
+      throttleDrag: 1, // todo: this is a pixel-level throttle; affects transform precision!
+      resizable: false,
       throttleResize: 1,
-      scalable: true,
-      throttleScale: 0,
+      scalable: false,
+      throttleScale: 1,
       rotatable: true,
-      throttleRotate: 0,
+      throttleRotate: 1,
       warpable: true,
-      throttleWarp: 0,
-      origin: false // todo: set starting position from here?
-    }
+      throttleWarp: 1,
+      snappable: true,
+      bounds: {}
+    },
+    frame: {},
+    coordinates: {}
   })
 };
 </script>
 
-<style></style>
+<style>
+.align {
+  position: absolute;
+  float: left;
+  display: block;
+  margin: 0 0 0 0;
+}
+
+.streamed-image {
+  z-index: -100;
+  pointer-events: none;
+  display: block;
+  max-width: 80vw;
+  max-height: 100vh;
+  width: auto;
+  height: auto;
+}
+
+.moveable {
+  z-index: 100;
+  font-family: "Roboto", sans-serif;
+  position: absolute;
+  width: 300px;
+  height: 200px;
+  text-align: center;
+  font-size: 40px;
+  margin: 0 auto;
+  font-weight: 100;
+  letter-spacing: 1px;
+}
+</style>

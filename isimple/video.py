@@ -172,7 +172,7 @@ class VideoFileHandler(CachingBackendInstance):
             else:
                 self.frame_number = frame_number
 
-        for method in (self.read_frame):
+        for method in [self.read_frame]:
             if streams.is_registered(method):
                 streams.push(method, method())
 

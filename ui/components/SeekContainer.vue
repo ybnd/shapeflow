@@ -24,12 +24,17 @@ export default {
     },
     position: {
       type: Number,
-      default: 0.0
+      default: 0.5
     }
   },
   components: { vuescroll },
+  mounted() {
+    // seek to middle of file
+    seek(this.id, this.position);
+  },
   methods: {
     handleScroll(e, position) {
+      console.log(`Seeking to ${position}`);
       seek(id, position).then(new_position => {
         this.position = new_position;
       });
