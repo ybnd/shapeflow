@@ -21,18 +21,16 @@ class FrameStreamer(abc.ABC):
     _queue: queue.Queue
     _stop: threading.Event
 
-    _empty_queue_timeout: float = 0.01
+    _empty_queue_timeout: float = 0.02
     _stop_timeout: float = 60
 
     def __init__(self):
         self._queue = queue.Queue()
         self._stop = threading.Event()
     def push(self, frame: np.ndarray):
-        log.debug(f'{self} - pushing a frame')
         self._queue.put(frame)
 
     def stop(self):
-        log.debug(f'{self} - stopping stream')
         self._stop.set()
         with self._queue.mutex:
             self._queue.queue.clear()
@@ -40,14 +38,13 @@ class FrameStreamer(abc.ABC):
     def join(self):
         self._queue.join()
 
-    def stream(self) -> Generator[bytes, None, None]:
+    def stream(self) -> Generator[bytes, None, None]:  # todo: maybe Generator is having some threading issues here? https://anandology.com/blog/using-iterators-and-generators/
         log.debug('Streaming')
         self._stop.clear()
         last_yield = time.time()
 
         while not self._stop.is_set():
             if not self._queue.empty():
-                log.debug(f'{self} - getting frame from queue')
                 frame = self._queue.get()
 
                 (success, encoded_frame) = self._encode(frame)
@@ -55,13 +52,12 @@ class FrameStreamer(abc.ABC):
                     continue
                 else:
                     last_yield = time.time()
-                    log.debug(f'{self} - yielding a frame')
                     yield self._decorate(encoded_frame)
             else:
-                if time.time() - last_yield > self._stop_timeout:
-                    self.stop()
-                else:
-                    time.sleep(self._empty_queue_timeout)  # todo: is this a good idea ~ performance?
+                # if time.time() - last_yield > self._stop_timeout:
+                #     self.stop()
+                # else:
+                time.sleep(self._empty_queue_timeout)  # todo: is this a good idea ~ performance?
 
     @abc.abstractmethod
     def _encode(self, frame: np.ndarray) -> Tuple[bool, bytes]:
@@ -75,11 +71,9 @@ class FrameStreamer(abc.ABC):
 class JpegStreamer(FrameStreamer):
     def _encode(self, frame: np.ndarray) -> Tuple[bool, bytes]:
         # Assume HSV input frame, cv2.imencode works with BGR
-        log.debug(f'{self} - encoding frame')
         return cv2.imencode(".jpg", cv2.cvtColor(frame, cv2.COLOR_HSV2BGR))
 
     def _decorate(self, encoded_frame: bytes) -> bytes:
-        log.debug(f'{self} - decorating frame')
         return (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" +
                 bytearray(encoded_frame) + b"\r\n")
 
@@ -99,7 +93,6 @@ class StreamHandler(object):  # todo: is a singleton
             If `method` has been registered already, return its streamer.
         """
         with self.lock:
-            log.debug(f'trying to register {instance}, {method}')
             k = self.key(instance, method)
             if k in self._streams:
                 log.debug(f'Cleaning up {self._streams[k]}')
@@ -128,22 +121,16 @@ class StreamHandler(object):  # todo: is a singleton
     def push(self, instance: object, method: Union[Callable[[Any], np.ndarray], List[Callable[[Any], np.ndarray]]], frame: np.ndarray):
         """If `method` is registered, push `frame` to its streamer.
         """
-        log.debug('Pushing to streamers')
         with self.lock:
             if isinstance(method, list):
                 for m in method:
                     k = self.key(instance, m)
                     if k in self._streams:
                         self._streams[k].push(frame)
-                    else:
-                        log.debug(f'Skipping {k}')
             else:
                 k = self.key(instance, method)
                 if k in self._streams:
                     self._streams[k].push(frame)
-                else:
-                    log.debug(f'Skipping {k}')
-        log.debug('Done pushing to streamers')
 
     def unregister(self, k):
         """Unregister `method`: stop its streamer & delete

@@ -6,7 +6,7 @@ import os
 import time
 import uuid
 import webbrowser
-from threading import Thread, Event
+from threading import Thread, Event, Lock
 from typing import Dict, Any
 
 import cv2
@@ -77,6 +77,8 @@ class Main(object, metaclass=Singleton):
     _timeout_suppress = 0.5
     _timeout_unload = 5
     _timeout_loop = 0.1
+
+    _lock = Lock()
 
     def __init__(self):
         app = Flask(__name__, static_url_path='')
@@ -254,7 +256,8 @@ class Main(object, metaclass=Singleton):
         if endpoint in ('set_config',):
             pass  # todo: store to self._history
 
-        return method(**data)
+        with self._lock:  # todo: this seems to fix transform estimation shenanigans
+            return method(**data)  # todo: makes stuff slow though, best to only lock on POST & debounce @ frontend
 
     def stream(self, id: str, endpoint: str):
         log.debug(f"{self._roots[id]}: stream '{endpoint}'")

@@ -19,7 +19,6 @@
           @scale="handleScale"
           @rotate="handleRotate"
           @warp="handleWarp"
-          @render="updateRoiCoordinates"
         />
       </div>
     </seek-container>
@@ -32,6 +31,7 @@ import { estimate_transform, url_api } from "../../assets/api";
 import SeekContainer from "../../components/SeekContainer";
 import Moveable from "vue-moveable";
 import { roiRectInfoToCoordinates } from "../../assets/align";
+import { throttle } from "throttle-debounce";
 
 export default {
   name: "align",
@@ -83,7 +83,6 @@ export default {
         this.$store.state.analyzers[this.id].frame
       ); // todo: should be a Vuex commit
 
-      // todo: should be debounced for performance
       estimate_transform(this.id, this.$store.state.analyzers[this.id].roi);
     },
     updateFrame() {
