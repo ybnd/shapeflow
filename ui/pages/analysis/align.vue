@@ -148,6 +148,7 @@ export default {
   max-height: 100vh;
   width: auto;
   height: auto;
+  position: absolute;
 }
 
 .moveable {
