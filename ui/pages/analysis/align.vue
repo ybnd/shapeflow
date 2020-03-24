@@ -1,6 +1,6 @@
 <template>
   <div class="fixed-page">
-    <seek-container :id="id">
+    <seek-container :id="id" :callback="updateFrame">
       <div class="align" ref="align">
         <img
           :src="stream_url"
@@ -35,22 +35,9 @@ import { roiRectInfoToCoordinates } from "../../assets/align";
 
 export default {
   name: "align",
-  props: {
-    coordinates: {
-      type: Object,
-      default: {
-        TL: { x: 0.25, y: 0.75 },
-        TR: { x: 0.75, y: 0.75 },
-        BL: { x: 0.25, y: 0.25 },
-        BR: { x: 0.75, y: 0.25 }
-      }
-    }
-  },
   beforeMount() {
-    window.onload = () => {
-      this.updateFrame;
-      this.$store.dispatch("analyzers/sync");
-    };
+    this.updateFrame;
+    this.$store.dispatch("analyzers/sync");
     window.onresize = this.updateFrame;
   },
   components: {
@@ -65,45 +52,53 @@ export default {
     },
     handleDrag({ target, transform }) {
       target.style.transform = transform;
-      // todo: connect to backend transform estimation
+      this.updateRoiCoordinates();
     },
     handleResize({ target, width, height }) {
       target.style.width = `${width}px`;
       target.style.height = `${height}px`;
-      // todo: connect to backend transform estimation
+      this.updateRoiCoordinates();
     },
     handleScale({ target, transform }) {
       target.style.transform = transform;
-      // todo: connect to backend transform estimation
+      this.updateRoiCoordinates();
     },
     handleRotate({ target, transform }) {
       target.style.transform = transform;
-      // todo: connect to backend transform estimation
+      this.updateRoiCoordinates();
     },
     handleWarp({ target, transform }) {
       target.style.transform = transform;
-      // todo: connect to backend transform estimation
+      this.updateRoiCoordinates();
     },
     updateRoiCoordinates() {
+      // todo: connect to backend transform estimation
+      if (this.$store.state.analyzers[this.id].frame === undefined) {
+        this.updateFrame();
+      }
+
       this.$refs.moveable.updateRect();
-      this.$props.coordinates = roiRectInfoToCoordinates(
+      this.$store.state.analyzers[this.id].roi = roiRectInfoToCoordinates(
         this.$refs.moveable.getRect(),
-        this.frame
-      );
+        this.$store.state.analyzers[this.id].frame
+      ); // todo: should be a Vuex commit
+
+      // todo: should be debounced for performance
+      estimate_transform(this.id, this.$store.state.analyzers[this.id].roi);
     },
     updateFrame() {
-      if (this.frame === {}) {
-        this.frame = this.$refs.frame.getBoundingClientRect();
-      }
-      this.moveable.bounds = this.frame;
+      this.$store.state.analyzers[
+        this.id
+      ].frame = this.$refs.frame.getBoundingClientRect(); // todo: should be a Vuex commit
+      this.moveable.bounds = this.$store.state.analyzers[this.id].frame;
     }
   },
   computed: {
     id() {
-      return this.$route.query.id; // todo: this should get ?id=<...> from the url query
+      return this.$route.query.id;
     },
     stream_url() {
-      return url_api(this.$route.query.id, `stream/get_raw_frame`);
+      return url_api(this.$route.query.id, `stream/get_inverse_overlaid_frame`);
     },
     initial_coordinates() {
       // todo: query backend for initial coordinates
@@ -126,7 +121,7 @@ export default {
       snappable: true,
       bounds: {}
     },
-    frame: {},
+    frame: {}, // todo: should be in Vuex store; we're reusing the same page for all alignment!
     coordinates: {}
   })
 };
@@ -152,7 +147,7 @@ export default {
 }
 
 .moveable {
-  z-index: 100;
+  z-index: 1;
   font-family: "Roboto", sans-serif;
   position: absolute;
   width: 300px;

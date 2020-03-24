@@ -3,7 +3,7 @@
     <basic-config
       :ref="form_ref"
       :formStyle="{ width: '300px', direction: 'rtl' }"
-      v-bind:config="this.$store.state.analyzers.analyzers[id].config"
+      v-bind:config="this.$store.state.analyzers[id].config"
     />
     <div slot="footer" class="handle">
       <b-input-group>
@@ -15,7 +15,7 @@
         <b-form-input
           id="name"
           type="text"
-          v-bind:value="this.$store.state.analyzers.analyzers[id].name"
+          v-bind:value="this.$store.state.analyzers[id].name"
           class="card-name-form"
         ></b-form-input>
       </b-input-group>

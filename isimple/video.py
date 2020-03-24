@@ -25,7 +25,7 @@ from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
 from isimple.core.interface import TransformInterface, FilterConfig, \
     FilterInterface, FilterType, TransformType
 
-from isimple.maths.images import to_mask, crop_mask, area_pixelsum, ckernel
+from isimple.maths.images import to_mask, crop_mask, area_pixelsum, ckernel, overlay
 from isimple.maths.colors import HsvColor
 
 from isimple.endpoints import BackendRegistry
@@ -43,6 +43,9 @@ class VideoFileTypeError(BackendSetupError):
 class VideoFileHandler(CachingBackendInstance):
     """Interface to video files ~ OpenCV
     """
+    _shape: tuple
+    _stream_methods: List[Callable]
+
     _requested_frames: List[int]
     frame_number: int
 
@@ -52,9 +55,9 @@ class VideoFileHandler(CachingBackendInstance):
     _class = VideoFileHandlerConfig()
 
 
-
-    def __init__(self, video_path, config: VideoFileHandlerConfig = None):
+    def __init__(self, video_path, stream_methods: List[Callable], config: VideoFileHandlerConfig = None):
         super(VideoFileHandler, self).__init__(config)
+        self._stream_methods = stream_methods + [self.read_frame] # type: ignore
 
         if not os.path.isfile(video_path):
             raise FileNotFoundError
@@ -68,9 +71,14 @@ class VideoFileHandler(CachingBackendInstance):
             os.path.join(os.getcwd(), self.path)
         )  # todo: handle failure to open capture
 
-        self.frame_count = int(self._capture.get(cv2.CAP_PROP_FRAME_COUNT))
+        self.frame_count = int(self._capture.get(cv2.CAP_PROP_FRAME_COUNT))  # todo: should be 'private' attributes
         self.fps = self._capture.get(cv2.CAP_PROP_FPS)
         self.frame_number = int(self._capture.get(cv2.CAP_PROP_POS_FRAMES))
+
+        self._shape = tuple([
+            int(self._capture.get(cv2.CAP_PROP_FRAME_WIDTH)),
+            int(self._capture.get(cv2.CAP_PROP_FRAME_HEIGHT)),
+        ])
 
         if self.frame_count == 0:
             raise VideoFileTypeError
@@ -78,6 +86,10 @@ class VideoFileHandler(CachingBackendInstance):
     @property
     def config(self) -> VideoFileHandlerConfig:
         return self._config
+
+    @property
+    def shape(self):
+        return self._shape
 
     def set_requested_frames(self, requested_frames: List[int]) -> None:
         """Add a list of requested frames.
@@ -172,9 +184,8 @@ class VideoFileHandler(CachingBackendInstance):
             else:
                 self.frame_number = frame_number
 
-        for method in [self.read_frame]:
-            if streams.is_registered(method):
-                streams.push(method, method())
+        for method in self._stream_methods:
+            method()
 
         return self.frame_number / self.frame_count
 
@@ -202,15 +213,19 @@ class PerspectiveTransform(TransformInterface):
 
     def transform(self, img: np.ndarray, transform: np.ndarray, shape: tuple) -> np.ndarray:
         return cv2.warpPerspective(
-            img, transform, shape,  # can't set destination image here! it's the wrong shape!
+            img, transform, shape,   # can't set destination image here! it's the wrong shape!
+            borderValue=(255,255,255),  # makes the border white instead of black ~https://stackoverflow.com/questions/30227979/
         )
 
 
 class TransformHandler(BackendInstance, Handler):
     """Handles coordinate transforms.
     """
-    _shape: tuple
-    _inverse = np.ndarray
+    _video_shape: tuple
+    _design_shape: tuple
+    _inverse: np.ndarray
+
+    _stream_methods: List[Callable]
 
     _implementation: TransformInterface
     _implementation_factory = TransformType
@@ -219,10 +234,14 @@ class TransformHandler(BackendInstance, Handler):
     _config: TransformHandlerConfig
     _class = TransformHandlerConfig()
 
-    def __init__(self, shape, config: TransformHandlerConfig):
+    def __init__(self, video_shape, design_shape, stream_methods, config: TransformHandlerConfig):
         super(TransformHandler, self).__init__(config)
         self.set_implementation(self.config.type)
-        self._shape = shape[0:2]  # Don't include color dimension
+        self._video_shape = tuple(video_shape[0:2])  # Don't include color dimension
+        self._design_shape = tuple(design_shape[0:2])
+        self._stream_methods = stream_methods # type: ignore
+
+        self._inverse = np.linalg.inv(self.config.matrix)
 
     @property
     def config(self) -> TransformHandlerConfig:
@@ -244,14 +263,25 @@ class TransformHandler(BackendInstance, Handler):
                              f"'{self._implementation.__class__.__name__}'")
 
     @backend.expose(backend.estimate_transform)
-    def estimate(self, roi: list) -> bool:
+    def estimate(self, roi: dict) -> bool:
         """Estimate the transform matrix from a set of coordinates.
             Coordinates should correspond to the corners of the outline of
             the design, ordered from the bottom left to the top right.
+            Coordinates should be relative to the video frame size:
+                x in [0,1] ~ [0,width]
+                y in [0,1] ~ [0,height]
         """
         if True:  # todo: sanity check roi
+            roi_list = [  # todo: this should be a function im isimple.maths
+                [ rc * abs_size for rc, abs_size in zip(p.values(), self._video_shape) ]
+                for p in roi.values()
+            ]
+
             self.config(roi=roi)
-            self.set(self._implementation.estimate(roi, self._shape))
+            self.set(self._implementation.estimate(roi_list, self._design_shape))
+
+            for method in self._stream_methods:
+                method()
             return True
         else:
             return False
@@ -270,10 +300,10 @@ class TransformHandler(BackendInstance, Handler):
             Writes to the provided variable!
             If caller needs the original value, they should copy explicitly
         """
-        return self._implementation.transform(img, self.matrix, self._shape)
+        return self._implementation.transform(img, self.config.matrix, self._design_shape)
 
     def inverse(self, img: np.ndarray) -> np.ndarray:
-        return self._implementation.transform(img, self._inverse, self._shape)
+        return self._implementation.transform(img, self._inverse, self._video_shape)
 
     @property
     def matrix(self):
@@ -570,17 +600,9 @@ class DesignFileHandler(CachingBackendInstance):
     @backend.expose(backend.overlay_frame)
     def overlay_frame(self, frame: np.ndarray) -> np.ndarray:
         frame = cv2.cvtColor(frame, cv2.COLOR_HSV2BGR)
-        frame = self._overlay_bgr(frame)
+        frame = overlay(frame, self._overlay, self.config.overlay_alpha)
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         return frame
-
-    def _overlay_bgr(self, frame: np.ndarray) -> np.ndarray:
-        # https://stackoverflow.com/questions/54249728/
-        return cv2.addWeighted(
-            self._overlay, self.config.overlay_alpha,
-            frame, 1 - self.config.overlay_alpha,
-            gamma=0, dst=frame
-        )
 
     @property
     def masks(self):
@@ -688,10 +710,10 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     def _launch(self):
         self.load_config()
         log.debug(f'{self.__class__.__name__}: launch nested instances.')
-        self.video = VideoFileHandler(self.config.video_path, self.config.video)
+        self.video = VideoFileHandler(self.config.video_path, [self.get_inverse_overlaid_frame], self.config.video)  # todo: stream_methods list should be generated automatically
         self.video.set_requested_frames(list(self.frame_numbers()))
         self.design = DesignFileHandler(self.config.design_path, self.config.height, self.config.design, self.config.masks)
-        self.transform = TransformHandler(self.design.shape, self.config.transform)
+        self.transform = TransformHandler(self.video.shape, self.design.shape, [self.get_inverse_overlaid_frame], self.config.transform)
         self.masks = self.design.masks
         self.filters = [mask.filter for mask in self.masks]
 
@@ -705,7 +727,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
         # todo: maybe add some stuff to do this automagically
         backend.expose(backend.get_frame)(self.get_transformed_frame)
-        backend.expose(backend.get_inverse_transformed_overlay)(self.get_inverse_transformed_overlay)
+        backend.expose(backend.get_inverse_overlaid_frame)(self.get_inverse_overlaid_frame)
         backend.expose(backend.get_overlaid_frame)(self.get_frame_overlay)
         backend.expose(backend.get_colors)(self.get_colors)
 
@@ -784,6 +806,16 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         else:
             raise NotImplementedError(self.config.frame_interval_setting)
 
+    @stream
+    @backend.expose(backend.get_inverse_overlaid_frame)
+    def get_inverse_overlaid_frame(self, frame_number: Optional[int] = None) -> np.ndarray:
+        return cv2.cvtColor(  # todo: loads of unnecessary color conversion here
+            overlay(
+                cv2.cvtColor(self.video.read_frame(frame_number), cv2.COLOR_HSV2BGR),
+                self.transform.inverse(self.design.overlay()),
+                alpha=self.design.config.overlay_alpha
+            ), cv2.COLOR_BGR2HSV)
+
     def calculate(self, frame_number: int, update_callback: Callable):
         """Return a state image for each FeatureSet
         """
@@ -810,7 +842,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             state[np.equal(state, 0)] = 255
 
             # Add overlay on top of state
-            state = self.design._overlay_bgr(state)
+            state = overlay(state, self.design._overlay, self.design.config.overlay_alpha)
 
             V.append(values)   # todo: value values value ugh
             S.append(state)

@@ -10,50 +10,56 @@ import {
 } from "../assets/api";
 
 export const state = () => ({
-  analyzers: {
-    // maps id to {state, config}
-  }
+  // maps id to {name, state, config, coordinates, frame}
 });
 
 export const mutations = {
   addAnalyzer(state, id) {
-    state.analyzers = { ...state.analyzers, [id]: { name: id.split("-")[0] } };
+    console.log(state);
+    console.log("Adding analyzer");
+
+    if (state[id] === undefined) {
+      console.log(`${id} in state`);
+    } else {
+      console.log(`${id} not in state, apparently?`);
+      state = { ...state, [id]: {} };
+    }
+
+    state[id] = { ...state[id], name: id.split("-")[0] }; // todo: placeholder for actual name
+    console.log(state);
   },
 
   setAnalyzerState(state, { id, analyzer_state }) {
-    if (state.analyzers[id] === undefined) {
-      state.analyzers[id] = {};
+    if (state[id] === undefined) {
+      state[id] = {};
     }
     if (analyzer_state === undefined) {
       analyzer_state = ast.UNKNOWN;
     }
-    state.analyzers[id].state = analyzer_state;
+    state[id] = { ...state[id], state: analyzer_state };
   },
 
   setAnalyzerConfig(state, { id, analyzer_config }) {
-    if (state.analyzers[id] === undefined) {
-      state.analyzers[id] = {};
+    if (state[id] === undefined) {
+      state[id] = {};
     }
-    state.analyzers[id] = {
-      ...state.analyzers[id],
-      config: analyzer_config
-    };
+    state[id] = { ...state[id], config: analyzer_config };
   },
 
   setAnalyzerSchemas(state, { id, analyzer_schemas }) {
-    if (state.analyzers[id] === undefined) {
-      state.analyzers[id] = {};
+    if (state[id] === undefined) {
+      state[id] = {};
     }
-    state.analyzers[id].schemas = analyzer_schemas;
+    state[id] = { ...state[id], schemas: analyzer_schemas };
   },
 
   dropAnalyzer(state, id) {
-    delete state.analyzers[id]; // todo: probably wrong
+    delete state[id]; // todo: probably wrong
   }
 };
 export const getters = {
   getState: state => id => {
-    return state.analyzers[id].state;
+    return state[id].state;
   },
   getConfig: state => id => {
     // return state.analyzers[id].config;

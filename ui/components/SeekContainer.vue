@@ -25,11 +25,16 @@ export default {
     position: {
       type: Number,
       default: 0.5
+    },
+    callback: {
+      type: Function,
+      default: undefined
     }
   },
   components: { vuescroll },
   mounted() {
     // seek to middle of file
+    console.log("Seeking to middle of file");
     seek(this.id, this.position);
   },
   methods: {
@@ -38,6 +43,9 @@ export default {
       seek(id, position).then(new_position => {
         this.position = new_position;
       });
+      if (this.callback !== undefined) {
+        this.callback();
+      }
     }
   }
 };

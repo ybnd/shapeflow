@@ -171,7 +171,6 @@ class Main(object, metaclass=Singleton):
         def call(id: str, endpoint: str):
             active()
             if request.data:
-                print(request.data)
                 data = json.loads(request.data)
             else:
                 data = {k:json.loads(v) for k,v in request.args.to_dict().items()}
@@ -261,4 +260,4 @@ class Main(object, metaclass=Singleton):
         log.debug(f"{self._roots[id]}: stream '{endpoint}'")
         # todo: sanity check this also
         method = self._roots[id].get(getattr(backend, endpoint))
-        return streams.register(method)
+        return streams.register(self._roots[id], method)

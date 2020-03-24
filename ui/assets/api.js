@@ -134,14 +134,13 @@ export async function seek(id, position) {
 }
 
 export async function estimate_transform(id, roi) {
-  // todo: check url
-  axios.put(url_api(id, "call/estimate_transform"), roi);
+  return axios.post(url_api(id, "call/estimate_transform"), { roi: roi });
 }
 
 export function set_filter(id, coordinate) {
   // todo: check url
   // todo: provide coordinate ~ full frame, it's the backend's responsibility to resolve to the corresponding mask & color
-  axios.put(url_path(id, "call/set_filter"), coordinate);
+  axios.post(url_path(id, "call/set_filter"), coordinate);
 }
 
 export function analyze(id) {

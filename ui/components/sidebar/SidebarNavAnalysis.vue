@@ -249,12 +249,14 @@ export default {
       return ["nav-link"];
     },
     name() {
-      return this.$store.state.analyzers.analyzers[this.id].name;
+      console.log(`Name is`);
+      console.log(this.$store.state.analyzers[this.id].name);
+      return this.$store.state.analyzers[this.id].name;
     },
     state() {
       console.log(`State is`);
-      console.log(this.$store.state.analyzers.analyzers[this.id].state);
-      return this.$store.state.analyzers.analyzers[this.id].state;
+      console.log(this.$store.state.analyzers[this.id].state);
+      return this.$store.state.analyzers[this.id].state;
     }
   },
   data() {

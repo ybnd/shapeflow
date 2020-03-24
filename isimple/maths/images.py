@@ -18,6 +18,18 @@ def ckernel(size: int) -> np.ndarray:
     return array
 
 
+def overlay(frame: np.ndarray, overlay: np.ndarray, alpha: float = 0.5) -> np.ndarray:
+    """Overlay `frame` image with `overlay` image.
+        * Both images should be in the BGR color space
+    """
+    # https://stackoverflow.com/questions/54249728/
+    return cv2.addWeighted(
+        overlay, alpha,
+        frame, 1 - alpha,
+        gamma=0, dst=frame
+    )
+
+
 def crop_mask(mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray, Tuple[int, int]]:
     """Crop a binary mask image to its minimal size
         (to exclude unnecessary regions)
