@@ -223,7 +223,7 @@
 
 <script>
 import SidebarNavAnalysisLink from "./SidebarNavAnalysisLink";
-import { AnalyzerState as ast } from "../../assets/api";
+import { AnalyzerState as ast } from "../../static/api";
 
 import { mapGetters, mapState, mapActions } from "vuex";
 

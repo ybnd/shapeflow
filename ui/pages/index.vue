@@ -20,7 +20,7 @@ import draggable from "vuedraggable";
 import AnalysisCard from "../components/dashboard/AnalysisCard";
 import { mapState } from "vuex";
 
-import { ping, unload } from "../assets/api";
+import { ping, unload } from "../static/api";
 
 export default {
   name: "dashboard",

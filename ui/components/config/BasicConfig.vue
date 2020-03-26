@@ -93,7 +93,7 @@
 </template>
 
 <script>
-import { check_design_path, check_video_path } from "../../assets/api";
+import { check_design_path, check_video_path } from "../../static/api";
 
 export default {
   name: "BasicConfig",

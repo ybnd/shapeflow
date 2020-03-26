@@ -9,7 +9,7 @@ import {
   get_config,
   set_config,
   analyze
-} from "../assets/api";
+} from "../static/api";
 
 export const state = () => ({
   options: {

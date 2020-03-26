@@ -9,7 +9,7 @@
 
 <script>
 import vuescroll from "vue-scroll";
-import { seek } from "../assets/api";
+import { seek } from "../static/api";
 
 export default {
   name: "seek",

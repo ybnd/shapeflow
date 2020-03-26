@@ -47,7 +47,7 @@
 
 <script>
 import BasicConfig from "../config/BasicConfig";
-import { set_config, launch } from "../../assets/api";
+import { set_config, launch } from "../../static/api";
 
 export default {
   name: "sidebar-nav-link",

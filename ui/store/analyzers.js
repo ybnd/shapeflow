@@ -7,7 +7,7 @@ import {
   init,
   list,
   launch
-} from "../assets/api";
+} from "../static/api";
 
 export const state = () => ({
   // maps id to {name, state, config, coordinates, frame}

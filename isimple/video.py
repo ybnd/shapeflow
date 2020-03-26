@@ -274,7 +274,7 @@ class TransformHandler(BackendInstance, Handler):
         if True:  # todo: sanity check roi
             roi_list = [  # todo: this should be a function im isimple.maths
                 [ rc * abs_size for rc, abs_size in zip(p.values(), self._video_shape) ]
-                for p in roi.values()
+                for p in roi
             ]
 
             self.config(roi=roi)
