@@ -43,6 +43,8 @@ export default {
     // todo:    * N msec after 'letting go', make the moveable transparent, estimate the transform
     // todo:                                      & replace raw image with inverse transformed overlay image
     // todo:    => performance while dragging + precision in the end
+
+    this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
   },
   components: {
     SeekContainer,
@@ -71,7 +73,6 @@ export default {
       target.style.transform = transform; // todo: temporarily disable bounds during rotation
     },
     updateRoiCoordinates() {
-      this.updateFrame();
       let frame = this.$store.getters["align/getFrame"](this.id);
       let roi = roiRectInfoToCoordinates(this.$refs.moveable.getRect(), frame);
       estimate_transform(this.id, roi);
@@ -96,6 +97,16 @@ export default {
         this.$refs.moveable.updateRect();
         this.$refs.moveable.updateTarget();
       });
+    },
+    updateFrameOnceHasRect() {
+      if (!(this.waitUntilHasRect === undefined)) {
+        if (this.$refs.frame.getBoundingClientRect()["width"] > 100) {
+          console.log("HAS RECT");
+          this.updateFrame();
+          clearInterval(this.waitUntilHasRect);
+          delete this.waitUntilHasRect;
+        }
+      }
     }
   },
   computed: {
@@ -151,18 +162,13 @@ export default {
 }
 
 .moveable {
-  /* todo: most of this is not needed */
-  font-family: "Roboto", sans-serif;
+  /* todo: hide the 100x100 placeholder until initial_transform is set */
   position: absolute;
   width: 100px;
   height: 100px;
   left: 0;
   top: 0;
-  text-align: center;
-  font-size: 40px;
   margin: 0 0 0 0;
-  font-weight: 100;
-  letter-spacing: 1px;
 }
 
 /* match theme color & set size */
@@ -183,7 +189,7 @@ export default {
   background: lighten(theme-color("primary"), 33%) !important;
 }
 
-/* override hidden & trigger anti-aliasing */
+/* override hidden & enable anti-aliasing */
 /* https://stackoverflow.com/questions/6492027 */
 .moveable-direction {
   visibility: visible !important;
@@ -192,5 +198,10 @@ export default {
 .moveable-rotation-line {
   visibility: visible !important;
   outline: 1px solid transparent !important;
+}
+
+/* hide weird .moveable-reverse thing that gets rendered in the top left corner after refresh */
+.moveable-reverse * {
+  visibility: hidden !important;
 }
 </style>
