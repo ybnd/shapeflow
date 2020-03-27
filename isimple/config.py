@@ -5,6 +5,7 @@ import datetime
 
 import numpy as np
 import yaml
+import json
 
 from isimple import settings
 from isimple.core.backend import AnalyzerConfig, CachingBackendInstanceConfig, \
@@ -41,8 +42,6 @@ class TransformHandlerConfig(Config):
     def __post_init__(self):
         self.type = self.resolve(self.type, TransformType)
         self.matrix = self.resolve(self.matrix, np.ndarray)
-        if len(self.roi) > 0:
-            self.roi = self.resolve(self.roi, np.ndarray).tolist()
 
 
 @extend(ConfigType)
@@ -193,6 +192,18 @@ def normalize_config(d: dict) -> dict:
             # Set frame_interval_setting to dt, the previous default
             if 'dt' in d:
                 d['frame_initerval_setting'] = FrameIntervalSetting('dt')
+        if before_version(d[VERSION], '0.3.5'):
+            normalizing_to('0.3.5')
+            # Convert roi from list to dict
+            if 'transform' in d:
+                if 'roi' in d['transform']:
+                    d['transform']['roi'] = {
+                        corner: {'x': coordinate[0], 'y': coordinate[1]}
+                        for coordinate, corner in zip(
+                            json.loads(d['transform']['roi']),
+                            ['BL', 'TL', 'TR', 'BR']
+                        )
+                    }
     else:
         raise NotImplementedError
 

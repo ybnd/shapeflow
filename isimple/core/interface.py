@@ -15,7 +15,7 @@ class TransformInterface(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def estimate(self, coordinates: list, shape: tuple) -> np.ndarray:  # todo: explain what and why shape is
+    def estimate(self, roi: dict, shape: tuple) -> np.ndarray:  # todo: explain what and why shape is
         raise NotImplementedError
 
     @abc.abstractmethod

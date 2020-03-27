@@ -74,80 +74,49 @@ export default {
       this.updateRoiCoordinates();
     },
     setToDummyCoords({ target }) {
-      let starting_coordinates_absolute = [
-        { x: -50, y: 50 },
-        { x: -50, y: -50 },
-        { x: 50, y: -50 },
-        { x: 50, y: 50 }
-      ];
+      let starting_coordinates_absolute = {
+        BL: { x: -50, y: 50 },
+        TL: { x: -50, y: -50 },
+        TR: { x: 50, y: -50 },
+        BR: { x: 50, y: 50 }
+      };
 
-      let dummy_coordinates_relative = [
-        { x: 0.82, y: 0.23 },
-        { x: 0.81, y: 0.89 },
-        { x: 0.23, y: 0.89 },
-        { x: 0.22, y: 0.23 }
-      ];
+      let dummy_coordinates_relative = {
+        BL: { x: 0.82, y: 0.23 },
+        TL: { x: 0.81, y: 0.89 },
+        TR: { x: 0.23, y: 0.89 },
+        BR: { x: 0.22, y: 0.23 }
+      };
 
-      let dummy_coordinates_absolute = [];
+      let dummy_coordinates_absolute = {};
 
       this.updateFrame();
 
-      console.log(
-        `Image ${this.$store.state.analyzers[this.id].frame.width} x ${
-          this.$store.state.analyzers[this.id].frame.height
-        }`
-      );
-
-      for (let i = 0; i < dummy_coordinates_relative.length; i++) {
-        dummy_coordinates_absolute[i] = {
+      Object.keys(dummy_coordinates_relative).map(key => {
+        dummy_coordinates_absolute[key] = {
           x:
-            dummy_coordinates_relative[i].x *
+            dummy_coordinates_relative[key].x *
               this.$store.state.analyzers[this.id].frame.width -
             50, // apparently have to compensate for origin?
           y:
-            dummy_coordinates_relative[i].y *
+            dummy_coordinates_relative[key].y *
               this.$store.state.analyzers[this.id].frame.height -
             50
         };
-      }
+      });
 
-      console.log("Starting coordinates: (absolute)");
-      console.log(starting_coordinates_absolute);
-
-      console.log("Dummy coordinates: (relative)");
-      console.log(dummy_coordinates_relative);
-
-      console.log("Dummy coordinates: (absolute)");
-      console.log(dummy_coordinates_absolute);
-
-      console.log("Dummy transform:");
-      console.log(
-        transform(starting_coordinates_absolute, dummy_coordinates_absolute)
-      );
-      console.log(
-        toCssMatrix3d(
-          transform(starting_coordinates_absolute, dummy_coordinates_absolute)
-        )
-      );
-
-      console.log("Transform of origin, [50,50]:");
-      console.log(
-        multiply(
-          transform(starting_coordinates_absolute, dummy_coordinates_absolute),
-          [50, 50, 0, 1]
-        )
-      );
-
-      this.$store.state.analyzers[this.id].transform = transform(
+      let matrix = transform(
         starting_coordinates_absolute,
         dummy_coordinates_absolute
       );
-      target.style.transform = toCssMatrix3d(
-        transform(starting_coordinates_absolute, dummy_coordinates_absolute)
-      );
+
+      this.$store.state.analyzers[this.id].transform = matrix; // todo: this should be a Vuex commit
+      target.style.transform = toCssMatrix3d(matrix);
 
       this.$refs.moveable.updateRect();
       this.$refs.moveable.updateTarget();
+
+      self.updateRoiCoordinates();
     },
     updateRoiCoordinates() {
       // todo: connect to backend transform estimation

@@ -195,17 +195,20 @@ class PerspectiveTransform(TransformInterface):
     def validate(self, transform: np.ndarray) -> bool:
         return transform.shape == (3, 3)
 
-    def estimate(self, roi: list, shape: tuple) -> dict:
+    def estimate(self, roi: dict, shape: tuple) -> dict:
         log.vdebug(f'Estimating transform ~ coordinates {roi} & shape {shape}')
         return cv2.getPerspectiveTransform(
-            np.float32(roi),
+            np.float32(
+                [[roi[corner]['x'], roi[corner]['y']]
+                 for corner in ['BL', 'TL', 'TR', 'BR']]
+            ),
             np.float32(
                 np.array(  # selection rectangle: bottom left to top right
                     [
-                        [0, shape[1]],
-                        [0, 0],
-                        [shape[0], 0],
-                        [shape[0], shape[1]],
+                        [0, shape[1]],          # BL: (x,y)
+                        [0, 0],                 # TL
+                        [shape[0], 0],          # TR
+                        [shape[0], shape[1]],   # BR
                     ]
                 )
             )
@@ -271,17 +274,20 @@ class TransformHandler(BackendInstance, Handler):
                 x in [0,1] ~ [0,width]
                 y in [0,1] ~ [0,height]
         """
-        if True:  # todo: sanity check roi
-            roi_list = [  # todo: this should be a function im isimple.maths
-                [ rc * abs_size for rc, abs_size in zip(p.values(), self._video_shape) ]
-                for p in roi
-            ]
+        # todo: sanity check roi
+        # todo: handle {TL BL BR TR} dict in a corner order-agnostic way
 
-            self.config(roi=roi)
-            self.set(self._implementation.estimate(roi_list, self._design_shape))
+        self.config(roi=roi)
+        self.set(self._implementation.estimate({
+            k: {
+            'x': v['x'] * self._video_shape[0],
+            'y': v['y'] * self._video_shape[1]
+            } for k,v in roi.items()},
+            self._design_shape)
+        )
 
-            for method in self._stream_methods:
-                method()
+        for method in self._stream_methods:
+            method()
             return True
         else:
             return False
@@ -708,6 +714,15 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             return False
 
     def _launch(self):
+        # todo: query history for
+        #  - combination of video file & design file
+        #       * hash files & resolve to ids (should be a History method)
+        #       * get latest entry in 'analyses' table matching both
+        #           - get transform & filter settings from entry
+        #           - if either is not present, leave empty
+        #           * (optional: if either is not present, look back until
+        #              it's found, to a maximum number of entries)
+
         self.load_config()
         log.debug(f'{self.__class__.__name__}: launch nested instances.')
         self.video = VideoFileHandler(self.config.video_path, [self.get_inverse_overlaid_frame], self.config.video)  # todo: stream_methods list should be generated automatically

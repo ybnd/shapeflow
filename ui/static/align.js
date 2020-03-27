@@ -3,31 +3,42 @@ import { lusolve, multiply, norm, subtract, transpose } from "mathjs";
 export function roiRectInfoToCoordinates(rect, frame) {
   // convert absolute moveable RectInfo to relative coordinates {BL, TL, TR, BR}
   //   -> RdctInfo: https://daybrush.com/moveable/release/latest/doc/Moveable.html#.RectInfo
-  return [
-    {
+  return {
+    BL: {
       x: (rect.pos3[0] - frame.left) / frame.width,
       y: rect.pos3[1] / frame.height
     },
-    {
+    TL: {
       x: (rect.pos1[0] - frame.left) / frame.width,
       y: rect.pos1[1] / frame.height
     },
-    {
+    TR: {
       x: (rect.pos2[0] - frame.left) / frame.width,
       y: rect.pos2[1] / frame.height
     },
-    {
+    BR: {
       x: (rect.pos4[0] - frame.left) / frame.width,
       y: rect.pos4[1] / frame.height
     }
-  ];
+  };
 }
 
 export function roiCoordinatesToTransform(coordinates, frame) {
   // convert relative coordinates [TL, TR, BL, BR] to CSS matrix3d...
 }
 
-export function transform(from, to) {
+export function transform(from_obj, to_obj) {
+  // convert {{x,y}} to [{xy}] ~ BL, TL, TR, BR
+
+  let order = ["BL", "TL", "TR", "BR"];
+  let from = [];
+  let to = [];
+
+  for (let i = 0; i < order.length; i++) {
+    from = [...from, from_obj[order[i]]];
+    to = [...to, to_obj[order[i]]];
+  }
+
   // taken from https://franklinta.com/2014/09/08/computing-css-matrix3d-transforms/
   var A, H, b, h, i, j, k, k_i, l, lhs, ref, rhs;
   console.assert(from.length === (ref = to.length) && ref === 4);
