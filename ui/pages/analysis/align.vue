@@ -127,7 +127,7 @@ export default {
 </script>
 
 <style lang="scss">
-@import "../../assets/scss/_bootstrap-variables.scss";
+@import "../../assets/scss/_bootstrap-variables";
 @import "node_modules/bootstrap/scss/functions";
 
 .align {
@@ -141,7 +141,9 @@ export default {
   z-index: -100;
   pointer-events: none;
   display: block;
-  max-width: 80vw;
+  max-width: calc(
+    100vw - 160px
+  ); /* todo: handle actual width! (import assets/scss/core/_variables -> doesn't compile) */
   max-height: 100vh;
   width: auto;
   height: auto;
