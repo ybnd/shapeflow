@@ -87,6 +87,7 @@ class Main(object, metaclass=Singleton):
         # Serve webapp
         @app.route('/', methods=['GET'])
         def index_html():
+            log.debug(f"Serving 'index.html'")
             return send_from_directory(UI, 'index.html')
 
         @app.route('/<file>')
@@ -94,6 +95,7 @@ class Main(object, metaclass=Singleton):
         @app.route('/<directory1>/<directory2>/<file>')
         def get_file(file, directory1 = '', directory2 = ''):
             directory = os.path.join(UI, directory1, directory2)
+            log.debug(f"Serving '{os.path.join(directory,file)}'")
             return send_from_directory(directory, file)
 
         # API: general
@@ -114,6 +116,7 @@ class Main(object, metaclass=Singleton):
         @app.route('/api/check_video_path', methods=['PUT'])
         def check_video():
             path = json.loads(request.data)['video_path']
+            log.debug(f"Checking video file {path}")
             if os.path.isfile(path):
                 try:
                     capture = cv2.VideoCapture(path)
@@ -126,6 +129,7 @@ class Main(object, metaclass=Singleton):
         @app.route('/api/check_design_path', methods=['PUT'])
         def check_design():
             path = json.loads(request.data)['design_path']
+            log.debug(f"Checking design file {path}")
             if os.path.isfile(path):
                 try:
                     check_svg(path)
@@ -142,13 +146,12 @@ class Main(object, metaclass=Singleton):
                 bt = request.args.to_dict()['type']
             else:
                 bt = None
-
             return respond(self.add_instance(AnalyzerType(bt)))
 
         @app.route('/api/list', methods=['GET'])
         def list():
-            # also works as a ping
             active()
+            log.vdebug(f"Listing analyzers")
             return respond({
                 'ids': [k for k in self._roots.keys()],
                 'states': [v.state for v in self._roots.values()]
