@@ -53,8 +53,8 @@ for frame_number in FRAMES:
     TEST_FRAME_HSV[frame_number] = frame_hsv
 
     dsize = (overlay.shape[1], overlay.shape[0])
-    TEST_TRANSFORMED_FRAME_BGR[frame_number] = cv2.warpPerspective(frame, TRANSFORM, dsize)
-    TEST_TRANSFORMED_FRAME_HSV[frame_number] = cv2.warpPerspective(frame_hsv, TRANSFORM, dsize)
+    TEST_TRANSFORMED_FRAME_BGR[frame_number] = cv2.warpPerspective(frame, TRANSFORM, dsize, borderValue=(255,255,255))
+    TEST_TRANSFORMED_FRAME_HSV[frame_number] = cv2.warpPerspective(frame_hsv, TRANSFORM, dsize, borderValue=(255,255,255))
 
 # Clear cache
 vi = VideoFileHandler(__VIDEO__)
@@ -128,7 +128,7 @@ class VideoInterfaceTest(FrameTest):
         t0 = time.time()
 
         with VideoFileHandler(
-                __VIDEO__, VideoFileHandlerConfig(cache_consumer=True)
+                __VIDEO__, None, VideoFileHandlerConfig(cache_consumer=True)
         ) as vi_sink:
             subthread = Thread(target = read_frames_and_cache)
             subthread.start()
@@ -325,8 +325,8 @@ class VideoAnalyzerTest(FrameTest):
 
         with va.caching():
             for fn in va.frame_numbers():
-                frame = va.get_transformed_frame(fn)
                 if fn in FRAMES:  # todo: !!!!!! if this test checks out, transform is not applied (:
+                    frame = va.get_transformed_frame(fn)
                     self.assertEqualArray(TEST_TRANSFORMED_FRAME_HSV[fn], frame)
 
     def test_linked_config(self):

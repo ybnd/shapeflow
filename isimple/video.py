@@ -55,8 +55,10 @@ class VideoFileHandler(CachingBackendInstance):
     _class = VideoFileHandlerConfig()
 
 
-    def __init__(self, video_path, stream_methods: List[Callable], config: VideoFileHandlerConfig = None):
+    def __init__(self, video_path, stream_methods: List[Callable] = None, config: VideoFileHandlerConfig = None):
         super(VideoFileHandler, self).__init__(config)
+        if stream_methods == None:
+            stream_methods = []
         self._stream_methods = stream_methods + [self.read_frame] # type: ignore
 
         if not os.path.isfile(video_path):
