@@ -1,9 +1,10 @@
 <template>
+  <!--  https://stackoverflow.com/questions/14025438 -->
   <div class="fixed-page">
     <seek-container :id="id" :callback="updateFrame">
       <div class="align" ref="align">
         <img :src="stream_url" alt="" class="streamed-image" ref="frame" />
-        <!-- todo: callback doesn't do anything -->
+        <!-- todo: can't set callback on streamed image load :( -->
         <Moveable
           class="moveable"
           ref="moveable"
@@ -33,6 +34,9 @@ export default {
   name: "align",
   beforeMount() {
     window.onresize = this.updateFrame;
+    // todo: if window is made so small that the sidebar disappears everything breaks again
+    // todo: should turn off disappearing sidebar
+
     this.handleInit(); // todo: should call updateFrame once img is loaded, but not before. element callbacks don't work :(
 
     setInterval(this.updateRoiCoordinates, 100); // todo: to fix the lagging overlay issue; way too intensive :/
@@ -122,7 +126,10 @@ export default {
 };
 </script>
 
-<style>
+<style lang="scss">
+@import "../../assets/scss/_bootstrap-variables.scss";
+@import "node_modules/bootstrap/scss/functions";
+
 .align {
   position: absolute;
   float: left;
@@ -142,7 +149,7 @@ export default {
 }
 
 .moveable {
-  z-index: 1;
+  /* todo: most of this is not needed */
   font-family: "Roboto", sans-serif;
   position: absolute;
   width: 100px;
@@ -154,5 +161,34 @@ export default {
   margin: 0 0 0 0;
   font-weight: 100;
   letter-spacing: 1px;
+}
+
+/* match theme color & set size */
+.moveable-control {
+  border-color: darken(theme-color("primary"), 3%) !important;
+  background: theme-color("primary") !important;
+}
+
+/* hide lines by default */
+.moveable-line {
+  visibility: hidden !important;
+  border-color: darken(theme-color("primary"), 3%) !important;
+  background: theme-color("primary") !important;
+}
+
+.moveable-control.moveable-rotation {
+  border-color: darken(theme-color("primary"), 3%) !important;
+  background: lighten(theme-color("primary"), 33%) !important;
+}
+
+/* override hidden & trigger anti-aliasing */
+/* https://stackoverflow.com/questions/6492027 */
+.moveable-direction {
+  visibility: visible !important;
+  outline: 1px solid transparent !important;
+}
+.moveable-rotation-line {
+  visibility: visible !important;
+  outline: 1px solid transparent !important;
 }
 </style>

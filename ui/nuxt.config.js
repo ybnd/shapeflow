@@ -11,14 +11,15 @@ const changeLoaderOptions = loaders => {
 };
 
 module.exports = {
-  /*
-   ** Headers of the page
-   */
   head: {
     title: "isimple",
     meta: [
       { charset: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      {
+        name: "viewport",
+        content:
+          "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+      },
       {
         hid: "description",
         name: "description",
@@ -29,68 +30,33 @@ module.exports = {
     link: [{ rel: "icon", type: "image/x-icon", href: "/favicon.ico" }]
   },
 
-  /*
-   ** Set the link active classes
-   */
   router: {
     linkActiveClass: "active open",
     mode: "hash"
   },
 
-  /*
-   ** Customize the progress bar color
-   */
   loading: { color: "#42A5CC" },
 
-  /**
-   * Import CSS
-   */
   css: [
-    /* Import Font Awesome Icons Set */
     "~/node_modules/font-awesome/css/font-awesome.min.css",
-    /* Import Simple Line Icons Set */
     "~/node_modules/simple-line-icons/css/simple-line-icons.css",
-    /* Import Bootstrap Vue Styles */
     "~/node_modules/bootstrap-vue/dist/bootstrap-vue.css",
-    /* Import Core SCSS */
     { src: "~/assets/scss/style.scss", lang: "scss" }
   ],
 
-  /*
-   ** Plugins to load before mounting the App
-   */
   plugins: [],
 
-  /*
-   ** Nuxt.js modules
-   */
-  modules: [
-    // Doc: https://github.com/nuxt-community/axios-module#usage
-    "@nuxtjs/axios",
-    // Doc: https://github.com/bootstrap-vue/bootstrap-vue
-    "bootstrap-vue/nuxt"
-  ],
-  /*
-   ** Axios module configuration
-   */
+  modules: ["@nuxtjs/axios", "bootstrap-vue/nuxt"],
+
   axios: {
     // See https://github.com/nuxt-community/axios-module#options
   },
 
-  /*
-   ** Style resources configuration
-   */
   styleResources: {
     scss: "./assets/scss/style.scss"
   },
 
-  /*
-   ** Build configuration
-   */
   build: {
-    /*
-     ** You can extend webpack config here
-     */
     extend(config, { isDev, isClient }) {
       if (isDev && isClient) {
         config.module.rules.push({

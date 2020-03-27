@@ -134,9 +134,13 @@ export default {
 }
 .hovertext:hover .nav-link {
 }
+
 .popover {
   width: 600px;
   max-width: 600px;
+  z-index: 9000;
+  /* Should be drawn over moveable, which is @ z-index 3000 */
+  /* https://github.com/daybrush/moveable/blob/master/handbook/handbook.md#toc-custom-css */
 }
 .popover-form-container {
   /* todo: should be a single component for the dashboard cards & this popover! Then we can recycle a bunch of stuff. */
