@@ -37,7 +37,7 @@ class VideoFileHandlerConfig(CachingBackendInstanceConfig):
 class TransformHandlerConfig(Config):
     type: Union[TransformType, str] = field(default='')
     matrix: Union[np.ndarray,str] = field(default=np.eye(3))
-    roi: Union[np.ndarray, str] = field(default_factory=lambda: np.array([]))
+    roi: dict = field(default_factory=dict)
 
     def __post_init__(self):
         self.type = self.resolve(self.type, TransformType)

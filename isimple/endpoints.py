@@ -12,6 +12,7 @@ class BackendRegistry(ImmutableRegistry):
     analyze = Endpoint(Callable[[], bool])
     get_config = Endpoint(Callable[[], dict])
     set_config = Endpoint(Callable[[dict], bool])
+    get_relative_roi = Endpoint(Callable[[], dict])
     get_name = Endpoint(Callable[[], str])
     get_total_frames = Endpoint(Callable[[], int])
     seek = Endpoint(Callable[[float], float])

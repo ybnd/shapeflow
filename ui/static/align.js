@@ -1,7 +1,24 @@
-import { lusolve, multiply, norm, subtract, transpose } from "mathjs";
+import { lusolve, multiply, norm, subtract } from "mathjs";
+
+export var css_width = 100; // px
+export var css_center = css_width / 2;
+
+export var css_coords = {
+  BL: { x: -css_center, y: css_center },
+  TL: { x: -css_center, y: -css_center },
+  TR: { x: css_center, y: -css_center },
+  BR: { x: css_center, y: css_center }
+};
+
+export var default_relative_coords = {
+  BL: { x: 0.2, y: 0.8 },
+  TL: { x: 0.2, y: 0.2 },
+  TR: { x: 0.8, y: 0.2 },
+  BR: { x: 0.8, y: 0.8 }
+};
 
 export function roiRectInfoToCoordinates(rect, frame) {
-  // convert absolute moveable RectInfo to relative coordinates {BL, TL, TR, BR}
+  // convert absolute RectInfo to relative coordinates {BL, TL, TR, BR}
   //   -> RdctInfo: https://daybrush.com/moveable/release/latest/doc/Moveable.html#.RectInfo
   return {
     BL: {
@@ -27,6 +44,7 @@ export function roiCoordinatesToTransform(coordinates, frame) {
   // convert relative coordinates [TL, TR, BL, BR] to CSS matrix3d...
 }
 
+// todo: clean up
 export function transform(from_obj, to_obj) {
   // convert {{x,y}} to [{xy}] ~ BL, TL, TR, BR
 
@@ -90,6 +108,7 @@ export function transform(from_obj, to_obj) {
   return H;
 }
 
+// todo: clean up
 export function toCssMatrix3d(transform) {
   let content = [];
   for (let col = 0; col < 4; col++) {
@@ -100,4 +119,30 @@ export function toCssMatrix3d(transform) {
   }
   return `matrix3d(${content.join(",")})`; // todo: the translation is magix & window size-dependent
   // todo: could set transform, query rect, and get translation ~ position of top left point?
+}
+
+export function toAbsolute(relative, frame, center = 0) {
+  let absolute = {};
+
+  Object.keys(relative).map(key => {
+    absolute[key] = {
+      x: relative[key].x * frame.width - center,
+      y: relative[key].y * frame.height - center
+    };
+  });
+
+  return absolute;
+}
+
+export function getInitialTransform(roi, frame) {
+  let initial_transform = transform(
+    css_coords,
+    toAbsolute(roi, frame, css_center)
+  );
+
+  return toCssMatrix3d(initial_transform);
+}
+
+export function getDefaultRoi(frame) {
+  return toAbsolute(default_relative_coords, frame, css_center);
 }

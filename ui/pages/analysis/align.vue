@@ -2,25 +2,16 @@
   <div class="fixed-page">
     <seek-container :id="id" :callback="updateFrame">
       <div class="align" ref="align">
-        <img
-          :src="stream_url"
-          alt=""
-          class="streamed-image"
-          ref="frame"
-          @load="updateFrame"
-        />
+        <img :src="stream_url" alt="" class="streamed-image" ref="frame" />
         <!-- todo: callback doesn't do anything -->
         <Moveable
           class="moveable"
           ref="moveable"
           v-bind="moveable"
-          origin="tr"
-          @drag="handleDrag"
-          @resize="handleResize"
-          @scale="handleScale"
+          @drag="handleTransform"
+          @scale="handleTransform"
           @rotate="handleRotate"
-          @warp="handleWarp"
-          @renderEnd="setToDummyCoords"
+          @warp="handleTransform"
         />
       </div>
     </seek-container>
@@ -34,109 +25,73 @@ import SeekContainer from "../../components/SeekContainer";
 import Moveable from "vue-moveable";
 import {
   roiRectInfoToCoordinates,
-  transform,
-  toCssMatrix3d
+  default_relative_coords
 } from "../../static/align";
-import { multiply } from "mathjs";
+import Vue from "vue";
 
 export default {
   name: "align",
   beforeMount() {
-    this.updateFrame;
-    this.$store.dispatch("analyzers/sync");
     window.onresize = this.updateFrame;
+    this.handleInit(); // todo: should call updateFrame once img is loaded, but not before. element callbacks don't work :(
+
+    setInterval(this.updateRoiCoordinates, 100); // todo: to fix the lagging overlay issue; way too intensive :/
+    // todo: while transforming, have a transparent overlay image in the moveable element & render it over raw image
+    // todo:    * N msec after 'letting go', make the moveable transparent, estimate the transform
+    // todo:                                      & replace raw image with inverse transformed overlay image
+    // todo:    => performance while dragging + precision in the end
   },
   components: {
     SeekContainer,
     Moveable
   },
   methods: {
-    handleDrag({ target, transform }) {
-      target.style.transform = transform;
-      console.log(transform);
-      this.updateRoiCoordinates();
+    handleInit() {
+      console.log(`Initializing align window for ${this.id}`);
+      this.$store.dispatch("align/init", { id: this.id }).then(() => {
+        console.log("Vuex/align: init should be done");
+        console.log(this.$store.state.align);
+
+        if (this.$store.getters["align/getInitialRoi"](this.id) === null) {
+          this.$store.commit("align/setInitialRoi", {
+            id: this.id,
+            initial_roi: default_relative_coords
+          });
+        }
+      });
     },
-    handleResize({ target, width, height }) {
-      target.style.width = `${width}px`;
-      target.style.height = `${height}px`;
-      this.updateRoiCoordinates();
-    },
-    handleScale({ target, transform }) {
+    handleTransform({ target, transform }) {
       target.style.transform = transform;
-      this.updateRoiCoordinates();
     },
     handleRotate({ target, transform }) {
-      target.style.transform = transform;
-      this.updateRoiCoordinates(); // todo: temporarily disable bounds during rotation
-    },
-    handleWarp({ target, transform }) {
-      target.style.transform = transform;
-      this.updateRoiCoordinates();
-    },
-    setToDummyCoords({ target }) {
-      let starting_coordinates_absolute = {
-        BL: { x: -50, y: 50 },
-        TL: { x: -50, y: -50 },
-        TR: { x: 50, y: -50 },
-        BR: { x: 50, y: 50 }
-      };
-
-      let dummy_coordinates_relative = {
-        BL: { x: 0.82, y: 0.23 },
-        TL: { x: 0.81, y: 0.89 },
-        TR: { x: 0.23, y: 0.89 },
-        BR: { x: 0.22, y: 0.23 }
-      };
-
-      let dummy_coordinates_absolute = {};
-
-      this.updateFrame();
-
-      Object.keys(dummy_coordinates_relative).map(key => {
-        dummy_coordinates_absolute[key] = {
-          x:
-            dummy_coordinates_relative[key].x *
-              this.$store.state.analyzers[this.id].frame.width -
-            50, // apparently have to compensate for origin?
-          y:
-            dummy_coordinates_relative[key].y *
-              this.$store.state.analyzers[this.id].frame.height -
-            50
-        };
-      });
-
-      let matrix = transform(
-        starting_coordinates_absolute,
-        dummy_coordinates_absolute
-      );
-
-      this.$store.state.analyzers[this.id].transform = matrix; // todo: this should be a Vuex commit
-      target.style.transform = toCssMatrix3d(matrix);
-
-      this.$refs.moveable.updateRect();
-      this.$refs.moveable.updateTarget();
-
-      self.updateRoiCoordinates();
+      // todo: rotation messes up perspective
+      target.style.transform = transform; // todo: temporarily disable bounds during rotation
     },
     updateRoiCoordinates() {
-      // todo: connect to backend transform estimation
-      if (this.$store.state.analyzers[this.id].frame === undefined) {
-        this.updateFrame();
-      }
-
-      this.$refs.moveable.updateRect();
-      this.$store.state.analyzers[this.id].roi = roiRectInfoToCoordinates(
-        this.$refs.moveable.getRect(),
-        this.$store.state.analyzers[this.id].frame
-      ); // todo: should be a Vuex commit
-
-      estimate_transform(this.id, this.$store.state.analyzers[this.id].roi);
+      let frame = this.$store.getters["align/getFrame"](this.id);
+      let roi = roiRectInfoToCoordinates(this.$refs.moveable.getRect(), frame);
+      estimate_transform(this.id, roi);
     },
     updateFrame() {
-      this.$store.state.analyzers[
-        this.id
-      ].frame = this.$refs.frame.getBoundingClientRect(); // todo: should be a Vuex commit
-      this.moveable.bounds = this.$store.state.analyzers[this.id].frame;
+      console.log("Updating frame...");
+      let frame = this.$refs.frame.getBoundingClientRect();
+      console.log(frame);
+      this.moveable.bounds = frame;
+      this.$store.commit("align/setFrame", { id: this.id, frame: frame });
+
+      this.$store.dispatch("align/getRoi", { id: this.id }).then(() => {
+        let transform = this.$store.getters["align/getInitialTransform"](
+          this.id
+        );
+        this.$refs.moveable.$el.style.transform = transform;
+
+        console.log("updateFrame - initial_transform");
+        console.log(transform);
+        console.log(this.$refs.moveable.$el);
+
+        this.$refs.moveable.updateRect();
+        this.$refs.moveable.updateTarget();
+      });
     }
   },
   computed: {
@@ -155,15 +110,11 @@ export default {
   data: () => ({
     moveable: {
       draggable: true,
-      throttleDrag: 1, // todo: this is a pixel-level throttle; affects transform precision!
-      resizable: false,
-      throttleResize: 1,
-      scalable: false,
-      throttleScale: 1,
+      throttleDrag: 0, // todo: should have a api request-level throttle & debounce to limit traffic, but keep this throttle 0 for precision
       rotatable: true,
-      throttleRotate: 1,
+      throttleRotate: 0,
       warpable: true,
-      throttleWarp: 1,
+      throttleWarp: 0,
       snappable: true,
       bounds: {}
     }

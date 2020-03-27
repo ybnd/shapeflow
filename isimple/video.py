@@ -265,26 +265,38 @@ class TransformHandler(BackendInstance, Handler):
             raise ValueError(f"Invalid transform {transform} for "
                              f"'{self._implementation.__class__.__name__}'")
 
+    @backend.expose(backend.get_relative_roi)
+    def get_relative_roi(self) -> dict:
+        if self.config.roi['BR']['x'] > 1:  # todo: temporary, handle accidental absolute roi more elegantly
+            return {
+                k: {
+                    'x': v['x'] / self._video_shape[0],
+                    'y': v['y'] / self._video_shape[1]
+                } for k,v in self.config.roi.items()
+            }
+        else:
+            return self.config.roi
+
     @backend.expose(backend.estimate_transform)
     def estimate(self, roi: dict) -> bool:
         """Estimate the transform matrix from a set of coordinates.
             Coordinates should correspond to the corners of the outline of
-            the design, ordered from the bottom left to the top right.
-            Coordinates should be relative to the video frame size:
-                x in [0,1] ~ [0,width]
-                y in [0,1] ~ [0,height]
+            the design, relative to the video frame size:
+                x in [0,1] ~ width
+                y in [0,1] ~ height
         """
         # todo: sanity check roi
-        # todo: handle {TL BL BR TR} dict in a corner order-agnostic way
 
         self.config(roi=roi)
-        self.set(self._implementation.estimate({
+
+        roi = {
             k: {
             'x': v['x'] * self._video_shape[0],
             'y': v['y'] * self._video_shape[1]
-            } for k,v in roi.items()},
-            self._design_shape)
-        )
+            } for k,v in roi.items()
+        }
+
+        self.set(self._implementation.estimate(roi, self._design_shape))
 
         for method in self._stream_methods:
             method()

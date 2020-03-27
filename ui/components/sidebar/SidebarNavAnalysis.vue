@@ -250,13 +250,15 @@ export default {
     },
     name() {
       console.log(`Name is`);
-      console.log(this.$store.state.analyzers[this.id].name);
-      return this.$store.state.analyzers[this.id].name;
+      let name = this.$store.getters["analyzers/getName"](this.id);
+      console.log(name);
+      return name;
     },
     state() {
       console.log(`State is`);
-      console.log(this.$store.state.analyzers[this.id].state);
-      return this.$store.state.analyzers[this.id].state;
+      let state = this.$store.getters["analyzers/getState"](this.id);
+      console.log(state);
+      return state;
     }
   },
   data() {

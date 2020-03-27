@@ -87,6 +87,14 @@ export async function get_config(id) {
   });
 }
 
+export async function get_relative_roi(id) {
+  return axios.get(url_api(id, "call/get_relative_roi")).then(response => {
+    if (response.status === 200) {
+      return response.data;
+    }
+  });
+}
+
 export async function set_config(id, config) {
   return axios
     .post(url_api(id, "call/set_config"), { config: config })

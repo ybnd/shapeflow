@@ -7,4 +7,4 @@ if __name__ == '__main__':
 
     main = Main()
     main.serve(True)
-    main.cleanup()
+    main.cleanup()  # todo: doesn't clean up :(

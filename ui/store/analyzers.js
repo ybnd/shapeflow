@@ -9,31 +9,41 @@ import {
   launch
 } from "../static/api";
 
-export const state = () => ({
-  // maps id to {name, state, config, coordinates, frame}
-});
+export const state = () => {
+  return {
+    // maps id to {name, state, config, coordinates, frame}
+  };
+};
 
 export const mutations = {
-  addAnalyzer(state, id) {
+  addAnalyzer(state, { id }) {
     console.log(state);
-    console.log("Adding analyzer");
+    console.log(`Adding analyzer: ${id}`);
+    console.log(id);
 
-    if (state[id] === undefined) {
+    if (state[id] !== undefined) {
       console.log(`${id} in state`);
     } else {
-      console.log(`${id} not in state, apparently?`);
+      console.log(`${id} is new`);
       state = { ...state, [id]: {} };
     }
 
-    state[id] = { ...state[id], name: id.split("-")[0] }; // todo: placeholder for actual name
+    console.log(state);
+
+    state[id] = {
+      ...state[id],
+      name: id.split("-")[0]
+    }; // todo: placeholder for actual name
     console.log(state);
   },
 
   setAnalyzerState(state, { id, analyzer_state }) {
     if (state[id] === undefined) {
+      // todo: this is fucking stupid and should NOT be necessary
       state[id] = {};
     }
     if (analyzer_state === undefined) {
+      // todo: doesn't make much sense; should call addAnalyzer?
       analyzer_state = ast.UNKNOWN;
     }
     state[id] = { ...state[id], state: analyzer_state };
@@ -53,7 +63,7 @@ export const mutations = {
     state[id] = { ...state[id], schemas: analyzer_schemas };
   },
 
-  dropAnalyzer(state, id) {
+  dropAnalyzer(state, { id }) {
     delete state[id]; // todo: probably wrong
   }
 };
@@ -62,12 +72,13 @@ export const getters = {
     return state[id].state;
   },
   getConfig: state => id => {
-    // return state.analyzers[id].config;
-    return {};
+    return state[id].config;
+  },
+  getRoi: state => id => {
+    return state[id].config.transform.roi;
   },
   getName: state => id => {
-    // return state.analyzers[id].name;
-    return id;
+    return state[id].name;
   },
   getIndex: state => id => {
     return state.queue.indexOf(id);
@@ -77,7 +88,7 @@ export const getters = {
 export const actions = {
   async init({ commit }) {
     return init().then(id => {
-      commit("addAnalyzer", id);
+      commit("addAnalyzer", { id: id });
       // get_schemas(id).then(schemas => {
       //   commit("setAnalyzerSchemas", {
       //     id: id,
@@ -120,7 +131,7 @@ export const actions = {
         for (let i = 0; i < ids.length; i++) {
           if (!q.includes(ids[i])) {
             // add new id to the queue
-            commit("addAnalyzer", ids[i]);
+            commit("addAnalyzer", { id: ids[i] });
             // get_schemas(ids[i]).then(schemas => {
             //   commit("setAnalyzerSchemas", {
             //     id: ids[i],
