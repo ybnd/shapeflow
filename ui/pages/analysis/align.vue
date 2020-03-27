@@ -34,10 +34,9 @@ export default {
   name: "align",
   beforeMount() {
     window.onresize = this.updateFrame;
-    // todo: if window is made so small that the sidebar disappears everything breaks again
-    // todo: should turn off disappearing sidebar
+    // todo: there are some edge cases where the ROI gets messed up
 
-    this.handleInit(); // todo: should call updateFrame once img is loaded, but not before. element callbacks don't work :(
+    this.handleInit();
 
     setInterval(this.updateRoiCoordinates, 100); // todo: to fix the lagging overlay issue; way too intensive :/
     // todo: while transforming, have a transparent overlay image in the moveable element & render it over raw image
@@ -72,6 +71,7 @@ export default {
       target.style.transform = transform; // todo: temporarily disable bounds during rotation
     },
     updateRoiCoordinates() {
+      this.updateFrame();
       let frame = this.$store.getters["align/getFrame"](this.id);
       let roi = roiRectInfoToCoordinates(this.$refs.moveable.getRect(), frame);
       estimate_transform(this.id, roi);

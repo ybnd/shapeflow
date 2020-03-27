@@ -35,9 +35,6 @@ class FrameStreamer(abc.ABC):
         with self._queue.mutex:
             self._queue.queue.clear()
 
-    def join(self):
-        self._queue.join()
-
     def stream(self) -> Generator[bytes, None, None]:  # todo: maybe Generator is having some threading issues here? https://anandology.com/blog/using-iterators-and-generators/
         log.debug('Streaming')
         self._stop.clear()
@@ -97,7 +94,6 @@ class StreamHandler(object):  # todo: is a singleton
             if k in self._streams:
                 log.debug(f'Cleaning up {self._streams[k]}')
                 self._streams[k].stop()
-                self._streams[k].join()
                 del self._streams[k]
 
             stream = stream_type()
