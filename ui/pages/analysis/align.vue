@@ -151,6 +151,7 @@ export default {
   float: left;
   display: block;
   margin: 0 0 0 0;
+  max-height: 100vh;
 }
 
 .streamed-image {

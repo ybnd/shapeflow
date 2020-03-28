@@ -1,6 +1,5 @@
 <template>
   <div class="sidebar">
-    <SidebarHeader />
     <nav class="sidebar-nav">
       <div class="scroller">
         <draggable
