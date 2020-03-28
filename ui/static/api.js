@@ -1,9 +1,10 @@
 import axios from "axios";
+import { httpAdapter } from "axios/lib/adapters/http";
 
 let API = "/api/";
 let DB = "/db/";
 
-export function url_api(id, endpoint) {
+export function url_api(id, endpoint = "") {
   return API + `${id}/${endpoint}`;
 }
 
@@ -139,16 +140,24 @@ export async function estimate_transform(id, roi) {
   return axios.post(url_api(id, "call/estimate_transform"), { roi: roi });
 }
 
-export function set_filter(id, coordinate) {
+export async function set_filter(id, coordinate) {
   // todo: check url
   // todo: provide coordinate ~ full frame, it's the backend's responsibility to resolve to the corresponding mask & color
-  axios.post(url_path(id, "call/set_filter"), coordinate);
+  return axios.post(url_path(id, "call/set_filter"), coordinate);
 }
 
-export function analyze(id) {
+export async function analyze(id) {
   return axios.put(url_api(id, "call/analyze")).then(response => {
     if (response.status === 200) {
       return true;
     }
   });
+}
+
+export function get_log() {
+  var xhr = new XMLHttpRequest();
+  xhr.open("GET", API + "get_log");
+  xhr.send();
+
+  return xhr;
 }

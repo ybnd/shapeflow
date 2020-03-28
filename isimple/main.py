@@ -15,7 +15,7 @@ import waitress
 
 from OnionSVG import check_svg
 
-from isimple import get_logger
+from isimple import get_logger, settings
 from isimple.core.backend import AnalyzerType, backend, AnalyzerState
 from isimple.core.schema import schema
 from isimple.core.streaming import streams
@@ -187,11 +187,24 @@ class Main(object, metaclass=Singleton):
         # Streaming
         @app.route('/api/<id>/stream/<endpoint>', methods=['GET'])
         def stream(id: str, endpoint: str):
-            active()
             return Response(
                 self.stream(str(id), endpoint).stream(),
                 mimetype = "multipart/x-mixed-replace; boundary=frame",
             )
+
+        @app.route('/api/get_log')
+        def get_log():
+            # cheated off of https://stackoverflow.com/questions/35540885/
+            log.debug("streaming log file")
+            def generate():
+                with open(settings.log.path) as f:
+                    while True:
+                        yield f.read()
+                        time.sleep(1)
+
+            response = Response(generate(), mimetype='text/plain')
+            response.headers['Content-Disposition'] = 'attachment; filename=data.csv'
+            return response
 
         self._app = app
 

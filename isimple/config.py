@@ -66,7 +66,7 @@ class FilterHandlerConfig(Config):
 
     def __post_init__(self):
         self.type = self.resolve(self.type, FilterType)
-        self.data = self.resolve(self.data, self.type.get()._config_class)  # todo: something something typing in Factory
+        self.data = self.resolve(self.data, self.type.get()._config_class)
 
 
 @extend(ConfigType)
@@ -212,7 +212,8 @@ def normalize_config(d: dict) -> dict:
     for k in list(d.keys()):
         if k not in (VERSION, CLASS):
             if not hasattr(config_type, k):
-                log.warning(f"Removed unexpected attribute '{k}':{d.pop(k)} from {d[CLASS]}")
+                log.warning(f"Removed unexpected attribute "
+                            f"'{k}':{d.pop(k)} from {d[CLASS]}")
 
     # Remove timestamp & version info
     d.pop('timestamp', None)
