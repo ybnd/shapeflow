@@ -75,7 +75,7 @@ export default {
           this.$store.dispatch("analyzers/init").then(id => {
             set_config(id, config).then(config => {
               // todo: should be a $store action
-              this.$store.commit("setAnalyzerConfig", {
+              this.$store.commit("analyzers/setAnalyzerConfig", {
                 id: id,
                 config: config
               });
