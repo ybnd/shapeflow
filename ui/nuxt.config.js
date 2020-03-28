@@ -46,10 +46,17 @@ module.exports = {
 
   plugins: [],
 
-  modules: ["@nuxtjs/axios", "bootstrap-vue/nuxt"],
+  modules: ["@nuxtjs/axios", "@nuxtjs/proxy", "bootstrap-vue/nuxt"],
 
   axios: {
     // See https://github.com/nuxt-community/axios-module#options
+  },
+
+  proxy: {
+    "/api": {
+      target: "http://localhost:7951",
+      pathrewrite: { "^/api": "/" }
+    }
   },
 
   styleResources: {
@@ -59,6 +66,7 @@ module.exports = {
   build: {
     extend(config, { isDev, isClient }) {
       if (isDev && isClient) {
+        config.devtool = "eval-source-map";
         config.module.rules.push({
           enforce: "pre",
           test: /\.(js|vue)$/,
@@ -80,6 +88,8 @@ module.exports = {
         }
 
         config.module.rules.forEach(rule => changeLoaderOptions(rule.use));
+      }
+      if (isClient) {
       }
     }
   }

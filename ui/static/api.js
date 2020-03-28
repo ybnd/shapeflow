@@ -1,16 +1,10 @@
 import axios from "axios";
 
-let BACKEND_ROOT = ""; // todo: something something .env   https://stackoverflow.com/questions/49257650/
-//       but also need to use CORS...
-
-let API = BACKEND_ROOT + "/api/";
-let DB = BACKEND_ROOT + "/db/";
+let API = "/api/";
+let DB = "/db/";
 
 export function url_api(id, endpoint) {
   return API + `${id}/${endpoint}`;
-}
-export function url_db(id, endpoint = "") {
-  return DB + `${id}/${endpoint}`;
 }
 
 // define roi state Enum

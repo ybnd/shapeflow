@@ -81,7 +81,12 @@ export default {
       console.log("Updating frame...");
       let frame = this.$refs.frame.getBoundingClientRect();
       console.log(frame);
-      this.moveable.bounds = frame;
+      this.moveable.bounds = {
+        left: frame.left,
+        right: frame.right,
+        top: frame.top,
+        botto: frame.bottom
+      };
       this.$store.commit("align/setFrame", { id: this.id, frame: frame });
 
       this.$store.dispatch("align/getRoi", { id: this.id }).then(() => {

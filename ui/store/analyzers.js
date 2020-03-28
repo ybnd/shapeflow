@@ -35,6 +35,8 @@ export const mutations = {
       name: id.split("-")[0]
     }; // todo: placeholder for actual name
     console.log(state);
+
+    // todo: state is {} in next call...
   },
 
   setAnalyzerState(state, { id, analyzer_state }) {
@@ -50,6 +52,8 @@ export const mutations = {
   },
 
   setAnalyzerConfig(state, { id, analyzer_config }) {
+    // todo: for some reason when called ~ init, state === {} here, why?
+    // todo:     => state[id].name is lost, as it's set in addAnalyzer
     if (state[id] === undefined) {
       state[id] = {};
     }
@@ -86,6 +90,7 @@ export const getters = {
 };
 
 export const actions = {
+  // todo: when running slowly (e.g. debugging), analyzers get duplicated
   async init({ commit }) {
     return init().then(id => {
       commit("addAnalyzer", { id: id });
@@ -101,7 +106,7 @@ export const actions = {
           analyzer_config: config
         });
         // only queue AFTER config is committed
-        commit("queue/queueAnalyzer", { id: id }, { root: true });
+        commit("queue/addToQueue", { id: id }, { root: true });
       });
       return id;
     });
@@ -157,8 +162,7 @@ export const actions = {
           }
         }
       }
-
-      commit("queue/refresh", {}, { root: true });
+      // dispatch("queue/refresh", {}, { root: true });
     });
   }
 };
