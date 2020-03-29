@@ -132,7 +132,19 @@ export async function stream(id, endpoint) {
 }
 
 export async function seek(id, position) {
-  axios.get(url_api(id, "call/seek"), position).then(response => {
+  axios
+    .post(url_api(id, "call/seek"), { position: position })
+    .then(response => {
+      if (response.status === 200) {
+        return response.data;
+      } else {
+        return null;
+      }
+    });
+}
+
+export async function get_seek_position(id) {
+  axios.get(url_api(id, "call/get_seek_position")).then(response => {
     if (response.status === 200) {
       return response.data;
     } else {

@@ -54,8 +54,10 @@ class VideoFileHandler(CachingBackendInstance):
     def __init__(self, video_path, stream_methods: List[Callable] = None, config: VideoFileHandlerConfig = None):
         super(VideoFileHandler, self).__init__(config)
         if stream_methods == None:
-            stream_methods = []
-        self._stream_methods = stream_methods + [self.read_frame] # type: ignore
+            stream_methods = [self.read_frame]
+        else:
+            assert isinstance(stream_methods, list)
+            self._stream_methods = stream_methods
 
         if not os.path.isfile(video_path):
             raise FileNotFoundError
@@ -187,6 +189,12 @@ class VideoFileHandler(CachingBackendInstance):
 
         return self.frame_number / self.frame_count
 
+    @backend.expose(backend.get_seek_position)
+    def get_seek_position(self) -> float:
+        """Get current relative position ~ [0,1]
+        """
+        return self.frame_number / self.frame_count
+
 
 @extend(TransformType)
 class PerspectiveTransform(TransformInterface):
@@ -298,9 +306,7 @@ class TransformHandler(BackendInstance, Handler):
 
         for method in self._stream_methods:
             method()
-            return True
-        else:
-            return False
+        return True
 
 
     @backend.expose(backend.get_coordinates)
@@ -613,6 +619,12 @@ class DesignFileHandler(CachingBackendInstance):
     def overlay(self) -> np.ndarray:
         return self._overlay
 
+    @backend.expose(backend.get_overlay_png)
+    def get_overlay_png(self) -> bytes:
+        # OpenCV complains if self.overlay (property) is used
+        _, buffer = cv2.imencode('.png', overlay(np.ones(self._overlay.shape, np.uint8)*255, self._overlay, self.config.overlay_alpha))
+        return buffer.tobytes()
+
     @backend.expose(backend.overlay_frame)
     def overlay_frame(self, frame: np.ndarray) -> np.ndarray:
         frame = cv2.cvtColor(frame, cv2.COLOR_HSV2BGR)
@@ -923,7 +935,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         self._state = AnalyzerState.CANCELED
         return True
 
-    def load_config(self, path: str = None):  # todo: in isimple.og, make LegacyVideoAnalyzer(VideoAnalyzer) that implements these
+    def load_config(self, path: str = None):  # todo: look in history instead of file next to video
         """Load video analysis configuration
         """
         if path is None and self.config.video_path:
@@ -935,7 +947,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             if os.path.isfile(path):
                 # todo: this is a temporary workaround to not overwrite current configuration ~ .meta file
                 #        should be done by setting the fields to None & more in-depth config handling in BackendInstance._configure
-                config = load(path)
+                config = load(path) # todo: in isimple.og, make LegacyVideoAnalyzer(VideoAnalyzer) that implements these
                 config.name = self.config.name
                 config.description = self.config.description
                 config.video_path = self.config.video_path

@@ -113,6 +113,7 @@ class ManagerTest(EndpointRegistryTest):
         class TestRootInstance(RootInstance, I):
             _endpoints = self.registry
             _instance_class = I
+            _id = ''
 
         self.TM = TestRootInstance
         self.I = I

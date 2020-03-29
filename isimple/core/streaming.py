@@ -27,6 +27,7 @@ class FrameStreamer(abc.ABC):
     def __init__(self):
         self._queue = queue.Queue()
         self._stop = threading.Event()
+
     def push(self, frame: np.ndarray):
         self._queue.put(frame)
 
@@ -36,7 +37,6 @@ class FrameStreamer(abc.ABC):
             self._queue.queue.clear()
 
     def stream(self) -> Generator[bytes, None, None]:  # todo: maybe Generator is having some threading issues here? https://anandology.com/blog/using-iterators-and-generators/
-        log.debug('Streaming')
         self._stop.clear()
         last_yield = time.time()
 
@@ -49,6 +49,7 @@ class FrameStreamer(abc.ABC):
                     continue
                 else:
                     last_yield = time.time()
+                    yield self._decorate(encoded_frame)
                     yield self._decorate(encoded_frame)
             else:
                 # if time.time() - last_yield > self._stop_timeout:
@@ -92,7 +93,7 @@ class StreamHandler(object):  # todo: is a singleton
         with self.lock:
             k = self.key(instance, method)
             if k in self._streams:
-                log.debug(f'Cleaning up {self._streams[k]}')
+                log.debug(f'cleaning up {self._streams[k]}')
                 self._streams[k].stop()
                 del self._streams[k]
 
@@ -122,10 +123,12 @@ class StreamHandler(object):  # todo: is a singleton
                 for m in method:
                     k = self.key(instance, m)
                     if k in self._streams:
+                        log.debug(f"pushing {m.__qualname__} frame")
                         self._streams[k].push(frame)
             else:
                 k = self.key(instance, method)
                 if k in self._streams:
+                    log.debug(f"pushing {method.__qualname__} frame")
                     self._streams[k].push(frame)
 
     def unregister(self, k):

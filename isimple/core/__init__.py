@@ -1,5 +1,7 @@
 from typing import Callable, Dict, List, Tuple, Type
 
+import uuid
+
 from isimple import get_logger
 from isimple.util.meta import all_attributes, get_overridden_methods
 
@@ -162,10 +164,19 @@ class ImmutableRegistry(EndpointRegistry):
 
 
 class RootInstance(object):
+    _id: str
+
     _endpoints: ImmutableRegistry
     _instances: List
     _instance_class = object
     _instance_mapping: Dict[Endpoint, List[Callable]]
+
+    def get_id(self):
+        self._id = str(uuid.uuid1())
+
+    @property
+    def id(self):
+        return self._id
 
     def connect(self, manager):
         raise NotImplementedError

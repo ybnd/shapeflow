@@ -8,6 +8,7 @@
       <PageHeaderItem>
         <b-button>Reset ROI</b-button>
       </PageHeaderItem>
+      <PageHeaderSeek :id="id" />
       <PageHeaderItem>
         <b-button-group>
           <b-dropdown
@@ -24,28 +25,48 @@
         </b-button-group>
       </PageHeaderItem>
     </PageHeader>
-    <seek-container :id="id" :callback="updateFrame">
-      <div class="align" ref="align">
-        <img :src="stream_url" alt="" class="streamed-image" ref="frame" />
-        <!-- todo: can't set callback on streamed image load :( -->
-        <Moveable
-          class="moveable"
-          ref="moveable"
-          v-bind="moveable"
-          @drag="handleTransform"
-          @scale="handleTransform"
-          @rotate="handleRotate"
-          @warp="handleTransform"
+    <div class="align" ref="align">
+      <img
+        :src="raw_url"
+        alt=""
+        class="streamed-image"
+        v-bind:class="{ hidden: !aligning }"
+        ref="frame"
+      />
+      <img
+        :src="overlaid_url"
+        alt=""
+        class="streamed-image"
+        v-bind:class="{ hidden: aligning }"
+        ref="overlay"
+      />
+      <!-- todo: can't set callback on streamed image load :( -->
+      <Moveable
+        class="moveable"
+        ref="moveable"
+        v-bind="moveable"
+        @drag="handleTransform"
+        @scale="handleTransform"
+        @rotate="handleRotate"
+        @warp="handleTransform"
+        @renderStart="handleRenderStart"
+        @renderEnd="handleRenderEnd"
+      >
+        <img
+          :src="overlay_url"
+          alt=""
+          class="overlay"
+          v-bind:class="{ hidden: !aligning }"
+          ref="overlay"
         />
-      </div>
-    </seek-container>
+      </Moveable>
+    </div>
     <div class="controls"></div>
   </div>
 </template>
 
 <script>
 import { estimate_transform, url_api } from "../../static/api";
-import SeekContainer from "../../components/SeekContainer";
 import Moveable from "vue-moveable";
 import {
   roiRectInfoToCoordinates,
@@ -53,6 +74,8 @@ import {
 } from "../../static/align";
 import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
+import PageHeaderSeek from "../../components/header/PageHeaderSeek";
+import { throttle, debounce } from "throttle-debounce";
 
 export default {
   name: "align",
@@ -61,20 +84,17 @@ export default {
     // todo: there are some edge cases where the ROI gets messed up
 
     this.handleInit();
-
-    setInterval(this.updateRoiCoordinates, 100); // todo: to fix the lagging overlay issue; way too intensive :/
-    // todo: while transforming, have a transparent overlay image in the moveable element & render it over raw image
-    // todo:    * N msec after 'letting go', make the moveable transparent, estimate the transform
-    // todo:                                      & replace raw image with inverse transformed overlay image
-    // todo:    => performance while dragging + precision in the end
-
     this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
   },
+  beforeDestroy() {
+    clearInterval(this.waitUntilHasRect);
+    clearInterval(this.updateCall);
+  },
   components: {
-    SeekContainer,
     Moveable,
     PageHeader,
-    PageHeaderItem
+    PageHeaderItem,
+    PageHeaderSeek
   },
   methods: {
     handleInit() {
@@ -103,6 +123,20 @@ export default {
       let roi = roiRectInfoToCoordinates(this.$refs.moveable.getRect(), frame);
       estimate_transform(this.id, roi);
     },
+    handleRenderStart() {
+      this.aligning = true;
+    },
+    handleRenderEnd() {
+      this.handleUpdate();
+      this.aligning = false;
+    },
+    handleUpdate: throttle(
+      100,
+      false,
+      debounce(20, false, function() {
+        this.updateRoiCoordinates();
+      })
+    ),
     updateFrame() {
       console.log("Updating frame...");
       let frame = this.$refs.frame.getBoundingClientRect();
@@ -129,14 +163,30 @@ export default {
         this.$refs.moveable.updateTarget();
       });
     },
+    updateOverlay() {
+      console.log("Updating overlay...");
+      let overlay = this.$refs.overlay.getBoundingClientRect();
+      console.log(overlay);
+      this.$store.commit("align/setOverlay", { id: this.id, overlay: overlay });
+    },
     updateFrameOnceHasRect() {
+      // todo: clean up
+      let frame_ok = false;
+      let overlay_ok = false;
       if (!(this.waitUntilHasRect === undefined)) {
         if (this.$refs.frame.getBoundingClientRect()["width"] > 100) {
-          console.log("HAS RECT");
+          console.log("HAS FRAME");
           this.updateFrame();
-          clearInterval(this.waitUntilHasRect);
-          delete this.waitUntilHasRect;
+          frame_ok = true;
         }
+        if (this.$refs.overlay.getBoundingClientRect()["width"] > 100) {
+          console.log("HAS OVERLAY");
+          this.updateOverlay();
+          overlay_ok = true;
+        }
+      }
+      if (frame_ok && overlay_ok) {
+        clearInterval(this.waitUntilHasRect);
       }
     }
   },
@@ -144,8 +194,14 @@ export default {
     id() {
       return this.$route.query.id;
     },
-    stream_url() {
-      return url_api(this.$route.query.id, `stream/get_inverse_overlaid_frame`);
+    overlaid_url() {
+      return url_api(this.$route.query.id, "stream/get_inverse_overlaid_frame");
+    },
+    raw_url() {
+      return url_api(this.$route.query.id, "stream/get_raw_frame");
+    },
+    overlay_url() {
+      return url_api(this.$route.query.id, "call/get_overlay_png");
     },
     initial_coordinates() {
       // todo: query backend for initial coordinates
@@ -163,7 +219,9 @@ export default {
       throttleWarp: 0,
       snappable: true,
       bounds: {}
-    }
+    },
+    updateCall: null,
+    aligning: false
   })
 };
 </script>
@@ -194,14 +252,28 @@ export default {
   position: absolute;
 }
 
+.overlay {
+  mix-blend-mode: multiply;
+}
+
+.hidden {
+  visibility: hidden;
+}
+
 .moveable {
   /* todo: hide the 100x100 placeholder until initial_transform is set */
   position: absolute;
-  width: 100px;
-  height: 100px;
+  width: auto;
+  height: auto;
+  mix-blend-mode: multiply;
+  max-width: 10000px;
+  max-height: 10000px;
   left: 0;
   top: 0;
   margin: 0 0 0 0;
+}
+
+.overlay {
 }
 
 /* match theme color & set size */

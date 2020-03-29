@@ -14,7 +14,7 @@ import assert from "assert";
 
 export const state = () => {
   return {
-    // maps id to {name, state, config, coordinates, frame}
+    // maps id to {name, state, config, coordinates, frame, frame_number}
   };
 };
 
@@ -75,7 +75,6 @@ export const mutations = {
       );
     }
   },
-
   dropAnalyzer(state, { id }) {
     try {
       assert(!(id === undefined), "no id provided");

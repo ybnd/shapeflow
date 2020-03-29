@@ -1,14 +1,5 @@
 import { lusolve, multiply, norm, subtract } from "mathjs";
-
-export var css_width = 100; // px
-export var css_center = css_width / 2;
-
-export var css_coords = {
-  BL: { x: -css_center, y: css_center },
-  TL: { x: -css_center, y: -css_center },
-  TR: { x: css_center, y: -css_center },
-  BR: { x: css_center, y: css_center }
-};
+import assert from "assert";
 
 export var default_relative_coords = {
   BL: { x: 0.2, y: 0.8 },
@@ -17,27 +8,53 @@ export var default_relative_coords = {
   BR: { x: 0.8, y: 0.8 }
 };
 
+export function rectToCoordinates(rect) {
+  return {
+    BL: {
+      x: rect.left,
+      y: rect.bottom
+    },
+    TL: {
+      x: rect.left,
+      y: rect.top
+    },
+    TR: {
+      x: rect.right,
+      y: rect.top
+    },
+    BR: {
+      x: rect.right,
+      y: rect.bottom
+    }
+  };
+}
+
 export function roiRectInfoToCoordinates(rect, frame) {
   // convert absolute RectInfo to relative coordinates {BL, TL, TR, BR}
   //   -> RdctInfo: https://daybrush.com/moveable/release/latest/doc/Moveable.html#.RectInfo
-  return {
-    BL: {
-      x: (rect.pos3[0] - frame.left) / frame.width,
-      y: (rect.pos3[1] - frame.top) / frame.height
-    },
-    TL: {
-      x: (rect.pos1[0] - frame.left) / frame.width,
-      y: (rect.pos1[1] - frame.top) / frame.height
-    },
-    TR: {
-      x: (rect.pos2[0] - frame.left) / frame.width,
-      y: (rect.pos2[1] - frame.top) / frame.height
-    },
-    BR: {
-      x: (rect.pos4[0] - frame.left) / frame.width,
-      y: (rect.pos4[1] - frame.top) / frame.height
-    }
-  };
+  try {
+    assert(!(frame === null));
+    return {
+      BL: {
+        x: (rect.pos3[0] - frame.left) / frame.width,
+        y: (rect.pos3[1] - frame.top) / frame.height
+      },
+      TL: {
+        x: (rect.pos1[0] - frame.left) / frame.width,
+        y: (rect.pos1[1] - frame.top) / frame.height
+      },
+      TR: {
+        x: (rect.pos2[0] - frame.left) / frame.width,
+        y: (rect.pos2[1] - frame.top) / frame.height
+      },
+      BR: {
+        x: (rect.pos4[0] - frame.left) / frame.width,
+        y: (rect.pos4[1] - frame.top) / frame.height
+      }
+    };
+  } catch {
+    console.warn(`roiRectInfoToCoordinates: frame is null`);
+  }
 }
 
 export function roiCoordinatesToTransform(coordinates, frame) {
@@ -121,23 +138,27 @@ export function toCssMatrix3d(transform) {
   // todo: could set transform, query rect, and get translation ~ position of top left point?
 }
 
-export function toAbsolute(relative, frame, center = 0) {
+export function toAbsolute(relative, frame, center = { x: 0, y: 0 }) {
   let absolute = {};
 
   Object.keys(relative).map(key => {
     absolute[key] = {
-      x: relative[key].x * frame.width - center,
-      y: relative[key].y * frame.height - center
+      x: relative[key].x * frame.width - center.x,
+      y: relative[key].y * frame.height - center.y
     };
   });
 
   return absolute;
 }
 
-export function getInitialTransform(roi, frame) {
+export function getCenter(rect) {
+  return { x: rect.width / 2, y: rect.height / 2 };
+}
+
+export function getInitialTransform(roi, frame, overlay) {
   let initial_transform = transform(
-    css_coords,
-    toAbsolute(roi, frame, css_center)
+    rectToCoordinates(overlay),
+    toAbsolute(roi, frame, getCenter(overlay))
   );
 
   return toCssMatrix3d(initial_transform);

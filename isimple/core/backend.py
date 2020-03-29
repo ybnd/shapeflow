@@ -342,7 +342,7 @@ class AnalyzerState(IntEnum):  # todo: would be cool to compare this and analyze
     ERROR = 8
 
 
-class BaseVideoAnalyzer(abc.ABC, RootInstance, BackendInstance):
+class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
     _instances: List[BackendInstance]
     _instance_class = BackendInstance
     _config: BaseAnalyzerConfig
@@ -365,6 +365,8 @@ class BaseVideoAnalyzer(abc.ABC, RootInstance, BackendInstance):
     _model: Optional[object]
 
     def __init__(self, config: BaseAnalyzerConfig = None):
+        self.get_id()
+
         super().__init__(config)
         self._description = ''
         self._multi = False
@@ -377,6 +379,10 @@ class BaseVideoAnalyzer(abc.ABC, RootInstance, BackendInstance):
 
         self._state = AnalyzerState.INCOMPLETE
         self._model = None
+
+    @property
+    def id(self):
+        return self._id
 
     def set_model(self, model):
         self._model = model

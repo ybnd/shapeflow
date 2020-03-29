@@ -4,13 +4,12 @@
 import json
 import os
 import time
-import uuid
 import webbrowser
 from threading import Thread, Event, Lock
 from typing import Dict, Any
 
 import cv2
-from flask import Flask, send_from_directory, jsonify, request, Response
+from flask import Flask, send_from_directory, jsonify, request, Response, make_response
 import waitress
 
 from OnionSVG import check_svg
@@ -175,6 +174,11 @@ class Main(object, metaclass=Singleton):
         def get_state(id: str):
             return respond(self._roots[id].state)
 
+        @app.route('/api/<id>/call/get_overlay_png', methods=['GET'])
+        def get_overlay_png(id: str):
+            null: dict = {}
+            return make_response(self.call(str(id), 'get_overlay_png', null))
+
         @app.route('/api/<id>/call/<endpoint>', methods=['GET','PUT','POST'])
         def call(id: str, endpoint: str):
             active()
@@ -250,14 +254,13 @@ class Main(object, metaclass=Singleton):
         if type is None:
             type = AnalyzerType()
 
-        id = str(uuid.uuid1())
         analyzer = type.get()()
         analyzer._multi = True
-        log.debug(f"Added instance {{'{id}': {analyzer}}}")
-        self._roots[id] = analyzer
+        log.debug(f"Added instance {{'{analyzer.id}': {analyzer}}}")
+        self._roots[analyzer.id] = analyzer
         assert isinstance(analyzer, VideoAnalyzer)
         self._history.add_analysis(analyzer)
-        return id
+        return analyzer.id
 
     def get_schemas(self, id: str) -> dict:
         log.debug(f"Providing schemas for '{id}'")
@@ -279,7 +282,10 @@ class Main(object, metaclass=Singleton):
             return method(**data)  # todo: makes stuff slow though, best to only lock on POST & debounce @ frontend
 
     def stream(self, id: str, endpoint: str):
-        log.debug(f"{self._roots[id]}: stream '{endpoint}'")
         # todo: sanity check this also
         method = self._roots[id].get(getattr(backend, endpoint))
-        return streams.register(self._roots[id], method)
+
+        new_stream = streams.register(method.__self__, method)  # type: ignore  # todo: type / assert properly
+
+        log.debug(f"{self._roots[id]}: stream '{endpoint}'")
+        return new_stream

@@ -26,11 +26,21 @@ export default {
   padding-left: $sidebar-nav-link-padding-x;
 
   overflow: visible;
+
+  height: calc(#{$header-height} - 15px);
+  min-height: calc(#{$header-height} - 15px);
+  max-height: calc(#{$header-height} - 15px);
+
+  min-width: 80px;
 }
-.page-header-item * {
+.page-header-item .btn {
   height: calc(#{$header-height} - 15px);
 }
-.dropdown-item {
+.page-header-item .slider-container {
+  height: calc(#{$header-height} - 15px);
+  max-height: calc(#{$header-height} - 15px);
+}
+.page-header-item .dropdown-item {
   background-color: $gray-100;
 }
 </style>
