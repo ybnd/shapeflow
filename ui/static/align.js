@@ -23,19 +23,19 @@ export function roiRectInfoToCoordinates(rect, frame) {
   return {
     BL: {
       x: (rect.pos3[0] - frame.left) / frame.width,
-      y: rect.pos3[1] / frame.height
+      y: (rect.pos3[1] - frame.top) / frame.height
     },
     TL: {
       x: (rect.pos1[0] - frame.left) / frame.width,
-      y: rect.pos1[1] / frame.height
+      y: (rect.pos1[1] - frame.top) / frame.height
     },
     TR: {
       x: (rect.pos2[0] - frame.left) / frame.width,
-      y: rect.pos2[1] / frame.height
+      y: (rect.pos2[1] - frame.top) / frame.height
     },
     BR: {
       x: (rect.pos4[0] - frame.left) / frame.width,
-      y: rect.pos4[1] / frame.height
+      y: (rect.pos4[1] - frame.top) / frame.height
     }
   };
 }

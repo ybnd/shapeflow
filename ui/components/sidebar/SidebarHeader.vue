@@ -27,7 +27,7 @@ export default {
 };
 </script>
 
-<style>
+<style scoped>
 .sidebar-header-link {
   font-size: 110%;
   font-weight: bold;

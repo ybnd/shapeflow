@@ -11,10 +11,12 @@
 <script>
 import { get_log } from "../static/api";
 import { debounce } from "throttle-debounce";
+import { PageHeader } from "../components/header/PageHeader";
+import PageHeaderItem from "../components/header/PageHeaderItem";
 
 export default {
   name: "log",
-  components: {},
+  components: { PageHeader, PageHeaderItem },
   data: function() {
     return {
       request: null,
@@ -64,11 +66,12 @@ export default {
 
 <style lang="scss">
 @import "../assets/scss/_bootstrap-variables";
+@import "../assets/scss/_core-variables";
 @import "node_modules/bootstrap/scss/functions";
 
 .content {
   max-height: 100vh;
-  min-width: calc(100vw - 160px);
+  min-width: calc(100vw - #{$sidebar-width});
   display: flex;
   flex-flow: column;
 }
@@ -78,7 +81,7 @@ export default {
   flex: 0 0 auto;
 }
 .log-container {
-  max-width: calc(100vw - 160px);
+  max-width: calc(100vw - #{$sidebar-width});
   display: flex;
   flex: 1 1 auto;
   flex-flow: column;
@@ -94,7 +97,7 @@ export default {
 }
 .log-line {
   color: theme-color("gray-900") !important;
-  width: calc(100vw - 180px);
+  width: calc(100vw - #{$sidebar-width} - 20);
   white-space: nowrap;
 }
 tr:nth-child(even) {

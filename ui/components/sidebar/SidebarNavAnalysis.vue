@@ -5,27 +5,6 @@
       @click="handleClick"
       :id="'dropdown-' + id"
     >
-      <template v-if="state === ast.INCOMPLETE"
-        ><i class="fa fa-exclamation"
-      /></template>
-      <template v-else-if="state === ast.LAUNCHED"
-        ><i class="fa fa-cog"
-      /></template>
-      <template v-else-if="state === ast.CAN_LAUNCH"
-        ><i class="fa fa-check"
-      /></template>
-      <template v-else-if="state === ast.RUNNING"
-        ><i class="fa fa-spin fa-spinner"
-      /></template>
-      <template v-else-if="state === ast.DONE"
-        ><i class="fa fa-check-circle"
-      /></template>
-      <template v-else-if="state === ast.CANCELED"
-        ><i class="fa fa-ban"
-      /></template>
-      <template v-else-if="state === ast.ERROR"
-        ><i class="fa fa-bolt"
-      /></template>
       <!--      <b-popover class="analysis-info-popover"-->
       <!--        :target="'dropdown-'+id" container="body" placement="right" boundary="viewport"-->
       <!--        triggers="hover focus click" :delay="{'show': 500, 'hide': 25}">-->

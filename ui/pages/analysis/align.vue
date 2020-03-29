@@ -1,6 +1,29 @@
 <template>
   <!--  https://stackoverflow.com/questions/14025438 -->
   <div class="fixed-page">
+    <PageHeader>
+      <PageHeaderItem>
+        <b-button>Set filters</b-button>
+      </PageHeaderItem>
+      <PageHeaderItem>
+        <b-button>Reset ROI</b-button>
+      </PageHeaderItem>
+      <PageHeaderItem>
+        <b-button-group>
+          <b-dropdown
+            text="Transform type: Perspective"
+            data-toggle="tooltip"
+            title="Transform type"
+          >
+            <b-dropdown-item
+              data-toggle="tooltip"
+              title="info about perspective transform"
+              >Perspective</b-dropdown-item
+            >
+          </b-dropdown>
+        </b-button-group>
+      </PageHeaderItem>
+    </PageHeader>
     <seek-container :id="id" :callback="updateFrame">
       <div class="align" ref="align">
         <img :src="stream_url" alt="" class="streamed-image" ref="frame" />
@@ -28,7 +51,8 @@ import {
   roiRectInfoToCoordinates,
   default_relative_coords
 } from "../../static/align";
-import Vue from "vue";
+import PageHeader from "../../components/header/PageHeader";
+import PageHeaderItem from "../../components/header/PageHeaderItem";
 
 export default {
   name: "align",
@@ -48,7 +72,9 @@ export default {
   },
   components: {
     SeekContainer,
-    Moveable
+    Moveable,
+    PageHeader,
+    PageHeaderItem
   },
   methods: {
     handleInit() {
@@ -144,6 +170,7 @@ export default {
 
 <style lang="scss">
 @import "../../assets/scss/_bootstrap-variables";
+@import "../../assets/scss/_core-variables";
 @import "node_modules/bootstrap/scss/functions";
 
 .align {
@@ -151,7 +178,7 @@ export default {
   float: left;
   display: block;
   margin: 0 0 0 0;
-  max-height: 100vh;
+  max-height: calc(100vh - #{$header-height});
 }
 
 .streamed-image {
@@ -159,9 +186,9 @@ export default {
   pointer-events: none;
   display: block;
   max-width: calc(
-    100vw - 160px
+    100vw - #{$sidebar-width}
   ); /* todo: handle actual width! (import assets/scss/core/_variables -> doesn't compile) */
-  max-height: 100vh;
+  max-height: calc(100vh - #{$header-height});
   width: auto;
   height: auto;
   position: absolute;
