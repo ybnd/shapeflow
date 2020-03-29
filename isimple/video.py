@@ -1,39 +1,35 @@
 import os
 import re
-import datetime
-import pandas as pd
-from typing import Callable, Any, Dict, Generator, Optional, List, Tuple
 import threading
+from typing import Callable, Any, Dict, Generator, Optional, List, Tuple
 
 import cv2
 import numpy as np
-
+import pandas as pd
 from OnionSVG import OnionSVG, check_svg
 
 from isimple import get_logger, settings
-from isimple.core import RootInstance
-
-from isimple.core.backend import BackendInstance, CachingBackendInstance, \
-    Handler, BaseVideoAnalyzer, BackendSetupError, AnalyzerType, Feature, FeatureSet, \
-    FeatureType, backend, AnalyzerState
-from isimple.core.config import (extend, __meta_ext__)
-from isimple.core.streaming import stream, streams
 from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     HsvRangeFilterConfig, FilterHandlerConfig, MaskConfig, \
-    DesignFileHandlerConfig, VideoAnalyzerConfig, load, dump, dumps, \
-    FrameIntervalSetting, normalize_config
+    DesignFileHandlerConfig, VideoAnalyzerConfig, load, dump, \
+    FrameIntervalSetting
+from isimple.core import RootInstance
+from isimple.core.backend import BackendInstance, CachingBackendInstance, \
+    Handler, BaseVideoAnalyzer, BackendSetupError, AnalyzerType, Feature, \
+    FeatureSet, \
+    FeatureType, backend, AnalyzerState
+from isimple.core.config import (extend, __meta_ext__)
 from isimple.core.interface import TransformInterface, FilterConfig, \
     FilterInterface, FilterType, TransformType
-
-from isimple.maths.images import to_mask, crop_mask, area_pixelsum, ckernel, overlay
-from isimple.maths.colors import HsvColor
-
+from isimple.core.streaming import stream
 from isimple.endpoints import BackendRegistry
 from isimple.endpoints import GuiRegistry as gui
-from isimple.util import frame_number_iterator, hash_file, timed
+from isimple.maths.colors import HsvColor
+from isimple.maths.images import to_mask, crop_mask, area_pixelsum, ckernel, \
+    overlay
+from isimple.util import frame_number_iterator
 
 log = get_logger(__name__)
-
 
 
 class VideoFileTypeError(BackendSetupError):
@@ -705,6 +701,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     design: DesignFileHandler
     transform: TransformHandler
     features: Tuple[Feature,...]
+    results: dict
 
     _featuresets: Dict[str, FeatureSet]
 
@@ -759,6 +756,9 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         backend.expose(backend.get_inverse_overlaid_frame)(self.get_inverse_overlaid_frame)
         backend.expose(backend.get_overlaid_frame)(self.get_frame_overlay)
         backend.expose(backend.get_colors)(self.get_colors)
+
+        if self.model is not None:
+            self.model.store()
 
     def _get_featuresets(self):
         self._featuresets = {
@@ -887,6 +887,10 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
     def analyze(self) -> bool:
         self._state = AnalyzerState.RUNNING
+
+        if self.model is None:
+            log.warning(f"no model provided to {self}; data may be lost")
+
         with self.lock(), self.time():
             self._get_featuresets()
             self.save_config()
@@ -897,14 +901,16 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 update_callback = self._gui.get(gui.update_progresswindow)  # todo: move this to LegacyVideoAnalyzer
                 self._gui.get(gui.open_progresswindow)()
             else:
-                def update_callback(*args, **kwargs): pass
+                def update_callback(*args, **kwargs): pass  # todo: move this to LegacyVideoAnalyzer
 
             for fn in self.frame_numbers():
                 if self._cancel.is_set():
                     break
-                self.calculate(fn, update_callback)  # todo: add a way to cancel an analysis gracefully (e.g. threading.Event)
+                self.calculate(fn, update_callback)
 
-            self.export()  # todo: think about where to put this in relation to VideoAnalyzer/VideoAnalysisModel
+            if self.model is not None:
+                # Save results & configuration to database
+                self.model.store()
         if not self._cancel.is_set():
             self._state = AnalyzerState.DONE
             return True
@@ -962,21 +968,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         self.config(transform=self.transform.config)
         self.config(masks=tuple([m.config for m in self.masks]))
         return self.config
-
-    def export(self, path: str = None):  # todo: export should work from the database instead!
-        """Save video analysis results & metadata
-        """
-        name = str(os.path.splitext(self.config.video_path)[0])  # type: ignore
-        f = name + ' ' + datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S") + '.xlsx'
-
-        w = pd.ExcelWriter(f)
-        for k,v in self.results.items():
-            v.to_excel(w, sheet_name=k)
-
-        pd.DataFrame([dumps(self.config)]).to_excel(w, sheet_name='meta')
-
-        w.save()
-        w.close()
 
     @property  # todo: this was deprecated, right?
     def _video_to_hash(self):

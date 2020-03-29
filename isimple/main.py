@@ -253,7 +253,7 @@ class Main(object, metaclass=Singleton):
         log.debug(f"Added instance {{'{id}': {analyzer}}}")
         self._roots[id] = analyzer
         assert isinstance(analyzer, VideoAnalyzer)
-        self._models[id] = self._history.add_analysis(analyzer)
+        self._history.add_analysis(analyzer)
         return id
 
     def get_schemas(self, id: str) -> dict:

@@ -8,15 +8,16 @@ from typing import Optional, Tuple, Union
 import multiprocessing
 
 import numpy as np
+import pandas as pd
 
 from isimple import settings, get_logger
 
 from isimple.core import RootException
 from isimple.dbcore import Model, Database, types, MatchQuery
 from isimple.util import hash_file, ndarray2str, str2ndarray
+from isimple.config import dumps
 
-from isimple.video import VideoAnalyzer
-
+from isimple.video import BaseVideoAnalyzer
 
 
 log = get_logger(__name__)
@@ -155,7 +156,7 @@ class DesignFileModel(FileModel):
 
 
 class VideoAnalysisModel(NoGetterModel):
-    _analyzer: Optional[VideoAnalyzer]  # todo: try to be more VideoAnalyzer-agnostic
+    _analyzer: Optional[BaseVideoAnalyzer]  # todo: try to be more VideoAnalyzer-agnostic
     _video: Optional[VideoFileModel]
     _design: Optional[DesignFileModel]
 
@@ -188,7 +189,7 @@ class VideoAnalysisModel(NoGetterModel):
         self._video = None
         self._design = None
 
-    def set_analyzer(self, analyzer: VideoAnalyzer):
+    def set_analyzer(self, analyzer: BaseVideoAnalyzer):
         self._analyzer = analyzer
 
     def store(self, fields = None):
@@ -215,7 +216,7 @@ class VideoAnalysisModel(NoGetterModel):
             # Store results
             for k,df in self._analyzer.results.items():
                 # Add columns
-                model = self._db.add_results()
+                model = self._db.add_results()  # todo: should have a _results: Dict[ <?>, ResultsModel] so these don't spawn new results each time
                 model.update({
                     'analysis': self['id'],
                     'feature': k,
@@ -223,7 +224,7 @@ class VideoAnalysisModel(NoGetterModel):
                 })
                 model.store()
                 self.update({
-                    'results': model['id']
+                    'results': model['id']  # todo: what if a single analyzer produces multiple results?
                 })
 
             # Store timing info
@@ -252,6 +253,7 @@ class VideoAnalysisModel(NoGetterModel):
         return {}
 
     def commit_files(self):
+        # todo: should be called before the first store
         self._video.resolve()
         self._video.store()
         self._design.resolve()
@@ -267,6 +269,20 @@ class VideoAnalysisModel(NoGetterModel):
             'design': self._design['id'],
         })
 
+    def export(self):
+        # todo: should get data from db instead of self._analyzer
+        name = str(os.path.splitext(self._analyzer.config.video_path)[0])  # type: ignore
+        f = name + ' ' + datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S") + '.xlsx'
+
+        w = pd.ExcelWriter(f)
+        for k,v in self._analyzer.results.items():
+            v.to_excel(w, sheet_name=k)
+
+        pd.DataFrame([dumps(self._analyzer.config)]).to_excel(w, sheet_name='meta')
+
+        w.save()
+        w.close()
+
 
 class History(Database):
     path = settings.db.path
@@ -277,11 +293,12 @@ class History(Database):
     def __init__(self, timeout=1.0):
         super().__init__(self.path, timeout)
 
-    def add_analysis(self, analyzer: VideoAnalyzer) -> VideoAnalysisModel:
+    def add_analysis(self, analyzer: BaseVideoAnalyzer) -> VideoAnalysisModel:
         model = VideoAnalysisModel()
         model.set_analyzer(analyzer)
         model.add(self)
         model.store()
+        analyzer.set_model(model)
         return model
 
     def add_results(self) -> ResultsModel:

@@ -23,7 +23,6 @@ from isimple.util import Timer, Timing, hash_file
 from isimple.core.config import Factory, untag, Config
 
 
-
 log = get_logger(__name__)
 backend = BackendRegistry()
 
@@ -324,9 +323,11 @@ class FeatureType(Factory):
 
 
 @dataclass
-class AnalyzerConfig(abc.ABC, Config):
-    video_path: Optional[Union[list,str]] = None
-    design_path: Optional[Union[list, str]] = None
+class BaseAnalyzerConfig(abc.ABC, Config):
+    video_path: Optional[str] = field(default=None)
+    design_path: Optional[str] = field(default=None)
+    name: Optional[str] = field(default=None)
+    description: Optional[str] = field(default=None)
 
 
 class AnalyzerState(IntEnum):  # todo: would be cool to compare this and analyzer_state in api.js on load
@@ -344,7 +345,7 @@ class AnalyzerState(IntEnum):  # todo: would be cool to compare this and analyze
 class BaseVideoAnalyzer(abc.ABC, RootInstance, BackendInstance):
     _instances: List[BackendInstance]
     _instance_class = BackendInstance
-    _config: AnalyzerConfig
+    _config: BaseAnalyzerConfig
     _state: int
 
     _multi: bool
@@ -361,7 +362,9 @@ class BaseVideoAnalyzer(abc.ABC, RootInstance, BackendInstance):
 
     _launched: bool
 
-    def __init__(self, config: AnalyzerConfig = None):
+    _model: Optional[object]
+
+    def __init__(self, config: BaseAnalyzerConfig = None):
         super().__init__(config)
         self._description = ''
         self._multi = False
@@ -373,6 +376,16 @@ class BaseVideoAnalyzer(abc.ABC, RootInstance, BackendInstance):
         self._hash_design = None
 
         self._state = AnalyzerState.INCOMPLETE
+        self._model = None
+
+    def set_model(self, model):
+        self._model = model
+        if self.config.name is None:
+            self.config(name=f"#{self.model['id']}")
+
+    @property
+    def model(self):
+        return self._model
 
     @abc.abstractmethod
     @backend.expose(backend.can_launch)
@@ -392,7 +405,7 @@ class BaseVideoAnalyzer(abc.ABC, RootInstance, BackendInstance):
          raise NotImplementedError
 
     @property
-    def config(self) -> AnalyzerConfig:
+    def config(self) -> BaseAnalyzerConfig:
         return self._config
 
     @abc.abstractmethod

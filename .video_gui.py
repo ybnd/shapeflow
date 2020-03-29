@@ -35,6 +35,9 @@ def analysis(config=None):
     vm.commit_files()
     vm.store()
 
+    # Export to .xlsx file
+    vm.export()
+
 
 if __name__ == '__main__':
     analysis(
