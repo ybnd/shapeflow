@@ -1,15 +1,5 @@
 import Vue from "vue";
-import axios from "axios";
-import {
-  AnalyzerState as ast,
-  init,
-  get_schemas,
-  list,
-  launch,
-  get_config,
-  set_config,
-  analyze
-} from "../static/api";
+import assert from "assert";
 
 export const state = () => ({
   queue: [
@@ -19,12 +9,24 @@ export const state = () => ({
 
 export const mutations = {
   addToQueue(state, { id }) {
-    console.log(`addToQueue: ${id}`);
-    state.queue = [...state.queue, id];
-    console.log(state.queue);
+    try {
+      assert(!(id === undefined), "no id provided");
+      if (!state.queue.includes(id)) {
+        state.queue = [...state.queue, id];
+      }
+    } catch {
+      console.warn(`addToQueue failed: '${id}'`);
+    }
   },
   dropFromQueue(state, { id }) {
-    Vue.set(state, "queue", state.queue.splice(state.queue.indexOf(id, 1))); // todo: probably wrong
+    try {
+      assert(!(id === undefined), "no id provided");
+      if (state.queue.includes(id)) {
+        Vue.set(state, "queue", state.queue.splice(state.queue.indexOf(id, 1))); // todo: probably wrong
+      }
+    } catch {
+      console.warn(`dropFromQueue failed: '${id}'`);
+    }
   },
   clearQueue(state) {
     state.queue = [];
@@ -36,21 +38,10 @@ export const mutations = {
 
 export const getters = {
   getQueue: state => {
-    return state.queue;
+    // Clone instead of returning reference
+    return [...state.queue];
   },
   getIndex: state => id => {
     return state.queue.indexOf(id);
-  }
-};
-
-export const actions = {
-  refresh({ state, commit }) {
-    let temp_queue = state.queue;
-    console.log(temp_queue);
-    console.log("Clearing queue...");
-    commit("clearQueue");
-    console.log("Restoring queue...");
-    console.log(temp_queue);
-    commit("setQueue", { queue: temp_queue });
   }
 };

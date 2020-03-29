@@ -3,11 +3,14 @@ import {
   AnalyzerState as ast,
   get_config,
   set_config,
+  get_state,
   get_schemas,
   init,
   list,
   launch
 } from "../static/api";
+
+import assert from "assert";
 
 export const state = () => {
   return {
@@ -17,58 +20,69 @@ export const state = () => {
 
 export const mutations = {
   addAnalyzer(state, { id }) {
-    console.log(state);
-    console.log(`Adding analyzer: ${id}`);
-    console.log(id);
+    try {
+      assert(!(id === undefined), "no id provided");
 
-    if (state[id] !== undefined) {
-      console.log(`${id} in state`);
-    } else {
-      console.log(`${id} is new`);
-      state = { ...state, [id]: {} };
+      if (!(id in state)) {
+        state = { ...state, [id]: {} };
+      } else {
+        console.warn(`addAnalyzerState: '${id}' already defined`);
+      }
+    } catch (err) {
+      console.warn(`addAnalyzer failed: '${id}'`);
     }
-
-    console.log(state);
-
-    state[id] = {
-      ...state[id],
-      name: id.split("-")[0]
-    }; // todo: placeholder for actual name
-    console.log(state);
-
-    // todo: state is {} in next call...
   },
 
   setAnalyzerState(state, { id, analyzer_state }) {
-    if (state[id] === undefined) {
-      // todo: this is fucking stupid and should NOT be necessary
-      state[id] = {};
+    try {
+      assert(!(id === undefined), "no id provided");
+      assert(!(analyzer_state === undefined), "no state");
+      state[id] = { ...state[id], state: analyzer_state };
+    } catch (err) {
+      console.warn(
+        `setAnalyzerState failed: '${id}', analyzer_state: ${analyzer_state}`
+      );
     }
-    if (analyzer_state === undefined) {
-      // todo: doesn't make much sense; should call addAnalyzer?
-      analyzer_state = ast.UNKNOWN;
-    }
-    state[id] = { ...state[id], state: analyzer_state };
   },
 
   setAnalyzerConfig(state, { id, analyzer_config }) {
-    // todo: for some reason when called ~ init, state === {} here, why?
-    // todo:     => state[id].name is lost, as it's set in addAnalyzer
-    if (state[id] === undefined) {
-      state[id] = {};
+    try {
+      assert(!(id === undefined), "no id provided");
+      assert(!(analyzer_config === undefined), "no config");
+      state[id] = { ...state[id], config: analyzer_config };
+
+      if (!(analyzer_config.name === undefined)) {
+        state[id].name = analyzer_config.name;
+      } else {
+        state[id].name = "!! unnamed !!";
+        console.warn(`setAnalyzerConfig: using default name for '${id}'`);
+      }
+    } catch (err) {
+      console.warn(
+        `setAnalyzerConfig failed: '${id}', analyzer_config: ${analyzer_config}`
+      );
     }
-    state[id] = { ...state[id], config: analyzer_config };
   },
 
   setAnalyzerSchemas(state, { id, analyzer_schemas }) {
-    if (state[id] === undefined) {
-      state[id] = {};
+    try {
+      assert(!(id === undefined), "no id provided");
+      assert(!(analyzer_schemas === undefined), "no schemas");
+      state[id] = { ...state[id], schemas: analyzer_schemas };
+    } catch (err) {
+      console.warn(
+        `setAnalyzerSchemas failed: '${id}', analyzer_schemas: ${analyzer_schemas}`
+      );
     }
-    state[id] = { ...state[id], schemas: analyzer_schemas };
   },
 
   dropAnalyzer(state, { id }) {
-    delete state[id]; // todo: probably wrong
+    try {
+      assert(!(id === undefined), "no id provided");
+      delete state[id];
+    } catch {
+      `dropAnalyzer failed: '${id}'`;
+    }
   }
 };
 export const getters = {
@@ -91,28 +105,41 @@ export const getters = {
 
 export const actions = {
   // todo: when running slowly (e.g. debugging), analyzers get duplicated
-  async init({ commit }) {
+  async init({ commit }, { config = {} }) {
     return init().then(id => {
       commit("addAnalyzer", { id: id });
-      // get_schemas(id).then(schemas => {
-      //   commit("setAnalyzerSchemas", {
-      //     id: id,
-      //     analyzer_schemas: schemas
-      //   });
-      // });
-      get_config(id).then(config => {
-        commit("setAnalyzerConfig", {
-          id: id,
-          analyzer_config: config
+
+      var config_promise;
+      if (config === {}) {
+        config_promise = get_config(id);
+      } else {
+        config_promise = set_config(id, config);
+      }
+
+      config_promise.then(config => {
+        commit("setAnalyzerConfig", { id: id, analyzer_config: config });
+        // get_schemas(id).then(schemas => {
+        //   commit("setAnalyzerSchemas", { id: id, analyzer_schemas: schemas });
+        // });
+        launch(id).then(ok => {
+          if (ok) {
+            get_state(id).then(state => {
+              commit("setAnalyzerState", { id: id, analyzer_state: state });
+              commit("queue/addToQueue", { id: id }, { root: true });
+            });
+          } else {
+            commit("dropAnalyzer", { id: id });
+            console.warn(
+              `Could not launch '${id}'; check the backend logs for details.`
+            );
+          }
         });
-        // only queue AFTER config is committed
-        commit("queue/addToQueue", { id: id }, { root: true });
       });
       return id;
     });
   },
 
-  async sync({ commit, rootGetters, dispatch }) {
+  async sync({ commit, rootGetters }) {
     await list().then(data => {
       let ids = data.ids;
       let states = data.states;
@@ -162,7 +189,6 @@ export const actions = {
           }
         }
       }
-      // dispatch("queue/refresh", {}, { root: true });
     });
   }
 };

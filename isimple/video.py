@@ -936,6 +936,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 # todo: this is a temporary workaround to not overwrite current configuration ~ .meta file
                 #        should be done by setting the fields to None & more in-depth config handling in BackendInstance._configure
                 config = load(path)
+                config.name = self.config.name
+                config.description = self.config.description
                 config.video_path = self.config.video_path
                 config.design_path = self.config.design_path
                 config.dt = self.config.dt

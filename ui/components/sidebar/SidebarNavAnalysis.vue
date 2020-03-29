@@ -204,8 +204,6 @@
 import SidebarNavAnalysisLink from "./SidebarNavAnalysisLink";
 import { AnalyzerState as ast } from "../../static/api";
 
-import { mapGetters, mapState, mapActions } from "vuex";
-
 // todo: should do color/icon resolution in a separate .js module, should be shared with e.g. dashboard
 export default {
   props: {
@@ -228,16 +226,10 @@ export default {
       return ["nav-link"];
     },
     name() {
-      console.log(`Name is`);
-      let name = this.$store.getters["analyzers/getName"](this.id);
-      console.log(name);
-      return name;
+      return this.$store.getters["analyzers/getName"](this.id);
     },
     state() {
-      console.log(`State is`);
-      let state = this.$store.getters["analyzers/getState"](this.id);
-      console.log(state);
-      return state;
+      return this.$store.getters["analyzers/getState"](this.id);
     }
   },
   data() {

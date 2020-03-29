@@ -82,6 +82,14 @@ export async function get_config(id) {
   });
 }
 
+export async function get_state(id) {
+  return axios.get(url_api(id, "get_state")).then(response => {
+    if (response.status === 200) {
+      return response.data;
+    }
+  });
+}
+
 export async function get_relative_roi(id) {
   return axios.get(url_api(id, "call/get_relative_roi")).then(response => {
     if (response.status === 200) {
@@ -104,10 +112,7 @@ export async function set_config(id, config) {
 }
 
 export async function launch(id) {
-  console.log("Sending call/can_launch");
   return axios.get(url_api(id, "call/can_launch")).then(response => {
-    console.log("call/can_launch got response");
-    console.log(response);
     if (response.status === 200) {
       return axios.post(url_api(id, "launch")).then(response => {
         if (response.status === 200) {

@@ -11,7 +11,7 @@
 <script>
 import { get_log } from "../static/api";
 import { debounce } from "throttle-debounce";
-import { PageHeader } from "../components/header/PageHeader";
+import PageHeader from "../components/header/PageHeader";
 import PageHeaderItem from "../components/header/PageHeaderItem";
 
 export default {
@@ -32,14 +32,11 @@ export default {
   methods: {
     handleScroll() {
       this.scrolled = this.isScrolled();
-      console.log(`set this.scrolled to ${this.scrolled}`);
     },
     handleLogText() {
       this.log = " \n" + this.request.responseText;
       if (!(this.$refs.log === undefined)) {
         if (!this.scrolled) {
-          console.log("scrolling down");
-          console.log(this.$refs.log.$el);
           this.$refs.log.$el.scrollLeft = 0;
           this.$refs.log.$el.scrollTop = this.$refs.log.$el.scrollTopMax;
         }
@@ -49,11 +46,6 @@ export default {
       if (this.$refs.log === undefined) {
         return false;
       } else {
-        console.log({
-          scrollTop: this.$refs.log.$el.scrollTop,
-          scrollTopMax: this.$refs.log.$el.scrollTopMax,
-          scrollLeft: this.$refs.log.$el.scrollLeft
-        });
         return (
           this.$refs.log.$el.scrollTop !== this.$refs.log.$el.scrollTopMax ||
           this.$refs.log.$el.scrollLeft !== 0

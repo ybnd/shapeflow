@@ -5,10 +5,11 @@
       <div class="scroller">
         <draggable
           tag="ul"
-          :list="this.$store.state.queue.queue"
+          :list="queue"
+          @end="handleReorderQueue"
           class="nav-drag nav"
         >
-          <template v-for="id in this.$store.state.queue.queue">
+          <template v-for="id in queue">
             <SidebarNavAnalysis v-bind:key="id" v-bind:id="id" />
           </template>
         </draggable>
@@ -47,15 +48,27 @@ export default {
     draggable
   },
   beforeMount() {
-    window.onload = () => {
-      this.$store.dispatch("analyzers/sync");
-    };
+    this.updateQueueFromStore();
+    setInterval(this.updateQueueFromStore, 250);
   },
   methods: {
     handleClick(e) {
       e.preventDefault();
       e.target.parentElement.classList.toggle("open");
+    },
+    updateQueueFromStore() {
+      this.$store.dispatch("analyzers/sync").then(() => {
+        this.queue = this.$store.getters["queue/getQueue"];
+      });
+    },
+    handleReorderQueue() {
+      this.$store.commit("queue/setQueue", { queue: this.queue });
     }
+  },
+  data: () => {
+    return {
+      queue: [] // placeholder for
+    };
   }
 };
 </script>

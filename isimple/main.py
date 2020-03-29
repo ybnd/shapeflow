@@ -169,8 +169,11 @@ class Main(object, metaclass=Singleton):
 
         @app.route('/api/<id>/can_launch', methods=['GET'])
         def can_launch(id: str):
-            active()
             return respond(self.call(str(id), 'can_launch', {}))
+
+        @app.route('/api/<id>/get_state', methods=['GET'])
+        def get_state(id: str):
+            return respond(self._roots[id].state)
 
         @app.route('/api/<id>/call/<endpoint>', methods=['GET','PUT','POST'])
         def call(id: str, endpoint: str):

@@ -2,6 +2,11 @@
   <div class="fixed-page"></div>
 </template>
 
-<script></script>
+<script>
+export default {
+  name: "index",
+  beforeMount() {}
+};
+</script>
 
 <style></style>

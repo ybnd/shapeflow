@@ -72,16 +72,7 @@ export default {
       this.$refs.new_analyzer_form.hasValidFiles().then(ok => {
         if (ok) {
           this.show = false;
-          this.$store.dispatch("analyzers/init").then(id => {
-            set_config(id, config).then(config => {
-              // todo: should be a $store action
-              this.$store.commit("analyzers/setAnalyzerConfig", {
-                id: id,
-                config: config
-              });
-              launch(id);
-            });
-          });
+          this.$store.dispatch("analyzers/init", { config: config });
         } else {
           // todo: some visual warning that it's incomplete...
           console.log("FORM IS NOT COMPLETE");
