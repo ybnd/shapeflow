@@ -265,7 +265,7 @@ export default {
   position: absolute;
   width: auto;
   height: auto;
-  mix-blend-mode: multiply;
+  /*mix-blend-mode: multiply;*/
   max-width: 10000px;
   max-height: 10000px;
   left: 0;
