@@ -18,7 +18,7 @@
           >
             <b-dropdown-item
               data-toggle="tooltip"
-              title="info about perspective transform"
+              title="info about perspective transform goes here"
               >Perspective</b-dropdown-item
             >
           </b-dropdown>
@@ -26,21 +26,7 @@
       </PageHeaderItem>
     </PageHeader>
     <div class="align" ref="align">
-      <img
-        :src="raw_url"
-        alt=""
-        class="streamed-image"
-        v-bind:class="{ hidden: !aligning }"
-        ref="frame"
-      />
-      <img
-        :src="overlaid_url"
-        alt=""
-        class="streamed-image"
-        v-bind:class="{ hidden: aligning }"
-        ref="overlay"
-      />
-      <!-- todo: can't set callback on streamed image load :( -->
+      <img :src="overlaid_url" alt="" class="streamed-image" ref="frame" />
       <Moveable
         class="moveable"
         ref="moveable"
@@ -49,16 +35,8 @@
         @scale="handleTransform"
         @rotate="handleRotate"
         @warp="handleTransform"
-        @renderStart="handleRenderStart"
-        @renderEnd="handleRenderEnd"
+        @render="handleUpdate"
       >
-        <img
-          :src="overlay_url"
-          alt=""
-          class="overlay"
-          v-bind:class="{ hidden: !aligning }"
-          ref="overlay"
-        />
       </Moveable>
     </div>
     <div class="controls"></div>
@@ -98,6 +76,7 @@ export default {
   },
   methods: {
     handleInit() {
+      this.moveable.className = this.moveableHide;
       console.log(`Initializing align window for ${this.id}`);
       this.$store.dispatch("align/init", { id: this.id }).then(() => {
         console.log("Vuex/align: init should be done");
@@ -123,13 +102,6 @@ export default {
       let roi = roiRectInfoToCoordinates(this.$refs.moveable.getRect(), frame);
       estimate_transform(this.id, roi);
     },
-    handleRenderStart() {
-      this.aligning = true;
-    },
-    handleRenderEnd() {
-      this.handleUpdate();
-      this.aligning = false;
-    },
     handleUpdate: throttle(
       100,
       false,
@@ -145,7 +117,7 @@ export default {
         left: frame.left,
         right: frame.right,
         top: frame.top,
-        botto: frame.bottom
+        bottom: frame.bottom
       };
       this.$store.commit("align/setFrame", { id: this.id, frame: frame });
 
@@ -165,7 +137,17 @@ export default {
     },
     updateOverlay() {
       console.log("Updating overlay...");
-      let overlay = this.$refs.overlay.getBoundingClientRect();
+      let rect_info = this.$refs.moveable.getRect();
+
+      let overlay = {
+        width: rect_info.width,
+        height: rect_info.height,
+        top: -rect_info.height / 2,
+        left: -rect_info.width / 2,
+        bottom: rect_info.height / 2,
+        right: rect_info.width / 2
+      };
+
       console.log(overlay);
       this.$store.commit("align/setOverlay", { id: this.id, overlay: overlay });
     },
@@ -174,19 +156,20 @@ export default {
       let frame_ok = false;
       let overlay_ok = false;
       if (!(this.waitUntilHasRect === undefined)) {
-        if (this.$refs.frame.getBoundingClientRect()["width"] > 100) {
+        if (this.$refs.frame.getBoundingClientRect()["width"] > 50) {
           console.log("HAS FRAME");
           this.updateFrame();
           frame_ok = true;
         }
-        if (this.$refs.overlay.getBoundingClientRect()["width"] > 100) {
-          console.log("HAS OVERLAY");
-          this.updateOverlay();
-          overlay_ok = true;
-        }
+      }
+      if (this.$refs.moveable.getRect()["width"] > 50) {
+        console.log("HAS OVERLAY");
+        this.updateOverlay();
+        overlay_ok = true;
       }
       if (frame_ok && overlay_ok) {
         clearInterval(this.waitUntilHasRect);
+        this.moveable.className = this.moveableShow;
       }
     }
   },
@@ -211,6 +194,7 @@ export default {
   },
   data: () => ({
     moveable: {
+      className: "hidden", //
       draggable: true,
       throttleDrag: 0, // todo: should have a api request-level throttle & debounce to limit traffic, but keep this throttle 0 for precision
       rotatable: true,
@@ -221,7 +205,8 @@ export default {
       bounds: {}
     },
     updateCall: null,
-    aligning: false
+    moveableShow: "",
+    moveableHide: "hidden"
   })
 };
 </script>
@@ -252,28 +237,18 @@ export default {
   position: absolute;
 }
 
-.overlay {
-  mix-blend-mode: multiply;
-}
-
-.hidden {
-  visibility: hidden;
-}
-
 .moveable {
   /* todo: hide the 100x100 placeholder until initial_transform is set */
   position: absolute;
-  width: auto;
-  height: auto;
-  /*mix-blend-mode: multiply;*/
-  max-width: 10000px;
-  max-height: 10000px;
+  width: 100px;
+  height: 100px;
   left: 0;
   top: 0;
   margin: 0 0 0 0;
 }
 
-.overlay {
+.hidden * {
+  visibility: hidden;
 }
 
 /* match theme color & set size */

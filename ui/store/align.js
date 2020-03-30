@@ -16,7 +16,8 @@ export const mutations = {
       state[id] = {
         frame: null,
         initial_roi: null,
-        initial_transform: null
+        initial_transform: null,
+        overlay: null
       };
       if (!(id in state)) {
         state = { ...state, [id]: {} };
