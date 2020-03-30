@@ -123,12 +123,12 @@ class StreamHandler(object):  # todo: is a singleton
                 for m in method:
                     k = self.key(instance, m)
                     if k in self._streams:
-                        log.debug(f"pushing {m.__qualname__} frame")
+                        log.debug(f"pushing {m.__qualname__} to stream")
                         self._streams[k].push(frame)
             else:
                 k = self.key(instance, method)
                 if k in self._streams:
-                    log.debug(f"pushing {method.__qualname__} frame")
+                    log.debug(f"pushing {method.__qualname__} to stream")
                     self._streams[k].push(frame)
 
     def unregister(self, k):

@@ -199,23 +199,31 @@ class CustomLogger(logging.Logger):
         return self._pattern.sub(' ', msg)
 
 
+# Define log handlers
+_console_handler = logging.StreamHandler()
+_console_handler.setLevel(settings.log.lvl_console)
+
+_file_handler = logging.FileHandler(settings.log.path)
+_file_handler.setLevel(settings.log.lvl_file)
+
+_formatter = logging.Formatter(
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+_console_handler.setFormatter(_formatter)
+_file_handler.setFormatter(_formatter)
+
+# Handle logs from other packages
+waitress = logging.getLogger("waitress")
+waitress.addHandler(_console_handler)
+waitress.addHandler(_file_handler)
+waitress.propagate = False
+
+
 def get_logger(name: str = __name__, settings: LogSettings = settings.log) -> CustomLogger:
     if settings is None:
         settings = LogSettings()
 
     log = CustomLogger(name)
     log.setLevel(max([settings.lvl_console, settings.lvl_file]))
-
-    _console_handler = logging.StreamHandler()
-    _console_handler.setLevel(settings.lvl_console)
-
-    _file_handler = logging.FileHandler(settings.path)
-    _file_handler.setLevel(settings.lvl_file)
-
-    _formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    _console_handler.setFormatter(_formatter)
-    _file_handler.setFormatter(_formatter)
 
     log.addHandler(_console_handler)
     log.addHandler(_file_handler)
