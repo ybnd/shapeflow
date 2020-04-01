@@ -26,7 +26,7 @@
       </PageHeaderItem>
     </PageHeader>
     <div class="align" ref="align">
-      <img :src="overlaid_url" alt="" class="streamed-image" ref="frame" />
+      <img :src="overlaid_url" alt="" class="streamed-image-a" ref="frame" />
       <Moveable
         class="moveable"
         ref="moveable"
@@ -47,9 +47,9 @@
 import { estimate_transform, url_api } from "../../static/api";
 import Moveable from "vue-moveable";
 import {
-  roiRectInfoToCoordinates,
+  roiRectInfoToAbsoluteCoordinates,
   default_relative_coords
-} from "../../static/align";
+} from "../../static/coordinates";
 import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
 import PageHeaderSeek from "../../components/header/PageHeaderSeek";
@@ -58,11 +58,9 @@ import { throttle, debounce } from "throttle-debounce";
 export default {
   name: "align",
   beforeMount() {
-    window.onresize = this.updateFrame;
-    // todo: there are some edge cases where the ROI gets messed up
-
     this.handleInit();
     this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
+    window.onresize = this.updateFrame;
   },
   beforeDestroy() {
     clearInterval(this.waitUntilHasRect);
@@ -99,7 +97,10 @@ export default {
     },
     updateRoiCoordinates() {
       let frame = this.$store.getters["align/getFrame"](this.id);
-      let roi = roiRectInfoToCoordinates(this.$refs.moveable.getRect(), frame);
+      let roi = roiRectInfoToAbsoluteCoordinates(
+        this.$refs.moveable.getRect(),
+        frame
+      );
       estimate_transform(this.id, roi);
     },
     handleUpdate: throttle(
@@ -179,17 +180,6 @@ export default {
     },
     overlaid_url() {
       return url_api(this.$route.query.id, "stream/get_inverse_overlaid_frame");
-    },
-    raw_url() {
-      return url_api(this.$route.query.id, "stream/get_raw_frame");
-    },
-    overlay_url() {
-      return url_api(this.$route.query.id, "call/get_overlay_png");
-    },
-    initial_coordinates() {
-      // todo: query backend for initial coordinates
-      //  -> https://daybrush.com/moveable/release/latest/doc/Moveable.html#updateRect
-      return {};
     }
   },
   data: () => ({
@@ -206,7 +196,8 @@ export default {
     },
     updateCall: null,
     moveableShow: "",
-    moveableHide: "hidden"
+    moveableHide: "hidden",
+    waitUntilHasRect: null
   })
 };
 </script>
@@ -224,7 +215,7 @@ export default {
   max-height: calc(100vh - #{$header-height});
 }
 
-.streamed-image {
+.streamed-image-a {
   z-index: -100;
   pointer-events: none;
   display: block;

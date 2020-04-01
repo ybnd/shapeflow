@@ -157,10 +157,11 @@ export async function estimate_transform(id, roi) {
   return axios.post(url_api(id, "call/estimate_transform"), { roi: roi });
 }
 
-export async function set_filter(id, coordinate) {
-  // todo: check url
-  // todo: provide coordinate ~ full frame, it's the backend's responsibility to resolve to the corresponding mask & color
-  return axios.post(url_path(id, "call/set_filter"), coordinate);
+export async function set_filter(id, relative_coordinate) {
+  return axios.post(url_api(id, "call/set_filter_click"), {
+    relative_x: relative_coordinate.x,
+    relative_y: relative_coordinate.y
+  });
 }
 
 export async function analyze(id) {

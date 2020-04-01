@@ -1,10 +1,11 @@
 import abc
-from typing import Type
+from typing import Type, Tuple
 
 import numpy as np
 
 from isimple.core.config import Config, Factory
 from isimple.maths.colors import HsvColor
+from isimple.maths.coordinates import Coo
 
 
 class TransformInterface(abc.ABC):
@@ -19,12 +20,16 @@ class TransformInterface(abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def transform(self, img: np.ndarray, transform: np.ndarray, shape: tuple) -> np.ndarray:
+    def transform(self, img: np.ndarray, transform: np.ndarray, shape: Tuple[int, int]) -> np.ndarray:
+        raise NotImplementedError
+
+    def coordinate(self, coordinate: Coo, matrix: np.ndarray, shape: Tuple[int, int]) -> Coo:
         raise NotImplementedError
 
 
 class FilterConfig(Config):
-    pass
+    filter: dict
+    color: HsvColor
 
 
 class FilterInterface(abc.ABC):

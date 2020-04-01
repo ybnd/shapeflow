@@ -62,7 +62,7 @@ class HsvRangeFilterConfig(FilterConfig):
 @dataclass
 class FilterHandlerConfig(Config):
     type: Union[FilterType, str] = field(default='')
-    data: Union[FilterConfig, dict, None] = field(default=None)
+    data: FilterConfig = field(default=FilterConfig())
 
     def __post_init__(self):
         self.type = self.resolve(self.type, FilterType)
@@ -103,7 +103,7 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
     design: Union[DesignFileHandlerConfig,dict,None] = field(default=None)
     transform: Union[TransformHandlerConfig,dict,None] = field(default=None)
     masks: Tuple[Union[MaskConfig,dict,None], ...] = field(default=(None,))  # todo: would be better as Dict[str, MaskConfig]?
-    features: Tuple[Union[FeatureType, str], ...] = field(default=('',))
+    features: Tuple[FeatureType, ...] = field(default=())
 
     def __post_init__(self):
         self.frame_interval_setting = self.resolve(self.frame_interval_setting, FrameIntervalSetting)

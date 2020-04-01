@@ -222,13 +222,14 @@ class Feature(abc.ABC):
     """A feature implements interactions between BackendElements to
         produce a certain value
     """
-    _color: Optional[np.ndarray]
+    _color: Optional[HsvColor]
     _state: Optional[np.ndarray]
 
     _elements: Tuple[BackendInstance, ...]
 
     def __init__(self, elements: Tuple[BackendInstance, ...]):
         self._elements = elements
+        self._color = HsvColor(255,255,255)  # start out as white
 
     def calculate(self, frame: np.ndarray, state: np.ndarray = None) \
             -> Tuple[Any, np.ndarray]:
@@ -240,14 +241,17 @@ class Feature(abc.ABC):
         return self.value(frame), state
 
     @property
-    def color(self) -> np.ndarray:
+    def color(self) -> HsvColor:
         """Color of the Feature in figures.
 
             A Feature's color must be set as not to overlap with
             other Features in the same FeatureSet.
             Therefore, <Feature>._color must be determined by FeatureSet!
         """
-        return self._color
+        if self._color is not None:
+            return self._color
+        else:
+            raise ValueError
 
     @abc.abstractmethod
     def _guideline_color(self) -> np.ndarray:
@@ -282,31 +286,30 @@ class FeatureSet(object):
     def __init__(self, features: Tuple[Feature, ...]):
         self._features = features
 
-    def get_colors(self) -> Tuple[HsvColor, ...]:  # todo: this is more of a frontend thing, should do this in JS
-        if not hasattr(self, '_colors'):
-            guideline_colors = [f._guideline_color() for f in self._features]
-            colors: list = []
+    def get_colors(self) -> Tuple[HsvColor, ...]:  # todo: should be called each time a color is set
+        guideline_colors = [f._guideline_color() for f in self._features]
+        colors: list = []
 
-            # For all features in the FeatureSet
-            for feature, color in zip(self._features, guideline_colors):
-                # Dodge the other colors by hue
-                tolerance = 15
-                increment = 60  # todo: should be set *after* the number of repititions is determined
-                repetition = 0
-                for registered_color in colors:
-                    if abs(float(color[0]) - float(registered_color[0])) < tolerance:
-                        repetition += 1
+        # For all features in the FeatureSet
+        for feature, color in zip(self._features, guideline_colors):
+            # Dodge the other colors by hue
+            tolerance = 15
+            increment = 60  # todo: should be set *after* the number of repititions is determined
+            repetition = 0
+            for registered_color in colors:
+                if abs(float(color[0]) - float(registered_color[0])) < tolerance:
+                    repetition += 1
 
-                color = (
-                    float(color[0]),
-                    float(220),
-                    float(255 - repetition * increment)
-                )
+            color = HsvColor(
+                float(color[0]),
+                float(220),
+                float(255 - repetition * increment)
+            )
 
-                feature._color = color
-                colors.append(color)
+            feature._color = color
+            colors.append(color)
 
-            self._colors = tuple(HsvColor(*c) for c in colors)
+        self._colors = tuple(HsvColor(*c) for c in colors)
         return self.colors
 
     @property
@@ -364,8 +367,11 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
 
     _model: Optional[object]
 
+    _stream_methods: list
+
     def __init__(self, config: BaseAnalyzerConfig = None):
         self.get_id()
+        self._stream_methods = []
 
         super().__init__(config)
         self._description = ''
@@ -383,6 +389,10 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
     @property
     def id(self):
         return self._id
+
+    @property
+    def stream_methods(self):
+        return self._stream_methods
 
     def set_model(self, model):
         self._model = model

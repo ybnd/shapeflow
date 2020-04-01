@@ -1,5 +1,5 @@
 import Vue from "vue";
-import { getInitialTransform } from "../static/align";
+import { getInitialTransform } from "../static/coordinates";
 import { get_relative_roi, init } from "../static/api";
 import assert from "assert";
 

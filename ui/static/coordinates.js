@@ -29,7 +29,7 @@ export function rectToCoordinates(rect) {
   };
 }
 
-export function roiRectInfoToCoordinates(rect, frame) {
+export function roiRectInfoToAbsoluteCoordinates(rect, frame) {
   // convert absolute RectInfo to relative coordinates {BL, TL, TR, BR}
   //   -> RdctInfo: https://daybrush.com/moveable/release/latest/doc/Moveable.html#.RectInfo
   try {
@@ -55,6 +55,13 @@ export function roiRectInfoToCoordinates(rect, frame) {
   } catch {
     console.warn(`roiRectInfoToCoordinates: frame is null`);
   }
+}
+
+export function clickEventToRelativeCoordinate(event, frame) {
+  return {
+    x: (event.clientX - frame.left) / frame.width,
+    y: (event.clientY - frame.top) / frame.height
+  };
 }
 
 export function roiCoordinatesToTransform(coordinates, frame) {

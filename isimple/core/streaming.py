@@ -79,14 +79,14 @@ class JpegStreamer(FrameStreamer):
 class StreamHandler(object):  # todo: is a singleton
     """A singleton object to handle streaming frames from methods
     """
-    _streams: Dict[Tuple[object, str], FrameStreamer]
+    _streams: Dict[tuple, FrameStreamer]
     _lock: threading.Lock
 
     def __init__(self):
         self._streams = {}
         self._lock = threading.Lock()
 
-    def register(self, instance: object, method: Callable[[Any], np.ndarray], stream_type: Type[FrameStreamer] = JpegStreamer) -> FrameStreamer:
+    def register(self, instance: object, method, stream_type: Type[FrameStreamer] = JpegStreamer) -> FrameStreamer:
         """Register `method`, start a streamer.
             If `method` has been registered already, return its streamer.
         """
@@ -104,8 +104,7 @@ class StreamHandler(object):  # todo: is a singleton
 
             return stream
 
-
-    def is_registered(self, instance: object, method: Callable[[Any], np.ndarray]) -> bool:
+    def is_registered(self, instance: object, method) -> bool:
         return self.key(instance, method) in self._streams
 
     @property
@@ -113,9 +112,9 @@ class StreamHandler(object):  # todo: is a singleton
         return self._lock
 
     def key(self, instance, method):
-        return (instance, method.__qualname__)
+        return (instance, method)
 
-    def push(self, instance: object, method: Union[Callable[[Any], np.ndarray], List[Callable[[Any], np.ndarray]]], frame: np.ndarray):
+    def push(self, instance: object, method, frame: np.ndarray):
         """If `method` is registered, push `frame` to its streamer.
         """
         with self.lock:
@@ -133,10 +132,14 @@ class StreamHandler(object):  # todo: is a singleton
 
     def unregister(self, k):
         """Unregister `method`: stop its streamer & delete
-        """
+        """  # todo: should unregister explicitly e.g. when closing a page
         if k in self._streams:
             self._streams[k].stop()
             del self._streams[k]
+
+    def update(self):
+        for instance, method in self._streams.keys():
+            self.push(instance, method, method())
 
     def stop(self):
         for k in self._streams:

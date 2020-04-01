@@ -1,7 +1,11 @@
 import unittest
 
 from isimple.maths.images import *
+from isimple.maths.colors import *
+from isimple.maths.coordinates import *
+
 import numpy as np
+import cv2
 
 
 ckernel_1 = np.array(
@@ -192,6 +196,121 @@ class area_pixelsumTest(unittest.TestCase):
 
     def test_kernel5(self):
         self.assertEqual(13, area_pixelsum(ckernel_5))
+
+
+class colorTest(unittest.TestCase):
+    colors = {
+        'rgb': (51, 127, 63),
+        'bgr': (63, 127, 51),
+        'hsv': (65, int(60 / 100 * 255), int(50 / 100 * 255))
+    }
+
+    def test_conversion(self):
+        self.assertEqual(
+            RgbColor(*self.colors['rgb']),
+            convert(BgrColor(*self.colors['bgr']), RgbColor)
+        )
+        self.assertEqual(
+            HsvColor(*self.colors['hsv']),
+            convert(RgbColor(*self.colors['rgb']), HsvColor)
+        )
+
+
+    def test_np_array(self):
+        self.assertTrue(
+            np.all(np.equal(
+                np.array(self.colors['rgb']),
+                RgbColor(*self.colors['rgb']).np
+            ))
+        )
+
+    def test_string(self):
+        self.assertEqual(
+            HsvColor(*self.colors['hsv']),
+            HsvColor.from_str(str(HsvColor(*self.colors['hsv'])))
+        )
+
+
+class coordinateTest(unittest.TestCase):
+    co1 = Coo(0.101, 0.199, (150,250))
+    co2 = Coo(0.301, 0.299, (300,300))
+
+    def test_equality(self):
+        self.assertEqual(
+            self.co1,
+            Coo(0.101, 0.199, (150,250))
+        )
+        self.assertEqual(
+            self.co2,
+            Coo(0.301, 0.299, (300, 300))
+        )
+        self.assertNotEqual(
+            self.co2,
+            Coo(0.6, 0.299, (300,300))
+        )
+        self.assertNotEqual(
+            self.co2,
+            Coo(0.301, 0.6, (300, 300))
+        )
+        self.assertNotEqual(
+            self.co2,
+            Coo(0.301, 0.299, (301, 300))
+        )
+        self.assertNotEqual(
+            self.co2,
+            Coo(0.301, 0.299, (300, 299))
+        )
+
+    def test_abs(self):
+        self.assertEqual(
+            (29.85, 25.25),
+            self.co1.abs
+        )
+        self.assertEqual(
+            (89.7, 90.3),
+            self.co2.abs
+        )
+
+    def test_idx(self):
+        self.assertEqual(
+            (30, 25),
+            self.co1.idx
+        )
+        self.assertEqual(
+            (90, 90),
+            self.co2.idx
+        )
+
+    def test_value(self):
+        image1 = np.random.random(self.co1.shape)
+        image2 = np.random.random(self.co2.shape)
+
+        self.assertEqual(
+            image1[30, 25],
+            self.co1.value(image1)
+        )
+        self.assertEqual(
+            image2[90, 90],
+            self.co2.value(image2)
+        )
+
+        self.assertRaises(
+            AssertionError,
+            self.co1.value, image2
+        )
+
+        self.assertRaises(
+            AssertionError,
+            self.co2.value, image1
+        )
+
+    # todo: do some basic translation / scale / rotation transforms
+    #       * should be relatively tame; cv2 should be able to transform
+    #           arrays as images in a way that all pixels are still ~ accessible
+    #       * compare to coordinate transformation by hand
+    #       * compare sampled values
+    #           ~ transformed image & transformed coordinate
+    #             vs. original image & original coordinate
 
 
 if __name__ == '__main__':

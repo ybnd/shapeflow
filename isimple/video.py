@@ -21,12 +21,13 @@ from isimple.core.backend import BackendInstance, CachingBackendInstance, \
 from isimple.core.config import (extend, __meta_ext__)
 from isimple.core.interface import TransformInterface, FilterConfig, \
     FilterInterface, FilterType, TransformType
-from isimple.core.streaming import stream
+from isimple.core.streaming import stream, streams
 from isimple.endpoints import BackendRegistry
 from isimple.endpoints import GuiRegistry as gui
-from isimple.maths.colors import HsvColor
+from isimple.maths.colors import HsvColor, BgrColor, complementary,  convert
 from isimple.maths.images import to_mask, crop_mask, area_pixelsum, ckernel, \
-    overlay
+    overlay, rect_contains
+from isimple.maths.coordinates import Coo
 from isimple.util import frame_number_iterator
 
 log = get_logger(__name__)
@@ -40,7 +41,7 @@ class VideoFileHandler(CachingBackendInstance):
     """Interface to video files ~ OpenCV
     """
     _shape: tuple
-    _stream_methods: List[Callable]
+    _stream_methods: list
 
     _requested_frames: List[int]
     frame_number: int
@@ -51,7 +52,7 @@ class VideoFileHandler(CachingBackendInstance):
     _class = VideoFileHandlerConfig()
 
 
-    def __init__(self, video_path, stream_methods: List[Callable] = None, config: VideoFileHandlerConfig = None):
+    def __init__(self, video_path, stream_methods: list = None, config: VideoFileHandlerConfig = None):
         super(VideoFileHandler, self).__init__(config)
         if stream_methods == None:
             stream_methods = [self.read_frame]
@@ -160,7 +161,7 @@ class VideoFileHandler(CachingBackendInstance):
 
     @stream
     @backend.expose(backend.get_raw_frame)
-    def read_frame(self, frame_number: int = None) -> Optional[np.ndarray]:
+    def read_frame(self, frame_number: Optional[int] = None) -> np.ndarray:
         """Wrapper for `_read_frame`.
             Enables caching (if in a caching context!) and provides the video
             file's path to determine the cache key.
@@ -184,8 +185,7 @@ class VideoFileHandler(CachingBackendInstance):
             else:
                 self.frame_number = frame_number
 
-        for method in self._stream_methods:
-            method()
+        streams.update()
 
         return self.frame_number / self.frame_count
 
@@ -203,12 +203,12 @@ class PerspectiveTransform(TransformInterface):
 
     def estimate(self, roi: dict, shape: tuple) -> dict:
         log.vdebug(f'Estimating transform ~ coordinates {roi} & shape {shape}')
-        return cv2.getPerspectiveTransform(
-            np.float32(
+
+        roi_video = np.float32(
                 [[roi[corner]['x'], roi[corner]['y']]
                  for corner in ['BL', 'TL', 'TR', 'BR']]
-            ),
-            np.float32(
+            )
+        roi_design = np.float32(
                 np.array(  # selection rectangle: bottom left to top right
                     [
                         [0, shape[1]],          # BL: (x,y)
@@ -218,7 +218,10 @@ class PerspectiveTransform(TransformInterface):
                     ]
                 )
             )
-        )
+
+        log.debug(f"ROI in video coordinates: {roi_video}")
+        log.debug(f"ROI in design coordinates: {roi_design}")
+        return cv2.getPerspectiveTransform(roi_video, roi_design)
 
     def transform(self, img: np.ndarray, transform: np.ndarray, shape: tuple) -> np.ndarray:
         return cv2.warpPerspective(
@@ -226,15 +229,18 @@ class PerspectiveTransform(TransformInterface):
             borderValue=(255,255,255),  # makes the border white instead of black ~https://stackoverflow.com/questions/30227979/
         )
 
+    def coordinate(self, coordinate: Coo, transform: np.ndarray, shape: Tuple[int, int]) -> Coo:
+        coordinate.transform(transform, shape)
+        return coordinate
 
 class TransformHandler(BackendInstance, Handler):
     """Handles coordinate transforms.
     """
-    _video_shape: tuple
-    _design_shape: tuple
+    _video_shape: Tuple[int, int]
+    _design_shape: Tuple[int, int]
     _inverse: np.ndarray
 
-    _stream_methods: List[Callable]
+    _stream_methods: list
 
     _implementation: TransformInterface
     _implementation_factory = TransformType
@@ -246,8 +252,8 @@ class TransformHandler(BackendInstance, Handler):
     def __init__(self, video_shape, design_shape, stream_methods, config: TransformHandlerConfig):
         super(TransformHandler, self).__init__(config)
         self.set_implementation(self.config.type)
-        self._video_shape = tuple(video_shape[0:2])  # Don't include color dimension
-        self._design_shape = tuple(design_shape[0:2])
+        self._video_shape = (video_shape[0], video_shape[1])  # Don't include color dimension
+        self._design_shape = (design_shape[0], design_shape[1])
         self._stream_methods = stream_methods # type: ignore
 
         self._inverse = np.linalg.inv(self.config.matrix)
@@ -304,8 +310,7 @@ class TransformHandler(BackendInstance, Handler):
 
         self.set(self._implementation.estimate(roi, self._design_shape))
 
-        for method in self._stream_methods:
-            method()
+        streams.update()
         return True
 
 
@@ -323,6 +328,13 @@ class TransformHandler(BackendInstance, Handler):
             If caller needs the original value, they should copy explicitly
         """
         return self._implementation.transform(img, self.config.matrix, self._design_shape)
+
+    def coordinate(self, coordinate: Coo) -> Coo:
+        """Transform a design coordinate to a video coordinate
+        """
+        og_co = coordinate.copy()
+        co = self._implementation.coordinate(coordinate, self._inverse, self._video_shape[::-1])  # todo: ugh
+        return co
 
     def inverse(self, img: np.ndarray) -> np.ndarray:
         return self._implementation.transform(img, self._inverse, self._video_shape)
@@ -385,8 +397,26 @@ class FilterHandler(BackendInstance, Handler):
         return self._implementation.mean_color(self.config.data)
 
     @backend.expose(backend.set_filter_parameters)
-    def set_filter(self, filter: FilterConfig, color: HsvColor) -> FilterConfig:
-        self.config(data=self._implementation.set_filter(filter, color))
+    def set(self, filter: FilterConfig = None, color: HsvColor = None) -> FilterConfig:
+        if isinstance(self.config.data, dict):
+            self.config.data = FilterConfig(**self.config.data)
+
+        if filter is None:
+            if hasattr(self.config.data, 'filter'):
+                filter = self._implementation._config_class(**self.config.data.filter)
+            else:
+                filter = self._implementation._config_class()
+        if color is None:
+            if hasattr(self.config.data, 'color'):
+                color = self.config.data.color
+            else:
+                color = HsvColor(0,0,0)
+
+        assert isinstance(color, HsvColor)
+        self.config(data=self._implementation.set_filter(filter,color))
+
+        log.debug(f"Filter config: {self.config}")
+
         assert isinstance(self.config.data, FilterConfig)
         return self.config.data
 
@@ -415,6 +445,9 @@ class Mask(BackendInstance):
     _config: MaskConfig
     _h: float
     _dpi: float
+
+    _part: np.ndarray
+    _rect: np.ndarray
 
     def __init__(
             self,
@@ -477,6 +510,14 @@ class Mask(BackendInstance):
         """
         return img[self.rows, self.cols]
 
+    def contains(self, coordinate: Coo) -> bool:
+        if rect_contains(self.rect, coordinate):
+            return bool(
+                self.part[coordinate.idx[0] - self.rect[0], coordinate.idx[1] - self.rect[2]]
+            )
+        else:
+            return False
+
     @property
     def rows(self):
         return slice(self._rect[0], self._rect[1])
@@ -496,6 +537,14 @@ class Mask(BackendInstance):
     @property
     def dpi(self):
         return self._dpi
+
+    @property
+    def part(self):
+        return self._part
+
+    @property
+    def rect(self):
+        return self._rect
 
 
 class DesignFileHandler(CachingBackendInstance):
@@ -683,12 +732,14 @@ class MaskFilterFunction(Feature):
         """Generate a state image (BGR)
         """
         if state is not None:
+            log.debug(f"{self} color: {self.color}")
+
             binary = self.filter(self.mask(frame))
             substate = np.multiply(
                 np.ones((binary.shape[0], binary.shape[1], 3), dtype=np.uint8),
-                cv2.cvtColor(np.uint8([[self.color]]), cv2.COLOR_HSV2BGR)
+                convert(self.color, BgrColor).np  # todo: update to isimple.maths.color
             )
-            state[self.mask.rows, self.mask.cols, :] = cv2.bitwise_and(substate, substate, mask=binary)
+            state[self.mask.rows, self.mask.cols, :] = cv2.bitwise_and(substate, substate, mask=binary)  # todo: overwrites rect with white
             return state
 
     @property
@@ -762,10 +813,10 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
         self.load_config()
         log.debug(f'{self.__class__.__name__}: launch nested instances.')
-        self.video = VideoFileHandler(self.config.video_path, [self.get_inverse_overlaid_frame], self.config.video)  # todo: stream_methods list should be generated automatically
+        self.video = VideoFileHandler(self.config.video_path, self.stream_methods, self.config.video)  # todo: stream_methods list should be generated automatically
         self.video.set_requested_frames(list(self.frame_numbers()))
         self.design = DesignFileHandler(self.config.design_path, self.config.height, self.config.design, self.config.masks)
-        self.transform = TransformHandler(self.video.shape, self.design.shape, [self.get_inverse_overlaid_frame], self.config.transform)
+        self.transform = TransformHandler(self.video.shape, self.design.shape, self.stream_methods, self.config.transform)
         self.masks = self.design.masks
         self.filters = [mask.filter for mask in self.masks]
 
@@ -777,10 +828,14 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             masks=tuple([m.config for m in self.masks]),
         )
 
+        # Initialize FeatureSets
+        self._get_featuresets()
+
         # todo: maybe add some stuff to do this automagically
         backend.expose(backend.get_frame)(self.get_transformed_frame)
         backend.expose(backend.get_inverse_overlaid_frame)(self.get_inverse_overlaid_frame)
         backend.expose(backend.get_overlaid_frame)(self.get_frame_overlay)
+        backend.expose(backend.get_state_frame)(self.get_state_frame)
         backend.expose(backend.get_colors)(self.get_colors)
 
         if self.model is not None:
@@ -835,20 +890,21 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                     pass  # todo: check if transform & all filters are set, transition to CAN_RUN
                 return True
 
-    #@backend.expose(backend.get_frame)  # todo: would like to have some kind of 'deferred expose' decorator?
-    def get_transformed_frame(self, frame_number: int) -> np.ndarray:
+    @stream
+    @backend.expose(backend.get_frame)  # todo: would like to have some kind of 'deferred expose' decorator?
+    def get_transformed_frame(self, frame_number: Optional[int] = None) -> np.ndarray:
         return self.transform(self.video.read_frame(frame_number))
 
-    #@backend.expose(backend.get_inverse_transformed_overlay)
+    @backend.expose(backend.get_inverse_transformed_overlay)
     def get_inverse_transformed_overlay(self) -> np.ndarray:
         return self.transform.inverse(self.design.overlay())
 
-    #@backend.expose(backend.get_overlaid_frame)
+    @backend.expose(backend.get_overlaid_frame)
     def get_frame_overlay(self, frame_number: int) -> np.ndarray:
         return self.design.overlay_frame(
             self.get_transformed_frame(frame_number))
 
-    #@backend.expose(backend.get_colors)  # todo: per feature in each feature set; maybe better as a dict instead of a list of tuples?
+    @backend.expose(backend.get_colors)  # todo: per feature in each feature set; maybe better as a dict instead of a list of tuples?
     def get_colors(self) -> List[Tuple[HsvColor, ...]]:
         return [featureset.get_colors() for featureset in
                 self._featuresets.values()]
@@ -870,6 +926,54 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 self.transform.inverse(self.design.overlay()),
                 alpha=self.design.config.overlay_alpha
             ), cv2.COLOR_BGR2HSV)
+
+    @backend.expose(backend.set_filter_click)
+    def set_filter_click(self, relative_x: float, relative_y: float) -> None:
+        click = Coo(
+            x = relative_x,
+            y = relative_y,
+            shape = self.design.shape[::-1]  # todo: ugh
+        )
+
+        hits = [mask for mask in self.masks if mask.contains(click)]
+        log.debug(f"hits @ {click}: {hits}")
+
+        if len(hits) > 0:
+            frame = self.video.read_frame()
+            click = self.transform.coordinate(click)  # todo: transformation is fucked
+
+            color = HsvColor(*click.value(frame))
+            log.debug(f"color @ {click.idx} is {color}")
+
+            for hit in hits:
+                hit.filter.set(color=color)
+
+            self.get_colors()
+
+            streams.update()
+
+    @stream
+    @backend.expose(backend.get_state_frame)
+    def get_state_frame(self, frame_number: Optional[int] = None, featureset: int = 0) -> np.ndarray:
+        # todo: eliminate duplicate code ~ calculate (calculate should just call get_state_frame, ideally)
+        frame = self.transform(self.video.read_frame(frame_number))
+
+        k,fs = list(self._featuresets.items())[featureset]
+
+        state = np.zeros(self.design._overlay.shape, dtype=np.uint8)  # BGR state image
+
+        for feature in fs._features:
+            value, state = feature.calculate(
+                frame.copy(),       # don't overwrite self.frame ~ cv2 dst parameter
+                state               # additive; each feature adds to state
+            )
+
+        state[np.equal(state, 0)] = 255
+
+        # Add overlay on top of state
+        # state = overlay(state, self.design._overlay.copy(), self.design.config.overlay_alpha)
+
+        return cv2.cvtColor(state, cv2.COLOR_BGR2HSV)
 
     def calculate(self, frame_number: int, update_callback: Callable):
         """Return a state image for each FeatureSet

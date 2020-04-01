@@ -1,4 +1,3 @@
-import abc
 import re
 from collections import namedtuple
 from typing import Dict, Type
@@ -23,13 +22,18 @@ class Color(object):
     def __new__(cls, *args) -> 'Color':
         raise NotImplementedError
 
+    def __eq__(self, other: object) -> bool:
+        assert isinstance(other, Color)
+        return self == other and self._colorspace == other._colorspace
+
+    @property
     def np(self) -> np.ndarray:
         return np.uint8([[self]])
 
     def _convert(self, colorspace: str) -> tuple:
         if colorspace not in self._conversion_map:
             raise NotImplementedError
-        converted = cv2.cvtColor(self.np(), self._conversion_map[colorspace])
+        converted = cv2.cvtColor(self.np, self._conversion_map[colorspace])
         return tuple(converted.flatten())
 
     @classmethod
@@ -38,6 +42,9 @@ class Color(object):
             **{k:int(float(v.strip("'"))) for k,v,_
                in re.findall('([A-Za-z0-9]*)=(.*?)([,)])', color)}
         )
+
+    def inverse(self) -> 'Color':
+        raise NotImplementedError
 
 
 class HsvColor(namedtuple('HsvColor', ('h', 's', 'v')), Color):
@@ -71,3 +78,10 @@ def convert(color: Color, to: Type[Color]) -> Color:
         return color
     else:
         return to(*color._convert(to._colorspace))
+
+
+# noinspection Mypy
+def complementary(color: Color) -> Color:
+    hsv0 = convert(color, HsvColor)
+    hsv1 = HsvColor(int(round((hsv0.h + 90) % 180)), hsv0.s, hsv0.v)  # type: ignore
+    return convert(hsv1, type(color))

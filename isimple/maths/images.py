@@ -1,18 +1,22 @@
 import numpy as np
 import cv2
 
-from typing import Tuple
+from typing import Tuple, Union
+
+from isimple.maths.coordinates import Coo
 
 
 def ckernel(size: int) -> np.ndarray:
     """Circular filter kernel
     """
-    if not size % 2: size = size - 1
+    if not size % 2:
+        # size must be odd
+        size = size - 1
     index = int(size / 2)
 
-    y, x = np.ogrid[-index:size - index, -index:size - index]
+    y, x = np.ogrid[-index:size - index, -index:size - index]  # todo: what's this?
     r = int(size / 2)
-    mask = x * x + y * y <= r * r
+    mask = x * x + y * y <= r * r  # disc formula
     array = np.zeros([size, size], dtype=np.uint8)
     array[mask] = 255
     return array
@@ -31,12 +35,12 @@ def overlay(frame: np.ndarray, overlay: np.ndarray, alpha: float = 0.5) -> np.nd
 
 
 def crop_mask(mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray, Tuple[int, int]]:
-    """Crop a binary mask image to its minimal size
-        (to exclude unnecessary regions)
+    """Crop a binary mask image array to its minimal (rectangular) size
+        to exclude unnecessary regions
     """
 
     nz = np.nonzero(mask)
-    row_0 = nz[0].min()
+    row_0 = nz[0].min()     # todo: document, it's confusing!
     row_1 = nz[0].max()+1
     col_0 = nz[1].min()
     col_1 = nz[1].max()+1
@@ -45,6 +49,16 @@ def crop_mask(mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray, Tuple[int, int]
     return cropped_mask, \
         np.array([row_0, row_1, col_0, col_1]), \
         (int((row_0+row_1-1)/2), int((col_0+col_1-1)/2))
+
+
+def rect_contains(rect: np.ndarray, point: Coo) -> bool:
+    """Check whether `point` is in `rect`
+    :param rect: an 'array rectangle': [first_row, last_row, first_column, last_column]
+    :param point: a coordinate as (row, column)
+    :return:
+    """
+    return (rect[0] <= point.abs[0] <= rect[1]) \
+           and (rect[2] <= point.abs[1] <= rect[3])
 
 
 def mask(image: np.ndarray, mask: np.ndarray, rect: np.ndarray):
@@ -63,7 +77,7 @@ def area_pixelsum(image):
         return np.sum(image > 1)
 
 
-def to_mask(image: np.ndarray, kernel: np.ndarray) -> np.ndarray:
+def to_mask(image: np.ndarray, kernel: np.ndarray = ckernel(7)) -> np.ndarray:
     """Convert a .png image to a binary mask
     """
 
