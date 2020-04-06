@@ -74,7 +74,6 @@ class FrameStreamer(abc.ABC):
 
 
 class JpegStreamer(FrameStreamer):
-    @timed
     def _encode(self, frame: np.ndarray) -> Tuple[bool, bytes]:
         # Assume HSV input frame, cv2.imencode works with BGR
         return cv2.imencode(
@@ -88,7 +87,6 @@ class JpegStreamer(FrameStreamer):
 
 
 class PngStreamer(FrameStreamer):
-    @timed
     def _encode(self, frame: np.ndarray) -> Tuple[bool, bytes]:
         # Assume HSV input frame, cv2.imencode works with BGR
         return cv2.imencode(
@@ -102,7 +100,6 @@ class PngStreamer(FrameStreamer):
 
 
 class TiffStreamer(FrameStreamer):
-    @timed
     def _encode(self, frame: np.ndarray) -> Tuple[bool, bytes]:
         return cv2.imencode(
             '.tiff', cv2.cvtColor(frame, cv2.COLOR_HSV2BGR),
@@ -115,7 +112,6 @@ class TiffStreamer(FrameStreamer):
 
 
 class BmpStreamer(FrameStreamer):
-    @timed
     def _encode(self, frame: np.ndarray) -> Tuple[bool, bytes]:
         return cv2.imencode(
             '.bmp', cv2.cvtColor(frame, cv2.COLOR_HSV2BGR),
