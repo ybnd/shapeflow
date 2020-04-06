@@ -49,7 +49,7 @@ export default {
   },
   beforeMount() {
     this.updateQueueFromStore();
-    setInterval(this.updateQueueFromStore, 250);
+    this.sync = setInterval(this.updateQueueFromStore, 250);
   },
   methods: {
     handleClick(e) {
@@ -57,8 +57,13 @@ export default {
       e.target.parentElement.classList.toggle("open");
     },
     updateQueueFromStore() {
-      this.$store.dispatch("analyzers/sync").then(() => {
-        this.queue = this.$store.getters["queue/getQueue"];
+      this.$store.dispatch("analyzers/sync").then(ok => {
+        if (ok) {
+          this.queue = this.$store.getters["queue/getQueue"];
+        } else {
+          // Received 404 -> assume server is down, don't sync anymore
+          clearInterval(this.sync);
+        }
       });
     },
     handleReorderQueue() {
@@ -67,7 +72,8 @@ export default {
   },
   data: () => {
     return {
-      queue: [] // placeholder for
+      queue: [], // local copy of queue
+      sync: []
     };
   }
 };

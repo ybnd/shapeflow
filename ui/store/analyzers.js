@@ -139,55 +139,61 @@ export const actions = {
   },
 
   async sync({ commit, rootGetters }) {
-    await list().then(data => {
-      let ids = data.ids;
-      let states = data.states;
+    try {
+      return await list().then(data => {
+        let ids = data.ids;
+        let states = data.states;
 
-      // remove dead ids from the queue
-      let q = rootGetters["queue/getQueue"];
-      if (q.length > 0) {
-        for (let i = 0; i < q.length; i++) {
-          if (ids.includes(q[i])) {
-            // this id is still alive
-          } else {
-            commit("queue/dropFromQueue", { id: q[i] }, { root: true });
-            commit("dropAnalyzer", { id: q[i] });
+        // remove dead ids from the queue
+        let q = rootGetters["queue/getQueue"];
+        if (q.length > 0) {
+          for (let i = 0; i < q.length; i++) {
+            if (ids.includes(q[i])) {
+              // this id is still alive
+            } else {
+              commit("queue/dropFromQueue", { id: q[i] }, { root: true });
+              commit("dropAnalyzer", { id: q[i] });
+            }
           }
         }
-      }
 
-      // set id state
-      if (ids.length > 0) {
-        let q = rootGetters["queue/getQueue"];
-        for (let i = 0; i < ids.length; i++) {
-          if (!q.includes(ids[i])) {
-            // add new id to the queue
-            commit("addAnalyzer", { id: ids[i] });
-            // get_schemas(ids[i]).then(schemas => {
-            //   commit("setAnalyzerSchemas", {
-            //     id: ids[i],
-            //     analyzer_schemas: schemas
-            //   });
-            // });
-            get_config(ids[i]).then(config => {
-              commit("setAnalyzerConfig", {
-                id: ids[i],
-                analyzer_config: config
+        // set id state
+        if (ids.length > 0) {
+          let q = rootGetters["queue/getQueue"];
+          for (let i = 0; i < ids.length; i++) {
+            if (!q.includes(ids[i])) {
+              // add new id to the queue
+              commit("addAnalyzer", { id: ids[i] });
+              // get_schemas(ids[i]).then(schemas => {
+              //   commit("setAnalyzerSchemas", {
+              //     id: ids[i],
+              //     analyzer_schemas: schemas
+              //   });
+              // });
+              get_config(ids[i]).then(config => {
+                commit("setAnalyzerConfig", {
+                  id: ids[i],
+                  analyzer_config: config
+                });
+                commit("setAnalyzerState", {
+                  id: ids[i],
+                  analyzer_state: states[i]
+                });
+                commit("queue/addToQueue", { id: ids[i] }, { root: true });
               });
+            } else {
               commit("setAnalyzerState", {
                 id: ids[i],
                 analyzer_state: states[i]
               });
-              commit("queue/addToQueue", { id: ids[i] }, { root: true });
-            });
-          } else {
-            commit("setAnalyzerState", {
-              id: ids[i],
-              analyzer_state: states[i]
-            });
+            }
           }
         }
-      }
-    });
+        return true;
+      });
+    } catch (e) {
+      console.warn("backend may be down; refresh to check again");
+      return false;
+    }
   }
 };
