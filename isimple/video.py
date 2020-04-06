@@ -931,7 +931,9 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             ), cv2.COLOR_BGR2HSV)
 
     @backend.expose(backend.set_filter_click)
-    def set_filter_click(self, relative_x: float, relative_y: float) -> None:
+    def set_filter_click(self, relative_x: float, relative_y: float) -> dict:
+        response = {}
+
         click = Coo(
             x = relative_x,
             y = relative_y,
@@ -939,21 +941,28 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         )
 
         hits = [mask for mask in self.masks if mask.contains(click)]
-        log.debug(f"hits @ {click}: {hits}")
 
-        if len(hits) > 0:
+        if len(hits) == 1:
             frame = self.video.read_frame()
             click = self.transform.coordinate(click)  # todo: transformation is fucked
 
             color = HsvColor(*click.value(frame))
-            log.debug(f"color @ {click.idx} is {color}")
+            log.debug(f"color @ {click.idx}: {color}")
 
-            for hit in hits:
-                hit.filter.set(color=color)
+            hits[0].filter.set(color=color)
 
             self.get_colors()
 
             streams.update()
+        elif len(hits) == 0:
+            log.debug(f"no hit for {click.idx}")
+        elif len(hits) > 1:
+            message = f"Multiple valid options: {[hit.name for hit in hits]}. Select a point where masks don't overlap."
+            response['message'] = message
+            log.warning(message)
+        return response
+
+
 
     @stream
     @backend.expose(backend.get_state_frame)

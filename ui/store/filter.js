@@ -56,10 +56,16 @@ export const actions = {
   async init({ commit }, { id }) {
     commit("addFilter", { id: id });
   },
-  set({ commit, getters }, { id, event }) {
+  async set({ commit, getters }, { id, event }) {
     let frame = getters.getFrame(id);
     if (frame !== null) {
-      set_filter(id, clickEventToRelativeCoordinate(event, frame));
+      return set_filter(id, clickEventToRelativeCoordinate(event, frame)).then(
+        message => {
+          if (message) {
+            console.log(`//PU THIS IN A POPUP OR SOMETHING// ${message}`);
+          }
+        }
+      );
     }
   }
 };

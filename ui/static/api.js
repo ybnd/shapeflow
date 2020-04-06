@@ -158,10 +158,18 @@ export async function estimate_transform(id, roi) {
 }
 
 export async function set_filter(id, relative_coordinate) {
-  return axios.post(url_api(id, "call/set_filter_click"), {
-    relative_x: relative_coordinate.x,
-    relative_y: relative_coordinate.y
-  });
+  return axios
+    .post(url_api(id, "call/set_filter_click"), {
+      relative_x: relative_coordinate.x,
+      relative_y: relative_coordinate.y
+    })
+    .then(response => {
+      if (response.status === 200) {
+        if ("message" in response.data) {
+          return response.data.message;
+        }
+      }
+    });
 }
 
 export async function analyze(id) {
