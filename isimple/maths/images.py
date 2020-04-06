@@ -4,6 +4,7 @@ import cv2
 from typing import Tuple, Union
 
 from isimple.maths.coordinates import Coo
+from isimple.util import timed
 
 
 def ckernel(size: int) -> np.ndarray:
@@ -22,6 +23,7 @@ def ckernel(size: int) -> np.ndarray:
     return array
 
 
+@timed
 def overlay(frame: np.ndarray, overlay: np.ndarray, alpha: float = 0.5) -> np.ndarray:
     """Overlay `frame` image with `overlay` image.
         * Both images should be in the BGR color space

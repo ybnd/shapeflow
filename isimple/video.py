@@ -28,7 +28,7 @@ from isimple.maths.colors import HsvColor, BgrColor, complementary,  convert
 from isimple.maths.images import to_mask, crop_mask, area_pixelsum, ckernel, \
     overlay, rect_contains
 from isimple.maths.coordinates import Coo
-from isimple.util import frame_number_iterator
+from isimple.util import frame_number_iterator, timed
 
 log = get_logger(__name__)
 
@@ -160,6 +160,7 @@ class VideoFileHandler(CachingBackendInstance):
         return self.fps
 
     @stream
+    @timed
     @backend.expose(backend.get_raw_frame)
     def read_frame(self, frame_number: Optional[int] = None) -> np.ndarray:
         """Wrapper for `_read_frame`.
@@ -336,6 +337,7 @@ class TransformHandler(BackendInstance, Handler):
         co = self._implementation.coordinate(coordinate, self._inverse, self._video_shape[::-1])  # todo: ugh
         return co
 
+    @timed
     def inverse(self, img: np.ndarray) -> np.ndarray:
         return self._implementation.transform(img, self._inverse, self._video_shape)
 
@@ -917,6 +919,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         else:
             raise NotImplementedError(self.config.frame_interval_setting)
 
+    @timed
     @stream
     @backend.expose(backend.get_inverse_overlaid_frame)
     def get_inverse_overlaid_frame(self, frame_number: Optional[int] = None) -> np.ndarray:

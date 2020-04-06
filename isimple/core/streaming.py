@@ -12,6 +12,8 @@ import time
 import numpy as np
 import cv2
 
+from isimple.util import timed, sizeof_fmt
+
 
 # cheated off of https://www.pyimagesearch.com/2019/09/02/opencv-stream-video-to-web-browser-html-page/
 
@@ -45,10 +47,15 @@ class FrameStreamer(abc.ABC):
                 frame = self._queue.get()
 
                 (success, encoded_frame) = self._encode(frame)
+
+
                 if not success:
                     continue
                 else:
                     last_yield = time.time()
+                    log.debug(
+                        f"encoded frame size: {sizeof_fmt(len(encoded_frame))}")
+
                     yield self._decorate(encoded_frame)
                     yield self._decorate(encoded_frame)
             else:
@@ -67,12 +74,55 @@ class FrameStreamer(abc.ABC):
 
 
 class JpegStreamer(FrameStreamer):
+    @timed
     def _encode(self, frame: np.ndarray) -> Tuple[bool, bytes]:
         # Assume HSV input frame, cv2.imencode works with BGR
-        return cv2.imencode(".jpg", cv2.cvtColor(frame, cv2.COLOR_HSV2BGR))
+        return cv2.imencode(
+            ".jpg", cv2.cvtColor(frame, cv2.COLOR_HSV2BGR),
+            params = [cv2.IMWRITE_JPEG_QUALITY, 50]
+        )
 
     def _decorate(self, encoded_frame: bytes) -> bytes:
         return (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" +
+                bytearray(encoded_frame) + b"\r\n")
+
+
+class PngStreamer(FrameStreamer):
+    @timed
+    def _encode(self, frame: np.ndarray) -> Tuple[bool, bytes]:
+        # Assume HSV input frame, cv2.imencode works with BGR
+        return cv2.imencode(
+            ".png", cv2.cvtColor(frame, cv2.COLOR_HSV2BGR),
+            params = [cv2.IMWRITE_PNG_COMPRESSION, 10]
+        )
+
+    def _decorate(self, encoded_frame: bytes) -> bytes:
+        return (b"--frame\r\nContent-Type: image/png\r\n\r\n" +
+                bytearray(encoded_frame) + b"\r\n")
+
+
+class TiffStreamer(FrameStreamer):
+    @timed
+    def _encode(self, frame: np.ndarray) -> Tuple[bool, bytes]:
+        return cv2.imencode(
+            '.tiff', cv2.cvtColor(frame, cv2.COLOR_HSV2BGR),
+            params = [cv2.IMWRITE_TIFF_COMPRESSION, 1]
+        )
+
+    def _decorate(self, encoded_frame: bytes) -> bytes:
+        return (b"--frame\r\nContent-Type: image/tiff\r\n\r\n" +
+                bytearray(encoded_frame) + b"\r\n")
+
+
+class BmpStreamer(FrameStreamer):
+    @timed
+    def _encode(self, frame: np.ndarray) -> Tuple[bool, bytes]:
+        return cv2.imencode(
+            '.bmp', cv2.cvtColor(frame, cv2.COLOR_HSV2BGR),
+        )
+
+    def _decorate(self, encoded_frame: bytes) -> bytes:
+        return (b"--frame\r\nContent-Type: image/bmp\r\n\r\n" +
                 bytearray(encoded_frame) + b"\r\n")
 
 

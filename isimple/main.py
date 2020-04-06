@@ -284,6 +284,7 @@ class Main(object, metaclass=Singleton):
     def stream(self, id: str, endpoint: str):
         # todo: sanity check this also
         method = self._roots[id].get(getattr(backend, endpoint))
+        self._roots[id].cache_open()
 
         new_stream = streams.register(method.__self__, method)  # type: ignore  # todo: type / assert properly
 

@@ -460,6 +460,26 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
             for element in caching_instances:
                 element.__exit__(*sys.exc_info())
 
+    def cache_open(self):
+        caching_instances = [
+            e for e in self._instances if
+            isinstance(e, CachingBackendInstance)
+        ]
+        log.debug(f'{self.__class__.__name__}: propagate caching context '
+                  f'to {[i.__class__.__name__ for i in caching_instances]}')
+        for element in caching_instances:
+            element.__enter__()
+
+    def cache_close(self):
+        caching_instances = [
+            e for e in self._instances if
+            isinstance(e, CachingBackendInstance)
+        ]
+        log.debug(f'close cache')
+        for element in caching_instances:
+            element.__exit__(*sys.exc_info())
+
+
     @contextmanager
     def lock(self):
         lock = self._lock.acquire()
