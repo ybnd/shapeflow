@@ -31,7 +31,7 @@ export default {
   min-height: calc(#{$header-height} - 15px);
   max-height: calc(#{$header-height} - 15px);
 
-  min-width: 80px;
+  min-width: 20px;
 }
 .page-header-item .btn {
   height: calc(#{$header-height} - 15px);

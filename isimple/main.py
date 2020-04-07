@@ -14,15 +14,15 @@ import waitress
 
 from OnionSVG import check_svg
 
-from isimple import get_logger, settings
-from isimple.core.backend import AnalyzerType, backend, AnalyzerState
-from isimple.core.schema import schema
-from isimple.core.streaming import streams
-from isimple.history import VideoAnalysisModel, History
-from isimple.util import Singleton, suppress_stdout
-from isimple.video import VideoAnalyzer, BaseVideoAnalyzer
+import isimple
+import isimple.util as util
+import isimple.core.backend as backend
+import isimple.core.schema as schema
+import isimple.core.streaming as streaming
+import isimple.history as history
+import isimple.video as video
 
-log = get_logger('isimple')
+log = isimple.get_logger('isimple')
 UI = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # todo: cleaner pls
     , 'ui', 'dist'
@@ -33,7 +33,7 @@ def respond(*args) -> str:
     return jsonify(*args)
 
 
-class ServerThread(Thread, metaclass=Singleton):
+class ServerThread(Thread, metaclass=util.Singleton):
     _app: Flask
     _host: str
     _port: int
@@ -57,12 +57,12 @@ class ServerThread(Thread, metaclass=Singleton):
         self._stop.set()
 
 
-class Main(object, metaclass=Singleton):
+class Main(object, metaclass=util.Singleton):
     _app: Flask
 
-    _roots: Dict[str, BaseVideoAnalyzer] = {}
-    _models: Dict[str, VideoAnalysisModel] = {}
-    _history = History()
+    _roots: Dict[str, backend.BaseVideoAnalyzer] = {}
+    _models: Dict[str, history.VideoAnalysisModel] = {}
+    _history = history.History()
 
     _host: str = 'localhost'
     _port: int = 7951
@@ -112,6 +112,28 @@ class Main(object, metaclass=Singleton):
             self._unload.set()
             return respond(True)
 
+        @app.route('/api/settings_schema')
+        def settings_schema():
+            return respond(schema.settings_schema)
+
+        @app.route('/api/get_settings', methods=['GET'])
+        def get_settings():
+            return respond(isimple.settings)
+
+        @app.route('/api/set_settings', methods=['POST'])
+        def set_settings():
+            # todo: check if anything's changed, don't reload if not!
+
+            new_settings = json.loads(request.data)['settings']
+
+            log.info(f'setting settings: {new_settings}')
+
+            isimple.save_settings(isimple.Settings(**new_settings))
+
+            # todo: restart the server with original
+
+            return respond(isimple.settings)
+
         @app.route('/api/check_video_path', methods=['PUT'])
         def check_video():
             path = json.loads(request.data)['video_path']
@@ -145,7 +167,7 @@ class Main(object, metaclass=Singleton):
                 bt = request.args.to_dict()['type']
             else:
                 bt = None
-            return respond(self.add_instance(AnalyzerType(bt)))
+            return respond(self.add_instance(video.AnalyzerType(bt)))
 
         @app.route('/api/list', methods=['GET'])
         def list():
@@ -204,7 +226,7 @@ class Main(object, metaclass=Singleton):
             # cheated off of https://stackoverflow.com/questions/35540885/
             log.debug("streaming log file")
             def generate():
-                with open(settings.log.path) as f:
+                with open(isimple.settings.log.path) as f:
                     while True:
                         yield f.read()
                         time.sleep(1)
@@ -217,7 +239,7 @@ class Main(object, metaclass=Singleton):
 
     def serve(self, open_in_browser: bool):
         # Don't show waitress console output (server URL)
-        with suppress_stdout():
+        with util.suppress_stdout():
             self._server = ServerThread(self._app, self._host, self._port)
             self._server.start()
 
@@ -248,17 +270,17 @@ class Main(object, metaclass=Singleton):
     def cleanup(self):
         self._server.stop()
         self._server.join()
-        streams.stop()
+        streaming.streams.stop()
 
-    def add_instance(self, type: AnalyzerType = None) -> str:
+    def add_instance(self, type: video.AnalyzerType = None) -> str:
         if type is None:
-            type = AnalyzerType()
+            type = video.AnalyzerType()
 
         analyzer = type.get()()
         analyzer._multi = True
         log.debug(f"Added instance {{'{analyzer.id}': {analyzer}}}")
         self._roots[analyzer.id] = analyzer
-        assert isinstance(analyzer, VideoAnalyzer)
+        assert isinstance(analyzer, video.VideoAnalyzer)
         self._history.add_analysis(analyzer)
         return analyzer.id
 
@@ -266,14 +288,15 @@ class Main(object, metaclass=Singleton):
         log.debug(f"Providing schemas for '{id}'")
         root = self._roots[id]
         return {
-                'config': schema(root._config.__class__),
-                'methods': {e.name:[schema(m) for m in ms] for e,ms in root.instance_mapping.items()}
+                'config': schema.schema(root._config.__class__),
+                'methods': {e.name:[schema.schema(m) for m in ms] for e,ms in root.instance_mapping.items()}
         }
 
+    @util.timed
     def call(self, id: str, endpoint: str, data: dict) -> Any:
         log.debug(f"{self._roots[id]}: call '{endpoint}'")
         # todo: sanity check this
-        method = self._roots[id].get(getattr(backend, endpoint))
+        method = self._roots[id].get(getattr(backend.backend, endpoint))
 
         if endpoint in ('set_config',):
             pass  # todo: store to self._history
@@ -283,10 +306,10 @@ class Main(object, metaclass=Singleton):
 
     def stream(self, id: str, endpoint: str):
         # todo: sanity check this also
-        method = self._roots[id].get(getattr(backend, endpoint))
+        method = self._roots[id].get(getattr(backend.backend, endpoint))
         self._roots[id].cache_open()
 
-        new_stream = streams.register(method.__self__, method)  # type: ignore  # todo: type / assert properly
+        new_stream = streaming.streams.register(method.__self__, method)  # type: ignore  # todo: type / assert properly
 
         log.debug(f"{self._roots[id]}: stream '{endpoint}'")
         return new_stream

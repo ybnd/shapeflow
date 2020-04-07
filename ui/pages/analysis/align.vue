@@ -44,7 +44,7 @@
 </template>
 
 <script>
-import { estimate_transform, url_api } from "../../static/api";
+import { estimate_transform, url } from "../../static/api";
 import Moveable from "vue-moveable";
 import {
   roiRectInfoToAbsoluteCoordinates,
@@ -179,7 +179,7 @@ export default {
       return this.$route.query.id;
     },
     overlaid_url() {
-      return url_api(this.$route.query.id, "stream/get_inverse_overlaid_frame");
+      return url(this.$route.query.id, "stream/get_inverse_overlaid_frame");
     }
   },
   data: () => ({

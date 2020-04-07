@@ -55,6 +55,7 @@ _levels.update({
     'debug': logging.DEBUG,
     'vdebug': VDEBUG,
     'notset': logging.NOTSET,
+    'default': logging.INFO
 })
 
 
@@ -63,23 +64,14 @@ class LogSettings(_Settings):  # todo: this class should track whether path exis
     path: str = field(default=os.path.join(ROOTDIR, 'current.log'))
     dir: str = field(default=os.path.join(ROOTDIR, 'log'))
     keep: int = field(default=3)
-    lvl_console: int = field(default=logging.INFO)
-    lvl_file: int = field(default=logging.INFO)
-
-    def to_dict(self):
-        d = super().to_dict()
-        _inverse = {v: k for k, v in _levels.items()}
-        d.update(
-            {k:_inverse[v] for k,v in d.items()
-            if k in ('lvl_console', 'lvl_file')}
-        )
-        return d
+    lvl_console: str = field(default='info')
+    lvl_file: str = field(default='info')
 
 
 @dataclass
 class CacheSettings(_Settings):  # todo: this class should track whether path exists
     dir: str = field(default=os.path.join(ROOTDIR, 'cache'))
-    size_limit: int = field(default=2**32)
+    size_limit_gb: int = field(default=4)
 
 
 @dataclass
@@ -107,13 +99,7 @@ class Settings(_Settings):
                 settings.update({k:{}})
 
         return cls(
-            log=LogSettings(
-                **{
-                    k: _levels[str(v).lower()]
-                    if k in ('lvl_console', 'lvl_file')
-                    else v for k, v in settings['log'].items()
-                }
-            ),
+            log=LogSettings(**settings['log']),
             cache=CacheSettings(**settings['cache']),
             render=RenderSettings(**settings['render']),
             format=FormatSettings(**settings['format']),
@@ -157,7 +143,7 @@ def _load_settings(path: str = _SETTINGS_FILE) -> Settings:  # todo: if there ar
         return ini
 
 
-def _save_settings(settings: _Settings, path: str = _SETTINGS_FILE):
+def save_settings(settings: _Settings, path: str = _SETTINGS_FILE):
     with open(path, 'w+') as f:
         yaml.safe_dump(settings.to_dict(),f)
 
@@ -166,7 +152,7 @@ if not os.path.isfile(_SETTINGS_FILE):
     settings = Settings()
 else:
     settings = _load_settings(_SETTINGS_FILE)
-_save_settings(settings)
+save_settings(settings)
 
 cache = diskcache.Cache(settings.cache.dir, 2**32) # todo: size limit should be in settings.cache
 
@@ -201,10 +187,10 @@ class CustomLogger(logging.Logger):
 
 # Define log handlers
 _console_handler = logging.StreamHandler()
-_console_handler.setLevel(settings.log.lvl_console)
+_console_handler.setLevel(_levels[settings.log.lvl_console])
 
 _file_handler = logging.FileHandler(settings.log.path)
-_file_handler.setLevel(settings.log.lvl_file)
+_file_handler.setLevel(_levels[settings.log.lvl_file])
 
 _formatter = logging.Formatter(
     '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
@@ -223,9 +209,12 @@ def get_logger(name: str = __name__, settings: LogSettings = settings.log) -> Cu
         settings = LogSettings()
 
     log = CustomLogger(name)
-    log.setLevel(max([settings.lvl_console, settings.lvl_file]))
+    log.setLevel(
+        max([_levels[settings.lvl_console], _levels[settings.lvl_file]])
+    )
 
     log.addHandler(_console_handler)
     log.addHandler(_file_handler)
 
+    log.debug(f'new logger')
     return log

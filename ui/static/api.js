@@ -1,10 +1,8 @@
 import axios from "axios";
-import { httpAdapter } from "axios/lib/adapters/http";
 
 let API = "/api/";
-let DB = "/db/";
 
-export function url_api(id, endpoint = "") {
+export function url(id, endpoint = "") {
   return API + `${id}/${endpoint}`;
 }
 
@@ -22,13 +20,41 @@ export const AnalyzerState = {
 };
 
 export function ping() {
-  axios.get(API + "ping"); //todo: some indicator that pings are not coming through?
+  // todo: deprecated, just ping with list()
+  axios.get(API + "ping");
 }
 
 export function unload() {
   // axios can't be called on page unload, use sendBeacon instead
   return navigator.sendBeacon(API + "unload");
 }
+
+export async function settings_schema() {
+  return axios.get(API + "settings_schema").then(response => {
+    if (response.status === 200) {
+      return response.data; // todo: this pattern is QUITE common
+    }
+  });
+}
+
+export async function get_settings() {
+  return axios.get(API + "get_settings").then(response => {
+    if (response.status === 200) {
+      return response.data;
+    }
+  });
+}
+
+export async function set_settings(settings) {
+  return axios
+    .post(API + "set_settings", { settings: settings })
+    .then(response => {
+      if (response.status === 200) {
+        return response.data;
+      }
+    });
+}
+
 export async function list() {
   return axios.get(API + "list").then(response => {
     if (response.status === 200) {
@@ -47,7 +73,7 @@ export async function init() {
 }
 
 export async function get_schemas(id) {
-  return axios.get(url_api(id, "call/get_schemas")).then(response => {
+  return axios.get(url(id, "call/get_schemas")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -75,7 +101,7 @@ export async function check_design_path(design_path) {
 }
 
 export async function get_config(id) {
-  return axios.get(url_api(id, "call/get_config")).then(response => {
+  return axios.get(url(id, "call/get_config")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -83,7 +109,7 @@ export async function get_config(id) {
 }
 
 export async function get_state(id) {
-  return axios.get(url_api(id, "get_state")).then(response => {
+  return axios.get(url(id, "get_state")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -91,7 +117,7 @@ export async function get_state(id) {
 }
 
 export async function get_relative_roi(id) {
-  return axios.get(url_api(id, "call/get_relative_roi")).then(response => {
+  return axios.get(url(id, "call/get_relative_roi")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -100,7 +126,7 @@ export async function get_relative_roi(id) {
 
 export async function set_config(id, config) {
   return axios
-    .post(url_api(id, "call/set_config"), { config: config })
+    .post(url(id, "call/set_config"), { config: config })
     .then(response => {
       if (response.status === 200) {
         return get_config(id).then(config => {
@@ -112,9 +138,9 @@ export async function set_config(id, config) {
 }
 
 export async function launch(id) {
-  return axios.get(url_api(id, "call/can_launch")).then(response => {
+  return axios.get(url(id, "call/can_launch")).then(response => {
     if (response.status === 200) {
-      return axios.post(url_api(id, "launch")).then(response => {
+      return axios.post(url(id, "launch")).then(response => {
         if (response.status === 200) {
           return response.data;
         } else {
@@ -128,23 +154,21 @@ export async function launch(id) {
 }
 
 export async function stream(id, endpoint) {
-  return axios.get(url_api(id, `stream/${endpoint}`));
+  return axios.get(url(id, `stream/${endpoint}`));
 }
 
 export async function seek(id, position) {
-  axios
-    .post(url_api(id, "call/seek"), { position: position })
-    .then(response => {
-      if (response.status === 200) {
-        return response.data;
-      } else {
-        return null;
-      }
-    });
+  axios.post(url(id, "call/seek"), { position: position }).then(response => {
+    if (response.status === 200) {
+      return response.data;
+    } else {
+      return null;
+    }
+  });
 }
 
 export async function get_seek_position(id) {
-  axios.get(url_api(id, "call/get_seek_position")).then(response => {
+  axios.get(url(id, "call/get_seek_position")).then(response => {
     if (response.status === 200) {
       return response.data;
     } else {
@@ -154,12 +178,12 @@ export async function get_seek_position(id) {
 }
 
 export async function estimate_transform(id, roi) {
-  return axios.post(url_api(id, "call/estimate_transform"), { roi: roi });
+  return axios.post(url(id, "call/estimate_transform"), { roi: roi });
 }
 
 export async function set_filter(id, relative_coordinate) {
   return axios
-    .post(url_api(id, "call/set_filter_click"), {
+    .post(url(id, "call/set_filter_click"), {
       relative_x: relative_coordinate.x,
       relative_y: relative_coordinate.y
     })
@@ -173,7 +197,7 @@ export async function set_filter(id, relative_coordinate) {
 }
 
 export async function analyze(id) {
-  return axios.put(url_api(id, "call/analyze")).then(response => {
+  return axios.put(url(id, "call/analyze")).then(response => {
     if (response.status === 200) {
       return true;
     }
@@ -181,6 +205,7 @@ export async function analyze(id) {
 }
 
 export function get_log() {
+  // todo: add link to where this was copied from!
   var xhr = new XMLHttpRequest();
   xhr.open("GET", API + "get_log");
   xhr.send();

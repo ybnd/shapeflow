@@ -53,8 +53,8 @@ class FrameStreamer(abc.ABC):
                     continue
                 else:
                     last_yield = time.time()
-                    log.debug(
-                        f"encoded frame size: {sizeof_fmt(len(encoded_frame))}")
+                    log.vdebug(
+                        f"frame: {sizeof_fmt(len(encoded_frame))}")
 
                     yield self._decorate(encoded_frame)
                     yield self._decorate(encoded_frame)
@@ -96,29 +96,6 @@ class PngStreamer(FrameStreamer):
 
     def _decorate(self, encoded_frame: bytes) -> bytes:
         return (b"--frame\r\nContent-Type: image/png\r\n\r\n" +
-                bytearray(encoded_frame) + b"\r\n")
-
-
-class TiffStreamer(FrameStreamer):
-    def _encode(self, frame: np.ndarray) -> Tuple[bool, bytes]:
-        return cv2.imencode(
-            '.tiff', cv2.cvtColor(frame, cv2.COLOR_HSV2BGR),
-            params = [cv2.IMWRITE_TIFF_COMPRESSION, 1]
-        )
-
-    def _decorate(self, encoded_frame: bytes) -> bytes:
-        return (b"--frame\r\nContent-Type: image/tiff\r\n\r\n" +
-                bytearray(encoded_frame) + b"\r\n")
-
-
-class BmpStreamer(FrameStreamer):
-    def _encode(self, frame: np.ndarray) -> Tuple[bool, bytes]:
-        return cv2.imencode(
-            '.bmp', cv2.cvtColor(frame, cv2.COLOR_HSV2BGR),
-        )
-
-    def _decorate(self, encoded_frame: bytes) -> bytes:
-        return (b"--frame\r\nContent-Type: image/bmp\r\n\r\n" +
                 bytearray(encoded_frame) + b"\r\n")
 
 

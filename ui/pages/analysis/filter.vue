@@ -22,7 +22,7 @@
 </template>
 
 <script>
-import { set_filter, url_api } from "../../static/api";
+import { set_filter, url } from "../../static/api";
 import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
 import PageHeaderSeek from "../../components/header/PageHeaderSeek";
@@ -77,10 +77,10 @@ export default {
       return this.$route.query.id;
     },
     state_url() {
-      return url_api(this.$route.query.id, "stream/get_state_frame");
+      return url(this.$route.query.id, "stream/get_state_frame");
     },
     frame_url() {
-      return url_api(this.$route.query.id, "stream/get_frame");
+      return url(this.$route.query.id, "stream/get_frame");
     }
   },
   data: () => ({

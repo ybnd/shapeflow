@@ -218,9 +218,6 @@ class PerspectiveTransform(TransformInterface):
                     ]
                 )
             )
-
-        log.debug(f"ROI in video coordinates: {roi_video}")
-        log.debug(f"ROI in design coordinates: {roi_design}")
         return cv2.getPerspectiveTransform(roi_video, roi_design)
 
     def transform(self, img: np.ndarray, transform: np.ndarray, shape: tuple) -> np.ndarray:
@@ -732,8 +729,6 @@ class MaskFilterFunction(Feature):
         """Generate a state image (BGR)
         """
         if state is not None:
-            log.debug(f"{self} color: {self.color}")
-
             binary = self.filter(self.mask(frame))
             substate = np.multiply(
                 np.ones((binary.shape[0], binary.shape[1], 3), dtype=np.uint8),
