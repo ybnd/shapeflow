@@ -8,6 +8,8 @@ from isimple.maths.colors import HsvColor
 
 class BackendRegistry(ImmutableRegistry):
     can_launch = Endpoint(Callable[[], bool])
+    can_run = Endpoint(Callable[[], bool])
+    confirm_run = Endpoint(Callable[[], None])
     launch = Endpoint(Callable[[], bool])
     analyze = Endpoint(Callable[[], bool])
     get_config = Endpoint(Callable[[], dict])

@@ -80,6 +80,14 @@ export async function get_schemas(id) {
   });
 }
 
+export async function get_options(for_type) {
+  return axios.get(API + "options/" + for_type).then(response => {
+    if (response.status === 200) {
+      return response.data;
+    }
+  });
+}
+
 export async function check_video_path(video_path) {
   return axios
     .put(API + "check_video_path", { video_path: video_path })

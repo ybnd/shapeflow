@@ -7,7 +7,7 @@ import numpy as np
 import yaml
 import json
 
-from isimple import settings
+from isimple import __version__
 from isimple.core.backend import BaseAnalyzerConfig, CachingBackendInstanceConfig, \
     FeatureType
 from isimple.core.config import extend, ConfigType, \
@@ -73,6 +73,8 @@ class FilterHandlerConfig(Config):
 @dataclass
 class MaskConfig(Config):
     name: Optional[str] = field(default=None)
+    ready: bool = field(default = False)
+    skip: bool = field(default = False)
     height: Optional[float] = field(default=None)
     filter: Union[FilterHandlerConfig,dict,None] = field(default=None)
 
@@ -134,6 +136,8 @@ def normalize_config(d: dict) -> dict:
             # Support pre-0.3 config metadata field
             d[VERSION] = d.pop('version')
             d[CLASS] = VideoAnalyzerConfig.__name__
+        else:
+            raise ValueError(f"No version or class info in config")
 
     def normalizing_to(version):
         log.debug(f"Normalizing configuration (from v{d[VERSION]} to v{version})")
@@ -195,6 +199,16 @@ def normalize_config(d: dict) -> dict:
                             ['BL', 'TL', 'TR', 'BR']
                         )
                     }
+        if before_version(d[VERSION], '0.3.6'):
+            normalizing_to('0.3.6')
+            # add ready & skip tags to mask
+            if 'masks' in d:
+                for m in d['masks']:
+                    m['skip'] = False
+                    try:
+                        m['ready'] = not (m['filter']['data']['c0'] == 'HsvColor(h=0, s=0, v=0')
+                    except KeyError:
+                        m['ready'] = False
     else:
         raise NotImplementedError
 
@@ -217,7 +231,7 @@ def normalize_config(d: dict) -> dict:
 
 def dump(config: VideoAnalyzerConfig, path:str):
     with open(path, 'w+') as f:
-        yaml.safe_dump(config.to_dict(),f, width=999)
+        yaml.safe_dump(config.to_dict(do_tag=True),f, width=999)
 
 
 def dumps(config: VideoAnalyzerConfig) -> str:

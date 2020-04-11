@@ -1,6 +1,7 @@
 import os
 import re
 import threading
+import copy
 from typing import Callable, Any, Dict, Generator, Optional, List, Tuple
 
 import cv2
@@ -491,6 +492,11 @@ class Mask(BackendInstance):
     def config(self) -> MaskConfig:
         return self._config
 
+    def set_filter(self, color: HsvColor) -> FilterConfig:
+        filter_config = self.filter.set(color=color)
+        self._config.ready = True
+        return filter_config
+
     @backend.expose(backend.mask)
     def __call__(self, img: np.ndarray) -> np.ndarray:
         """Mask an image.
@@ -705,19 +711,20 @@ def frame_to_none(frame: np.ndarray) -> None:    # todo: this is dumb
     return None
 
 
-class MaskFilterFunction(Feature):
+class MaskFunction(Feature):
     mask: Mask
     filter: FilterHandler
 
-    def __init__(self, mask: Mask, filter: FilterHandler = None):
-        if filter is None:
-            assert isinstance(mask.filter, FilterHandler), BackendSetupError
-            filter = mask.filter
-
+    def __init__(self, mask: Mask):
         self.mask = mask
-        self.filter = filter
+        self.filter = mask.filter
 
-        super(MaskFilterFunction, self).__init__((mask, filter))
+        super(MaskFunction, self).__init__(
+            (self.mask, self.filter)
+        )
+
+        self._skip = mask.config.skip
+        self._ready = mask.config.ready
 
     def _guideline_color(self) -> HsvColor:
         return self.filter.mean_color()
@@ -729,13 +736,32 @@ class MaskFilterFunction(Feature):
         """Generate a state image (BGR)
         """
         if state is not None:
-            binary = self.filter(self.mask(frame))
-            substate = np.multiply(
-                np.ones((binary.shape[0], binary.shape[1], 3), dtype=np.uint8),
-                convert(self.color, BgrColor).np  # todo: update to isimple.maths.color
-            )
-            state[self.mask.rows, self.mask.cols, :] = cv2.bitwise_and(substate, substate, mask=binary)  # todo: overwrites rect with white
-            return state
+            if not self.skip:
+                if self.ready:
+                    # Masked & filtered pixels ~ frame
+                    binary = self.filter(self.mask(frame))
+                    substate = np.multiply(
+                        np.ones((binary.shape[0], binary.shape[1], 3),
+                                dtype=np.uint8),
+                        convert(self.color, BgrColor).np
+                        # todo: update to isimple.maths.color
+                    )
+                    state[self.mask.rows, self.mask.cols, :] = cv2.bitwise_and(
+                        substate, substate, mask=binary)
+                else:
+                    # Not ready -> highlight feature with a rectangle
+                    substate = np.zeros((*self.mask.part.shape, 3))
+
+                    for i,c in enumerate([0, 0, 255]):  # todo: numpy this
+                        substate[0:2, :, i] = c
+                        substate[-3:-1, :, i] = c
+                        substate[:, 0:2, i] = c
+                        substate[:, -3:-1, i] = c
+
+                    state[self.mask.rows, self.mask.cols, :] = substate
+
+                  # todo: overwrites rect with white
+                return state
 
     @property
     def name(self) -> str:
@@ -746,13 +772,13 @@ class MaskFilterFunction(Feature):
 
 
 @extend(FeatureType)
-class PixelSum(MaskFilterFunction):
+class PixelSum(MaskFunction):
     def _function(self, frame: np.ndarray) -> Any:
         return area_pixelsum(frame)
 
 
 @extend(FeatureType)
-class Volume_uL(MaskFilterFunction):
+class Volume_uL(MaskFunction):
     def _function(self, frame: np.ndarray) -> Any:
         return area_pixelsum(frame) / (self.mask.dpi / 25.4) ** 2 * self.mask.h * 1e3
 
@@ -791,8 +817,16 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         return self._config
 
     def can_launch(self) -> bool:
-        if self.config.video_path is not None and self.config.design_path is not None:
-            return os.path.isfile(self.config.video_path) and os.path.isfile(self.config.design_path)
+        if self.config.video_path is not None \
+                and self.config.design_path is not None:
+            return os.path.isfile(self.config.video_path) \
+                   and os.path.isfile(self.config.design_path)
+        else:
+            return False
+
+    def can_run(self) -> bool:
+        if self.can_launch():
+            return self.ok_to_run
         else:
             return False
 
@@ -806,7 +840,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         #           * (optional: if either is not present, look back until
         #              it's found, to a maximum number of entries)
 
-        self.load_config()
+        self.load_config()  # todo: replace with ^
         log.debug(f'{self.__class__.__name__}: launch nested instances.')
         self.video = VideoFileHandler(self.config.video_path, self.stream_methods, self.config.video)  # todo: stream_methods list should be generated automatically
         self.video.set_requested_frames(list(self.frame_numbers()))
@@ -837,6 +871,16 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             self.model.store()
 
     def _get_featuresets(self):
+        features = []
+        for feature in self.config.features:
+            if isinstance(feature, str):
+                features.append(FeatureType(feature))
+            elif isinstance(feature, FeatureType):
+                features.append(feature)
+
+        self._config.features = tuple(features)
+
+
         self._featuresets = {
             str(feature): FeatureSet(
                 tuple(feature.get()(mask) for mask in self.design.masks),
@@ -875,15 +919,26 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         with self.lock():
             if True:  # todo: sanity check
                 log.debug(f"Setting VideoAnalyzerConfig to {config}")
+
+                previous_features = copy.copy(self.config.features)
+
                 self._config(**config)
+
+                # Check for changes in features
+                if previous_features != self.config.features:
+                    log.debug('updating featuresets')
+                    self._get_featuresets()
 
                 # Check for state transitions
                 if self._state == AnalyzerState.INCOMPLETE:
                     if self.can_launch():
                         self._state = AnalyzerState.CAN_LAUNCH
                 if self._state == AnalyzerState.LAUNCHED:
-                    pass  # todo: check if transform & all filters are set, transition to CAN_RUN
+                    if self.can_run():
+                        self._state = AnalyzerState.CAN_RUN
                 return True
+
+
 
     @stream
     @backend.expose(backend.get_frame)  # todo: would like to have some kind of 'deferred expose' decorator?
@@ -935,13 +990,22 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         hits = [mask for mask in self.masks if mask.contains(click)]
 
         if len(hits) == 1:
+            hit = hits[0]
             frame = self.video.read_frame()
             click = self.transform.coordinate(click)  # todo: transformation is fucked
 
             color = HsvColor(*click.value(frame))
             log.debug(f"color @ {click.idx}: {color}")
 
-            hits[0].filter.set(color=color)
+            hit.set_filter(color)
+
+            for fs in self._featuresets.values():
+                for feature in fs.features:
+                    try:
+                        if feature.mask == hit:  # type: ignore
+                            feature._ready = True
+                    except AttributeError:
+                        pass
 
             self.get_colors()
 
@@ -955,31 +1019,35 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         return response
 
 
-
     @stream
     @backend.expose(backend.get_state_frame)
     def get_state_frame(self, frame_number: Optional[int] = None, featureset: int = 0) -> np.ndarray:
         # todo: eliminate duplicate code ~ calculate (calculate should just call get_state_frame, ideally)
-        frame = self.transform(self.video.read_frame(frame_number))
 
-        k,fs = list(self._featuresets.items())[featureset]
+        # Empty state image in BGR
+        state = np.zeros(self.design._overlay.shape, dtype=np.uint8)
 
-        state = np.zeros(self.design._overlay.shape, dtype=np.uint8)  # BGR state image
+        if hasattr(self, '_featuresets') and len(self._featuresets):
+            frame = self.transform(self.video.read_frame(frame_number))
 
-        for feature in fs._features:
-            value, state = feature.calculate(
-                frame.copy(),       # don't overwrite self.frame ~ cv2 dst parameter
-                state               # additive; each feature adds to state
-            )
+            k,fs = list(self._featuresets.items())[featureset]
+
+            for feature in fs._features:
+                if not feature.skip:
+                    value, state = feature.calculate(
+                        frame.copy(),       # don't overwrite self.frame ~ cv2 dst parameter
+                        state               # additive; each feature adds to state
+                    )
+
+            # Add overlay on top of state
+            # state = overlay(state, self.design._overlay.copy(), self.design.config.overlay_alpha)
+        else:
+            log.debug('skipping state frame')
 
         state[np.equal(state, 0)] = 255
-
-        # Add overlay on top of state
-        # state = overlay(state, self.design._overlay.copy(), self.design.config.overlay_alpha)
-
         return cv2.cvtColor(state, cv2.COLOR_BGR2HSV)
 
-    def calculate(self, frame_number: int, update_callback: Callable):
+    def calculate(self, frame_number: int, update_callback: Callable = None):
         """Return a state image for each FeatureSet
         """
         log.debug(f"Calculating for frame {frame_number}")
@@ -1012,12 +1080,13 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
             self.results[k].loc[frame_number] = [t] + values
 
-        update_callback(
-            t,
-            V, # todo: this is per feature in each feature set; maybe better as dict instead of list of lists?
-            S,     # todo: keep values (in order to save them)
-            frame
-        )
+        if update_callback is not None:
+            update_callback(
+                t,
+                V, # todo: this is per feature in each feature set; maybe better as dict instead of list of lists?
+                S,     # todo: keep values (in order to save them)
+                frame
+            )
 
     def analyze(self) -> bool:
         self._state = AnalyzerState.RUNNING
@@ -1031,16 +1100,17 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
             log.debug(f"Analyzing with features: {[f for f in self._featuresets]}.")
 
-            if self._gui is not None:
-                update_callback = self._gui.get(gui.update_progresswindow)  # todo: move this to LegacyVideoAnalyzer
-                self._gui.get(gui.open_progresswindow)()
-            else:
-                def update_callback(*args, **kwargs): pass  # todo: move this to LegacyVideoAnalyzer
+            # if self._gui is not None:
+            #     update_callback = self._gui.get(gui.update_progresswindow)  # todo: move this to LegacyVideoAnalyzer
+            #     self._gui.get(gui.open_progresswindow)()
+            # else:
+            #     def update_callback(*args, **kwargs): pass  # todo: move this to LegacyVideoAnalyzer
 
             for fn in self.frame_numbers():
                 if self._cancel.is_set():
                     break
-                self.calculate(fn, update_callback)
+                self.calculate(fn) #, update_callback)
+                self._progress = fn / self.video.frame_count
 
             if self.model is not None:
                 # Save results & configuration to database
@@ -1092,7 +1162,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
         if path is not None:
             path = os.path.splitext(path)[0] + __meta_ext__
-            dump(self._gather_config(), path)
+            config = self._gather_config()
+            dump(config, path)
         else:
             log.warning(f"No path provided to `save_config`; no video file either.")
 

@@ -3,24 +3,25 @@
   <div class="fixed-page">
     <PageHeader>
       <PageHeaderItem>
-        <b-button>Set filters</b-button>
+        <b-button @click="handleSetFilters">Set filters</b-button>
       </PageHeaderItem>
-      <PageHeaderItem>
-        <b-button>Reset ROI</b-button>
-      </PageHeaderItem>
+      <!--      <PageHeaderItem>-->
+      <!--        <b-button>Reset ROI</b-button>-->
+      <!--      </PageHeaderItem>-->
       <PageHeaderSeek :id="id" />
       <PageHeaderItem>
         <b-button-group>
           <b-dropdown
-            text="Transform type: Perspective"
+            :text="`${this.align}`"
             data-toggle="tooltip"
             title="Transform type"
           >
             <b-dropdown-item
-              data-toggle="tooltip"
-              title="info about perspective transform goes here"
-              >Perspective</b-dropdown-item
+              v-for="align in align_options"
+              :key="`align-${align}`"
             >
+              {{ align }}
+            </b-dropdown-item>
           </b-dropdown>
         </b-button-group>
       </PageHeaderItem>
@@ -44,7 +45,7 @@
 </template>
 
 <script>
-import { estimate_transform, url } from "../../static/api";
+import { estimate_transform, get_options, url } from "../../static/api";
 import Moveable from "vue-moveable";
 import {
   roiRectInfoToAbsoluteCoordinates,
@@ -73,7 +74,16 @@ export default {
     PageHeaderSeek
   },
   methods: {
+    handleSetFilters() {
+      this.$router.push(`/analysis/filter?id=${this.id}`);
+    },
     handleInit() {
+      get_options("transform").then(options => {
+        console.log(`got transform options:`);
+        console.log(options);
+        this.align_options = options;
+        this.align = options[0];
+      });
       this.moveable.className = this.moveableHide;
       console.log(`Initializing align window for ${this.id}`);
       this.$store.dispatch("align/init", { id: this.id }).then(() => {
@@ -183,6 +193,8 @@ export default {
     }
   },
   data: () => ({
+    align_options: {},
+    align: "",
     moveable: {
       className: "hidden", //
       draggable: true,

@@ -3,9 +3,53 @@
   <div class="fixed-page">
     <PageHeader>
       <PageHeaderItem>
-        <b-button>Analyze</b-button>
+        <b-button @click="handleAnalyze">Analyze</b-button>
       </PageHeaderItem>
       <PageHeaderSeek :id="id" />
+      <PageHeaderItem>
+        <!-- todo: should be able to add multiple features! -->
+        <b-button-group>
+          <b-dropdown
+            :text="`${this.feature}`"
+            data-toggle="tooltip"
+            title="Feature type"
+          >
+            <b-dropdown-item
+              v-for="feature in feature_options"
+              :key="`feature-${feature}`"
+              @click="handleSetFeature(feature)"
+            >
+              {{ feature }}
+            </b-dropdown-item>
+          </b-dropdown>
+        </b-button-group>
+      </PageHeaderItem>
+      <PageHeaderItem>
+        <b-button-group>
+          <b-dropdown :text="`${this.mask}`" data-toggle="tooltip" title="Mask">
+            <b-dropdown-item
+              v-for="(mask, index) in masks"
+              :key="`mask-${mask}`"
+              @click="handleSetMask(mask, index)"
+            >
+              {{ mask }}
+            </b-dropdown-item>
+          </b-dropdown>
+          <b-dropdown
+            :text="`${this.filter}`"
+            data-toggle="tooltip"
+            title="Filter type"
+          >
+            <b-dropdown-item
+              v-for="filter in filter_options"
+              :key="`filter-${filter}`"
+              @click="handleSetFilter(filter)"
+            >
+              {{ filter }}
+            </b-dropdown-item>
+          </b-dropdown>
+        </b-button-group>
+      </PageHeaderItem>
     </PageHeader>
     <div class="filter">
       <img :src="frame_url" alt="" class="streamed-image-f" />
@@ -22,7 +66,7 @@
 </template>
 
 <script>
-import { set_filter, url } from "../../static/api";
+import { get_options, set_config, url, analyze } from "../../static/api";
 import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
 import PageHeaderSeek from "../../components/header/PageHeaderSeek";
@@ -31,7 +75,7 @@ import { throttle, debounce } from "throttle-debounce";
 export default {
   name: "filter",
   beforeMount() {
-    this.init();
+    this.initFilter();
     this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
   },
   beforeDestroy() {
@@ -44,7 +88,21 @@ export default {
     PageHeaderSeek
   },
   methods: {
-    init() {
+    initFilter() {
+      get_options("feature").then(options => {
+        this.feature_options = options;
+      });
+      get_options("filter").then(options => {
+        this.filter_options = options;
+      });
+      this.masks = this.$store.getters["analyzers/getMasks"](this.id);
+      this.mask = this.masks[0];
+
+      this.filter = this.$store.getters["analyzers/getFilterType"](this.id, 0);
+
+      this.feature = this.$store.getters["analyzers/getFeatures"](this.id)[0];
+      console.log(`setting this.feature to ${this.feature}`);
+
       this.$store.dispatch("filter/init", { id: this.id });
     },
     updateFrame() {
@@ -70,6 +128,46 @@ export default {
     },
     handleClick(e) {
       this.$store.dispatch("filter/set", { id: this.id, event: e });
+    },
+    handleAnalyze() {
+      analyze(this.id);
+    },
+    handleSetFeature(feature) {
+      this.$store
+        .dispatch("analyzers/set_config", {
+          id: this.id,
+          config: { features: [feature] }
+        })
+        .then(stuff => {
+          console.log("in analyzers/set_config callback");
+          let features = this.$store.getters["analyzers/getFeatures"](this.id);
+          this.feature = features[0];
+        });
+    },
+    handleSetMask(mask, index) {
+      this.mask = mask;
+
+      this.filter = this.$store.getters["analyzers/getFilterType"](
+        this.id,
+        index
+      );
+      this.filter_data = this.$store.getters["analyzers/getFilterData"](
+        this.id,
+        index
+      );
+    },
+    handleSetFilter(filter) {
+      let config = this.$store.getters["analyzers/getConfig"](this.id);
+      config.masks[this.mask].filter.type = filter;
+
+      this.$store
+        .dispatch("analyzers/set_config", {
+          id: this.id,
+          config: config
+        })
+        .then(() => {
+          this.filter = this.$store.getters["analyzers/getFilterType"](this.id);
+        });
     }
   },
   computed: {
@@ -84,7 +182,14 @@ export default {
     }
   },
   data: () => ({
-    waitUntilHasRect: null
+    waitUntilHasRect: null,
+    feature: "",
+    feature_options: {},
+    filter: "",
+    filter_options: {},
+    filter_data: {},
+    mask: "",
+    masks: {}
   })
 };
 </script>

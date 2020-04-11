@@ -73,6 +73,36 @@
         />
       </ul>
     </template>
+    <template v-if="state === ast.CAN_RUN">
+      <ul class="nav-dropdown-items">
+        <SidebarNavAnalysisLink
+          name="Configure"
+          icon="icon-equalizer"
+          :url="`/analysis/configure?id=${id}`"
+        />
+        <SidebarNavAnalysisLink
+          name="Set alignment"
+          icon="icon-frame"
+          :url="`/analysis/align?id=${id}`"
+        />
+        <SidebarNavAnalysisLink
+          name="Set filters"
+          icon="icon-layers"
+          :url="`/analysis/filter?id=${id}`"
+        />
+        <SidebarNavAnalysisLink
+          name="Analyze"
+          icon="icon-control-play"
+          :url="`/api/analyzer/${id}/analyze`"
+        />
+        <SidebarNavAnalysisLink
+          name="Remove"
+          icon="icon-trash"
+          :url="`/api/analyzer/quit/${id}`"
+          :two_stage="true"
+        />
+      </ul>
+    </template>
     <template v-else-if="state === ast.RUNNING">
       <b-progress class="progress" height="2px" :value="progress"></b-progress>
       <ul class="nav-dropdown-items">
@@ -113,11 +143,6 @@
           :url="`/analysis/filter?id=${id}`"
         />
         <SidebarNavAnalysisLink
-          name="Run"
-          icon="icon-control-play"
-          :url="`/api/analyzer/${id}/analyze`"
-        />
-        <SidebarNavAnalysisLink
           name="Remove"
           icon="icon-trash"
           :url="`/api/analyzer/${id}/quit`"
@@ -149,7 +174,7 @@
           :url="`/analysis/filter?id=${id}`"
         />
         <SidebarNavAnalysisLink
-          name="Run"
+          name="Analyze"
           icon="icon-control-play"
           :url="`/api/analyzer/${id}/analyze`"
         />
@@ -185,7 +210,7 @@
           :url="`/analysis/filter?id=${id}`"
         />
         <SidebarNavAnalysisLink
-          name="Run"
+          name="Analyze"
           icon="icon-control-play"
           :url="`/api/analyzer/${id}/analyze`"
         />

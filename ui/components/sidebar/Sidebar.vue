@@ -49,7 +49,7 @@ export default {
   },
   beforeMount() {
     this.updateQueueFromStore();
-    this.sync = setInterval(this.updateQueueFromStore, 250);
+    this.interval_update = setInterval(this.updateQueueFromStore, 250);
   },
   methods: {
     handleClick(e) {
@@ -62,7 +62,7 @@ export default {
           this.queue = this.$store.getters["queue/getQueue"];
         } else {
           // Received 404 -> assume server is down, don't sync anymore
-          clearInterval(this.sync);
+          clearInterval(this.interval_update);
         }
       });
     },
@@ -73,7 +73,7 @@ export default {
   data: () => {
     return {
       queue: [], // local copy of queue
-      sync: []
+      interval_update: []
     };
   }
 };

@@ -224,10 +224,15 @@ class Feature(abc.ABC):
     """
     _color: Optional[HsvColor]
     _state: Optional[np.ndarray]
+    _skip: bool
+    _ready: bool
 
     _elements: Tuple[BackendInstance, ...]
 
     def __init__(self, elements: Tuple[BackendInstance, ...]):
+        self._skip = False
+        self._ready = False
+
         self._elements = elements
         self._color = HsvColor(255,255,255)  # start out as white
 
@@ -239,6 +244,14 @@ class Feature(abc.ABC):
         if state is not None:
             state = self.state(frame, state)
         return self.value(frame), state
+
+    @property
+    def skip(self) -> bool:
+        return self._skip
+
+    @property
+    def ready(self) -> bool:
+        return self._ready
 
     @property
     def color(self) -> HsvColor:
@@ -350,8 +363,8 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
     _instance_class = BackendInstance
     _config: BaseAnalyzerConfig
     _state: int
+    _progress: float
 
-    _multi: bool
     _lock: threading.Lock
 
     results: Dict[str, pd.DataFrame]
@@ -364,6 +377,7 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
     _design_hash: Optional[str]
 
     _launched: bool
+    _ok_to_run: bool
 
     _model: Optional[object]
 
@@ -375,15 +389,16 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
 
         super().__init__(config)
         self._description = ''
-        self._multi = False
         self._lock = threading.Lock()
         self._timer = Timer(self)
         self._launched = False
+        self._ok_to_run = False
 
         self._hash_video = None
         self._hash_design = None
 
         self._state = AnalyzerState.INCOMPLETE
+        self._progress = 0.0
         self._model = None
 
     @property
@@ -408,6 +423,19 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
     def can_launch(self) -> bool:
         raise NotImplementedError
 
+    @abc.abstractmethod
+    @backend.expose(backend.can_run)
+    def can_run(self) -> bool:
+        raise NotImplementedError
+
+    @backend.expose(backend.confirm_run)
+    def override(self):
+        self._do_run = True
+
+    @property
+    def ok_to_run(self):
+        return self._ok_to_run
+
     @property
     def launched(self):
         return self._launched
@@ -415,6 +443,10 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
     @property
     def state(self):
         return self._state
+
+    @property
+    def progress(self):
+        return self._progress
 
     @abc.abstractmethod
     def _launch(self):

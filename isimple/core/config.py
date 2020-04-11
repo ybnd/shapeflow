@@ -1,22 +1,14 @@
-import re
-import json
 import numpy as np
-import copy
-import pandas as pd
-from typing import List, Optional, Union, Type, Dict, NamedTuple, Tuple, Iterable
+from typing import List, Optional, Union, Type, Dict
 from dataclasses import dataclass
 from functools import partial
-from collections.abc import Iterable
-import abc
 
-from isimple import get_logger
+from isimple import get_logger, __version__
 from isimple.maths.colors import Color
 from isimple.util import ndarray2str, str2ndarray
 
 
 log = get_logger(__name__)
-
-__version__: str = '0.3.5'  # todo: since this version is "global", maybe should merge all config stuff into isimple.core.config after all?
 
 # Metadata tags
 VERSION: str = 'config_version'
@@ -237,17 +229,21 @@ class Config(object):
 
 
         for attr, val in self.__dict__.items():
-            if val is not None:
-                if any([
-                    isinstance(val, list),
-                    isinstance(val, tuple),
-                    isinstance(val, dict),
-                ]) and not any([
-                    isinstance(val, Color),
-                ]):
-                    output[attr] = type(val)([*map(_represent, val)])
-                else:
-                    output[attr] = _represent(val)
+            try:
+                if val is not None:
+                    if any([
+                        isinstance(val, list),
+                        isinstance(val, tuple),
+                    ]) and not any([
+                        isinstance(val, Color),
+                    ]):
+                        output[attr] = type(val)([*map(_represent, val)])
+                    elif isinstance(val, dict):
+                        output[attr] = {k:_represent(v) for k,v in val.items()}
+                    else:
+                        output[attr] = _represent(val)
+            except ValueError:
+                log.debug(f"Config.to_dict() - skipping '{attr}': {val}")
 
         if do_tag:
             # todo: should only tag at the top-level (lots of unnecessary info otherwise)

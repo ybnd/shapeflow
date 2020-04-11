@@ -5,6 +5,7 @@ import shutil
 import pathlib
 import re
 import datetime
+import logging
 
 import yaml
 
@@ -13,7 +14,9 @@ from dataclasses import dataclass, field
 
 import diskcache
 
-import logging
+# Library version
+__version__: str = '0.3.6'  # todo: since this version is "global", maybe should merge all config stuff into isimple.core.config after all?
+
 VDEBUG = 9
 logging.addLevelName(VDEBUG, "VDEBUG")
 

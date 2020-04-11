@@ -14,7 +14,7 @@ import assert from "assert";
 
 export const state = () => {
   return {
-    // maps id to {name, state, config, coordinates, frame, frame_number}
+    // maps id to {name, state, progress, config}
   };
 };
 
@@ -41,6 +41,18 @@ export const mutations = {
     } catch (err) {
       console.warn(
         `setAnalyzerState failed: '${id}', analyzer_state: ${analyzer_state}`
+      );
+    }
+  },
+
+  setAnalyzerProgress(state, { id, analyzer_progress }) {
+    try {
+      assert(!(id === undefined), "no id provided");
+      assert(!(analyzer_progress === undefined), "no progress");
+      state[id] = { ...state[id], progress: analyzer_progress };
+    } catch (err) {
+      console.warn(
+        `setAnalyzerProgress failed: '${id}', analyzer_progress: ${analyzer_progress}`
       );
     }
   },
@@ -91,14 +103,23 @@ export const getters = {
   getConfig: state => id => {
     return state[id].config;
   },
+  getFeatures: state => id => {
+    return state[id].config.features;
+  },
+  getMasks: state => id => {
+    return state[id].config.masks.map(({ name }) => name);
+  },
+  getFilterType: state => (id, mask_index) => {
+    return state[id].config.masks[mask_index].filter.type;
+  },
+  getFilterData: state => (id, mask_index) => {
+    return state[id].config.masks[mask_index].filter.data;
+  },
   getRoi: state => id => {
     return state[id].config.transform.roi;
   },
   getName: state => id => {
     return state[id].name;
-  },
-  getIndex: state => id => {
-    return state.queue.indexOf(id);
   }
 };
 
@@ -142,7 +163,8 @@ export const actions = {
     try {
       return await list().then(data => {
         let ids = data.ids;
-        let states = data.states;
+        let state = data.states;
+        let progress = data.progress;
 
         // remove dead ids from the queue
         let q = rootGetters["queue/getQueue"];
@@ -171,20 +193,24 @@ export const actions = {
               //   });
               // });
               get_config(ids[i]).then(config => {
+                commit("setAnalyzerState", {
+                  id: ids[i],
+                  analyzer_state: state[i]
+                });
+                commit("setAnalyzerProgress", {
+                  id: ids[i],
+                  analyzer_state: progress[i]
+                });
                 commit("setAnalyzerConfig", {
                   id: ids[i],
                   analyzer_config: config
-                });
-                commit("setAnalyzerState", {
-                  id: ids[i],
-                  analyzer_state: states[i]
                 });
                 commit("queue/addToQueue", { id: ids[i] }, { root: true });
               });
             } else {
               commit("setAnalyzerState", {
                 id: ids[i],
-                analyzer_state: states[i]
+                analyzer_state: state[i]
               });
             }
           }
@@ -193,6 +219,23 @@ export const actions = {
       });
     } catch (e) {
       console.warn("backend may be down; refresh to check again");
+      return false;
+    }
+  },
+
+  async set_config({ commit }, { id, config }) {
+    try {
+      assert(!(id === undefined), "no id provided");
+      assert(!(config === undefined), "no config");
+
+      return await set_config(id, config).then(config => {
+        commit("setAnalyzerConfig", {
+          id: id,
+          analyzer_config: config
+        });
+      });
+    } catch (e) {
+      console.warn(`could not set config for ${id}`);
       return false;
     }
   }

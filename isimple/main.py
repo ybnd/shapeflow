@@ -134,6 +134,23 @@ class Main(object, metaclass=util.Singleton):
 
             return respond(isimple.settings)
 
+        @app.route('/api/options/<for_type>', methods=['GET'])
+        def get_enum(for_type):
+            if for_type == "state":
+                return respond([
+                    name for name, _ in video.AnalyzerState.__members__.items()
+                ])
+            elif for_type == "analyzer":
+                return respond(video.AnalyzerType().options)
+            elif for_type == "feature":
+                return respond(video.FeatureType().options)
+            elif for_type == "filter":
+                return respond(video.FilterType().options)
+            elif for_type == "transform":
+                return respond(video.TransformType().options)
+            else:
+                raise ValueError(f"No options for '{for_type}'")
+
         @app.route('/api/check_video_path', methods=['PUT'])
         def check_video():
             path = json.loads(request.data)['video_path']
@@ -174,8 +191,9 @@ class Main(object, metaclass=util.Singleton):
             active()
             log.vdebug(f"Listing analyzers")
             return respond({
-                'ids': [k for k in self._roots.keys()],
-                'states': [v.state for v in self._roots.values()]
+                'ids': [k for k in self._roots.keys()],  # todo: goes through self._roots 3 times!
+                'states': [v.state for v in self._roots.values()],
+                'progress': [v.progress for v in self._roots.values()],
             })
 
         @app.route('/api/<id>/call/get_schemas', methods=['GET'])
@@ -301,8 +319,8 @@ class Main(object, metaclass=util.Singleton):
         if endpoint in ('set_config',):
             pass  # todo: store to self._history
 
-        with self._lock:  # todo: this seems to fix transform estimation shenanigans
-            return method(**data)  # todo: makes stuff slow though, best to only lock on POST & debounce @ frontend
+        # with self._lock:  # todo: this seems to fix transform estimation shenanigans
+        return method(**data)  # todo: makes stuff slow though, best to only lock on POST & debounce @ frontend
 
     def stream(self, id: str, endpoint: str):
         # todo: sanity check this also
