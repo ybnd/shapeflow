@@ -107,11 +107,6 @@
       <b-progress class="progress" height="2px" :value="progress"></b-progress>
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
-          name="Monitor"
-          icon="icon-graph"
-          :url="`/analysis/monitor?id=${id}`"
-        />
-        <SidebarNavAnalysisLink
           name="Cancel"
           icon="icon-ban"
           :url="`/api/analyzer/${id}/cancel`"

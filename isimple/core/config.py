@@ -266,6 +266,6 @@ class ConfigType(Factory):
             return config
         else:
             raise TypeError(
-                f"'{self.__class__.__name__}' tried to return an unexpected type '{filter}'. "
+                f"'{self.__class__.__name__}' tried to return an unexpected type '{config}'. "
                 f"This is very weird and shouldn't happen, really."
             )

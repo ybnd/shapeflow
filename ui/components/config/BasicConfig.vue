@@ -55,36 +55,44 @@
         <b-row class="card-form-row">
           <b-form-group>
             <b-input-group>
-              <b-input-group-prepend>
-                <b-form-select
-                  ref="frame_interval_setting"
-                  v-model="config.frame_interval_setting"
-                  select="selectFrameIntervalSetting"
-                  :plain="false"
-                  :options="['Nf', 'dt']"
-                  class="frame-interval-selector"
-                >
-                </b-form-select>
-                <b-form-input
-                  ref="interval"
-                  type="text"
-                  v-model="config[`${config.frame_interval_setting}`]"
-                  class="interval"
-                ></b-form-input>
-              </b-input-group-prepend>
-              &ensp;
+              <b-form-select
+                ref="frame_interval_setting"
+                v-model="config.frame_interval_setting"
+                @change="selectFrameIntervalSetting"
+                :plain="false"
+                :options="frame_interval_setting_options"
+                class="frame-interval-selector"
+              >
+              </b-form-select>
+              <b-form-input
+                ref="interval"
+                type="text"
+                v-model="config[`${config.frame_interval_setting}`]"
+                class="interval"
+              ></b-form-input>
+            </b-input-group>
+          </b-form-group>
+          <b-form-group>
+            <b-input-group>
+              <b-form-select
+                ref="feature_setting"
+                v-model="config.feature"
+                @change="selectFeature"
+                :plain="false"
+                :options="feature_options"
+                class="feature-selector"
+              >
+              </b-form-select>
               <b-form-input
                 ref="height_mm"
                 type="text"
                 class="card-config-form"
+                v-bind:class="{
+                  hidden: !showHeight
+                }"
                 v-model="config.height_mm"
               ></b-form-input>
             </b-input-group>
-          </b-form-group>
-        </b-row>
-        <b-row class="card-form-row">
-          <b-form-group>
-            <b-input-group> </b-input-group>
           </b-form-group>
         </b-row>
       </b-container>
@@ -93,7 +101,16 @@
 </template>
 
 <script>
-import { check_design_path, check_video_path } from "../../static/api";
+import {
+  check_design_path,
+  check_video_path,
+  get_options
+} from "../../static/api";
+
+import AsyncComputed from "vue-async-computed";
+import Vue from "vue";
+
+Vue.use(AsyncComputed);
 
 export default {
   name: "BasicConfig",
@@ -113,6 +130,7 @@ export default {
           frame_interval_setting: "Nf",
           Nf: 100,
           dt: 5,
+          feature: "Volume_uL",
           height_mm: 0.153
         };
       }
@@ -129,6 +147,21 @@ export default {
         ],
         height: this.config.height_mm / 1000
       };
+    },
+    selectFrameIntervalSetting(setting) {
+      if (setting in this.frame_interval_setting_options) {
+        console.log("selecting frame_interval_setting");
+        console.log(setting);
+        this.config.frame_interval_setting = setting;
+      }
+    },
+    selectFeature(feature) {
+      if (feature in this.feature_options) {
+        console.log("selecting feature");
+        console.log(feature);
+        this.config.feature = feature;
+        this.showHeight = "h" in this.feature_parameters[feature];
+      }
     },
     async hasValidFiles() {
       let video_ok = await this.checkVideoPath();
@@ -150,8 +183,41 @@ export default {
       });
     }
   },
+  beforeMount() {
+    this.selectFeature(this.config.feature);
+    this.selectFrameIntervalSetting(this.config.frame_interval_setting);
+  },
+  asyncComputed: {
+    feature_parameters: {
+      async get() {
+        return get_options("feature").then(options => {
+          return options;
+        });
+      },
+      default: []
+    },
+    feature_options: {
+      async get() {
+        return get_options("feature").then(options => {
+          console.log("got feature options object");
+          console.log(options);
+          return Object.keys(options);
+        });
+      },
+      default: []
+    },
+    frame_interval_setting_options: {
+      async get() {
+        return get_options("frame_interval_setting").then(options => {
+          return options;
+        });
+      },
+      default: []
+    }
+  },
   data() {
     return {
+      showHeight: false,
       validVideo: false,
       invalidVideo: false,
       validDesign: false,
@@ -162,17 +228,16 @@ export default {
 </script>
 
 <style scoped>
-/*text-align: left;*/
 .column-container {
   margin-top: -15px;
   margin-left: -16px;
   padding-right: 3px;
-  margin-bottom: -37px;
   vertical-align: bottom;
 }
 .card-form-row {
-  margin-top: -10px;
-  margin-bottom: -10px;
+  margin-bottom: 8px;
+  height: 30px;
+  max-height: 30px;
 }
 .card-config-form {
   max-width: 140px;
@@ -182,5 +247,8 @@ export default {
 }
 .interval {
   width: 86px;
+}
+.hidden {
+  visibility: hidden;
 }
 </style>

@@ -43,13 +43,14 @@
     "vuedraggable": "^2.23.2"
   },
   "devDependencies": {
-    "node-sass": "^4.7.2",
-    "sass-loader": "^6.0.6",
-    "nodemon": "^1.11.0",
     "babel-eslint": "^8.2.1",
     "eslint": "^4.15.0",
     "eslint-friendly-formatter": "^3.0.0",
     "eslint-loader": "^2.0.0",
-    "eslint-plugin-vue": "^4.0.0"
+    "eslint-plugin-vue": "^4.0.0",
+    "node-sass": "^4.7.2",
+    "nodemon": "^1.11.0",
+    "sass-loader": "^6.0.6",
+    "vue-async-computed": "^3.8.2"
   }
 }

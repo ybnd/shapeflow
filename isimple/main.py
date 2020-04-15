@@ -136,6 +136,7 @@ class Main(object, metaclass=util.Singleton):
 
         @app.route('/api/options/<for_type>', methods=['GET'])
         def get_enum(for_type):
+            log.debug(f"get_enum for type '{for_type}'")
             if for_type == "state":
                 return respond([
                     name for name, _ in video.AnalyzerState.__members__.items()
@@ -143,7 +144,11 @@ class Main(object, metaclass=util.Singleton):
             elif for_type == "analyzer":
                 return respond(video.AnalyzerType().options)
             elif for_type == "feature":
-                return respond(video.FeatureType().options)
+                return respond({
+                    k: video.FeatureType(k).get().parameters() for k in video.FeatureType().options
+                })
+            elif for_type == "frame_interval_setting":
+                return respond(video.FrameIntervalSetting().options)
             elif for_type == "filter":
                 return respond(video.FilterType().options)
             elif for_type == "transform":

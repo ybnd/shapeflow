@@ -141,11 +141,8 @@ export default {
   margin-bottom: -16px;
 }
 .popover-form-row {
-  margin-top: -10px;
-  margin-bottom: -10px;
 }
 .popover-buttons {
   margin-left: -1px;
-  margin-top: 32px;
 }
 </style>

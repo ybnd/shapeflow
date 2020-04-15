@@ -746,19 +746,19 @@ class MaskFunction(Feature):
                         convert(self.color, BgrColor).np
                         # todo: update to isimple.maths.color
                     )
-                    state[self.mask.rows, self.mask.cols, :] = cv2.bitwise_and(
-                        substate, substate, mask=binary)
+                    state[self.mask.rows, self.mask.cols, :] \
+                        += cv2.bitwise_and(substate, substate, mask=binary)
                 else:
                     # Not ready -> highlight feature with a rectangle
-                    substate = np.zeros((*self.mask.part.shape, 3))
+                    substate = np.zeros((*self.mask.part.shape, 3), dtype=np.uint8)
 
                     for i,c in enumerate([0, 0, 255]):  # todo: numpy this
-                        substate[0:2, :, i] = c
-                        substate[-3:-1, :, i] = c
-                        substate[:, 0:2, i] = c
-                        substate[:, -3:-1, i] = c
+                        substate[0:1, :, i] = c
+                        substate[-2:-1, :, i] = c
+                        substate[:, 0:1, i] = c
+                        substate[:, -2:-1, i] = c
 
-                    state[self.mask.rows, self.mask.cols, :] = substate
+                    state[self.mask.rows, self.mask.cols, :] += substate
 
                   # todo: overwrites rect with white
                 return state
@@ -779,6 +779,8 @@ class PixelSum(MaskFunction):
 
 @extend(FeatureType)
 class Volume_uL(MaskFunction):
+    _parameters = ('h',)
+
     def _function(self, frame: np.ndarray) -> Any:
         return area_pixelsum(frame) / (self.mask.dpi / 25.4) ** 2 * self.mask.h * 1e3
 

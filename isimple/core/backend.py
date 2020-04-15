@@ -228,6 +228,7 @@ class Feature(abc.ABC):
     _ready: bool
 
     _elements: Tuple[BackendInstance, ...]
+    _parameters: Tuple[str,...] = ()
 
     def __init__(self, elements: Tuple[BackendInstance, ...]):
         self._skip = False
@@ -291,6 +292,10 @@ class Feature(abc.ABC):
         """
         raise NotImplementedError
 
+    @classmethod
+    def parameters(self) -> Tuple[str,...]:
+        return self._parameters
+
 
 class FeatureSet(object):
     _features: Tuple[Feature, ...]
@@ -336,6 +341,16 @@ class FeatureSet(object):
 
 class FeatureType(Factory):
     _type = Feature
+
+    def get(self) -> Type[Feature]:
+        feature = super().get()
+        if issubclass(feature, Feature):
+            return feature
+        else:
+            raise TypeError(
+                f"'{self.__class__.__name__}' tried to return an unexpected type '{feature}'. "
+                f"This is very weird and shouldn't happen, really."
+            )
 
 
 @dataclass

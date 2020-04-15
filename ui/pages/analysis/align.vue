@@ -59,11 +59,12 @@ import { throttle, debounce } from "throttle-debounce";
 export default {
   name: "align",
   beforeMount() {
+    console.log(`beforeMount() of align @ ${this.id}`);
     this.handleInit();
-    this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
     window.onresize = this.updateFrame;
   },
   beforeDestroy() {
+    console.log(`beforeDestroy() of align`);
     clearInterval(this.waitUntilHasRect);
     clearInterval(this.updateCall);
   },
@@ -78,14 +79,14 @@ export default {
       this.$router.push(`/analysis/filter?id=${this.id}`);
     },
     handleInit() {
+      console.log(`Initializing align window for ${this.id}`);
+
+      this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
       get_options("transform").then(options => {
-        console.log(`got transform options:`);
-        console.log(options);
         this.align_options = options;
         this.align = options[0];
       });
       this.moveable.className = this.moveableHide;
-      console.log(`Initializing align window for ${this.id}`);
       this.$store.dispatch("align/init", { id: this.id }).then(() => {
         console.log("Vuex/align: init should be done");
         console.log(this.$store.state.align);
@@ -103,7 +104,8 @@ export default {
     },
     handleRotate({ target, transform }) {
       // todo: rotation messes up perspective
-      target.style.transform = transform; // todo: temporarily disable bounds during rotation
+      // todo: during rotation, set warpable to false?
+      target.style.transform = transform; // todo: temporarily disable bounds during rotation?
     },
     updateRoiCoordinates() {
       let frame = this.$store.getters["align/getFrame"](this.id);
@@ -121,9 +123,9 @@ export default {
       })
     ),
     updateFrame() {
-      console.log("Updating frame...");
+      // console.log("Updating frame...");
       let frame = this.$refs.frame.getBoundingClientRect();
-      console.log(frame);
+      // console.log(frame);
       this.moveable.bounds = {
         left: frame.left,
         right: frame.right,
@@ -138,16 +140,16 @@ export default {
         );
         this.$refs.moveable.$el.style.transform = transform;
 
-        console.log("updateFrame - initial_transform");
-        console.log(transform);
-        console.log(this.$refs.moveable.$el);
+        // console.log("updateFrame - initial_transform");
+        // console.log(transform);
+        // console.log(this.$refs.moveable.$el);
 
         this.$refs.moveable.updateRect();
         this.$refs.moveable.updateTarget();
       });
     },
     updateOverlay() {
-      console.log("Updating overlay...");
+      // console.log("Updating overlay...");
       let rect_info = this.$refs.moveable.getRect();
 
       let overlay = {
@@ -159,7 +161,7 @@ export default {
         right: rect_info.width / 2
       };
 
-      console.log(overlay);
+      // console.log(overlay);
       this.$store.commit("align/setOverlay", { id: this.id, overlay: overlay });
     },
     updateFrameOnceHasRect() {
@@ -168,13 +170,13 @@ export default {
       let overlay_ok = false;
       if (!(this.waitUntilHasRect === undefined)) {
         if (this.$refs.frame.getBoundingClientRect()["width"] > 50) {
-          console.log("HAS FRAME");
+          // console.log("HAS FRAME");
           this.updateFrame();
           frame_ok = true;
         }
       }
       if (this.$refs.moveable.getRect()["width"] > 50) {
-        console.log("HAS OVERLAY");
+        // console.log("HAS OVERLAY");
         this.updateOverlay();
         overlay_ok = true;
       }
@@ -182,6 +184,16 @@ export default {
         clearInterval(this.waitUntilHasRect);
         this.moveable.className = this.moveableShow;
       }
+    }
+  },
+  watch: {
+    "$route.query.id"() {
+      console.log(`id has changed ${this.id}`);
+      console.log("Vuex store for align:");
+      console.log(this.$store.state.align);
+      this.handleInit();
+      this.updateFrame(); // todo: this *tries* to update the moveable, but it grows for some reason :( / :)
+      this.updateOverlay();
     }
   },
   computed: {

@@ -7,22 +7,7 @@
       </PageHeaderItem>
       <PageHeaderSeek :id="id" />
       <PageHeaderItem>
-        <!-- todo: should be able to add multiple features! -->
-        <b-button-group>
-          <b-dropdown
-            :text="`${this.feature}`"
-            data-toggle="tooltip"
-            title="Feature type"
-          >
-            <b-dropdown-item
-              v-for="feature in feature_options"
-              :key="`feature-${feature}`"
-              @click="handleSetFeature(feature)"
-            >
-              {{ feature }}
-            </b-dropdown-item>
-          </b-dropdown>
-        </b-button-group>
+        <!-- todo: should not set features here though! -->
       </PageHeaderItem>
       <PageHeaderItem>
         <b-button-group>
