@@ -300,7 +300,6 @@ class Main(object, metaclass=util.Singleton):
             type = video.AnalyzerType()
 
         analyzer = type.get()()
-        analyzer._multi = True
         log.debug(f"Added instance {{'{analyzer.id}': {analyzer}}}")
         self._roots[analyzer.id] = analyzer
         assert isinstance(analyzer, video.VideoAnalyzer)
@@ -315,7 +314,7 @@ class Main(object, metaclass=util.Singleton):
                 'methods': {e.name:[schema.schema(m) for m in ms] for e,ms in root.instance_mapping.items()}
         }
 
-    @util.timed
+    # @util.timed
     def call(self, id: str, endpoint: str, data: dict) -> Any:
         log.debug(f"{self._roots[id]}: call '{endpoint}'")
         # todo: sanity check this

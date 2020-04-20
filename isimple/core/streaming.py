@@ -161,8 +161,16 @@ class StreamHandler(object):  # todo: is a singleton
             del self._streams[k]
 
     def update(self):
-        for instance, method in self._streams.keys():
-            self.push(instance, method, method())
+        try:
+            for instance, method in self._streams.keys():
+                self.push(instance, method, method())
+        except RuntimeError:
+            log.debug(f"new stream opened while updating")
+            # Repeat the update. This doesn't happen too often,
+            # so don't worry about the performance hit.
+            self.update()
+            # Recursion could be problematic if too many streams are opened
+            # within a short time span, but this shouldn't be an issue.
 
     def stop(self):
         for k in self._streams:

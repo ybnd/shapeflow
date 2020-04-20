@@ -219,5 +219,5 @@ def get_logger(name: str = __name__, settings: LogSettings = settings.log) -> Cu
     log.addHandler(_console_handler)
     log.addHandler(_file_handler)
 
-    log.debug(f'new logger')
+    log.vdebug(f'new logger')
     return log
