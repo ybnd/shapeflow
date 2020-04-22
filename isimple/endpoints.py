@@ -34,7 +34,7 @@ class BackendRegistry(ImmutableRegistry):
     get_overlay_png = Endpoint(Callable[[], bytes])
     get_frame = Endpoint(Callable[[Optional[int]], np.ndarray])
     get_masked_frame = Endpoint(Callable[[int], np.ndarray])
-    set_filter_click = Endpoint(Callable[[float, float], None])
+    set_filter_click = Endpoint(Callable[[float, float], dict])
     filter = Endpoint(Callable[[np.ndarray], np.ndarray])
     mask = Endpoint(Callable[[np.ndarray], np.ndarray])
     get_filtered_frame = Endpoint(Callable[[Optional[int]], np.ndarray])

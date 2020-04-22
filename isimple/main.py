@@ -5,7 +5,7 @@ import json
 import os
 import time
 import webbrowser
-from threading import Thread, Event, Lock
+from threading import Thread, Event
 from typing import Dict, Any
 
 import cv2
@@ -37,7 +37,7 @@ class ServerThread(Thread, metaclass=util.Singleton):
     _app: Flask
     _host: str
     _port: int
-    _stop = Event()
+    _stopevent = Event()
 
     def __init__(self, app, host, port):
         self._app = app
@@ -46,7 +46,7 @@ class ServerThread(Thread, metaclass=util.Singleton):
         super().__init__(daemon=True)
 
     def run(self):
-        while not self._stop.is_set():
+        while not self._stopevent.is_set():
             waitress.serve(
                 self._app,
                 host=self._host,
@@ -54,7 +54,7 @@ class ServerThread(Thread, metaclass=util.Singleton):
             )
 
     def stop(self):
-        self._stop.set()
+        self._stopevent.set()
 
 
 class Main(object, metaclass=util.Singleton):
@@ -76,8 +76,6 @@ class Main(object, metaclass=util.Singleton):
     _timeout_suppress = 0.5
     _timeout_unload = 5
     _timeout_loop = 0.1
-
-    _lock = Lock()
 
     def __init__(self):
         app = Flask(__name__, static_url_path='')
@@ -204,16 +202,16 @@ class Main(object, metaclass=util.Singleton):
         @app.route('/api/<id>/call/get_schemas', methods=['GET'])
         def get_schemas(id: str):
             active()
-            return respond(self.get_schemas(str(id)))
+            return respond(self.get_schemas(id))
 
         @app.route('/api/<id>/launch', methods=['POST'])
         def launch(id: str):
             active()
-            return respond(self.call(str(id), 'launch', {}))
+            return respond(self.call(id, 'launch', {}))
 
         @app.route('/api/<id>/can_launch', methods=['GET'])
         def can_launch(id: str):
-            return respond(self.call(str(id), 'can_launch', {}))
+            return respond(self.call(id, 'can_launch', {}))
 
         @app.route('/api/<id>/get_state', methods=['GET'])
         def get_state(id: str):
@@ -222,7 +220,7 @@ class Main(object, metaclass=util.Singleton):
         @app.route('/api/<id>/call/get_overlay_png', methods=['GET'])
         def get_overlay_png(id: str):
             null: dict = {}
-            return make_response(self.call(str(id), 'get_overlay_png', null))
+            return make_response(self.call(id, 'get_overlay_png', null))
 
         @app.route('/api/<id>/call/<endpoint>', methods=['GET','PUT','POST'])
         def call(id: str, endpoint: str):
@@ -231,7 +229,7 @@ class Main(object, metaclass=util.Singleton):
                 data = json.loads(request.data)
             else:
                 data = {k:json.loads(v) for k,v in request.args.to_dict().items()}
-            result = self.call(str(id), endpoint, data)
+            result = self.call(id, endpoint, data)
             if result is None:
                 result = True
             return respond(result)
@@ -240,7 +238,7 @@ class Main(object, metaclass=util.Singleton):
         @app.route('/api/<id>/stream/<endpoint>', methods=['GET'])
         def stream(id: str, endpoint: str):
             return Response(
-                self.stream(str(id), endpoint).stream(),
+                self.stream(id, endpoint).stream(),
                 mimetype = "multipart/x-mixed-replace; boundary=frame",
             )
 
@@ -316,17 +314,23 @@ class Main(object, metaclass=util.Singleton):
 
     # @util.timed
     def call(self, id: str, endpoint: str, data: dict) -> Any:
-        log.debug(f"{self._roots[id]}: call '{endpoint}'")
-        # todo: sanity check this
-        method = self._roots[id].get(getattr(backend.backend, endpoint))
+        try:
+            t0 = time.time()
+            log.debug(f"{self._roots[id]}: call '{endpoint}'")
+            # todo: sanity check this
+            method = self._roots[id].get(getattr(backend.backend, endpoint))
 
-        if endpoint in ('set_config',):
-            pass  # todo: store to self._history
+            if endpoint in ('set_config',):
+                pass  # todo: store to self._history
 
-        # with self._lock:  # todo: this seems to fix transform estimation shenanigans
-        return method(**data)  # todo: makes stuff slow though, best to only lock on POST & debounce @ frontend
+            result = method(**data)
+            log.debug(f"{self._roots[id]}: return '{endpoint}' "
+                      f"({time.time() - t0} s elapsed)")
+            return result
+        except KeyError:
+            log.debug(f"{self._roots[id]}: KeyError @ '{endpoint}'")
 
-    def stream(self, id: str, endpoint: str):
+    def stream(self, id: str, endpoint: str) -> streaming.FrameStreamer:
         # todo: sanity check this also
         method = self._roots[id].get(getattr(backend.backend, endpoint))
         self._roots[id].cache_open()

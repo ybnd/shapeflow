@@ -444,7 +444,7 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
         raise NotImplementedError
 
     @backend.expose(backend.confirm_run)
-    def override(self):
+    def override(self) -> None:
         self._do_run = True
 
     @property

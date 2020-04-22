@@ -153,12 +153,14 @@ class StreamHandler(object):  # todo: is a singleton
                     log.debug(f"pushing {method.__qualname__} to stream")
                     self._streams[k].push(frame)
 
-    def unregister(self, k):
+    def unregister(self, instance: object, method):
         """Unregister `method`: stop its streamer & delete
         """  # todo: should unregister explicitly e.g. when closing a page
-        if k in self._streams:
-            self._streams[k].stop()
-            del self._streams[k]
+        with self.lock:
+            k = self.key(instance, method)
+            if k in self._streams:
+                self._streams[k].stop()
+                del self._streams[k]
 
     def update(self):
         try:
@@ -173,8 +175,8 @@ class StreamHandler(object):  # todo: is a singleton
             # within a short time span, but this shouldn't be an issue.
 
     def stop(self):
-        for k in self._streams:
-            self.unregister(k)
+        for instance, method in self._streams:
+            self.unregister(instance, method)
 
 
 # Global StreamHandler instance

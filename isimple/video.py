@@ -1023,7 +1023,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
     @stream
     @backend.expose(backend.get_state_frame)
-    def get_state_frame(self, frame_number: Optional[int] = None, featureset: int = 0) -> np.ndarray:
+    def get_state_frame(self, frame_number: Optional[int] = None, featureset: Optional[int] = 0) -> np.ndarray:
         # todo: eliminate duplicate code ~ calculate (calculate should just call get_state_frame, ideally)
 
         # Empty state image in BGR
