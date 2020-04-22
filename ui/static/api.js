@@ -161,8 +161,16 @@ export async function launch(id) {
   });
 }
 
+export async function open_stream(id, endpoint) {
+  return axios.get(url(id, `stream/${endpoint}/open`));
+}
+
 export async function stream(id, endpoint) {
   return axios.get(url(id, `stream/${endpoint}`));
+}
+
+export async function close_stream(id, endpoint) {
+  return axios.get(url(id, `stream/${endpoint}/close`));
 }
 
 export async function seek(id, position) {

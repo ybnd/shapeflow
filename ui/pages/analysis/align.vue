@@ -81,6 +81,9 @@ export default {
     handleInit() {
       console.log(`Initializing align window for ${this.id}`);
 
+      console.log("trying to emit seek event");
+      this.$root.$emit(`seek-${this.id}`);
+
       this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
       get_options("transform").then(options => {
         this.align_options = options;
@@ -189,8 +192,9 @@ export default {
   watch: {
     "$route.query.id"() {
       console.log(`id has changed ${this.id}`);
-      console.log("Vuex store for align:");
-      console.log(this.$store.state.align);
+
+      this.$forceUpdate();
+
       this.handleInit();
       this.updateFrame(); // todo: this *tries* to update the moveable, but it grows for some reason :( / :)
       this.updateOverlay();

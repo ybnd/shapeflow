@@ -48,23 +48,33 @@ export default {
     draggable
   },
   beforeMount() {
-    this.updateQueueFromStore();
-    this.interval_update = setInterval(this.updateQueueFromStore, 250);
+    this.sync();
+    this.interval_update = setInterval(this.updateQueue, 100);
+    this.interval_sync = setInterval(this.sync, 5000);
   },
   methods: {
     handleClick(e) {
       e.preventDefault();
       e.target.parentElement.classList.toggle("open");
     },
-    updateQueueFromStore() {
-      this.$store.dispatch("analyzers/sync").then(ok => {
-        if (ok) {
-          this.queue = this.$store.getters["queue/getQueue"];
-        } else {
-          // Received 404 -> assume server is down, don't sync anymore
-          clearInterval(this.interval_update);
-        }
-      });
+    updateQueue() {
+      this.queue = this.$store.getters["queue/getQueue"];
+    },
+    sync() {
+      if (!this.waiting) {
+        this.waiting = true;
+        this.$store.dispatch("analyzers/sync").then(ok => {
+          if (ok) {
+            this.queue = this.$store.getters["queue/getQueue"];
+          } else {
+            // Received 404 -> assume server is down, don't sync anymore
+            clearInterval(this.interval_update);
+          }
+          this.waiting = false;
+        });
+      } else {
+        console.warn("backend is overwhelmed :(");
+      }
     },
     handleReorderQueue() {
       this.$store.commit("queue/setQueue", { queue: this.queue });
@@ -73,7 +83,9 @@ export default {
   data: () => {
     return {
       queue: [], // local copy of queue
-      interval_update: []
+      interval_update: null,
+      interval_sync: null,
+      waiting: false
     };
   }
 };
