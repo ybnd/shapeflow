@@ -174,12 +174,12 @@ class RootInstance(object):
     def get_id(self):
         self._id = str(uuid.uuid1())
 
+    def _set_id(self, id: str):
+        self._id = id
+
     @property
     def id(self):
         return self._id
-
-    def connect(self, manager):
-        raise NotImplementedError
 
     @property
     def instance_mapping(self):

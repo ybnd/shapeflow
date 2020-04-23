@@ -2,10 +2,11 @@
 # cheated off of https://stackoverflow.com/questions/39801718
 
 import json
+import pickle
 import os
 import time
 import webbrowser
-from threading import Thread, Event
+from threading import Thread, Event, Lock
 from typing import Dict, Any
 
 import cv2
@@ -64,8 +65,8 @@ class Main(object, metaclass=util.Singleton):
     _models: Dict[str, history.VideoAnalysisModel] = {}
     _history = history.History()
 
-    _host: str = 'localhost'
-    _port: int = 7951
+    _host: str = 'localhost'  # todo: load from settings.yaml
+    _port: int = 7951  # todo: load from settings.yaml
 
     _server: ServerThread
 
@@ -73,9 +74,9 @@ class Main(object, metaclass=util.Singleton):
     _unload = Event()
     _quit = Event()
 
-    _timeout_suppress = 0.5
-    _timeout_unload = 5
-    _timeout_loop = 0.1
+    _timeout_suppress = 0.5  # todo: load from settings.yaml
+    _timeout_unload = 5  # todo: load from settings.yaml
+    _timeout_loop = 0.1  # todo: load from settings.yaml
 
     def __init__(self):
         app = Flask(__name__, static_url_path='')
@@ -256,6 +257,17 @@ class Main(object, metaclass=util.Singleton):
             response.headers['Content-Disposition'] = 'attachment; filename=data.csv'
             return response
 
+        # State
+        @app.route('/api/state/save')
+        def save_state():
+            self.save_state()
+            return respond(True)
+
+        @app.route('/api/state/load')
+        def load_state():
+            self.load_state()
+            return respond(True)
+
         self._app = app
 
     def serve(self, open_in_browser: bool):
@@ -289,6 +301,7 @@ class Main(object, metaclass=util.Singleton):
             time.sleep(self._timeout_loop)
 
     def cleanup(self):
+        log.debug('cleaning up')
         self._server.stop()
         self._server.join()
         streaming.streams.stop()
@@ -303,6 +316,37 @@ class Main(object, metaclass=util.Singleton):
         assert isinstance(analyzer, video.VideoAnalyzer)
         self._history.add_analysis(analyzer)
         return analyzer.id
+
+    def save_state(self):
+        log.debug("saving state")
+
+        s = {
+            k:{'config': root.config, 'state': root.state} for k,root in self._roots.items()
+        }
+
+        with open(os.path.join(isimple.ROOTDIR, 'state'), 'wb') as f:
+            pickle.dump(s, f)
+
+    def load_state(self):
+        log.debug("loading state")
+
+        try:
+            with open(os.path.join(isimple.ROOTDIR, 'state'), 'rb') as f:
+                S = pickle.load(f)
+
+            for k,s in S.items():
+                analyzer = video.init(s['config'])
+                analyzer._set_id(k)
+
+                if video.AnalyzerState.do_launch(s['state']):
+                    analyzer.launch()
+
+                self._roots[k] = analyzer
+                assert isinstance(analyzer, video.VideoAnalyzer)
+                self._history.add_analysis(analyzer)
+
+        except FileNotFoundError:
+            pass
 
     def get_schemas(self, id: str) -> dict:
         log.debug(f"Providing schemas for '{id}'")

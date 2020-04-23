@@ -48,7 +48,7 @@ class ResultsModel(NoGetterModel):
 class FileModel(NoGetterModel):
     _path: str
     _hash_q: Optional[multiprocessing.Queue]
-    _parent: Optional[Tuple[Model, str]]
+    _parent: Optional[Tuple[Model, str]] # todo: what was this again?
 
     def __init__(self, *args, **kwargs):
         super().__init__()
@@ -122,7 +122,6 @@ class RoiModel(NoGetterModel):
 
         'added': types.DATE,
     }
-
 
 class VideoFileModel(FileModel):
     _table = 'video_files'

@@ -19,17 +19,17 @@ from isimple.core.backend import BackendInstance, CachingBackendInstance, \
     Handler, BaseVideoAnalyzer, BackendSetupError, AnalyzerType, Feature, \
     FeatureSet, \
     FeatureType, backend, AnalyzerState
-from isimple.core.config import (extend, __meta_ext__)
+from isimple.core.config import extend, __meta_ext__, Config
 from isimple.core.interface import TransformInterface, FilterConfig, \
     FilterInterface, FilterType, TransformType
 from isimple.core.streaming import stream, streams
 from isimple.endpoints import BackendRegistry
 from isimple.endpoints import GuiRegistry as gui
-from isimple.maths.colors import HsvColor, BgrColor, complementary,  convert
+from isimple.maths.colors import HsvColor, BgrColor, convert
 from isimple.maths.images import to_mask, crop_mask, area_pixelsum, ckernel, \
     overlay, rect_contains
 from isimple.maths.coordinates import Coo
-from isimple.util import frame_number_iterator, timed
+from isimple.util import frame_number_iterator
 
 log = get_logger(__name__)
 
@@ -41,6 +41,8 @@ class VideoFileTypeError(BackendSetupError):
 class VideoFileHandler(CachingBackendInstance):
     """Interface to video files ~ OpenCV
     """
+    _capture: cv2.VideoCapture
+
     _shape: tuple
     _stream_methods: list
 
@@ -793,7 +795,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             * Load/save measurement metadata
     """
     _config: VideoAnalyzerConfig
-    _class = VideoAnalyzerConfig('', '')
+    _class = VideoAnalyzerConfig('', '')  # todo: why is this again?
     _gui: Optional[RootInstance]
     _endpoints: BackendRegistry = backend
 
@@ -805,13 +807,10 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
     _featuresets: Dict[str, FeatureSet]
 
-    _cancel: threading.Event
-
     def __init__(self, config: VideoAnalyzerConfig = None, multi: bool = False):
         super().__init__(config)
         self._multi = multi
         self.results: dict = {}
-        self._cancel = threading.Event()
         self._gather_instances()
 
     @property
@@ -882,7 +881,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
         self._config.features = tuple(features)
 
-
         self._featuresets = {
             str(feature): FeatureSet(
                 tuple(feature.get()(mask) for mask in self.design.masks),
@@ -893,11 +891,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             self.results[str(feature)] = pd.DataFrame(
                 [], columns=['time'] + [f.name for f in fs.features], index=list(self.frame_numbers())
             )
-
-    # <backend shouldn't care about this>  todo: in isimple.og, make LegacyVideoAnalyzer(VideoAnalyzer) that implements these
-    def connect(self, gui: RootInstance):
-        # todo: sanity checks
-        self._gui = gui
 
     def configure(self):
         if self._gui is not None:
@@ -939,8 +932,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                     if self.can_run():
                         self._state = AnalyzerState.CAN_RUN
                 return True
-
-
 
     @stream
     @backend.expose(backend.get_frame)  # todo: would like to have some kind of 'deferred expose' decorator?
@@ -1003,6 +994,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
             for fs in self._featuresets.values():
                 for feature in fs.features:
+                    assert isinstance(feature, MaskFunction)
                     try:
                         if feature.mask == hit:  # type: ignore
                             feature._ready = True
@@ -1091,6 +1083,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             )
 
     def analyze(self) -> bool:
+        assert isinstance(self._cancel, threading.Event)
         self._state = AnalyzerState.RUNNING
 
         if self.model is None:
@@ -1123,11 +1116,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         else:
             self._cancel.clear()
             return False
-
-    def cancel(self) -> bool:
-        self._cancel.set()
-        self._state = AnalyzerState.CANCELED
-        return True
 
     def load_config(self, path: str = None):  # todo: look in history instead of file next to video
         """Load video analysis configuration
@@ -1185,3 +1173,11 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     @property
     def _design_to_hash(self):
         return self.config.design_path
+
+
+def init(config: Config) -> BaseVideoAnalyzer:
+    mapping = {
+        VideoAnalyzerConfig: VideoAnalyzer
+    }
+
+    return mapping[type(config)](config)

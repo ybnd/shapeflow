@@ -372,6 +372,17 @@ class AnalyzerState(IntEnum):  # todo: would be cool to compare this and analyze
     CANCELED = 7
     ERROR = 8
 
+    @classmethod
+    def do_launch(cls, state: int) -> bool:
+        return state in [
+            cls.CAN_LAUNCH,
+            cls.LAUNCHED,
+            cls.CAN_RUN,
+            cls.RUNNING,
+            cls.DONE,
+            cls.CANCELED
+        ]
+
 
 class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
     _instances: List[BackendInstance]
@@ -380,7 +391,8 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
     _state: int
     _progress: float
 
-    _lock: threading.Lock
+    _lock: Optional[threading.Lock]
+    _cancel: Optional[threading.Event]
 
     results: Dict[str, pd.DataFrame]
 
@@ -404,7 +416,6 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
 
         super().__init__(config)
         self._description = ''
-        self._lock = threading.Lock()
         self._timer = Timer(self)
         self._launched = False
         self._ok_to_run = False
@@ -415,6 +426,9 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
         self._state = AnalyzerState.INCOMPLETE
         self._progress = 0.0
         self._model = None
+
+        self._lock = threading.Lock()
+        self._cancel = threading.Event()
 
     @property
     def id(self):
@@ -562,6 +576,14 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
     @property
     def description(self):
         return self._description
+
+    def cancel(self) -> bool:
+        if self._cancel is not None:
+            self._cancel.set()
+            self._state = AnalyzerState.CANCELED
+            return True
+        else:
+            raise ValueError('cancel event was set to None')
 
 
 class AnalyzerType(Factory):
