@@ -29,7 +29,6 @@ export default {
   },
   components: { VueSlider, PageHeaderItem },
   beforeMount() {
-    console.log("PageHeaderSeek beforeMount()");
     this.setSeekPosition(0.5);
     this.updatePosition = setInterval(1000, this.getSeekPosition);
     this.$root.$on(`seek-${this.id}`, this.handleSeek);
@@ -39,15 +38,12 @@ export default {
   },
   methods: {
     setSeekPosition() {
-      console.log(`Seeking ${this.id}`);
       seek(this.id, this.position).then(position => {
         this.position = position;
       });
     },
     getSeekPosition() {
-      console.log("trying to get seek position");
       get_seek_position(this.id).then(position => {
-        console.log(`Current seek position is ${position}`);
         this.position = position;
       });
     },

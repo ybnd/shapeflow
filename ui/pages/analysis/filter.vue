@@ -74,6 +74,8 @@ export default {
   },
   methods: {
     initFilter() {
+      this.$root.$emit(`seek-${this.id}`);
+
       get_options("feature").then(options => {
         this.feature_options = options;
       });

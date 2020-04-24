@@ -87,7 +87,6 @@ export default {
 
       this.previous_id = this.id;
 
-      console.log("trying to emit seek event");
       this.$root.$emit(`seek-${this.id}`);
 
       this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
