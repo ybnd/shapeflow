@@ -9,7 +9,7 @@
 </template>
 
 <script>
-import { get_log } from "../static/api";
+import { get_log, stop_log } from "../static/api";
 import { debounce } from "throttle-debounce";
 import PageHeader from "../components/header/PageHeader";
 import PageHeaderItem from "../components/header/PageHeaderItem";
@@ -28,6 +28,9 @@ export default {
     this.request = get_log();
 
     setInterval(this.handleLogText, 250);
+  },
+  beforeDestroy() {
+    stop_log();
   },
   methods: {
     handleScroll() {

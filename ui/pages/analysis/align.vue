@@ -65,6 +65,9 @@ export default {
   },
   beforeDestroy() {
     console.log(`beforeDestroy() of align`);
+
+    this.handleCleanUp();
+
     clearInterval(this.waitUntilHasRect);
     clearInterval(this.updateCall);
   },
@@ -78,8 +81,11 @@ export default {
     handleSetFilters() {
       this.$router.push(`/analysis/filter?id=${this.id}`);
     },
+    handleCleanUp() {},
     handleInit() {
       console.log(`Initializing align window for ${this.id}`);
+
+      this.previous_id = this.id;
 
       console.log("trying to emit seek event");
       this.$root.$emit(`seek-${this.id}`);
@@ -193,6 +199,8 @@ export default {
     "$route.query.id"() {
       console.log(`id has changed ${this.id}`);
 
+      this.handleCleanUp();
+
       this.$forceUpdate();
 
       this.handleInit();
@@ -225,7 +233,8 @@ export default {
     updateCall: null,
     moveableShow: "",
     moveableHide: "hidden",
-    waitUntilHasRect: null
+    waitUntilHasRect: null,
+    previous_id: ""
   })
 };
 </script>

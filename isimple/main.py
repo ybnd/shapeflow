@@ -78,6 +78,8 @@ class Main(object, metaclass=util.Singleton):
     _timeout_unload = 5  # todo: load from settings.yaml
     _timeout_loop = 0.1  # todo: load from settings.yaml
 
+    _stop_log: Event
+
     def __init__(self):
         app = Flask(__name__, static_url_path='')
         app.config.from_object(__name__)
@@ -247,15 +249,27 @@ class Main(object, metaclass=util.Singleton):
         def get_log():
             # cheated off of https://stackoverflow.com/questions/35540885/
             log.debug("streaming log file")
+
+            # Stop previous log reader if active
+            if hasattr(self, '_stop_log'):
+                self._stop_log.set()
+
             def generate():
+                self._stop_log = Event()
                 with open(isimple.settings.log.path) as f:
-                    while True:
+                    while not self._stop_log.is_set():
                         yield f.read()
                         time.sleep(1)
 
             response = Response(generate(), mimetype='text/plain')
             response.headers['Content-Disposition'] = 'attachment; filename=data.csv'
             return response
+
+        @app.route('/api/stop_log', methods=['PUT'])
+        def stop_log():
+            log.debug("stopping log file stream")
+            self._stop_log.set()
+            return respond(True)
 
         # State
         @app.route('/api/state/save')
