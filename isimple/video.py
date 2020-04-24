@@ -2,7 +2,7 @@ import os
 import re
 import threading
 import copy
-from typing import Callable, Any, Dict, Generator, Optional, List, Tuple
+from typing import Callable, Any, Dict, Generator, Optional, List, Tuple, Type
 
 import cv2
 import numpy as np
@@ -13,13 +13,13 @@ from isimple import get_logger, settings
 from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     HsvRangeFilterConfig, FilterHandlerConfig, MaskConfig, \
     DesignFileHandlerConfig, VideoAnalyzerConfig, load, dump, \
-    FrameIntervalSetting
+    FrameIntervalSetting, BaseAnalyzerConfig
 from isimple.core import RootInstance
 from isimple.core.backend import BackendInstance, CachingBackendInstance, \
     Handler, BaseVideoAnalyzer, BackendSetupError, AnalyzerType, Feature, \
     FeatureSet, \
     FeatureType, backend, AnalyzerState
-from isimple.core.config import extend, __meta_ext__, Config
+from isimple.core.config import extend, __meta_ext__
 from isimple.core.interface import TransformInterface, FilterConfig, \
     FilterInterface, FilterType, TransformType
 from isimple.core.streaming import stream, streams
@@ -1015,7 +1015,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
     @stream
     @backend.expose(backend.get_state_frame)
-    def get_state_frame(self, frame_number: Optional[int] = None, featureset: Optional[int] = 0) -> np.ndarray:
+    def get_state_frame(self, frame_number: Optional[int] = None, featureset: int = 0) -> np.ndarray:
         # todo: eliminate duplicate code ~ calculate (calculate should just call get_state_frame, ideally)
 
         # Empty state image in BGR
@@ -1175,8 +1175,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         return self.config.design_path
 
 
-def init(config: Config) -> BaseVideoAnalyzer:
-    mapping = {
+def init(config: BaseAnalyzerConfig) -> BaseVideoAnalyzer:
+    mapping: Dict[Type[BaseAnalyzerConfig], Type[BaseVideoAnalyzer]] = {
         VideoAnalyzerConfig: VideoAnalyzer
     }
 
