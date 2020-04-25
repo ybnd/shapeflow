@@ -2,8 +2,11 @@ import os
 import abc
 import time
 import json
-
 from typing import Optional, Tuple, Union, List, Type
+
+from datetime import datetime
+import six
+
 import multiprocessing
 
 import numpy as np
@@ -13,8 +16,8 @@ from isimple import settings, get_logger
 
 from isimple.core import RootException
 from isimple.dbcore import Model, Database, types, MatchQuery
-from isimple.dbcore.query import *
-from isimple.dbcore.queryparse import *
+from isimple.dbcore.query import InvalidQueryArgumentValueError, InvalidQueryError, NullSort
+from isimple.dbcore.queryparse import parse_query_parts, parse_query_string
 from isimple.util import hash_file, ndarray2str, str2ndarray
 from isimple.config import dumps
 
@@ -48,20 +51,23 @@ class ResultsModel(NoGetterModel):
 
 class FileModel(NoGetterModel):
     _path: str
-    _hash_q: Optional[multiprocessing.Queue]
+    _hash_q: multiprocessing.Queue
     _parent: Optional[Tuple[Model, str]] # todo: what was this again?
 
-    def __init__(self, *args, **kwargs):
-        super().__init__()
-        self._hash_q = None
+    def __init__(self, *args, path: str = None, **kwargs):
+        super().__init__(*args, **kwargs)
         self._parent = None
+        if path is not None:
+            self.queue_hash(path)
 
     def queue_hash(self, path: str):
         self._path = path
+        self.update({'path': path})
         if self._check_file():
             self._hash_q = hash_file(self._path)
         else:
             raise ValueError
+        log.info(f"queueing hash for {path}")
 
     def _check_file(self):
         return self._check_file_exists()
@@ -74,8 +80,8 @@ class FileModel(NoGetterModel):
 
     def hash(self) -> str:
         try:
-            assert self._hash_q is not None
-            return self._hash_q.get()
+            hash = self._hash_q.get()
+            return hash
         except AttributeError:
             raise RootException(f"{self.__class__.__qualname__}: hash() "
                                 "was called before queue_hash()")
@@ -88,17 +94,18 @@ class FileModel(NoGetterModel):
             listed, remove it from the database and set the parent's file to
             the matching file instead.
         """
-        if hasattr(self, '_hash_q') and self._hash_q is not None:
+        if self._hash_q is not None:
             if self._hash_q.qsize():
                 hash = self.hash()
                 match = self._db._fetch(self.__class__, MatchQuery('hash', hash))  # todo: is there a cleaner way to do this?
 
                 if any(hash == m['hash'] for m in match):
                     match = match.get()
-                    match._db = self._db  # todo: is there a cleaner way to do this?
+                    log.debug(f"{hash} -> {match}")
                     self.remove()
                     setattr(*self._parent, match)
                 else:
+                    log.debug(f"{hash} -> {self}")
                     self.update({
                         'path': self._path,
                         'hash': hash,
@@ -204,17 +211,20 @@ class VideoAnalysisModel(NoGetterModel):
                 'description': self._analyzer.description,
             })
 
-            if self._video is None:
+            if self._analyzer.config.video_path and self._video is None:
                 try:
-                    self._video = self._db.add_video_file(self._analyzer.config.video_path, self, '_video')
-                except ValueError:
+                    self._video = self._db.add_file(self._analyzer.config.video_path, self, VideoFileModel, '_video')
+                except ValueError as e:
                     pass
 
-            if self._design is None:
+            if self._analyzer.config.design_path and self._design is None:
                 try:
-                    self._design = self._db.add_design_file(self._analyzer.config.design_path, self, '_design')
-                except ValueError:
+                    self._design = self._db.add_file(self._analyzer.config.design_path, self, DesignFileModel, '_design')
+                except ValueError as e:
                     pass
+
+            if self._video is not None and self._design is not None:
+                self.commit_files()
 
             # Store results
             for k,df in self._analyzer.results.items():
@@ -242,26 +252,26 @@ class VideoAnalysisModel(NoGetterModel):
         super().store(fields)
 
     def commit_files(self):
-        # todo: should be called before the first store
-        self._video.resolve()
-        self._video.store()
-        self._design.resolve()
-        self._design.store()
+        if self._video is not None and self._design is not None:
+            self._video.resolve()
+            self._video.store()
+            self._design.resolve()
+            self._design.store()
 
-        self._db.add_roi(
-            self._analyzer.transform.config.roi,
-            self._video, self._design, self
-        )
+            self._db.add_roi(
+                self._analyzer.transform.config.roi,
+                self._video, self._design, self
+            )
 
-        self.update({
-            'video': self._video['id'],
-            'design': self._design['id'],
-        })
+            self.update({
+                'video': self._video['id'],
+                'design': self._design['id'],
+            })
 
     def export(self):
         # todo: should get data from db instead of self._analyzer
         name = str(os.path.splitext(self._analyzer.config.video_path)[0])  # type: ignore
-        f = name + ' ' + datetime.datetime.now().strftime("%Y-%m-%d %H-%M-%S") + '.xlsx'
+        f = name + ' ' + datetime.now().strftime("%Y-%m-%d %H-%M-%S") + '.xlsx'
 
         w = pd.ExcelWriter(f)
         for k,v in self._analyzer.results.items():
@@ -334,9 +344,19 @@ class History(Database):
         model = VideoAnalysisModel()
         model.set_analyzer(analyzer)
         model.add(self)
-        model.store()
         analyzer.set_model(model)
+
         return model
+
+    def add_file(self, path: Optional[str], parent: Model, filetype: Type[FileModel], attribute: str) -> FileModel:
+        if path is not None:
+            model = filetype(path = path)
+            model.add(self)
+            model.set_parent(parent, attribute)  # todo: not super clear how _parent = (parent, attribute) works...
+            model.store()
+            return model
+        else:
+            raise ValueError
 
     def add_results(self) -> ResultsModel:
         model = ResultsModel()
@@ -344,31 +364,8 @@ class History(Database):
         model.store()
         return model
 
-    def add_video_file(self, path: Optional[str], parent: Model, attribute: str) -> VideoFileModel:
-        if path is not None:
-            model = VideoFileModel()
-            model.add(self)
-            model.set_parent(parent, attribute)
-            model.queue_hash(path)
-            model.store()
-            return model
-        else:
-            raise ValueError
-
-    def add_design_file(self, path: Optional[str], parent: Model, attribute: str) -> DesignFileModel:
-        if path is not None:
-            model = DesignFileModel()
-            model.add(self)
-            model.set_parent(parent, attribute)
-            model.queue_hash(path)
-            model.store()
-            return model
-        else:
-            raise ValueError
-
-    def add_roi(self, roi: Union[np.ndarray, str], video: VideoFileModel, design: DesignFileModel, analysis: VideoAnalysisModel):
-        if not isinstance(roi, str):
-            roi = ndarray2str(roi)
+    def add_roi(self, roi: dict, video: VideoFileModel, design: DesignFileModel, analysis: VideoAnalysisModel):
+        roi = json.dumps(roi)
 
         model = RoiModel()
         model.update({

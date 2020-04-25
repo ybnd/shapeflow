@@ -913,9 +913,13 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     def set_config(self, config: dict) -> bool:
         with self.lock():
             if True:  # todo: sanity check
+                do_resolve = False
+                do_store = False
                 log.debug(f"Setting VideoAnalyzerConfig to {config}")
 
                 previous_features = copy.copy(self.config.features)
+                previous_video_path = copy.copy(self.config.video_path)
+                previous_design_path = copy.copy(self.config.design_path)
 
                 self._config(**config)
 
@@ -923,6 +927,10 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 if previous_features != self.config.features:
                     log.debug('updating featuresets')
                     self._get_featuresets()
+
+                # Check for changes in files
+                if previous_video_path != self.config.video_path or previous_design_path != self.config.design_path:
+                    self._model.commit_files()  # todo: isimple.video doesn't know about isimple.history!
 
                 # Check for state transitions
                 if self._state == AnalyzerState.INCOMPLETE:
@@ -1087,7 +1095,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         self._state = AnalyzerState.RUNNING
 
         if self.model is None:
-            log.warning(f"no model provided to {self}; data may be lost")
+            log.warning(f"{self} has no database model; data may be lost")
 
         with self.lock(), self.time():
             self._get_featuresets()

@@ -145,26 +145,22 @@ def after_version(version_a, version_b):
 
 
 @lru_cache(maxsize=256)
-def hash_file(path: str = None, blocksize: int = 1024) -> Optional[multiprocessing.Queue]:
-    if not path is None:
-        if os.path.isfile:
-            q: multiprocessing.Queue = multiprocessing.Queue()
-            def _hash_file():
-                nonlocal q
-                m = hashlib.sha1()
-                with open(path, 'rb') as f:
-                    while True:
-                        buf = f.read(blocksize)
-                        if not buf:
-                            break
-                        m.update(buf)
-                    q.put(m.hexdigest())
-            multiprocessing.Process(target=_hash_file, daemon=True).start()
-            return q
-        else:
-            return None
-    else:
-        return None
+def hash_file(path: str, blocksize: int = 1024) -> multiprocessing.Queue:
+    if os.path.isfile:
+        q: multiprocessing.Queue = multiprocessing.Queue()
+        def _hash_file():
+            nonlocal q
+            m = hashlib.sha1()
+            with open(path, 'rb') as f:
+                while True:
+                    buf = f.read(blocksize)
+                    if not buf:
+                        break
+                    m.update(buf)
+                q.put(m.hexdigest())
+        multiprocessing.Process(target=_hash_file, daemon=True).start()
+        return q
+
 
 @contextmanager
 def suppress_stdout():
