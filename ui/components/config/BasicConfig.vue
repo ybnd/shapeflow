@@ -18,7 +18,9 @@
           <b-form-group>
             <b-input-group class="popover-field">
               <b-input-group-prepend>
-                <b-button><i class="fa fa-file-video-o"></i></b-button>
+                <b-button @click="selectVideoFile"
+                  ><i class="fa fa-file-video-o"></i
+                ></b-button>
               </b-input-group-prepend>
               <b-form-input
                 v-bind:style="formStyle"
@@ -37,7 +39,9 @@
           <b-form-group>
             <b-input-group>
               <b-input-group-prepend>
-                <b-button><i class="fa fa-file-code-o"></i></b-button>
+                <b-button @click="selectDesignFile"
+                  ><i class="fa fa-file-code-o"></i
+                ></b-button>
               </b-input-group-prepend>
               <b-form-input
                 v-bind:style="formStyle"
@@ -102,6 +106,8 @@
 
 <script>
 import {
+  select_design_path,
+  select_video_path,
   check_design_path,
   check_video_path,
   get_options
@@ -163,6 +169,18 @@ export default {
         this.showHeight = "h" in this.feature_parameters[feature];
       }
     },
+    selectVideoFile() {
+      select_video_path().then(path => {
+        console.log(path);
+        this.config.video_path = path;
+      });
+    },
+    selectDesignFile() {
+      select_design_path().then(path => {
+        console.log(path);
+        this.config.design_path = path;
+      });
+    },
     async hasValidFiles() {
       let video_ok = await this.checkVideoPath();
       let design_ok = await this.checkDesignPath();
@@ -221,7 +239,9 @@ export default {
       validVideo: false,
       invalidVideo: false,
       validDesign: false,
-      invalidDesign: false
+      invalidDesign: false,
+      frame_interval_setting_options: [],
+      feature_options: []
     };
   }
 };

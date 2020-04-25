@@ -88,6 +88,22 @@ export async function get_options(for_type) {
   });
 }
 
+export async function select_video_path() {
+  return axios.get(API + "select_video_path").then(response => {
+    if (response.status === 200) {
+      return response.data;
+    }
+  });
+}
+
+export async function select_design_path() {
+  return axios.get(API + "select_design_path").then(response => {
+    if (response.status === 200) {
+      return response.data;
+    }
+  });
+}
+
 export async function check_video_path(video_path) {
   return axios
     .put(API + "check_video_path", { video_path: video_path })

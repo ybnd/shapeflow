@@ -17,6 +17,7 @@ from OnionSVG import check_svg
 
 import isimple
 import isimple.util as util
+import isimple.util.filedialog
 import isimple.core.backend as backend
 import isimple.core.schema as schema
 import isimple.core.streaming as streaming
@@ -156,6 +157,15 @@ class Main(object, metaclass=util.Singleton):
                 return respond(video.TransformType().options)
             else:
                 raise ValueError(f"No options for '{for_type}'")
+
+        # File handling
+        @app.route('/api/select_video_path', methods=['GET'])
+        def select_video():
+            return respond(isimple.util.filedialog.select_video())
+
+        @app.route('/api/select_design_path', methods=['GET'])
+        def select_design():
+            return respond(isimple.util.filedialog.select_design())
 
         @app.route('/api/check_video_path', methods=['PUT'])
         def check_video():
