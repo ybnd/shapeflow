@@ -9,10 +9,11 @@ from collections import namedtuple
 import multiprocessing
 import hashlib
 from contextlib import contextmanager
+import diskcache
 
 import numpy as np
 
-from isimple import get_logger
+from isimple import get_logger, settings
 
 log = get_logger(__name__)
 
@@ -144,21 +145,37 @@ def after_version(version_a, version_b):
     return not before_version(version_a, version_b)
 
 
-@lru_cache(maxsize=256)
 def hash_file(path: str, blocksize: int = 1024) -> multiprocessing.Queue:
     if os.path.isfile:
         q: multiprocessing.Queue = multiprocessing.Queue()
-        def _hash_file():
-            nonlocal q
-            m = hashlib.sha1()
-            with open(path, 'rb') as f:
-                while True:
-                    buf = f.read(blocksize)
-                    if not buf:
-                        break
-                    m.update(buf)
-                q.put(m.hexdigest())
-        multiprocessing.Process(target=_hash_file, daemon=True).start()
+        cache = diskcache.Cache(
+                directory=settings.cache.dir,
+                size_limit=settings.cache.size_limit_gb * 1e9,
+            )
+
+        key = f"hash_file_{path}"
+
+        if key in cache:
+            q.put(cache[key])
+            cache.close()
+        else:
+            def _hash_file():
+                nonlocal q
+                nonlocal key
+                nonlocal cache
+
+                m = hashlib.sha1()
+                with open(path, 'rb') as f:
+                    while True:
+                        buf = f.read(blocksize)
+                        if not buf:
+                            break
+                        m.update(buf)
+                    hash = m.hexdigest()
+                    cache[key] = hash
+                    cache.close()
+                    q.put(hash)
+            multiprocessing.Process(target=_hash_file, daemon=True).start()
         return q
 
 

@@ -180,27 +180,33 @@ class Main(object, metaclass=util.Singleton):
 
         @app.route('/api/check_video_path', methods=['PUT'])
         def check_video():
-            path = json.loads(request.data)['video_path']
-            log.debug(f"Checking video file {path}")
-            if os.path.isfile(path):
-                try:
-                    capture = cv2.VideoCapture(path)
-                    if int(capture.get(cv2.CAP_PROP_FRAME_COUNT)) > 0:
-                        return respond(True)
-                finally:
-                    pass
+            try:
+                path = json.loads(request.data)['video_path']
+                log.debug(f"Checking video file {path}")
+                if os.path.isfile(path):
+                    try:
+                        capture = cv2.VideoCapture(path)
+                        if int(capture.get(cv2.CAP_PROP_FRAME_COUNT)) > 0:
+                            return respond(True)
+                    finally:
+                        pass
+            except KeyError:
+                pass
             return respond(False)
 
         @app.route('/api/check_design_path', methods=['PUT'])
         def check_design():
-            path = json.loads(request.data)['design_path']
-            log.debug(f"Checking design file {path}")
-            if os.path.isfile(path):
-                try:
-                    check_svg(path)
-                    return respond(True)
-                finally:
-                    pass
+            try:
+                path = json.loads(request.data)['design_path']
+                log.debug(f"Checking design file {path}")
+                if os.path.isfile(path):
+                    try:
+                        check_svg(path)
+                        return respond(True)
+                    finally:
+                        pass
+            except KeyError:
+                pass
             return respond(False)
 
         # API: working with Analyzer instances
@@ -343,7 +349,7 @@ class Main(object, metaclass=util.Singleton):
 
     def get_latest(self):
         self._latest = self._history.get_latest_analyses()
-        self._latest_configs = [model.get_config() for model in self._latest]
+        self._latest_configs = [json.loads(model['config']) for model in self._latest]
 
     def add_instance(self, type: video.AnalyzerType = None) -> str:
         if type is None:

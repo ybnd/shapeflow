@@ -5,4 +5,3 @@ export async function fileExists(path) {
     return response.status !== 404;
   });
 }
-a;

@@ -279,15 +279,15 @@ class TransformHandler(BackendInstance, Handler):
 
     @backend.expose(backend.get_relative_roi)
     def get_relative_roi(self) -> dict:
-        if self.config.roi['BR']['x'] > 1:  # todo: temporary, handle accidental absolute roi more elegantly
+        try:
             return {
                 k: {
-                    'x': v['x'] / self._video_shape[0],
-                    'y': v['y'] / self._video_shape[1]
+                    'x': v['x'],
+                    'y': v['y']
                 } for k,v in self.config.roi.items()
             }
-        else:
-            return self.config.roi
+        except KeyError:
+            return {}
 
     @backend.expose(backend.estimate_transform)
     def estimate(self, roi: dict) -> bool:
@@ -832,16 +832,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             return False
 
     def _launch(self):
-        # todo: query history for
-        #  - combination of video file & design file
-        #       * hash files & resolve to ids (should be a History method)
-        #       * get latest entry in 'analyses' table matching both
-        #           - get transform & filter settings from entry
-        #           - if either is not present, leave empty
-        #           * (optional: if either is not present, look back until
-        #              it's found, to a maximum number of entries)
+        self.load_config()
 
-        self.load_config()  # todo: replace with ^
         log.debug(f'{self.__class__.__name__}: launch nested instances.')
         self.video = VideoFileHandler(self.config.video_path, self.stream_methods, self.config.video)  # todo: stream_methods list should be generated automatically
         self.video.set_requested_frames(list(self.frame_numbers()))
@@ -868,8 +860,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         backend.expose(backend.get_state_frame)(self.get_state_frame)
         backend.expose(backend.get_colors)(self.get_colors)
 
-        if self.model is not None:
-            self.model.store()
+        # Commit to history
+        self.commit()
 
     def _get_featuresets(self):
         features = []
@@ -913,8 +905,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     def set_config(self, config: dict) -> bool:
         with self.lock():
             if True:  # todo: sanity check
-                do_resolve = False
-                do_store = False
+                do_commit = False
                 log.debug(f"Setting VideoAnalyzerConfig to {config}")
 
                 previous_features = copy.copy(self.config.features)
@@ -927,10 +918,14 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 if previous_features != self.config.features:
                     log.debug('updating featuresets')
                     self._get_featuresets()
+                    do_commit = True
 
-                # Check for changes in files
+                # Commit to history if files were changed
                 if previous_video_path != self.config.video_path or previous_design_path != self.config.design_path:
-                    self._model.commit_files()  # todo: isimple.video doesn't know about isimple.history!
+                    do_commit = True
+
+                if do_commit:
+                    self.commit()  # todo: isimple.video doesn't know about isimple.history!
 
                 # Check for state transitions
                 if self._state == AnalyzerState.INCOMPLETE:
@@ -1012,6 +1007,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             self.get_colors()
 
             streams.update()
+            self.commit()
         elif len(hits) == 0:
             log.debug(f"no hit for {click.idx}")
         elif len(hits) > 1:
@@ -1103,21 +1099,14 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
             log.debug(f"Analyzing with features: {[f for f in self._featuresets]}.")
 
-            # if self._gui is not None:
-            #     update_callback = self._gui.get(gui.update_progresswindow)  # todo: move this to LegacyVideoAnalyzer
-            #     self._gui.get(gui.open_progresswindow)()
-            # else:
-            #     def update_callback(*args, **kwargs): pass  # todo: move this to LegacyVideoAnalyzer
-
             for fn in self.frame_numbers():
                 if self._cancel.is_set():
                     break
                 self.calculate(fn) #, update_callback)
                 self._progress = fn / self.video.frame_count
 
-            if self.model is not None:
-                # Save results & configuration to database
-                self.model.store()
+            # Save results & configuration to database
+            self.commit()
         if not self._cancel.is_set():
             self._state = AnalyzerState.DONE
             return True
@@ -1125,32 +1114,34 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             self._cancel.clear()
             return False
 
-    def load_config(self, path: str = None):  # todo: look in history instead of file next to video
-        """Load video analysis configuration
+    def load_config(self):  # todo: look in history instead of file next to video
+        """Load video analysis configuration from history database
         """
-        if path is None and self.config.video_path:
-            path = self.config.video_path
+        from isimple.history import History, VideoFileModel, DesignFileModel  # todo: fix history / video circular dependency
+        _history = History()
 
-        if path is not None:
-            path = os.path.splitext(path)[0] + __meta_ext__  # todo:
-            assert path is not None
-            if os.path.isfile(path):
-                # todo: this is a temporary workaround to not overwrite current configuration ~ .meta file
-                #        should be done by setting the fields to None & more in-depth config handling in BackendInstance._configure
-                config = load(path) # todo: in isimple.og, make LegacyVideoAnalyzer(VideoAnalyzer) that implements these
-                config.name = self.config.name
-                config.description = self.config.description
-                config.video_path = self.config.video_path
-                config.design_path = self.config.design_path
-                config.dt = self.config.dt
-                config.Nf = self.config.Nf
-                config.frame_interval_setting = self.config.frame_interval_setting
-                config.height = self.config.height
+        if self.config.video_path is not None and os.path.isfile(self.config.video_path):
+            video = _history.add_file(self.config.video_path, VideoFileModel)
+            if self.config.design_path is not None and os.path.isfile(self.config.design_path):
+                design = _history.add_file(self.config.design_path, DesignFileModel)
+                config = _history.get_config(self.model, video, design)
+                design.remove()
+            else:
+                config = _history.get_config(self.model, video)
+            video.remove()
 
-                self._configure(config)
-
+            log.debug(f'loaded config: {config}')
+            self._config(**config)
         else:
-            log.warning(f"No path provided to `load_config`; no video file either.")
+            log.debug('could not load config - no video path!')
+
+    @backend.expose(backend.commit)
+    def commit(self) -> bool:
+        """Save video analysis configuration to history database
+        """
+        log.debug("committing")
+        self._model.store()  # todo: solve circular dependency
+        return True
 
     def save_config(self, path: str = None):  # todo: in isimple.og, make LegacyVideoAnalyzer(VideoAnalyzer) that implements these
         """Save video analysis configuration

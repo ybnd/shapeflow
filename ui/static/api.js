@@ -222,6 +222,14 @@ export async function set_filter(id, relative_coordinate) {
     });
 }
 
+export async function commit(id) {
+  return axios.post(url(id, "call/commit")).then(response => {
+    if (response.status === 200) {
+      return true;
+    }
+  });
+}
+
 export async function analyze(id) {
   return axios.put(url(id, "call/analyze")).then(response => {
     if (response.status === 200) {

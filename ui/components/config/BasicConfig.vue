@@ -143,7 +143,7 @@ import {
   check_design_path,
   check_video_path,
   get_options,
-  get_latest_video_paths
+  resolve_paths
 } from "../../static/api";
 
 import AsyncComputed from "vue-async-computed";
@@ -177,15 +177,13 @@ export default {
   },
   methods: {
     getConfig() {
-      return {
-        video_path: this.config.video_path,
-        design_path: this.config.design_path,
-        frame_interval_setting: this.config.frame_interval_setting,
+      return Object.assign(this.config, {
         [`${this.config.frame_interval_setting}`]: this.config[
           `${this.config.frame_interval_setting}`
         ],
-        height: this.config.height_mm / 1000
-      };
+        height: this.config.height_mm / 1000,
+        height_mm: undefined
+      });
     },
     selectFrameIntervalSetting(setting) {
       if (setting in this.frame_interval_setting_options) {

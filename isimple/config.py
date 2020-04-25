@@ -29,15 +29,15 @@ class FrameIntervalSetting(EnforcedStr):
 @extend(ConfigType)
 @dataclass
 class VideoFileHandlerConfig(CachingBackendInstanceConfig):
-    do_resolve_frame_number: bool = field(default=True)
+    do_resolve_frame_number: bool = field(default=True)  # todo: this seems more like a global setting
 
 
 @extend(ConfigType)
 @dataclass
 class TransformHandlerConfig(Config):
     type: Union[TransformType, str] = field(default='')
-    matrix: Union[np.ndarray,str] = field(default=np.eye(3))
-    roi: dict = field(default_factory=dict)
+    matrix: Union[np.ndarray,str] = field(default=np.eye(3))  # todo: should be Optional & default to None for clarity
+    roi: dict = field(default_factory=dict)  # todo: should be Optional & default to None for clarity
 
     def __post_init__(self):
         self.type = self.resolve(self.type, TransformType)
@@ -85,7 +85,7 @@ class MaskConfig(Config):
 @extend(ConfigType)
 @dataclass
 class DesignFileHandlerConfig(CachingBackendInstanceConfig):
-    keep_renders: bool = field(default=False)
+    keep_renders: bool = field(default=False)  # todo: seems more like a global config
     dpi: int = field(default=400)
 
     overlay_alpha: float = field(default=0.1)

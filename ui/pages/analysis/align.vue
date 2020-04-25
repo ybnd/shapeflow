@@ -45,11 +45,12 @@
 </template>
 
 <script>
-import { estimate_transform, get_options, url } from "../../static/api";
+import { estimate_transform, get_options, commit, url } from "../../static/api";
 import Moveable from "vue-moveable";
 import {
-  roiRectInfoToAbsoluteCoordinates,
-  default_relative_coords
+  roiRectInfoToRelativeCoordinates,
+  default_relative_coords,
+  roiIsValid
 } from "../../static/coordinates";
 import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
@@ -65,6 +66,7 @@ export default {
   },
   beforeDestroy() {
     console.log(`beforeDestroy() of align`);
+    commit(this.previous_id);
 
     this.handleCleanUp();
 
@@ -87,8 +89,6 @@ export default {
 
       this.previous_id = this.id;
 
-      this.$root.$emit(`seek-${this.id}`);
-
       this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
       get_options("transform").then(options => {
         this.align_options = options;
@@ -98,13 +98,8 @@ export default {
       this.$store.dispatch("align/init", { id: this.id }).then(() => {
         console.log("Vuex/align: init should be done");
         console.log(this.$store.state.align);
-
-        if (this.$store.getters["align/getInitialRoi"](this.id) === null) {
-          this.$store.commit("align/setInitialRoi", {
-            id: this.id,
-            initial_roi: default_relative_coords
-          });
-        }
+        this.$root.$emit(`seek-${this.id}`);
+        this.handleUpdate();
       });
     },
     handleTransform({ target, transform }) {
@@ -117,11 +112,15 @@ export default {
     },
     updateRoiCoordinates() {
       let frame = this.$store.getters["align/getFrame"](this.id);
-      let roi = roiRectInfoToAbsoluteCoordinates(
+
+      let roi = roiRectInfoToRelativeCoordinates(
         this.$refs.moveable.getRect(),
         frame
       );
-      estimate_transform(this.id, roi);
+
+      if (roi !== undefined) {
+        estimate_transform(this.id, roi);
+      }
     },
     handleUpdate: throttle(
       100,

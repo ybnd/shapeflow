@@ -11,6 +11,7 @@ class BackendRegistry(ImmutableRegistry):
     can_run = Endpoint(Callable[[], bool])
     confirm_run = Endpoint(Callable[[], None])
     launch = Endpoint(Callable[[], bool])
+    commit = Endpoint(Callable[[], bool])
     analyze = Endpoint(Callable[[], bool])
     get_config = Endpoint(Callable[[], dict])
     set_config = Endpoint(Callable[[dict], bool])

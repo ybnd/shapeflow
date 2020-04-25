@@ -1,5 +1,11 @@
 import Vue from "vue";
-import { getInitialTransform } from "../static/coordinates";
+import {
+  getInitialTransform,
+  roiIsValid,
+  default_relative_coords,
+  roiRectInfoToRelativeCoordinates,
+  getDefaultRoi
+} from "../static/coordinates";
 import { get_relative_roi, init } from "../static/api";
 import assert from "assert";
 
@@ -117,15 +123,16 @@ export const getters = {
 };
 
 export const actions = {
-  async init({ commit }, { id }) {
+  async init({ commit, dispatch }, { id }) {
     commit("addAlign", { id: id });
-
-    return get_relative_roi(id).then(roi => {
-      commit("setInitialRoi", { id: id, initial_roi: roi });
-    });
+    dispatch("getRoi", { id: id });
   },
-  async getRoi({ commit }, { id }) {
+  async getRoi({ commit, getters }, { id }) {
     return get_relative_roi(id).then(roi => {
+      if (!roiIsValid(roi)) {
+        roi = default_relative_coords;
+      }
+
       commit("setInitialRoi", { id: id, initial_roi: roi });
     });
   }

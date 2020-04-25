@@ -67,7 +67,8 @@ class FileModel(NoGetterModel):
             self._hash_q = hash_file(self._path)
         else:
             raise ValueError
-        log.info(f"queueing hash for {path}")
+        if not self._hash_q.qsize():
+            log.debug(f"queueing hash for {path}")
 
     def _check_file(self):
         return self._check_file_exists()
@@ -89,12 +90,12 @@ class FileModel(NoGetterModel):
     def set_parent(self, model: Model, attribute: str):
         self._parent = (model, attribute)
 
-    def resolve(self):
+    def resolve(self) -> Optional[int]:
         """Check this file's hash against the database; if the file is already
             listed, remove it from the database and set the parent's file to
             the matching file instead.
         """
-        if self._hash_q is not None:
+        if hasattr(self, '_hash_q'):
             if self._hash_q.qsize():
                 hash = self.hash()
                 match = self._db._fetch(self.__class__, MatchQuery('hash', hash))  # todo: is there a cleaner way to do this?
@@ -103,17 +104,26 @@ class FileModel(NoGetterModel):
                     match = match.get()
                     log.debug(f"{hash} -> {match}")
                     self.remove()
-                    setattr(*self._parent, match)
+                    if self._parent is not None:
+                        setattr(*self._parent, match)
+                    return match['id']
                 else:
                     log.debug(f"{hash} -> {self}")
                     self.update({
                         'path': self._path,
                         'hash': hash,
                     })
+                    return self['id']
             else:
-                pass
+                return None
         else:
-            pass
+            return self['id']
+
+    def join(self):
+        if not self['hash']:
+            if self._hash_q is not None:
+                while not self._hash_q.qsize():
+                    time.sleep(0.01)
 
 
 class RoiModel(NoGetterModel):
@@ -174,6 +184,7 @@ class VideoAnalysisModel(NoGetterModel):
 
         'video': types.FOREIGN_ID,
         'design': types.FOREIGN_ID,
+        'roi': types.FOREIGN_ID,
         'results': types.FOREIGN_ID,  # ID of ResultsModel entry
 
         'analyzer_type': types.STRING,      # type of the analyzer (resolved ~ isimple.core.config.AnalyzerConfig)
@@ -196,11 +207,18 @@ class VideoAnalysisModel(NoGetterModel):
         self._video = None
         self._design = None
 
-    def get_config(self) -> dict:
-        return json.loads(self['config'])
-
     def set_analyzer(self, analyzer: BaseVideoAnalyzer):
         self._analyzer = analyzer
+
+    def get_config_by_video(self) -> dict:
+        if self._video is not None:
+            self._video.resolve()
+            if self._design is not None:
+                self._design.resolve()
+                return self._db.get_config(self._video, self._design)
+            return self._db.get_config(self._video)
+        else:
+            return {}
 
     def store(self, fields = None):
         if self._analyzer is not None:
@@ -213,18 +231,27 @@ class VideoAnalysisModel(NoGetterModel):
 
             if self._analyzer.config.video_path and self._video is None:
                 try:
-                    self._video = self._db.add_file(self._analyzer.config.video_path, self, VideoFileModel, '_video')
+                    self._video = self._db.add_file(self._analyzer.config.video_path, VideoFileModel, self, '_video')
                 except ValueError as e:
                     pass
 
             if self._analyzer.config.design_path and self._design is None:
                 try:
-                    self._design = self._db.add_file(self._analyzer.config.design_path, self, DesignFileModel, '_design')
+                    self._design = self._db.add_file(
+                        self._analyzer.config.design_path, DesignFileModel, self, '_design')
                 except ValueError as e:
                     pass
 
             if self._video is not None and self._design is not None:
                 self.commit_files()
+
+            # Store ROI
+            if hasattr(self._analyzer, 'transform'):
+                roi = self._db.add_roi(
+                    self._analyzer.transform.config.roi,
+                    self._video, self._design, self
+                )
+                self['roi'] = roi['id']
 
             # Store results
             for k,df in self._analyzer.results.items():
@@ -257,11 +284,6 @@ class VideoAnalysisModel(NoGetterModel):
             self._video.store()
             self._design.resolve()
             self._design.store()
-
-            self._db.add_roi(
-                self._analyzer.transform.config.roi,
-                self._video, self._design, self
-            )
 
             self.update({
                 'video': self._video['id'],
@@ -326,19 +348,52 @@ class History(Database):
 
         return models
 
-    def get_video_config(self, video_path: str) -> dict:
-        """ todo: queries!
-                            ->  self._video.resolve()
-                            ->  query History for analyses with self._video['id']
-                                    if there are no matches, return an empty dict
-                                    else, take the latest match and continue
-                            ->  config = json.loads(match['config'])
-                            ->  if self._design is not None:
-                                    self._design.resolve()
-                                    config.pop('design_path')
-                            -> return config
-        """
-        raise NotImplementedError
+    def get_config(self, analysis: VideoAnalysisModel, video: FileModel, design: FileModel = None) -> dict:
+        config = {}
+        include = ['design', 'transform', 'masks']
+
+        # Query history for latest usages of current video
+        # (not including the curent analysis)
+        analysis_id = analysis['id']
+        video.join()
+        video_id = video.resolve()
+        q = f"added- ^analysis:{analysis_id} video:{video_id}"  # todo query negation doesn't work for some reason
+
+        if design is not None:
+            # Also match design
+            design.join()
+            design_id = design.resolve()
+            q += f" design:{design_id}"
+        else:
+            # Also grab design file
+            include = ['design_path'] + include
+
+        for match in self._fetch(VideoAnalysisModel, q):
+            # Don't return own config
+            if match['id'] != analysis_id:
+                match_config = json.loads(match['config'])
+
+                # Assimilate `include` fields from match
+                for field in include:
+                    if field in match_config:
+                        config[field] = match_config[field]
+
+                # Check if enough
+                ok = []
+                if 'transform' in config:
+                    if config['transform']['roi'] is not {}:
+                        ok.append(True)
+                        include.remove('transform')
+                if 'masks' in config:
+                    if len(config['masks']) > 0:
+                        ok.append(True)
+                        include.remove('masks')
+
+                if all(ok):
+                    break
+
+        return config
+
 
     def add_analysis(self, analyzer: BaseVideoAnalyzer) -> VideoAnalysisModel:
         model = VideoAnalysisModel()
@@ -348,11 +403,12 @@ class History(Database):
 
         return model
 
-    def add_file(self, path: Optional[str], parent: Model, filetype: Type[FileModel], attribute: str) -> FileModel:
+    def add_file(self, path: Optional[str], filetype: Type[FileModel], parent: Model = None, attribute: str = None) -> FileModel:
         if path is not None:
             model = filetype(path = path)
             model.add(self)
-            model.set_parent(parent, attribute)  # todo: not super clear how _parent = (parent, attribute) works...
+            if parent is not None and attribute is not None:
+                model.set_parent(parent, attribute)  # todo: add documentation to _parent
             model.store()
             return model
         else:
@@ -364,12 +420,10 @@ class History(Database):
         model.store()
         return model
 
-    def add_roi(self, roi: dict, video: VideoFileModel, design: DesignFileModel, analysis: VideoAnalysisModel):
-        roi = json.dumps(roi)
-
+    def add_roi(self, roi: dict, video: VideoFileModel, design: DesignFileModel, analysis: VideoAnalysisModel) -> RoiModel:
         model = RoiModel()
         model.update({
-            'roi': roi,
+            'roi': json.dumps(roi),
             'video': video['id'],
             'design': design['id'],
             'analysis': analysis['id']
@@ -378,3 +432,21 @@ class History(Database):
         model.store()
         analysis.update({'roi': model['id']})
         return model
+
+    def clean(self):
+        """Remove all incomplete entries
+            * VideoAnalysisModel:
+                - missing 'video' & 'design'
+            * FileModel:
+                - missing 'hash'
+            * RoiModel:
+                - missing 'roi'
+                - 100% duplicates ('video' & 'design' & 'roi')
+            * ResultsModel:
+                - missing 'data'
+
+            & convert legacy JSON strings
+                - VideoAnalysisModel['config']
+                - RoiModel['roi']
+        """
+        raise NotImplementedError

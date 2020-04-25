@@ -1,12 +1,35 @@
 import { lusolve, multiply, norm, subtract } from "mathjs";
 import assert from "assert";
 
+const _ROI_FIELDS = ["BL", "TL", "TR", "BR"];
+const _PNT_FIELDS = ["x", "y"];
+
 export var default_relative_coords = {
   BL: { x: 0.2, y: 0.8 },
   TL: { x: 0.2, y: 0.2 },
   TR: { x: 0.8, y: 0.2 },
   BR: { x: 0.8, y: 0.8 }
 };
+
+export function roiIsValid(roi) {
+  // todo: this is quick & dirty
+  for (let i = 0; i < _ROI_FIELDS.length; i++) {
+    if (roi.hasOwnProperty(_ROI_FIELDS[i])) {
+      for (let j = 0; j < _PNT_FIELDS.length; j++) {
+        if (roi[_ROI_FIELDS[i]].hasOwnProperty(_PNT_FIELDS[j])) {
+          if (typeof roi[_ROI_FIELDS[i]][_PNT_FIELDS[j]] !== "number") {
+            return false;
+          }
+        } else {
+          return false;
+        }
+      }
+    } else {
+      return false;
+    }
+  }
+  return true;
+}
 
 export function rectToCoordinates(rect) {
   return {
@@ -29,7 +52,7 @@ export function rectToCoordinates(rect) {
   };
 }
 
-export function roiRectInfoToAbsoluteCoordinates(rect, frame) {
+export function roiRectInfoToRelativeCoordinates(rect, frame) {
   // convert absolute RectInfo to relative coordinates {BL, TL, TR, BR}
   //   -> RdctInfo: https://daybrush.com/moveable/release/latest/doc/Moveable.html#.RectInfo
   try {
@@ -54,6 +77,7 @@ export function roiRectInfoToAbsoluteCoordinates(rect, frame) {
     };
   } catch {
     console.warn(`roiRectInfoToCoordinates: frame is null`);
+    return undefined;
   }
 }
 
@@ -169,8 +193,4 @@ export function getInitialTransform(roi, frame, overlay) {
   );
 
   return toCssMatrix3d(initial_transform);
-}
-
-export function getDefaultRoi(frame) {
-  return toAbsolute(default_relative_coords, frame, css_center);
 }
