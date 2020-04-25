@@ -1,10 +1,9 @@
 import os
 import abc
 import time
-import datetime
 import json
 
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, List, Type
 import multiprocessing
 
 import numpy as np
@@ -14,6 +13,8 @@ from isimple import settings, get_logger
 
 from isimple.core import RootException
 from isimple.dbcore import Model, Database, types, MatchQuery
+from isimple.dbcore.query import *
+from isimple.dbcore.queryparse import *
 from isimple.util import hash_file, ndarray2str, str2ndarray
 from isimple.config import dumps
 
@@ -188,6 +189,9 @@ class VideoAnalysisModel(NoGetterModel):
         self._video = None
         self._design = None
 
+    def get_config(self) -> dict:
+        return json.loads(self['config'])
+
     def set_analyzer(self, analyzer: BaseVideoAnalyzer):
         self._analyzer = analyzer
 
@@ -237,20 +241,6 @@ class VideoAnalysisModel(NoGetterModel):
 
         super().store(fields)
 
-    def get_latest_config(self) -> dict:  # todo: also: can actually set the config ~ endpoint
-        """ todo: queries!
-                    ->  self._video.resolve()
-                    ->  query History for analyses with self._video['id']
-                            if there are no matches, return an empty dict
-                            else, take the latest match and continue
-                    ->  config = json.loads(match['config'])
-                    ->  if self._design is not None:
-                            self._design.resolve()
-                            config.pop('design_path')
-                    -> return config
-        """
-        return {}
-
     def commit_files(self):
         # todo: should be called before the first store
         self._video.resolve()
@@ -291,6 +281,54 @@ class History(Database):
 
     def __init__(self, timeout=1.0):
         super().__init__(self.path, timeout)
+
+    def _fetch(self, model_cls, query=None, sort=None):
+        """Returns results of a query string ~ beets syntax
+        Taken from beets.library.Library._fetch()
+        """
+
+        # Parse the query, if necessary.
+        try:
+            parsed_sort = None
+            if isinstance(query, six.string_types):
+                query, parsed_sort = parse_query_string(query, model_cls)
+            elif isinstance(query, (list, tuple)):
+                query, parsed_sort = parse_query_parts(query, model_cls)
+        except InvalidQueryArgumentValueError as exc:
+            raise InvalidQueryError(query, exc)
+
+        # Any non-null sort specified by the parsed query overrides the
+        # provided sort.
+        if parsed_sort and not isinstance(parsed_sort, NullSort):
+            sort = parsed_sort
+        else:
+            sort = None
+
+        return super(History, self)._fetch(model_cls, query, sort)
+
+    def get_latest_analyses(self, N: int = 10) -> List[VideoAnalysisModel]:
+        models: List[VideoAnalysisModel] = []
+        for vam in self._fetch(VideoAnalysisModel, "added-"):
+            if vam['config'] and vam['video'] is not None and vam['design'] is not None:  # todo: check ~ can_launch & replace field checks with correct query
+                models.append(vam)
+            if len(models) >= N:
+                break
+
+        return models
+
+    def get_video_config(self, video_path: str) -> dict:
+        """ todo: queries!
+                            ->  self._video.resolve()
+                            ->  query History for analyses with self._video['id']
+                                    if there are no matches, return an empty dict
+                                    else, take the latest match and continue
+                            ->  config = json.loads(match['config'])
+                            ->  if self._design is not None:
+                                    self._design.resolve()
+                                    config.pop('design_path')
+                            -> return config
+        """
+        raise NotImplementedError
 
     def add_analysis(self, analyzer: BaseVideoAnalyzer) -> VideoAnalysisModel:
         model = VideoAnalysisModel()

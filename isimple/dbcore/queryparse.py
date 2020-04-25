@@ -16,8 +16,10 @@
 """Parsing of strings into DBCore queries.
 """
 import re
+import six
 import itertools
-from isimple.dbcore import query
+from .query import *
+from .util import *
 
 PARSE_QUERY_PART_REGEX = re.compile(
     # Non-capturing optional segment for the keyword.
@@ -35,7 +37,7 @@ PARSE_QUERY_PART_REGEX = re.compile(
 
 
 def parse_query_part(part, query_classes={}, prefixes={},
-                     default_class=query.SubstringQuery):
+                     default_class=SubstringQuery):
     """Parse a single *query part*, which is a chunk of a complete query
     string representing a single criterion.
 
@@ -114,7 +116,7 @@ def construct_query_part(model_cls, prefixes, query_part):
     """
     # A shortcut for empty query parts.
     if not query_part:
-        return query.TrueQuery()
+        return TrueQuery()
 
     # Use `model_cls` to build up a map from field (or query) names to
     # `Query` classes.
@@ -131,11 +133,11 @@ def construct_query_part(model_cls, prefixes, query_part):
     # If there's no key (field name) specified, this is a "match
     # anything" query.
     if key is None:
-        if issubclass(query_class, query.FieldQuery):
+        if issubclass(query_class, FieldQuery):
             # The query type matches a specific field, but none was
             # specified. So we use a version of the query that matches
             # any field.
-            out_query = query.AnyFieldQuery(pattern, model_cls._search_fields,
+            out_query = AnyFieldQuery(pattern, model_cls._search_fields,
                                             query_class)
         else:
             # Non-field query type.
@@ -143,7 +145,7 @@ def construct_query_part(model_cls, prefixes, query_part):
 
     # Field queries get constructed according to the name of the field
     # they are querying.
-    elif issubclass(query_class, query.FieldQuery):
+    elif issubclass(query_class, FieldQuery):
         key = key.lower()
         out_query = query_class(key.lower(), pattern, key in model_cls._fields)
 
@@ -153,7 +155,7 @@ def construct_query_part(model_cls, prefixes, query_part):
 
     # Apply negation.
     if negate:
-        return query.NotQuery(out_query)
+        return NotQuery(out_query)
     else:
         return out_query
 
@@ -167,7 +169,7 @@ def query_from_strings(query_cls, model_cls, prefixes, query_parts):
     for part in query_parts:
         subqueries.append(construct_query_part(model_cls, prefixes, part))
     if not subqueries:  # No terms in query.
-        subqueries = [query.TrueQuery()]
+        subqueries = [TrueQuery()]
     return query_cls(subqueries)
 
 
@@ -190,10 +192,10 @@ def construct_sort_part(model_cls, part, case_insensitive=True):
         sort = model_cls._sorts[field](model_cls, is_ascending,
                                        case_insensitive)
     elif field in model_cls._fields:
-        sort = query.FixedFieldSort(field, is_ascending, case_insensitive)
+        sort = FixedFieldSort(field, is_ascending, case_insensitive)
     else:
         # Flexible or computed.
-        sort = query.SlowFieldSort(field, is_ascending, case_insensitive)
+        sort = SlowFieldSort(field, is_ascending, case_insensitive)
     return sort
 
 
@@ -201,11 +203,11 @@ def sort_from_strings(model_cls, sort_parts, case_insensitive=True):
     """Create a `Sort` from a list of sort criteria (strings).
     """
     if not sort_parts:
-        sort = query.NullSort()
+        sort = NullSort()
     elif len(sort_parts) == 1:
         sort = construct_sort_part(model_cls, sort_parts[0], case_insensitive)
     else:
-        sort = query.MultipleSort()
+        sort = MultipleSort()
         for part in sort_parts:
             sort.add_sort(construct_sort_part(model_cls, part,
                                               case_insensitive))
@@ -233,7 +235,7 @@ def parse_sorted_query(model_cls, parts, prefixes={},
             # Parse the subquery in to a single AndQuery
             # TODO: Avoid needlessly wrapping AndQueries containing 1 subquery?
             query_parts.append(query_from_strings(
-                query.AndQuery, model_cls, prefixes, subquery_parts
+                AndQuery, model_cls, prefixes, subquery_parts
             ))
             del subquery_parts[:]
         else:
@@ -247,6 +249,59 @@ def parse_sorted_query(model_cls, parts, prefixes={},
                 subquery_parts.append(part)
 
     # Avoid needlessly wrapping single statements in an OR
-    q = query.OrQuery(query_parts) if len(query_parts) > 1 else query_parts[0]
+    q = OrQuery(query_parts) if len(query_parts) > 1 else query_parts[0]
     s = sort_from_strings(model_cls, sort_parts, case_insensitive)
     return q, s
+
+
+# From beets.library
+def parse_query_string(s, model_cls):
+    """Given a beets query string, return the `Query` and `Sort` they
+    represent.
+
+    The string is split into components using shell-like syntax.
+    """
+    message = u"Query is not unicode: {0!r}".format(s)
+    assert isinstance(s, six.text_type), message
+    try:
+        parts = shlex_split(s)
+    except ValueError as exc:
+        raise InvalidQueryError(s, exc)
+    return parse_query_parts(parts, model_cls)
+
+
+def parse_query_parts(parts, model_cls):
+    """Given a beets query string as a list of components, return the
+    `Query` and `Sort` they represent.
+
+    Like `dbcore.parse_sorted_query`, with beets query prefixes and
+    special path query detection.
+    """
+    # Get query types and their prefix characters.
+    prefixes = {':': RegexpQuery}
+    # prefixes.update(plugins.queries())   -- beets legacy
+
+    # Special-case path-like queries, which are non-field queries
+    # containing path separators (/).
+    path_parts = []
+    non_path_parts = []
+    for s in parts:
+        if PathQuery.is_path_query(s):
+            path_parts.append(s)
+        else:
+            non_path_parts.append(s)
+
+    # case_insensitive = beets.config['sort_case_insensitive'].get(bool)
+    case_insensitive = False
+
+    query, sort = parse_sorted_query(
+        model_cls, non_path_parts, prefixes, case_insensitive
+    )
+
+    # Add path queries to aggregate query.
+    # Match field / flexattr depending on whether the model has the path field
+    fast_path_query = 'path' in model_cls._fields
+    query.subqueries += [PathQuery('path', s, fast_path_query)
+                         for s in path_parts]
+
+    return query, sort

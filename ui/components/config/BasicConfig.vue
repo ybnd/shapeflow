@@ -18,9 +18,25 @@
           <b-form-group>
             <b-input-group class="popover-field">
               <b-input-group-prepend>
-                <b-button @click="selectVideoFile"
+                <b-button
+                  @click="selectVideoFile"
+                  data-toggle="tooltip"
+                  title="Browse for a video file..."
                   ><i class="fa fa-file-video-o"></i
                 ></b-button>
+                <b-dropdown
+                  text=""
+                  data-toggle="tooltip"
+                  title="Recent video files"
+                >
+                  <b-dropdown-item
+                    v-for="path in video_path_options"
+                    :key="`path-${path}`"
+                    @click="selectVideoFileFromDropdown(path)"
+                  >
+                    {{ path }}
+                  </b-dropdown-item>
+                </b-dropdown>
               </b-input-group-prepend>
               <b-form-input
                 v-bind:style="formStyle"
@@ -39,9 +55,25 @@
           <b-form-group>
             <b-input-group>
               <b-input-group-prepend>
-                <b-button @click="selectDesignFile"
+                <b-button
+                  @click="selectDesignFile"
+                  data-toggle="tooltip"
+                  title="Browse for a design file..."
                   ><i class="fa fa-file-code-o"></i
                 ></b-button>
+                <b-dropdown
+                  text=""
+                  data-toggle="tooltip"
+                  title="Recent design files"
+                >
+                  <b-dropdown-item
+                    v-for="path in design_path_options"
+                    :key="`path-${path}`"
+                    @click="selectDesignFileFromDropdown(path)"
+                  >
+                    {{ path }}
+                  </b-dropdown-item>
+                </b-dropdown>
               </b-input-group-prepend>
               <b-form-input
                 v-bind:style="formStyle"
@@ -110,7 +142,8 @@ import {
   select_video_path,
   check_design_path,
   check_video_path,
-  get_options
+  get_options,
+  get_latest_video_paths
 } from "../../static/api";
 
 import AsyncComputed from "vue-async-computed";
@@ -131,8 +164,8 @@ export default {
       type: Object,
       default: () => {
         return {
-          video_path: "/home/ybnd/projects/200210 - isimple/data/shuttle.mp4",
-          design_path: "/home/ybnd/projects/200210 - isimple/data/shuttle.svg",
+          video_path: "",
+          design_path: "",
           frame_interval_setting: "Nf",
           Nf: 100,
           dt: 5,
@@ -171,15 +204,29 @@ export default {
     },
     selectVideoFile() {
       select_video_path().then(path => {
-        console.log(path);
-        this.config.video_path = path;
+        if (path) {
+          this.config.video_path = path;
+        }
       });
+    },
+    selectVideoFileFromDropdown(path) {
+      console.log(`selectVideoFileFromDropdown: ${path}`);
+      if (path) {
+        this.config.video_path = path;
+      }
     },
     selectDesignFile() {
       select_design_path().then(path => {
-        console.log(path);
-        this.config.design_path = path;
+        if (path) {
+          this.config.design_path = path;
+        }
       });
+    },
+    selectDesignFileFromDropdown(path) {
+      console.log(`selectDesignFileFromDropdown: ${path}`);
+      if (path) {
+        this.config.design_path = path;
+      }
     },
     async hasValidFiles() {
       let video_ok = await this.checkVideoPath();
@@ -231,6 +278,26 @@ export default {
         });
       },
       default: []
+    },
+    video_path_options: {
+      async get() {
+        return get_options("video_path").then(options => {
+          console.log(options);
+          this.config.video_path = options[0];
+          return options;
+        });
+      },
+      default: []
+    },
+    design_path_options: {
+      async get() {
+        return get_options("design_path").then(options => {
+          console.log(options);
+          this.config.design_path = options[0];
+          return options;
+        });
+      },
+      default: []
     }
   },
   data() {
@@ -241,7 +308,9 @@ export default {
       validDesign: false,
       invalidDesign: false,
       frame_interval_setting_options: [],
-      feature_options: []
+      feature_options: [],
+      video_path_options: [],
+      design_path_options: []
     };
   }
 };

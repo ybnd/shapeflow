@@ -16,6 +16,10 @@
 """The Query type hierarchy for DBCore.
 """
 import re
+import os
+import isimple
+from isimple.dbcore import *
+from datetime import datetime, timedelta
 from operator import mul
 
 import isimple.util
@@ -24,9 +28,9 @@ import unicodedata
 from functools import reduce
 import six
 
-if not six.PY2:
-    buffer = memoryview  # sqlite won't accept memoryview in python 2
-
+# Handle six py2 compatibility code (beets legacy)
+buffer = memoryview
+BLOB_TYPE = memoryview
 
 class ParsingError(ValueError):
     """Abstract class for any unparseable user-requested album/query
@@ -726,7 +730,7 @@ class DurationQuery(NumericQuery):
         if not s:
             return None
         try:
-            return util.raw_seconds_short(s)
+            return isimple.dbcore.util.raw_seconds_short(s)
         except ValueError:
             try:
                 return float(s)
@@ -734,6 +738,76 @@ class DurationQuery(NumericQuery):
                 raise InvalidQueryArgumentValueError(
                     s,
                     u"a M:SS string or a float")
+
+
+# From beets.library
+class PathQuery(FieldQuery):
+    """A query that matches all items under a given path.
+
+    Matching can either be case-insensitive or case-sensitive. By
+    default, the behavior depends on the OS: case-insensitive on Windows
+    and case-sensitive otherwise.
+    """
+
+    def __init__(self, field, pattern, fast=True, case_sensitive=None):
+        """Create a path query. `pattern` must be a path, either to a
+        file or a directory.
+
+        `case_sensitive` can be a bool or `None`, indicating that the
+        behavior should depend on the filesystem.
+        """
+        super(PathQuery, self).__init__(field, pattern, fast)
+
+        # By default, the case sensitivity depends on the filesystem
+        # that the query path is located on.
+        if case_sensitive is None:
+            path = isimple.dbcore.util.bytestring_path(isimple.dbcore.util.normpath(pattern))
+            case_sensitive = isimple.dbcore.util.case_sensitive(path)
+        self.case_sensitive = case_sensitive
+
+        # Use a normalized-case pattern for case-insensitive matches.
+        if not case_sensitive:
+            pattern = pattern.lower()
+
+        # Match the path as a single file.
+        self.file_path = isimple.dbcore.util.bytestring_path(isimple.dbcore.util.normpath(pattern))
+        # As a directory (prefix).
+        self.dir_path = isimple.dbcore.util.bytestring_path(os.path.join(self.file_path, b''))
+
+    @classmethod
+    def is_path_query(cls, query_part):
+        """Try to guess whether a unicode query part is a path query.
+
+        Condition: separator precedes colon and the file exists.
+        """
+        colon = query_part.find(':')
+        if colon != -1:
+            query_part = query_part[:colon]
+
+        # Test both `sep` and `altsep` (i.e., both slash and backslash on
+        # Windows).
+        return (
+            (os.sep in query_part or
+             (os.altsep and os.altsep in query_part)) and
+            os.path.exists(isimple.dbcore.util.syspath(isimple.dbcore.util.normpath(query_part)))
+        )
+
+    def match(self, item):
+        path = item.path if self.case_sensitive else item.path.lower()
+        return (path == self.file_path) or path.startswith(self.dir_path)
+
+    def col_clause(self):
+        file_blob = BLOB_TYPE(self.file_path)
+        dir_blob = BLOB_TYPE(self.dir_path)
+
+        if self.case_sensitive:
+            query_part = '({0} = ?) || (substr({0}, 1, ?) = ?)'
+        else:
+            query_part = '(BYTELOWER({0}) = BYTELOWER(?)) || \
+                         (substr(BYTELOWER({0}), 1, ?) = BYTELOWER(?))'
+
+        return query_part.format(self.field), \
+            (file_blob, len(dir_blob), dir_blob)
 
 
 # Sorting.

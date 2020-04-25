@@ -7,7 +7,7 @@ import os
 import time
 import webbrowser
 from threading import Thread, Event, Lock
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 import cv2
 from flask import Flask, send_from_directory, jsonify, request, Response, make_response
@@ -80,10 +80,14 @@ class Main(object, metaclass=util.Singleton):
     _timeout_loop = 0.1  # todo: load from settings.yaml
 
     _stop_log: Event
+    _latest: List[history.VideoAnalysisModel]
+    _latest_configs: List[dict]
 
     def __init__(self):
         app = Flask(__name__, static_url_path='')
         app.config.from_object(__name__)
+
+        self.get_latest()
 
         # Serve webapp
         @app.route('/', methods=['GET'])
@@ -137,7 +141,7 @@ class Main(object, metaclass=util.Singleton):
             return respond(isimple.settings)
 
         @app.route('/api/options/<for_type>', methods=['GET'])
-        def get_enum(for_type):
+        def get_options(for_type):
             log.debug(f"get_enum for type '{for_type}'")
             if for_type == "state":
                 return respond([
@@ -155,15 +159,22 @@ class Main(object, metaclass=util.Singleton):
                 return respond(video.FilterType().options)
             elif for_type == "transform":
                 return respond(video.TransformType().options)
+            elif for_type == "video_path":
+                return respond(
+                    list(set([config['video_path'] for config in self._latest_configs]))
+                )
+            elif for_type == "design_path":
+                return respond(
+                    list(set([config['design_path'] for config in self._latest_configs]))
+                )
             else:
                 raise ValueError(f"No options for '{for_type}'")
 
-        # File handling
         @app.route('/api/select_video_path', methods=['GET'])
         def select_video():
-            return respond(isimple.util.filedialog.select_video())
+            return respond(isimple.util.filedialog.select_video())  # todo: should not be able to spawn multiple windows
 
-        @app.route('/api/select_design_path', methods=['GET'])
+        @app.route('/api/select_design_path', methods=['GET'])      # todo: should not be able to spawn multiple windows
         def select_design():
             return respond(isimple.util.filedialog.select_design())
 
@@ -203,7 +214,7 @@ class Main(object, metaclass=util.Singleton):
             return respond(self.add_instance(video.AnalyzerType(bt)))
 
         @app.route('/api/list', methods=['GET'])
-        def list():
+        def get_list():
             active()
             log.vdebug(f"Listing analyzers")
             return respond({
@@ -330,6 +341,10 @@ class Main(object, metaclass=util.Singleton):
         self._server.join()
         streaming.streams.stop()
 
+    def get_latest(self):
+        self._latest = self._history.get_latest_analyses()
+        self._latest_configs = [model.get_config() for model in self._latest]
+
     def add_instance(self, type: video.AnalyzerType = None) -> str:
         if type is None:
             type = video.AnalyzerType()
@@ -389,7 +404,7 @@ class Main(object, metaclass=util.Singleton):
             method = self._roots[id].get(getattr(backend.backend, endpoint))
 
             if endpoint in ('set_config',):
-                pass  # todo: store to self._history
+                pass  # todo: store to self._history & update latest configs
 
             result = method(**data)
             log.debug(f"{self._roots[id]}: return '{endpoint}' "
