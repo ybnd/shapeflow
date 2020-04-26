@@ -85,22 +85,25 @@ export default {
     },
     handleCleanUp() {},
     handleInit() {
-      console.log(`Initializing align window for ${this.id}`);
+      // Check if this.id is queued. If not, navigate to /
+      if (this.$store.getters["queue/getIndex"](this.id) === -1) {
+        this.$router.push(`/`);
+      } else {
+        this.previous_id = this.id;
 
-      this.previous_id = this.id;
-
-      this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
-      get_options("transform").then(options => {
-        this.align_options = options;
-        this.align = options[0];
-      });
-      this.moveable.className = this.moveableHide;
-      this.$store.dispatch("align/init", { id: this.id }).then(() => {
-        console.log("Vuex/align: init should be done");
-        console.log(this.$store.state.align);
-        this.$root.$emit(`seek-${this.id}`);
-        this.handleUpdate();
-      });
+        this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
+        get_options("transform").then(options => {
+          this.align_options = options;
+          this.align = options[0];
+        });
+        this.moveable.className = this.moveableHide;
+        this.$store.dispatch("align/init", { id: this.id }).then(() => {
+          console.log("Vuex/align: init should be done");
+          console.log(this.$store.state.align);
+          this.$root.$emit(`seek-${this.id}`);
+          this.handleUpdate();
+        });
+      }
     },
     handleTransform({ target, transform }) {
       target.style.transform = transform;

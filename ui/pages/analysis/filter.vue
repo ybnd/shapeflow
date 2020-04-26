@@ -74,23 +74,31 @@ export default {
   },
   methods: {
     initFilter() {
-      this.$root.$emit(`seek-${this.id}`);
+      // Check if this.id is queued. If not, navigate to /
+      if (this.$store.getters["queue/getIndex"](this.id) === -1) {
+        this.$router.push(`/`);
+      } else {
+        this.$root.$emit(`seek-${this.id}`);
 
-      get_options("feature").then(options => {
-        this.feature_options = options;
-      });
-      get_options("filter").then(options => {
-        this.filter_options = options;
-      });
-      this.masks = this.$store.getters["analyzers/getMasks"](this.id);
-      this.mask = this.masks[0];
+        get_options("feature").then(options => {
+          this.feature_options = options;
+        });
+        get_options("filter").then(options => {
+          this.filter_options = options;
+        });
+        this.masks = this.$store.getters["analyzers/getMasks"](this.id);
+        this.mask = this.masks[0];
 
-      this.filter = this.$store.getters["analyzers/getFilterType"](this.id, 0);
+        this.filter = this.$store.getters["analyzers/getFilterType"](
+          this.id,
+          0
+        );
 
-      this.feature = this.$store.getters["analyzers/getFeatures"](this.id)[0];
-      console.log(`setting this.feature to ${this.feature}`);
+        this.feature = this.$store.getters["analyzers/getFeatures"](this.id)[0];
+        console.log(`setting this.feature to ${this.feature}`);
 
-      this.$store.dispatch("filter/init", { id: this.id });
+        this.$store.dispatch("filter/init", { id: this.id });
+      }
     },
     updateFrame() {
       console.log("Updating frame...");
