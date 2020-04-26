@@ -196,7 +196,7 @@ _file_handler = logging.FileHandler(settings.log.path)
 _file_handler.setLevel(_levels[settings.log.lvl_file])
 
 _formatter = logging.Formatter(
-    '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    '%(asctime)s - %(levelname)s - %(name)s - %(message)s')
 _console_handler.setFormatter(_formatter)
 _file_handler.setFormatter(_formatter)
 
