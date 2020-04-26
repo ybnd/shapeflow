@@ -19,7 +19,7 @@ from isimple.util import timed, sizeof_fmt
 
 log = get_logger(__name__)
 
-class FrameStreamer(abc.ABC):
+class FrameStreamer(abc.ABC):  # todo: should be child of Streamer, along with JsonStreamer
     _queue: queue.Queue
     _stop: threading.Event
 
@@ -183,7 +183,7 @@ class StreamHandler(object):  # todo: is a singleton
 streams = StreamHandler()
 
 
-def stream(method):
+def stream(method):  # todo: check method._endpoint._streaming & select Streamer implementation
     """Decorator for streaming methods.
         To stream frames, the wrapped method should be registered
          in the global StreamHandler `streams`.

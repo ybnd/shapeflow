@@ -172,10 +172,10 @@ export default {
       return this.$route.query.id;
     },
     state_url() {
-      return url(this.$route.query.id, "stream/get_state_frame");
+      return url(this.$route.query.id, "stream-image/get_state_frame");
     },
     frame_url() {
-      return url(this.$route.query.id, "stream/get_frame");
+      return url(this.$route.query.id, "stream-image/get_frame");
     }
   },
   data: () => ({

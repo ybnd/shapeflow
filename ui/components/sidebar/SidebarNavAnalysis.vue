@@ -2,7 +2,7 @@
   <div class="nav-item nav-dropdown">
     <div
       class="nav-link nav-dropdown-toggle"
-      @click="handleClick"
+      @click="handleDropdownClick"
       :id="'dropdown-' + id"
     >
       <!--      <b-popover class="analysis-info-popover"-->
@@ -23,13 +23,13 @@
         <SidebarNavAnalysisLink
           name="Configure"
           icon="icon-equalizer"
-          :url="`/analysis/configure?id=${id}`"
+          :id="link.configure"
         />
         <SidebarNavAnalysisLink
           name="Remove"
           icon="icon-trash"
-          :url="`/api/analyzer/quit/${id}`"
           :two_stage="true"
+          :id="event.remove"
         />
       </ul>
     </template>
@@ -38,23 +38,23 @@
         <SidebarNavAnalysisLink
           name="Configure"
           icon="icon-equalizer"
-          :url="`/analysis/configure?id=${id}`"
+          :id="link.configure"
         />
         <SidebarNavAnalysisLink
           name="Set alignment"
           icon="icon-frame"
-          :url="`/analysis/align?id=${id}`"
+          :id="link.align"
         />
         <SidebarNavAnalysisLink
           name="Set filters"
           icon="icon-layers"
-          :url="`/analysis/filter?id=${id}`"
+          :id="link.filter"
         />
         <SidebarNavAnalysisLink
           name="Remove"
           icon="icon-trash"
-          :url="`/api/analyzer/quit/${id}`"
           :two_stage="true"
+          :id="event.remove"
         />
       </ul>
     </template>
@@ -63,13 +63,13 @@
         <SidebarNavAnalysisLink
           name="Configure"
           icon="icon-equalizer"
-          :url="`/analysis/configure?id=${id}`"
+          :id="link.configure"
         />
         <SidebarNavAnalysisLink
           name="Remove"
           icon="icon-trash"
-          :url="`/api/analyzer/${id}/quit`"
           :two_stage="true"
+          :id="event.remove"
         />
       </ul>
     </template>
@@ -78,28 +78,28 @@
         <SidebarNavAnalysisLink
           name="Configure"
           icon="icon-equalizer"
-          :url="`/analysis/configure?id=${id}`"
+          :id="link.configure"
         />
         <SidebarNavAnalysisLink
           name="Set alignment"
           icon="icon-frame"
-          :url="`/analysis/align?id=${id}`"
+          :id="link.align"
         />
         <SidebarNavAnalysisLink
           name="Set filters"
           icon="icon-layers"
-          :url="`/analysis/filter?id=${id}`"
+          :id="link.filter"
         />
         <SidebarNavAnalysisLink
           name="Analyze"
           icon="icon-control-play"
-          :url="`/api/analyzer/${id}/analyze`"
+          @click="handleAnalyze"
         />
         <SidebarNavAnalysisLink
           name="Remove"
           icon="icon-trash"
-          :url="`/api/analyzer/quit/${id}`"
           :two_stage="true"
+          :id="event.remove"
         />
       </ul>
     </template>
@@ -109,8 +109,8 @@
         <SidebarNavAnalysisLink
           name="Cancel"
           icon="icon-ban"
-          :url="`/api/analyzer/${id}/cancel`"
           :two_stage="true"
+          :id="event.cancel"
         />
       </ul>
     </template>
@@ -125,23 +125,23 @@
         <SidebarNavAnalysisLink
           name="Configure"
           icon="icon-equalizer"
-          :url="`/analysis/configure?id=${id}`"
+          :id="link.configure"
         />
         <SidebarNavAnalysisLink
           name="Set alignment"
           icon="icon-frame"
-          :url="`/analysis/align?id=${id}`"
+          :id="link.align"
         />
         <SidebarNavAnalysisLink
           name="Set filters"
           icon="icon-layers"
-          :url="`/analysis/filter?id=${id}`"
+          :id="filter"
         />
         <SidebarNavAnalysisLink
           name="Remove"
           icon="icon-trash"
-          :url="`/api/analyzer/${id}/quit`"
           :two_stage="true"
+          :id="event.remove"
         />
       </ul>
     </template>
@@ -156,28 +156,28 @@
         <SidebarNavAnalysisLink
           name="Configure"
           icon="icon-equalizer"
-          :url="`/analysis/configure?id=${id}`"
+          :id="link.configure"
         />
         <SidebarNavAnalysisLink
           name="Set alignment"
           icon="icon-frame"
-          :url="`/analysis/align?id=${id}`"
+          :id="link.align"
         />
         <SidebarNavAnalysisLink
           name="Set filters"
           icon="icon-layers"
-          :url="`/analysis/filter?id=${id}`"
+          :id="filter"
         />
         <SidebarNavAnalysisLink
           name="Analyze"
           icon="icon-control-play"
-          :url="`/api/analyzer/${id}/analyze`"
+          :id="link.analyze"
         />
         <SidebarNavAnalysisLink
           name="Remove"
           icon="icon-trash"
-          :url="`/api/analyzer/${id}/quit`"
           :two_stage="true"
+          :id="event.remove"
         />
       </ul>
     </template>
@@ -192,28 +192,28 @@
         <SidebarNavAnalysisLink
           name="Configure"
           icon="icon-equalizer"
-          :url="`/analysis/configure?id=${id}`"
+          :id="link.configure"
         />
         <SidebarNavAnalysisLink
           name="Set alignment"
           icon="icon-frame"
-          :url="`/analysis/align?id=${id}`"
+          :id="link.align"
         />
         <SidebarNavAnalysisLink
           name="Set filters"
           icon="icon-layers"
-          :url="`/analysis/filter?id=${id}`"
+          :id="filter"
         />
         <SidebarNavAnalysisLink
           name="Analyze"
           icon="icon-control-play"
-          :url="`/api/analyzer/${id}/analyze`"
+          :id="link.analyze"
         />
         <SidebarNavAnalysisLink
           name="Remove"
           icon="icon-trash"
-          :url="`/api/analyzer/${id}/quit`"
           :two_stage="true"
+          :id="event.remove"
         />
       </ul>
     </template>
@@ -222,7 +222,12 @@
 
 <script>
 import SidebarNavAnalysisLink from "./SidebarNavAnalysisLink";
-import { AnalyzerState as ast } from "../../static/api";
+import {
+  AnalyzerState as ast,
+  analyze,
+  remove,
+  cancel
+} from "../../static/api";
 
 // todo: should do color/icon resolution in a separate .js module, should be shared with e.g. dashboard
 export default {
@@ -235,10 +240,43 @@ export default {
   components: {
     SidebarNavAnalysisLink
   },
+  beforeMount() {
+    this.$root.$on(this.event.remove, this.handleRemove);
+    this.$root.$on(this.event.cancel, this.handleCancel);
+  },
+  destroyed() {
+    // todo: unregister listeners!
+  },
   methods: {
-    handleClick(e) {
+    handleDropdownClick(e) {
       e.preventDefault();
       e.target.parentElement.classList.toggle("open");
+    },
+    syncStore() {
+      this.$store.dispatch("analyzers/sync");
+    },
+    handleAnalyze() {
+      analyze(this.id).then(() => {
+        this.syncStore();
+      });
+    },
+    handleRemove() {
+      console.log(`sidebar: handling remove event (${this.id})`);
+      remove(this.id).then(() => {
+        if (
+          this.$route.query.id === this.id ||
+          this.$route.query.id === undefined
+        ) {
+          this.$router.push("/");
+        }
+        this.syncStore();
+      });
+    },
+    handleCancel() {
+      console.log(`sidebar: handling cancel event (${this.id})`);
+      cancel(this.id).then(() => {
+        this.syncStore();
+      });
     }
   },
   computed: {
@@ -250,6 +288,20 @@ export default {
     },
     state() {
       return this.$store.getters["analyzers/getState"](this.id);
+    },
+    link() {
+      return {
+        configure: `/analysis/configure?id=${this.id}`,
+        align: `/analysis/align?id=${this.id}`,
+        filter: `/analysis/filter?id=${this.id}`,
+        analyze: `/api/analyzer/${this.id}/analyze`
+      };
+    },
+    event() {
+      return {
+        cancel: `event-cancel-${this.id}`,
+        remove: `event-remove-${this.id}`
+      };
     }
   },
   data() {

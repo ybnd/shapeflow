@@ -34,6 +34,7 @@ export default {
     this.$root.$on(`seek-${this.id}`, this.handleSeek);
   },
   beforeDestroy() {
+    // todo: unregister listener!
     clearInterval(this.updatePosition);
   },
   methods: {

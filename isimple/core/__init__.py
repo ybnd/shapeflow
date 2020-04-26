@@ -1,9 +1,11 @@
 from typing import Callable, Dict, List, Tuple, Type
+from collections import namedtuple
 
 import uuid
 
 from isimple import get_logger
 from isimple.util.meta import all_attributes, get_overridden_methods
+
 
 log = get_logger(__name__)
 
@@ -26,16 +28,69 @@ class SetupError(RootException):
     pass
 
 
+class EnforcedStr(object):
+    _options: List[str] = ['']
+    _str: str
+
+    def __init__(self, string: str = None):
+        if string is not None:
+            if string not in self.options:
+                if string:
+                    log.debug(f"Illegal {self.__class__.__name__} '{string}', "
+                                  f"should be one of {self.options}. "
+                                  f"Defaulting to '{self.default}'.")
+                self._str = str(self.default)
+            else:
+                self._str = str(string)
+        else:
+            self._str = str(self.default)
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} '{self._str}'>"
+
+    def __str__(self):
+        return str(self._str)  # Make SURE it's a string :(
+
+    def __eq__(self, other):
+        if hasattr(other, '_str'):
+            return self._str == other._str
+        elif isinstance(other, str):
+            return self._str == other
+        else:
+            return False
+
+    @property
+    def options(self):
+        return self._options
+
+    @property
+    def default(self):
+        return self._options[0]
+
+    def __hash__(self):
+        return hash(str(self))
+
+
+class _Streaming(EnforcedStr):
+    _options = ['off', 'image', 'json']
+
+
+stream_off = _Streaming('off')
+stream_image = _Streaming('image')
+stream_json = _Streaming('json')
+
 class Endpoint(object):
     _name: str
     _registered: bool
     _signature: Type[Callable]
+    _streaming: _Streaming
 
-    def __init__(self, signature: Type[Callable]):
+    def __init__(self, signature: Type[Callable], streaming: _Streaming = stream_off):
         self._registered = False
         if not hasattr(signature, '__args__'):
             raise SetupError('Cannot define an Endpoint without a signature!')
         self._signature = signature
+        self._streaming = streaming
 
     def compatible(self, method: Callable) -> bool:
         if hasattr(method, '__annotations__'):
@@ -52,6 +107,10 @@ class Endpoint(object):
     @property
     def signature(self):
         return self._signature.__args__
+
+    @property
+    def streaming(self):
+        return self._streaming
 
     @property
     def registered(self):

@@ -72,6 +72,22 @@ export async function init() {
   });
 }
 
+export async function remove(id) {
+  return axios.post(url(id, "remove")).then(response => {
+    if (response.status === 200) {
+      return response.data;
+    }
+  });
+}
+
+export async function cancel(id) {
+  return axios.post(url(id, "cancel")).then(response => {
+    if (response.status === 200) {
+      return response.data;
+    }
+  });
+}
+
 export async function get_schemas(id) {
   return axios.get(url(id, "call/get_schemas")).then(response => {
     if (response.status === 200) {
@@ -175,10 +191,6 @@ export async function launch(id) {
       return false;
     }
   });
-}
-
-export async function stream(id, endpoint) {
-  return axios.get(url(id, `stream/${endpoint}`));
 }
 
 export async function seek(id, position) {

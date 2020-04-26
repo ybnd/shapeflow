@@ -182,6 +182,8 @@ export default {
           `${this.config.frame_interval_setting}`
         ],
         height: this.config.height_mm / 1000,
+        features: [this.config.feature], // todo: temporary - only handling one feature at a time for now
+        feature: undefined,
         height_mm: undefined
       });
     },

@@ -211,7 +211,10 @@ export default {
       return this.$route.query.id;
     },
     overlaid_url() {
-      return url(this.$route.query.id, "stream/get_inverse_overlaid_frame");
+      return url(
+        this.$route.query.id,
+        "stream-image/get_inverse_overlaid_frame"
+      );
     }
   },
   data: () => ({

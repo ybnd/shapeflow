@@ -1,9 +1,10 @@
 import numpy as np
-from typing import List, Optional, Union, Type, Dict
+from typing import Optional, Union, Type, Dict
 from dataclasses import dataclass
 from functools import partial
 
 from isimple import get_logger, __version__
+from isimple.core import EnforcedStr
 from isimple.maths.colors import Color
 from isimple.util import ndarray2str, str2ndarray
 
@@ -21,49 +22,6 @@ __meta_ext__ = '.meta'
 
 # Excel sheet name
 __meta_sheet__ = 'metadata'
-
-
-class EnforcedStr(object):
-    _options: List[str] = ['']
-    _str: str
-
-    def __init__(self, string: str = None):
-        if string is not None:
-            if string not in self.options:
-                if string:
-                    log.debug(f"Illegal {self.__class__.__name__} '{string}', "
-                                  f"should be one of {self.options}. "
-                                  f"Defaulting to '{self.default}'.")
-                self._str = str(self.default)
-            else:
-                self._str = str(string)
-        else:
-            self._str = str(self.default)
-
-    def __repr__(self):
-        return f"<{self.__class__.__name__} '{self._str}'>"
-
-    def __str__(self):
-        return str(self._str)  # Make SURE it's a string :(
-
-    def __eq__(self, other):
-        if hasattr(other, '_str'):
-            return self._str == other._str
-        elif isinstance(other, str):
-            return self._str == other
-        else:
-            return False
-
-    @property
-    def options(self):
-        return self._options
-
-    @property
-    def default(self):
-        return self._options[0]
-
-    def __hash__(self):
-        return hash(str(self))
 
 
 class Factory(EnforcedStr):  # todo: add a _class & issubclass check

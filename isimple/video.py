@@ -24,7 +24,6 @@ from isimple.core.interface import TransformInterface, FilterConfig, \
     FilterInterface, FilterType, TransformType
 from isimple.core.streaming import stream, streams
 from isimple.endpoints import BackendRegistry
-from isimple.endpoints import GuiRegistry as gui
 from isimple.maths.colors import HsvColor, BgrColor, convert
 from isimple.maths.images import to_mask, crop_mask, area_pixelsum, ckernel, \
     overlay, rect_contains
@@ -817,16 +816,18 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     def config(self) -> VideoAnalyzerConfig:
         return self._config
 
-    def can_launch(self) -> bool:
+    def can_launch(self) -> bool:  # todo: endpoint?
         if self.config.video_path is not None \
                 and self.config.design_path is not None:
+            # todo: push get_state streamer
             return os.path.isfile(self.config.video_path) \
                    and os.path.isfile(self.config.design_path)
         else:
             return False
 
-    def can_run(self) -> bool:
+    def can_run(self) -> bool:  # todo: endpoint?
         if self.can_launch():
+            # todo: push get_state streamer
             return self.ok_to_run
         else:
             return False
@@ -863,6 +864,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         # Commit to history
         self.commit()
 
+        # todo: push get_state streamer
+
     def _get_featuresets(self):
         features = []
         for feature in self.config.features:
@@ -884,19 +887,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 [], columns=['time'] + [f.name for f in fs.features], index=list(self.frame_numbers())
             )
 
-    def configure(self):
-        if self._gui is not None:
-            self._gui.get(gui.open_setupwindow)()
-
-    def align(self):
-        if self._gui is not None:
-            self._gui.get(gui.open_transformwindow)()
-
-    def pick(self, index: int):
-        if self._gui is not None:
-            self._gui.get(gui.open_filterwindow)(index)
-    # </backend shouldn't care about this>
-
     @backend.expose(backend.get_config)
     def get_config(self) -> dict:
         return self.config.to_dict()
@@ -916,9 +906,12 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
                 # Check for changes in features
                 if previous_features != self.config.features:
-                    log.debug('updating featuresets')
-                    self._get_featuresets()
                     do_commit = True
+                    try:
+                        log.debug('updating featuresets')
+                        self._get_featuresets()
+                    except AttributeError:
+                        pass
 
                 # Commit to history if files were changed
                 if previous_video_path != self.config.video_path or previous_design_path != self.config.design_path:
@@ -927,7 +920,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 if do_commit:
                     self.commit()  # todo: isimple.video doesn't know about isimple.history!
 
-                # Check for state transitions
+                # Check for state transitions  # todo: & push get_state streamer
                 if self._state == AnalyzerState.INCOMPLETE:
                     if self.can_launch():
                         self._state = AnalyzerState.CAN_LAUNCH
@@ -952,8 +945,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
     @backend.expose(backend.get_colors)  # todo: per feature in each feature set; maybe better as a dict instead of a list of tuples?
     def get_colors(self) -> List[Tuple[HsvColor, ...]]:
-        return [featureset.get_colors() for featureset in
-                self._featuresets.values()]
+        return [featureset.get_colors() for featureset in self._featuresets.values()]
 
     def frame_numbers(self) -> Generator[int, None, None]:
         if self.config.frame_interval_setting == FrameIntervalSetting('Nf'):
@@ -1078,6 +1070,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
             self.results[k].loc[frame_number] = [t] + values
 
+        # todo: # todo: push get_state streamer
         if update_callback is not None:
             update_callback(
                 t,
@@ -1089,6 +1082,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     def analyze(self) -> bool:
         assert isinstance(self._cancel, threading.Event)
         self._state = AnalyzerState.RUNNING
+        # todo: push get_state streamer
 
         if self.model is None:
             log.warning(f"{self} has no database model; data may be lost")
@@ -1106,17 +1100,21 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 self._progress = fn / self.video.frame_count
 
             # Save results & configuration to database
+            # todo: push get_state streamer
             self.commit()
         if not self._cancel.is_set():
             self._state = AnalyzerState.DONE
+            # todo: push get_state streamer
             return True
         else:
             self._cancel.clear()
+            # todo: push get_state streamer
             return False
 
     def load_config(self):  # todo: look in history instead of file next to video
         """Load video analysis configuration from history database
         """
+        log.info('loading config from database...')
         from isimple.history import History, VideoFileModel, DesignFileModel  # todo: fix history / video circular dependency
         _history = History()
 
@@ -1134,14 +1132,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             self._config(**config)
         else:
             log.debug('could not load config - no video path!')
-
-    @backend.expose(backend.commit)
-    def commit(self) -> bool:
-        """Save video analysis configuration to history database
-        """
-        log.debug("committing")
-        self._model.store()  # todo: solve circular dependency
-        return True
+        # todo: push get_state streamer
 
     def save_config(self, path: str = None):  # todo: in isimple.og, make LegacyVideoAnalyzer(VideoAnalyzer) that implements these
         """Save video analysis configuration

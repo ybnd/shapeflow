@@ -1,48 +1,52 @@
 <template>
   <div>
-    <template v-if="isApiLink">
-      <template v-if="two_stage">
-        <div
-          @click="show = !show"
-          :class="classList"
-          :id="url"
-          class="sidebar-analysis-link"
+    <template v-if="isTwoStage">
+      <div
+        :id="id"
+        @click="handleShowStageTwo"
+        :class="classList"
+        class="sidebar-analysis-link"
+      >
+        &ensp;
+        <i :class="icon"></i> {{ name }}
+        <b-badge v-if="badge && badge.text" :variant="badge.variant">{{
+          badge.text
+        }}</b-badge>
+        <b-popover
+          :target="id"
+          :show.sync="show_popup"
+          @ok="doRequest"
+          container="body"
+          placement="right"
+          boundary="viewport"
         >
-          &ensp;
-          <i :class="icon"></i> {{ name }}
-          <b-badge v-if="badge && badge.text" :variant="badge.variant">{{
-            badge.text
-          }}</b-badge>
-          <b-popover
-            :target="url"
-            :show.sync="show"
-            @ok="doRequest"
-            container="body"
-            placement="right"
-            boundary="viewport"
-          >
-            <b-button variant="primary" @click="doRequest">
-              <i class="fa fa-check" /> {{ name }}
-            </b-button>
-            <b-button variant="danger" @click="show = false">
-              <i class="fa fa-times" />
-            </b-button>
-          </b-popover>
-        </div>
-      </template>
-      <template v-else>
-        <div
-          @click="doRequest"
-          :class="classList"
-          class="sidebar-analysis-link"
-        >
-          &ensp;
-          <i :class="icon"></i> {{ name }}
-        </div>
-      </template>
+          <b-button variant="primary" @click="handleClickStageTwo">
+            <i class="fa fa-check" /> {{ name }}
+          </b-button>
+          <b-button variant="danger" @click="handleHideStageTwo">
+            <i class="fa fa-times" />
+          </b-button>
+        </b-popover>
+      </div>
+    </template>
+    <template v-else-if="isApiLink">
+      <div
+        :id="id"
+        @click="doRequest"
+        :class="classList"
+        class="sidebar-analysis-link"
+      >
+        &ensp;
+        <i :class="icon"></i> {{ name }}
+      </div>
     </template>
     <template v-else>
-      <div @click="doNavigate" :class="classList" class="sidebar-analysis-link">
+      <div
+        :id="id"
+        @click="doNavigate"
+        :class="classList"
+        class="sidebar-analysis-link"
+      >
         &ensp;
         <i :class="icon"></i> {{ name }}
       </div>
@@ -57,17 +61,13 @@ import axios from "axios";
 export default {
   name: "sidebar-nav-link",
   props: {
+    id: {
+      type: String,
+      required: true
+    },
     name: {
       type: String,
       default: ""
-    },
-    url: {
-      type: String,
-      default: ""
-    },
-    two_stage: {
-      type: Boolean,
-      default: false
     },
     icon: {
       type: String,
@@ -84,11 +84,23 @@ export default {
   },
   methods: {
     doNavigate() {
-      this.$router.push(this.url);
+      // id should be set to the url
+      this.$router.push(this.id);
     },
     doRequest(rl) {
-      this.show = false;
-      axios.post(this.url);
+      this.show_popup = false;
+      // id should be set to the url
+      axios.post(this.id);
+    },
+    handleShowStageTwo() {
+      this.show_popup = true;
+    },
+    handleHideStageTwo() {
+      this.show_popup = false;
+    },
+    handleClickStageTwo() {
+      this.$root.$emit(this.id);
+      this.handleHideStageTwo();
     }
   },
   computed: {
@@ -101,16 +113,16 @@ export default {
     itemClasses() {
       return this.classes ? this.classes.split(" ") : [];
     },
-    isExternalLink() {
-      return this.url.substring(0, 4) === "http";
-    },
     isApiLink() {
-      return this.url.substring(0, 4) === "/api";
+      return this.id.substring(0, 4) === "/api";
+    },
+    isTwoStage() {
+      return this.id.substring(0, 5) === "event";
     }
   },
   data() {
     return {
-      show: false
+      show_popup: false
     };
   }
 };

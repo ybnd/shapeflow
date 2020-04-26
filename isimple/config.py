@@ -11,7 +11,8 @@ from isimple import __version__
 from isimple.core.backend import BaseAnalyzerConfig, CachingBackendInstanceConfig, \
     FeatureType
 from isimple.core.config import extend, ConfigType, \
-    log, VERSION, CLASS, EnforcedStr, untag, Config
+    log, VERSION, CLASS, untag, Config
+from isimple.core import EnforcedStr
 from isimple.core.interface import FilterConfig, \
     FilterType, TransformType
 from isimple.maths.colors import HsvColor

@@ -69,6 +69,10 @@ export default {
   methods: {
     handleNewAnalysis() {
       let config = this.$refs.new_analyzer_form.getConfig();
+
+      console.log("new analysis: config is");
+      console.log(config);
+
       this.$refs.new_analyzer_form.hasValidFiles().then(ok => {
         if (ok) {
           this.show = false;

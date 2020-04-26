@@ -7,7 +7,8 @@ from schema import Optional, Schema, Or  #type: ignore
 
 from isimple import get_logger, settings
 
-from isimple.core.config import Config, EnforcedStr
+from isimple.core.config import Config
+from isimple.core import EnforcedStr
 from isimple.maths.colors import HsvColor
 from isimple.util.meta import nbases, all_attributes, all_annotations
 

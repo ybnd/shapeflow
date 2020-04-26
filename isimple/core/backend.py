@@ -447,6 +447,14 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
     def model(self):
         return self._model
 
+    @backend.expose(backend.commit)
+    def commit(self) -> bool:
+        """Save video analysis configuration to history database
+        """
+        log.debug("committing")
+        self._model.store()  # todo: solve circular dependency
+        return True
+
     @abc.abstractmethod
     @backend.expose(backend.can_launch)
     def can_launch(self) -> bool:

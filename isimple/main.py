@@ -219,16 +219,6 @@ class Main(object, metaclass=util.Singleton):
                 bt = None
             return respond(self.add_instance(video.AnalyzerType(bt)))
 
-        @app.route('/api/list', methods=['GET'])
-        def get_list():
-            active()
-            log.vdebug(f"Listing analyzers")
-            return respond({
-                'ids': [k for k in self._roots.keys()],  # todo: goes through self._roots 3 times!
-                'states': [v.state for v in self._roots.values()],
-                'progress': [v.progress for v in self._roots.values()],
-            })
-
         @app.route('/api/<id>/call/get_schemas', methods=['GET'])
         def get_schemas(id: str):
             active()
@@ -246,6 +236,10 @@ class Main(object, metaclass=util.Singleton):
         @app.route('/api/<id>/get_state', methods=['GET'])
         def get_state(id: str):
             return respond(self._roots[id].state)
+
+        @app.route('/api/<id>/remove', methods=['POST'])
+        def remove(id: str):
+            return respond(self.remove_instance(id))
 
         @app.route('/api/<id>/call/get_overlay_png', methods=['GET'])
         def get_overlay_png(id: str):
@@ -265,12 +259,31 @@ class Main(object, metaclass=util.Singleton):
             return respond(result)
 
         # Streaming
-        @app.route('/api/<id>/stream/<endpoint>', methods=['GET'])
-        def stream(id: str, endpoint: str):
+        @app.route('/api/<id>/stream-image/<endpoint>', methods=['GET'])
+        def stream_image(id: str, endpoint: str):
+            """Stream image data
+            """
+            # todo: there's no way to handle requests to stream endpoints that don't stream
             return Response(
                 self.stream(id, endpoint).stream(),
                 mimetype = "multipart/x-mixed-replace; boundary=frame",
             )
+
+        @app.route('/api/<id>/stream-json/<endpoint>', methods=['GET'])
+        def stream_json(id: str, endpoint: str):
+            """Stream JSON data
+            """
+            raise NotImplementedError
+
+        @app.route('/api/list', methods=['GET'])
+        def get_list():
+            active()
+            log.vdebug(f"Listing analyzers")
+            return respond({
+                'ids': [k for k in self._roots.keys()],  # todo: goes through self._roots 3 times!
+                'states': [v.state for v in self._roots.values()],
+                'progress': [v.progress for v in self._roots.values()],
+            })
 
         @app.route('/api/get_log')
         def get_log():
@@ -298,13 +311,13 @@ class Main(object, metaclass=util.Singleton):
             self._stop_log.set()
             return respond(True)
 
-        # State
-        @app.route('/api/state/save')
+        # Application state
+        @app.route('/api/app-state/save')
         def save_state():
             self.save_state()
             return respond(True)
 
-        @app.route('/api/state/load')
+        @app.route('/api/app-state/load')
         def load_state():
             self.load_state()
             return respond(True)
@@ -361,6 +374,15 @@ class Main(object, metaclass=util.Singleton):
         assert isinstance(analyzer, video.VideoAnalyzer)
         self._history.add_analysis(analyzer)
         return analyzer.id
+
+    def remove_instance(self, id: str) -> bool:
+        if id in self._roots:
+            analyzer = self._roots.pop(id)
+            analyzer.commit()
+            del analyzer
+            return True
+        else:
+            return False
 
     def save_state(self):
         log.debug("saving state")
@@ -419,9 +441,9 @@ class Main(object, metaclass=util.Singleton):
         except KeyError:
             log.debug(f"{self._roots[id]}: KeyError @ '{endpoint}'")
 
-    def stream(self, id: str, endpoint: str) -> streaming.FrameStreamer:
+    def stream(self, id: str, endpoint: str) -> streaming.FrameStreamer:  # todo: extend to handle json streaming also
         # todo: sanity check this also
-        method = self._roots[id].get(getattr(backend.backend, endpoint))
+        method = self._roots[id].get(getattr(backend.backend, endpoint))  # todo: check whether endpoint.streaming is not _Streaming('off')
         self._roots[id].cache_open()
 
         new_stream = streaming.streams.register(method.__self__, method)  # type: ignore  # todo: type / assert properly

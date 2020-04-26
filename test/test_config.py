@@ -3,7 +3,8 @@ import unittest
 import os
 
 from isimple.video import *
-from isimple.core.config import EnforcedStr, Factory, dataclass, Config
+from isimple.core.config import Factory, dataclass, Config
+from isimple.core import EnforcedStr
 from isimple.core.interface import FilterType
 
 __VIDEO__ = 'test.mp4'

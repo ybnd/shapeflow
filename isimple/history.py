@@ -433,7 +433,7 @@ class History(Database):
         analysis.update({'roi': model['id']})
         return model
 
-    def clean(self):
+    def clean(self, deep: bool = False):
         """Remove all incomplete entries
             * VideoAnalysisModel:
                 - missing 'video' & 'design'
@@ -441,12 +441,13 @@ class History(Database):
                 - missing 'hash'
             * RoiModel:
                 - missing 'roi'
-                - 100% duplicates ('video' & 'design' & 'roi')
+                - 100% duplicates (deep)
             * ResultsModel:
                 - missing 'data'
+                - 'data' where everythin is NaN (deep)
 
             & convert legacy JSON strings
-                - VideoAnalysisModel['config']
+                - VideoAnalysisModel['config'] (deep)
                 - RoiModel['roi']
         """
         raise NotImplementedError
