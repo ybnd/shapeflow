@@ -881,7 +881,9 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 tuple(feature.get()(mask) for mask in self.design.masks),
             ) for feature in self.config.features
         }
+        self._new_results()
 
+    def _new_results(self):
         for fs, feature in zip(self._featuresets.values(), self.config.features):
             self.results[str(feature)] = pd.DataFrame(
                 [], columns=['time'] + [f.name for f in fs.features], index=list(self.frame_numbers())

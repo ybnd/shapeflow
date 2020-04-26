@@ -494,6 +494,10 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
         return self._config
 
     @abc.abstractmethod
+    def _new_results(self):
+        raise NotImplementedError
+
+    @abc.abstractmethod
     @backend.expose(backend.analyze)
     def analyze(self) -> bool:
         raise NotImplementedError

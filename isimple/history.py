@@ -254,18 +254,20 @@ class VideoAnalysisModel(NoGetterModel):
                 self['roi'] = roi['id']
 
             # Store results
-            for k,df in self._analyzer.results.items():
+            for k, df in self._analyzer.results.items():
                 # Add columns
-                model = self._db.add_results()  # todo: should have a _results: Dict[ <?>, ResultsModel] so these don't spawn new results each time
-                model.update({
-                    'analysis': self['id'],
-                    'feature': k,
-                    'data': df.to_json(orient='columns'),
-                })
-                model.store()
-                self.update({
-                    'results': model['id']  # todo: what if a single analyzer produces multiple results?
-                })
+                if not df.isnull().all().all():
+                    model = self._db.add_results()  # todo: should have a _results: Dict[ <?>, ResultsModel] so these don't spawn new results each time
+                    model.update({
+                        'analysis': self['id'],
+                        'feature': k,
+                        'data': df.to_json(orient='columns'),
+                    })
+                    model.store()
+                    self.update({
+                        'results': model['id']  # todo: what if a single analyzer produces multiple results?
+                    })
+                    self._analyzer._new_results()
 
             # Store timing info
             t = self._analyzer.timing
