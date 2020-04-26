@@ -89,6 +89,7 @@ export default {
       if (this.$store.getters["queue/getIndex"](this.id) === -1) {
         this.$router.push(`/`);
       } else {
+        this.$root.$emit(`seek-${this.id}`);
         this.previous_id = this.id;
 
         this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
@@ -98,9 +99,7 @@ export default {
         });
         this.moveable.className = this.moveableHide;
         this.$store.dispatch("align/init", { id: this.id }).then(() => {
-          console.log("Vuex/align: init should be done");
-          console.log(this.$store.state.align);
-          this.$root.$emit(`seek-${this.id}`);
+          this.$store.dispatch("analyzers/get_config", { id: this.id });
           this.handleUpdate();
         });
       }

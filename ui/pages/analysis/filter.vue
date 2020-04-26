@@ -62,6 +62,8 @@ export default {
   beforeMount() {
     this.initFilter();
     this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
+    this.waitForMasks = setInterval(this.getMasks, 100);
+    this.waitForFeatures = setInterval(this.getFeatures, 100);
   },
   beforeDestroy() {
     clearInterval(this.waitUntilHasRect);
@@ -80,25 +82,39 @@ export default {
       } else {
         this.$root.$emit(`seek-${this.id}`);
 
-        get_options("feature").then(options => {
-          this.feature_options = options;
-        });
         get_options("filter").then(options => {
           this.filter_options = options;
         });
-        this.masks = this.$store.getters["analyzers/getMasks"](this.id);
-        this.mask = this.masks[0];
 
-        this.filter = this.$store.getters["analyzers/getFilterType"](
-          this.id,
-          0
-        );
-
-        this.feature = this.$store.getters["analyzers/getFeatures"](this.id)[0];
         console.log(`setting this.feature to ${this.feature}`);
 
-        this.$store.dispatch("filter/init", { id: this.id });
+        this.$store.dispatch("filter/init", { id: this.id }).then(() => {
+          this.$store.dispatch("analyzers/get_config", { id: this.id });
+        });
       }
+    },
+    getMasks() {
+      console.log("filter: getMasks()");
+      this.masks = this.$store.getters["analyzers/getMasks"](this.id);
+      this.mask = this.masks[0];
+      this.filter = this.$store.getters["analyzers/getFilterType"](this.id, 0);
+      if (this.masks.length !== 0) {
+        if (this.masks[0] !== undefined) {
+          console.log("filter: getMasks() -- clearing interval");
+          clearInterval(this.waitForMasks);
+        }
+      }
+      console.log(this.masks);
+    },
+    getFeatures() {
+      console.log("filter: getFeatures()");
+      this.features = this.$store.getters["analyzers/getFeatures"](this.id);
+      this.feature = this.features[0];
+      if (this.features.length !== 0) {
+        console.log("filter: getFeatures() -- clearing interval");
+        clearInterval(this.waitForFeatures);
+      }
+      console.log(this.features);
     },
     updateFrame() {
       console.log("Updating frame...");
@@ -188,13 +204,15 @@ export default {
   },
   data: () => ({
     waitUntilHasRect: null,
-    feature: "",
-    feature_options: {},
+    waitForMasks: null,
+    waitForFeatures: null,
     filter: "",
-    filter_options: {},
+    filter_options: undefined,
     filter_data: {},
     mask: "",
-    masks: {}
+    masks: [],
+    feature: "",
+    features: []
   })
 };
 </script>

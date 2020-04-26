@@ -223,6 +223,22 @@ export const actions = {
     }
   },
 
+  async get_config({ commit }, { id }) {
+    try {
+      assert(!(id === undefined), "no id provided");
+
+      return await get_config(id).then(config => {
+        commit("setAnalyzerConfig", {
+          id: id,
+          analyzer_config: config
+        });
+      });
+    } catch (e) {
+      console.warn(`could not get config for ${id}`);
+      return false;
+    }
+  },
+
   async set_config({ commit }, { id, config }) {
     try {
       assert(!(id === undefined), "no id provided");
