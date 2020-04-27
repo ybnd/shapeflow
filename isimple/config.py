@@ -25,6 +25,10 @@ class ColorSpace(EnforcedStr):
 
 class FrameIntervalSetting(EnforcedStr):
     _options = ['Nf', 'dt']
+    _descriptions = {
+        'Nf': '# of equally spaced frames',
+        'dt': 'frame interval (s)',
+    }
 
 
 @extend(ConfigType)
@@ -100,13 +104,14 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
     dt: Optional[float] = field(default=5.0)
     Nf: Optional[int] = field(default=100)
 
-    height: float = field(default=0.153e-3)
+    height: float = field(default=0.153e-3)  # todo: should be contained in features field!
 
     video: Union[VideoFileHandlerConfig,dict,None] = field(default=None)
     design: Union[DesignFileHandlerConfig,dict,None] = field(default=None)
     transform: Union[TransformHandlerConfig,dict,None] = field(default=None)
     masks: Tuple[Union[MaskConfig,dict,None], ...] = field(default=(None,))  # todo: would be better as Dict[str, MaskConfig]?
-    features: Tuple[FeatureType, ...] = field(default=())
+
+    features: Tuple[FeatureType, ...] = field(default=())  # todo: should be a tuple of (FeatureType, <config of feature>)
 
     def __post_init__(self):
         self.frame_interval_setting = self.resolve(self.frame_interval_setting, FrameIntervalSetting)

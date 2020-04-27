@@ -30,6 +30,7 @@ class SetupError(RootException):
 
 class EnforcedStr(object):
     _options: List[str] = ['']
+    _descriptions: Dict[str, str] = {}
     _str: str
 
     def __init__(self, string: str = None):
@@ -62,6 +63,14 @@ class EnforcedStr(object):
     @property
     def options(self):
         return self._options
+
+    @property
+    def descriptions(self):
+        return self._descriptions
+
+    @property
+    def describe(self):
+        return self.descriptions[self._str]
 
     @property
     def default(self):

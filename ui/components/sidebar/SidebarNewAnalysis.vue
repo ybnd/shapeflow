@@ -12,10 +12,13 @@
         container="body"
       >
         <div class="popover-form-container">
-          <basic-config
-            ref="new_analyzer_form"
-            :formStyle="{ width: '600px' }"
-          />
+          <b-row>
+            <basic-config
+              ref="new_analyzer_form"
+              :formStyle="{ width: '600px' }"
+            />
+          </b-row>
+
           <b-row class="popover-form-row">
             <b-form-group>
               <b-input-group>
@@ -131,20 +134,23 @@ export default {
 }
 
 .popover {
-  width: 600px;
-  max-width: 600px;
+  /*width: 600px;*/
+  max-width: none;
   z-index: 9000;
   /* Should be drawn over moveable, which is @ z-index 3000 */
   /* https://github.com/daybrush/moveable/blob/master/handbook/handbook.md#toc-custom-css */
 }
+.popover-body {
+  display: flex !important;
+}
 .popover-form-container {
   /* todo: should be a single component for the dashboard cards & this popover! Then we can recycle a bunch of stuff. */
-  padding-top: 15px;
+  flex-direction: column;
+  display: flex;
+  padding-top: 1px;
   padding-left: 12px;
-  margin-right: -8px;
+  padding-right: 24px;
   margin-bottom: -16px;
-}
-.popover-form-row {
 }
 .popover-buttons {
   margin-left: -1px;

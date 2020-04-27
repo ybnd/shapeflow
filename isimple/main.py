@@ -150,11 +150,28 @@ class Main(object, metaclass=util.Singleton):
             elif for_type == "analyzer":
                 return respond(video.AnalyzerType().options)
             elif for_type == "feature":
+                ft = video.FeatureType()
+                features = [video.FeatureType(k).get() for k in ft.options]
                 return respond({
-                    k: video.FeatureType(k).get().parameters() for k in video.FeatureType().options
+                    'options': ft.options,
+                    'descriptions': {
+                        k: feature.description() for k, feature
+                                    in zip(ft.options, features)
+                    },
+                    'parameters': {
+                        k: feature.parameters() for k, feature
+                                    in zip(ft.options, features)
+                    },
+                    'parameter_descriptions': {
+                        k: feature.parameter_descriptions() for k, feature
+                                    in zip(ft.options, features)
+                    },
                 })
             elif for_type == "frame_interval_setting":
-                return respond(video.FrameIntervalSetting().options)
+                fis = video.FrameIntervalSetting()
+                return respond(
+                    {'options': fis.options, 'descriptions': fis.descriptions}
+                )
             elif for_type == "filter":
                 return respond(video.FilterType().options)
             elif for_type == "transform":

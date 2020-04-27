@@ -781,9 +781,12 @@ class PixelSum(MaskFunction):
 @extend(FeatureType)
 class Volume_uL(MaskFunction):
     _parameters = ('h',)
+    _parameter_descriptions = {
+        'h': 'height (mm)'
+    }
 
     def _function(self, frame: np.ndarray) -> Any:
-        return area_pixelsum(frame) / (self.mask.dpi / 25.4) ** 2 * self.mask.h * 1e3
+        return area_pixelsum(frame) / (self.mask.dpi / 25.4) ** 2 * self.mask.h * 1e3  # todo: better parameter handling for Feature subclasses
 
 
 @extend(AnalyzerType)

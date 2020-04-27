@@ -227,8 +227,11 @@ class Feature(abc.ABC):
     _skip: bool
     _ready: bool
 
-    _elements: Tuple[BackendInstance, ...]
+    _description: str = ''
+    _elements: Tuple[BackendInstance, ...] = ()
+
     _parameters: Tuple[str,...] = ()
+    _parameter_descriptions: Dict[str, str] = {}
 
     def __init__(self, elements: Tuple[BackendInstance, ...]):
         self._skip = False
@@ -293,8 +296,16 @@ class Feature(abc.ABC):
         raise NotImplementedError
 
     @classmethod
-    def parameters(self) -> Tuple[str,...]:
-        return self._parameters
+    def parameters(cls) -> Tuple[str,...]:
+        return cls._parameters
+
+    @classmethod
+    def parameter_descriptions(cls) -> Dict[str, str]:
+        return cls._parameter_descriptions
+
+    @classmethod
+    def description(cls) -> str:
+        return cls._description
 
 
 class FeatureSet(object):
