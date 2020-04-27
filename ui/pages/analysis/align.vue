@@ -12,12 +12,12 @@
       <PageHeaderItem>
         <b-button-group>
           <b-dropdown
-            :text="`${this.align}`"
+            :text="`${this.transform}`"
             data-toggle="tooltip"
             title="Transform type"
           >
             <b-dropdown-item
-              v-for="align in align_options"
+              v-for="align in transform_options"
               :key="`align-${align}`"
             >
               {{ align }}
@@ -27,10 +27,16 @@
       </PageHeaderItem>
     </PageHeader>
     <div class="align" ref="align">
-      <img :src="overlaid_url" alt="" class="streamed-image-a" ref="frame" />
+      <img
+        :src="overlaid_url"
+        alt=""
+        class="streamed-image-a"
+        :ref="ref_frame"
+      />
       <Moveable
         class="moveable"
-        ref="moveable"
+        :class="moveableHide"
+        :ref="ref_moveable"
         v-bind="moveable"
         @drag="handleTransform"
         @scale="handleTransform"
@@ -45,12 +51,19 @@
 </template>
 
 <script>
-import { estimate_transform, get_options, commit, url } from "../../static/api";
+import {
+  estimate_transform,
+  get_options,
+  commit,
+  url,
+  get_relative_roi
+} from "../../static/api";
 import Moveable from "vue-moveable";
 import {
   roiRectInfoToRelativeCoordinates,
   default_relative_coords,
-  roiIsValid
+  roiIsValid,
+  getInitialTransform
 } from "../../static/coordinates";
 import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
@@ -60,12 +73,10 @@ import { throttle, debounce } from "throttle-debounce";
 export default {
   name: "align",
   beforeMount() {
-    console.log(`beforeMount() of align @ ${this.id}`);
     this.handleInit();
     window.onresize = this.updateFrame;
   },
   beforeDestroy() {
-    console.log(`beforeDestroy() of align`);
     commit(this.previous_id);
 
     this.handleCleanUp();
@@ -83,8 +94,35 @@ export default {
     handleSetFilters() {
       this.$router.push(`/analysis/filter?id=${this.id}`);
     },
-    handleCleanUp() {},
+    handleCleanUp() {
+      console.log("handleCleanUp");
+      // this.$store.commit("align/clearAlign", { id: this.previous_id });
+      this.align = {
+        frame: null,
+        roi: null,
+        transform: null,
+        overlay: {
+          // default moveable shape
+          width: 100,
+          height: 100,
+          top: -50,
+          left: -50,
+          bottom: 50,
+          right: 50
+        }
+      };
+      this.refs = {
+        frame: null,
+        moveable: null
+      };
+    },
+    getRefs() {
+      this.refs.frame = this.$refs[this.ref_frame];
+      this.refs.moveable = this.$refs[this.ref_moveable];
+    },
     handleInit() {
+      console.log("handleInit");
+      this.getRefs();
       // Check if this.id is queued. If not, navigate to /
       if (this.$store.getters["queue/getIndex"](this.id) === -1) {
         this.$router.push(`/`);
@@ -94,14 +132,49 @@ export default {
 
         this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
         get_options("transform").then(options => {
-          this.align_options = options;
-          this.align = options[0];
+          this.transform_options = options;
+          this.transform = options[0];
         });
-        this.moveable.className = this.moveableHide;
-        this.$store.dispatch("align/init", { id: this.id }).then(() => {
-          this.$store.dispatch("analyzers/get_config", { id: this.id });
-          this.handleUpdate();
+        // this.$store.dispatch("align/init", { id: this.id }).then(() => {
+        get_relative_roi(this.id).then(roi => {
+          this.setRoi(roi);
+          // this.$store.dispatch("analyzers/get_config", { id: this.id }); // todo: why?
         });
+        this.handleUpdate();
+      }
+    },
+    setRoi(roi) {
+      if (!(this.align.roi === roi)) {
+        if (roiIsValid(roi)) {
+          this.align.roi = roi;
+        } else {
+          this.align.roi = default_relative_coords;
+        }
+      }
+    },
+    resolveTransform() {
+      console.log("handleResolveTransform");
+      if (this.align.roi && this.align.frame && this.align.overlay) {
+        console.log(
+          `roi.BL = (x: ${this.align.roi.BL.x}, y: ${this.align.roi.BL.y})`
+        );
+        console.log("frame = ");
+        console.log(this.align.frame);
+        console.log("overlay = ");
+        console.log(this.align.overlay);
+
+        this.align.transform = getInitialTransform(
+          this.align.roi,
+          this.align.frame,
+          this.align.overlay
+        );
+
+        // todo: sanity check transform
+
+        this.refs.moveable.$el.style.transform = this.align.transform;
+        this.refs.moveable.updateRect();
+        this.refs.moveable.updateTarget();
+      } else {
       }
     },
     handleTransform({ target, transform }) {
@@ -113,15 +186,15 @@ export default {
       target.style.transform = transform; // todo: temporarily disable bounds during rotation?
     },
     updateRoiCoordinates() {
-      let frame = this.$store.getters["align/getFrame"](this.id);
+      if (this.align.frame) {
+        this.align.roi = roiRectInfoToRelativeCoordinates(
+          this.refs.moveable.getRect(),
+          this.align.frame
+        );
 
-      let roi = roiRectInfoToRelativeCoordinates(
-        this.$refs.moveable.getRect(),
-        frame
-      );
-
-      if (roi !== undefined) {
-        estimate_transform(this.id, roi);
+        if (this.align.roi !== undefined) {
+          estimate_transform(this.id, this.align.roi);
+        }
       }
     },
     handleUpdate: throttle(
@@ -132,66 +205,38 @@ export default {
       })
     ),
     updateFrame() {
-      // console.log("Updating frame...");
-      let frame = this.$refs.frame.getBoundingClientRect();
-      // console.log(frame);
-      this.moveable.bounds = {
-        left: frame.left,
-        right: frame.right,
-        top: frame.top,
-        bottom: frame.bottom
-      };
-      this.$store.commit("align/setFrame", { id: this.id, frame: frame });
+      try {
+        let frame = this.refs.frame.getBoundingClientRect();
 
-      this.$store.dispatch("align/getRoi", { id: this.id }).then(() => {
-        let transform = this.$store.getters["align/getInitialTransform"](
-          this.id
-        );
-        this.$refs.moveable.$el.style.transform = transform;
-
-        // console.log("updateFrame - initial_transform");
-        // console.log(transform);
-        // console.log(this.$refs.moveable.$el);
-
-        this.$refs.moveable.updateRect();
-        this.$refs.moveable.updateTarget();
-      });
-    },
-    updateOverlay() {
-      // console.log("Updating overlay...");
-      let rect_info = this.$refs.moveable.getRect();
-
-      let overlay = {
-        width: rect_info.width,
-        height: rect_info.height,
-        top: -rect_info.height / 2,
-        left: -rect_info.width / 2,
-        bottom: rect_info.height / 2,
-        right: rect_info.width / 2
-      };
-
-      // console.log(overlay);
-      this.$store.commit("align/setOverlay", { id: this.id, overlay: overlay });
+        this.moveable.bounds = {
+          left: frame.left,
+          right: frame.right,
+          top: frame.top,
+          bottom: frame.bottom
+        };
+        this.align.frame = frame;
+        this.resolveTransform();
+      } catch (err) {
+        console.log("oops @ updateFrame");
+      }
     },
     updateFrameOnceHasRect() {
       // todo: clean up
       let frame_ok = false;
       let overlay_ok = false;
-      if (!(this.waitUntilHasRect === undefined)) {
-        if (this.$refs.frame.getBoundingClientRect()["width"] > 50) {
-          // console.log("HAS FRAME");
-          this.updateFrame();
-          frame_ok = true;
+      this.getRefs();
+
+      try {
+        if (!(this.waitUntilHasRect === undefined)) {
+          if (this.refs.frame.getBoundingClientRect()["width"] > 50) {
+            // console.log("HAS FRAME");
+            this.updateFrame();
+            clearInterval(this.waitUntilHasRect);
+            this.moveable.className = this.moveableShow;
+          }
         }
-      }
-      if (this.$refs.moveable.getRect()["width"] > 50) {
-        // console.log("HAS OVERLAY");
-        this.updateOverlay();
-        overlay_ok = true;
-      }
-      if (frame_ok && overlay_ok) {
-        clearInterval(this.waitUntilHasRect);
-        this.moveable.className = this.moveableShow;
+      } catch (err) {
+        console.log("oops @ updateFrameOnceHasRect");
       }
     }
   },
@@ -201,11 +246,7 @@ export default {
 
       this.handleCleanUp();
 
-      this.$forceUpdate();
-
       this.handleInit();
-      this.updateFrame(); // todo: this *tries* to update the moveable, but it grows for some reason :( / :)
-      this.updateOverlay();
     }
   },
   computed: {
@@ -217,11 +258,17 @@ export default {
         this.$route.query.id,
         "stream-image/get_inverse_overlaid_frame"
       );
+    },
+    ref_frame() {
+      return `frame-${this.$route.query.id}`;
+    },
+    ref_moveable() {
+      return `moveable-${this.$route.query.id}`;
     }
   },
   data: () => ({
-    align_options: {},
-    align: "",
+    transform_options: {},
+    transform: "",
     moveable: {
       className: "hidden", //
       draggable: true,
@@ -232,6 +279,24 @@ export default {
       throttleWarp: 0,
       snappable: true,
       bounds: {}
+    },
+    align: {
+      frame: null,
+      overlay: {
+        // default moveable shape
+        width: 100,
+        height: 100,
+        top: -50,
+        left: -50,
+        bottom: 50,
+        right: 50
+      },
+      roi: null,
+      transform: null
+    },
+    refs: {
+      frame: null,
+      moveable: null
     },
     updateCall: null,
     moveableShow: "",

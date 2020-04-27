@@ -170,16 +170,20 @@ export function toCssMatrix3d(transform) {
 }
 
 export function toAbsolute(relative, frame, center = { x: 0, y: 0 }) {
-  let absolute = {};
+  try {
+    let absolute = {};
 
-  Object.keys(relative).map(key => {
-    absolute[key] = {
-      x: relative[key].x * frame.width - center.x,
-      y: relative[key].y * frame.height - center.y
-    };
-  });
+    Object.keys(relative).map(key => {
+      absolute[key] = {
+        x: relative[key].x * frame.width - center.x,
+        y: relative[key].y * frame.height - center.y
+      };
+    });
 
-  return absolute;
+    return absolute;
+  } catch (err) {
+    console.warn(err);
+  }
 }
 
 export function getCenter(rect) {
@@ -187,10 +191,20 @@ export function getCenter(rect) {
 }
 
 export function getInitialTransform(roi, frame, overlay) {
-  let initial_transform = transform(
-    rectToCoordinates(overlay),
-    toAbsolute(roi, frame, getCenter(overlay))
-  );
+  try {
+    let initial_transform = transform(
+      rectToCoordinates(overlay),
+      toAbsolute(roi, frame, getCenter(overlay))
+    );
 
-  return toCssMatrix3d(initial_transform);
+    return toCssMatrix3d(initial_transform);
+  } catch (err) {
+    console.warn(err);
+    console.warn("roi = ");
+    console.warn(roi);
+    console.warn("frame = ");
+    console.warn(frame);
+    console.warn("overlay = ");
+    console.warn(overlay);
+  }
 }
