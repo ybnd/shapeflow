@@ -103,9 +103,24 @@ export default {
       this.handleHideStageTwo();
     }
   },
+  beforeMount() {
+    this.$root.$on(`event-sidebar-highlight-${this.id}`, () => {
+      console.log(`${this.id} got highlight event`);
+      this.highlight = true;
+    });
+    this.$root.$on(`event-sidebar-unhighlight-${this.id}`, () => {
+      console.log(`${this.id} got unhighlight event`); // todo: these are not received...
+      this.highlight = false;
+    });
+  },
   computed: {
     classList() {
-      return ["nav-link", this.linkVariant, ...this.itemClasses];
+      return [
+        "nav-link",
+        this.highlight ? "highlighted" : "",
+        this.linkVariant,
+        ...this.itemClasses
+      ];
     },
     linkVariant() {
       return this.variant ? `nav-link-${this.variant}` : "";
@@ -122,14 +137,22 @@ export default {
   },
   data() {
     return {
-      show_popup: false
+      show_popup: false,
+      highlight: false
     };
   }
 };
 </script>
 
-<style>
+<style lang="scss">
+@import "../../assets/scss/_bootstrap-variables";
+@import "../../assets/scss/_core-variables";
+@import "node_modules/bootstrap/scss/functions";
+
 .sidebar-analysis-link {
   font-size: 85%;
+}
+.highlighted {
+  background: $gray-500 !important;
 }
 </style>

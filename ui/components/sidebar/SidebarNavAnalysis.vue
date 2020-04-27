@@ -243,6 +243,10 @@ export default {
   beforeMount() {
     this.$root.$on(this.event.remove, this.handleRemove);
     this.$root.$on(this.event.cancel, this.handleCancel);
+    this.$root.$on(this.event.open, () => {
+      console.log(`${this.id} got open event`); // todo: doesn't seem to work
+      this.dropdown = true;
+    });
   },
   destroyed() {
     // todo: unregister listeners!
@@ -281,7 +285,7 @@ export default {
   },
   computed: {
     classList() {
-      return ["nav-link"];
+      return ["nav-link", this.dropdown ? "open" : ""];
     },
     name() {
       return this.$store.getters["analyzers/getName"](this.id);
@@ -300,13 +304,14 @@ export default {
     event() {
       return {
         cancel: `event-cancel-${this.id}`,
-        remove: `event-remove-${this.id}`
+        remove: `event-remove-${this.id}`,
+        open: `event-sidebar-open-${this.id}`
       };
     }
   },
   data() {
     return {
-      show: false,
+      dropdown: false,
       ast: ast
     };
   }

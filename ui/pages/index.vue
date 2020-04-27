@@ -4,8 +4,7 @@
 
 <script>
 export default {
-  name: "index",
-  beforeMount() {}
+  name: "index"
 };
 </script>
 

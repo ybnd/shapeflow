@@ -78,6 +78,10 @@ export default {
     },
     handleReorderQueue() {
       this.$store.commit("queue/setQueue", { queue: this.queue });
+    },
+    setCurrent(page, id) {
+      // todo: open id's dropdown ~ event
+      // todo: set id's page link to current ~ event
     }
   },
   data: () => {
@@ -91,7 +95,11 @@ export default {
 };
 </script>
 
-<style>
+<style lang="scss">
+@import "../../assets/scss/_bootstrap-variables";
+@import "../../assets/scss/_core-variables";
+@import "node_modules/bootstrap/scss/functions";
+
 .nav-link {
   cursor: pointer;
 }
