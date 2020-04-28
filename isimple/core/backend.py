@@ -231,6 +231,7 @@ class Feature(abc.ABC):
     _elements: Tuple[BackendInstance, ...] = ()
 
     _parameters: Tuple[str,...] = ()
+    _parameter_defaults: Dict[str, Any] = {}
     _parameter_descriptions: Dict[str, str] = {}
 
     def __init__(self, elements: Tuple[BackendInstance, ...]):
@@ -298,6 +299,10 @@ class Feature(abc.ABC):
     @classmethod
     def parameters(cls) -> Tuple[str,...]:
         return cls._parameters
+
+    @classmethod
+    def parameter_defaults(cls) -> Dict[str, Any]:
+        return cls._parameter_defaults
 
     @classmethod
     def parameter_descriptions(cls) -> Dict[str, str]:

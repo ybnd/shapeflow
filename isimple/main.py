@@ -162,6 +162,10 @@ class Main(object, metaclass=util.Singleton):
                         k: feature.parameters() for k, feature
                                     in zip(ft.options, features)
                     },
+                    'parameter_defaults': {
+                        k: feature.parameter_defaults() for k, feature
+                        in zip(ft.options, features)
+                    },
                     'parameter_descriptions': {
                         k: feature.parameter_descriptions() for k, feature
                                     in zip(ft.options, features)

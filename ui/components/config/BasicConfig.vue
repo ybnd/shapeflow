@@ -123,45 +123,29 @@
       <b-input-group-text class="leftmost-text">
         <b>Feature</b>
       </b-input-group-text>
-      <b-col class="form-feature">
-        <b-form-group>
-          <b-input-group>
-            <b-form-select
-              ref="feature_setting"
-              v-model="config.feature"
-              @change="selectFeature"
-              :plain="false"
-              :options="features.options"
-              class="feature-selector"
-            >
-            </b-form-select>
-          </b-input-group>
-        </b-form-group>
-      </b-col>
-      <!--      <b-form-group> todo: revive when Feature parameter handling is improved -->
-      <!--        <template v-for="parameter in features.parameters[config.feature]">-->
-      <!--          <b-input-group-text>-->
-      <!--            {{ features.parameter_descriptions[config.feature][parameter] }}-->
-      <!--          </b-input-group-text>-->
-      <!--          <b-form-input type="text" class="config-form" v-model="..."> </b-form-input>-->
-      <!--        </template>-->
-      <!--      </b-form-group>-->
-
-      <b-form-group
-        v-bind:class="{
-          hidden: !showHeight
-        }"
-      >
+      <b-form-group>
         <b-input-group>
-          <b-input-group-text>
-            height (mm)
-          </b-input-group-text>
-          <b-form-input
-            ref="height_mm"
-            type="text"
-            class="config-form"
-            v-model="config.height_mm"
-          ></b-form-input>
+          <b-form-select
+            ref="feature_setting"
+            v-model="config.feature"
+            @change="selectFeature"
+            :plain="false"
+            :options="features.options"
+            class="feature-selector"
+          >
+          </b-form-select>
+          <template v-for="parameter in features.parameters[config.feature]">
+            <b-input-group-text v-bind:key="`form-text-${parameter}`">
+              {{ features.parameter_descriptions[config.feature][parameter] }}
+            </b-input-group-text>
+            <b-form-input
+              type="text"
+              class="config-form"
+              v-model="config.parameters[config.feature][parameter]"
+              v-bind:key="`form-field-${parameter}`"
+            >
+            </b-form-input>
+          </template>
         </b-input-group>
       </b-form-group>
     </b-row>
@@ -202,7 +186,7 @@ export default {
           Nf: 100,
           dt: 5,
           feature: "Volume_uL",
-          height_mm: 0.153
+          parameters: {}
         };
       }
     }
@@ -213,10 +197,8 @@ export default {
         [`${this.config.frame_interval_setting}`]: Number(
           this.config[`${this.config.frame_interval_setting}`]
         ),
-        height: Number(this.config.height_mm) / 1000,
         features: [this.config.feature], // todo: temporary - only handling one feature at a time for now
-        feature: undefined,
-        height_mm: undefined
+        feature: undefined
       });
     },
     selectFrameIntervalSetting(setting) {
@@ -233,8 +215,6 @@ export default {
         console.log("selecting feature");
         console.log(feature);
         this.config.feature = feature;
-        this.showHeight = this.features.parameters[feature].includes("h");
-        console.log(this.features.parameters[feature].includes("h"));
       }
     },
     selectVideoFile() {
@@ -300,14 +280,16 @@ export default {
   asyncComputed: {
     features: {
       async get() {
-        return get_options("feature").then(feature => {
-          return feature;
+        return get_options("feature").then(features => {
+          this.config.parameters = features.parameter_defaults;
+          return features;
         });
       },
       default: {
         options: [],
         descriptions: {},
         parameters: {},
+        parameter_defaults: {},
         parameter_descriptions: {}
       }
     },
@@ -359,6 +341,7 @@ export default {
         options: [],
         descriptions: {},
         parameters: {},
+        parameter_defaults: {},
         parameter_descriptions: {}
       },
       video_path_options: [],
@@ -414,11 +397,13 @@ export default {
   border: hidden;
   background: none;
 }
-.form-feature {
+.feature-selector {
+  min-width: 160px;
   max-width: 160px;
   padding: 0;
   margin-right: 5px;
 }
+
 .hidden {
   visibility: hidden;
 }

@@ -442,7 +442,6 @@ class Mask(BackendInstance):
     filter: FilterHandler
 
     _config: MaskConfig
-    _h: float
     _dpi: float
 
     _part: np.ndarray
@@ -454,8 +453,7 @@ class Mask(BackendInstance):
             name: str,
             config: MaskConfig = None,
             filter: FilterHandler = None,
-            dpi: float = None,
-            h: float = None,
+            dpi: float = None
     ):
         if config is None:
             config = MaskConfig()
@@ -475,14 +473,6 @@ class Mask(BackendInstance):
             assert isinstance(filter, FilterHandler), BackendSetupError
         self.filter = filter
         self.config(filter=self.filter.config)
-
-        if h is None:
-            if self.config.height is not None:
-                self._h = self.config.height
-            else:
-                raise BackendSetupError(f'Mask {self.config.name} has no defined height.')
-        else:
-            self._h = h
 
         if dpi is None:
             raise BackendSetupError(f'Mask {self.config.name} has no defined DPI.')
@@ -535,10 +525,6 @@ class Mask(BackendInstance):
         return self.config.name
 
     @property
-    def h(self):
-        return self._h
-
-    @property
     def dpi(self):
         return self._dpi
 
@@ -557,11 +543,9 @@ class DesignFileHandler(CachingBackendInstance):
 
     _config: DesignFileHandlerConfig
     _class = DesignFileHandlerConfig()
-    _h: float
 
-    def __init__(self, path: str, h: float, config: DesignFileHandlerConfig = None, mask_config: Tuple[MaskConfig,...] = None):
+    def __init__(self, path: str, config: DesignFileHandlerConfig = None, mask_config: Tuple[MaskConfig,...] = None):
         super(DesignFileHandler, self).__init__(config)
-        self._h = h
         if not os.path.isfile(path):
             raise FileNotFoundError
 
@@ -573,9 +557,9 @@ class DesignFileHandler(CachingBackendInstance):
             self._masks = []
             for i, (mask, name) in enumerate(zip(*self.read_masks(path))):
                 if mask_config is not None and len(mask_config) >= i+1:  # handle case len(mask_config) < len(self.read_masks(path))
-                    self._masks.append(Mask(mask, name, mask_config[i], h=self._h, dpi=self.config.dpi))
+                    self._masks.append(Mask(mask, name, mask_config[i], dpi=self.config.dpi))
                 else:
-                    self._masks.append(Mask(mask, name, h=self._h, dpi=self.config.dpi))
+                    self._masks.append(Mask(mask, name, dpi=self.config.dpi))
 
     @property
     def config(self) -> DesignFileHandlerConfig:
@@ -727,6 +711,18 @@ class MaskFunction(Feature):
         self._skip = mask.config.skip
         self._ready = mask.config.ready
 
+    def unpack(self):
+        return tuple([
+            self.mask.config.parameters[self.__class__.__name__][p]
+            for p in self.parameters()
+        ])
+
+    def px2mm(self, value):
+        return value / (self.mask.dpi / 25.4)
+
+    def pxsq2mmsq(self, value):
+        return value / (self.mask.dpi / 25.4) ** 2
+
     def _guideline_color(self) -> HsvColor:
         return self.filter.mean_color()
 
@@ -769,24 +765,32 @@ class MaskFunction(Feature):
         return self.mask.name
 
     def _function(self, frame: np.ndarray) -> Any:
-        return None
+        raise NotImplementedError
 
 
 @extend(FeatureType)
 class PixelSum(MaskFunction):
+    _description = "Masked & filtered area as number of pixels"
+
     def _function(self, frame: np.ndarray) -> Any:
         return area_pixelsum(frame)
 
 
 @extend(FeatureType)
 class Volume_uL(MaskFunction):
+    _description = "Volume ~ masked & filtered area multiplied by channel height"
+
     _parameters = ('h',)
+    _parameter_defaults = {
+        'h': 0.153
+    }
     _parameter_descriptions = {
         'h': 'height (mm)'
     }
 
     def _function(self, frame: np.ndarray) -> Any:
-        return area_pixelsum(frame) / (self.mask.dpi / 25.4) ** 2 * self.mask.h * 1e3  # todo: better parameter handling for Feature subclasses
+        h = self.unpack()
+        return self.pxsq2mmsq(area_pixelsum(frame)) * h  # todo: better parameter handling for Feature subclasses
 
 
 @extend(AnalyzerType)
@@ -841,7 +845,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         log.debug(f'{self.__class__.__name__}: launch nested instances.')
         self.video = VideoFileHandler(self.config.video_path, self.stream_methods, self.config.video)  # todo: stream_methods list should be generated automatically
         self.video.set_requested_frames(list(self.frame_numbers()))
-        self.design = DesignFileHandler(self.config.design_path, self.config.height, self.config.design, self.config.masks)
+        self.design = DesignFileHandler(self.config.design_path, self.config.design, self.config.masks)
         self.transform = TransformHandler(self.video.shape, self.design.shape, self.stream_methods, self.config.transform)
         self.masks = self.design.masks
         self.filters = [mask.filter for mask in self.masks]
@@ -857,7 +861,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         # Initialize FeatureSets
         self._get_featuresets()
 
-        # todo: maybe add some stuff to do this automagically
+        # todo: add some stuff to do this automagically
         backend.expose(backend.get_frame)(self.get_transformed_frame)
         backend.expose(backend.get_inverse_overlaid_frame)(self.get_inverse_overlaid_frame)
         backend.expose(backend.get_overlaid_frame)(self.get_frame_overlay)
@@ -911,6 +915,18 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
                 # Check for changes in features
                 if previous_features != self.config.features:
+                    # Add feature parameters to mask config
+                    for feature in self.config.features:  # todo: move down to Feature level
+                        for mask in self.config.masks:
+                            if isinstance(feature, str):
+                                feature = FeatureType(feature)
+
+                            f = feature.get()
+                            if f.__class__.__name__ not in mask.parameters:
+                                mask.parameters.update({
+                                    f.__class__.__name__: f._parameter_defaults
+                                })
+
                     do_commit = True
                     try:
                         log.debug('updating featuresets')
