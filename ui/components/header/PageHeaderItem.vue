@@ -15,6 +15,8 @@ export default {
 @import "../../assets/scss/_core-variables";
 @import "node_modules/bootstrap/scss/functions";
 
+$item-height: calc(#{$header-height} - 15px);
+
 .page-header-item {
   flex: 0 1 auto;
 
@@ -27,20 +29,25 @@ export default {
 
   overflow: visible;
 
-  height: calc(#{$header-height} - 15px);
-  min-height: calc(#{$header-height} - 15px);
-  max-height: calc(#{$header-height} - 15px);
+  height: $item-height;
+  min-height: $item-height;
+  max-height: $item-height;
 
   min-width: 20px;
 }
 .page-header-item .btn {
-  height: calc(#{$header-height} - 15px);
+  height: $item-height;
 }
 .page-header-item .slider-container {
-  height: calc(#{$header-height} - 15px);
-  max-height: calc(#{$header-height} - 15px);
+  height: $item-height;
+  max-height: $item-height;
 }
 .page-header-item .dropdown-item {
   background-color: $gray-100;
+}
+
+.header-button-icon {
+  width: $item-height;
+  font-size: 16px;
 }
 </style>

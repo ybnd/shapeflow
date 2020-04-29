@@ -329,14 +329,6 @@ class VideoAnalyzerTest(FrameTest):
                     frame = va.get_transformed_frame(fn)
                     self.assertEqualArray(TEST_TRANSFORMED_FRAME_HSV[fn], frame)
 
-    def test_linked_config(self):
-        va = VideoAnalyzer(self.config)
-        va.launch()
-
-        DO_CACHE = True
-        DPI = 200
-        MASK_3_RADIUS = (123,123,123)
-
 
 if __name__ == '__main__':
     unittest.main()

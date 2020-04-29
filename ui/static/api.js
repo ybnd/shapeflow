@@ -169,10 +169,7 @@ export async function set_config(id, config) {
     .post(url(id, "call/set_config"), { config: config })
     .then(response => {
       if (response.status === 200) {
-        return get_config(id).then(config => {
-          // todo: backend set_config should return config
-          return config;
-        });
+        return response.data;
       }
     });
 }
@@ -216,7 +213,41 @@ export async function get_seek_position(id) {
 }
 
 export async function estimate_transform(id, roi) {
-  return axios.post(url(id, "call/estimate_transform"), { roi: roi });
+  return axios
+    .post(url(id, "call/estimate_transform"), { roi: roi })
+    .then(response => {
+      if (response.status === 200) {
+        return true;
+      }
+    });
+}
+
+export async function clear_roi(id) {
+  return axios.post(url(id, "call/clear_roi")).then(response => {
+    if (response.status === 200) {
+      return true;
+    }
+  });
+}
+
+export async function undo_roi(id) {
+  return axios.put(url(id, "call/undo_roi")).then(response => {
+    if (response.status === 200) {
+      return response.data;
+    } else {
+      return null;
+    }
+  });
+}
+
+export async function redo_roi(id) {
+  return axios.put(url(id, "call/redo_roi")).then(response => {
+    if (response.status === 200) {
+      return response.data;
+    } else {
+      return null;
+    }
+  });
 }
 
 export async function set_filter(id, relative_coordinate) {

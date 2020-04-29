@@ -43,6 +43,7 @@ class TransformHandlerConfig(Config):
     type: TransformType = field(default=TransformType())
     matrix: Optional[np.ndarray] = field(default=None)
     roi: Optional[dict] = field(default=None)  # todo: maybe make this a config?
+    flip: Tuple[bool, bool] = field(default=(False, False))  # (vertical, horizontal)
 
 
 @extend(ConfigType)
@@ -58,7 +59,7 @@ class HsvRangeFilterConfig(FilterConfig):
 @dataclass
 class FilterHandlerConfig(Config):
     type: FilterType = field(default_factory=FilterType)
-    data: FilterConfig = field(default_factory=FilterConfig)
+    data: Optional[FilterConfig] = field(default=None)
 
 
 @extend(ConfigType)
@@ -198,6 +199,15 @@ def normalize_config(d: dict) -> dict:
             if 'design' in d:
                 if 'keep_renders' in d['design']:
                     d.pop('keep_renders')
+        if before_version(d[VERSION], '0.3.8'):
+            normalizing_to('0.3.8')
+            # remove CachingBackendInstance.cache_consumer
+            if 'video' in d:
+                if 'cache_consumer' in d['video']:
+                    d['video'].pop('cache_consumer')
+            if 'design' in d:
+                if 'cache_consumer' in d['design']:
+                    d['design'].pop('cache_consumer')
     else:
         raise NotImplementedError
 

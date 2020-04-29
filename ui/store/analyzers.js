@@ -249,6 +249,7 @@ export const actions = {
           id: id,
           analyzer_config: config
         });
+        return config;
       });
     } catch (e) {
       console.warn(`could not set config for ${id}`);

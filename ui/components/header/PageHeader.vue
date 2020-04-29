@@ -35,6 +35,6 @@ export default {
 
   background: $gray-200;
 
-  overflow: visib;
+  overflow: visible;
 }
 </style>

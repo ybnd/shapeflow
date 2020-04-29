@@ -18,6 +18,11 @@ import PageHeaderItem from "./PageHeaderItem";
 import { seek, get_seek_position } from "../../static/api";
 import { throttle, debounce } from "throttle-debounce";
 
+import VueHotkey from "v-hotkey";
+import Vue from "vue";
+
+Vue.use(VueHotkey);
+
 export default {
   name: "PageHeaderSeek",
   props: {
@@ -29,9 +34,11 @@ export default {
   },
   components: { VueSlider, PageHeaderItem },
   beforeMount() {
-    this.setSeekPosition(0.5);
-    this.updatePosition = setInterval(1000, this.getSeekPosition);
+    this.updatePosition = setInterval(500, this.getSeekPosition);
+
     this.$root.$on(`seek-${this.id}`, this.handleSeek);
+    this.$root.$on(`step-forward-${this.id}`, this.stepForward);
+    this.$root.$on(`step-backward-${this.id}`, this.stepBackward);
   },
   beforeDestroy() {
     // todo: unregister listener!
@@ -57,11 +64,28 @@ export default {
     ),
     formatTooltip(tooltip) {
       return `${Math.round(tooltip * 100)}%`;
+    },
+    stepForward() {
+      this.position = this.position + this.step;
+      this.setSeekPosition();
+    },
+    stepBackward() {
+      this.position = this.position - this.step;
+      this.setSeekPosition();
+    }
+  },
+  computed: {
+    keymap() {
+      return {
+        right: this.stepForward,
+        left: this.stepBackward
+      };
     }
   },
   data() {
     return {
       position: null,
+      step: 0.01,
       options: {
         dotSize: 14,
         width: 120,
@@ -73,7 +97,7 @@ export default {
         max: 1.0,
         interval: 0.01,
         disabled: false,
-        clickable: false,
+        clickable: true,
         duration: 0.1,
         adsorb: false,
         lazy: false,

@@ -41,9 +41,11 @@ class CacheAccessError(RootException):
 
 class BackendInstance(object):
     _config: Config
+    _lock: threading.Lock
 
     def __init__(self, config: Optional[Config]):
         self._configure(config)
+        self._lock = threading.Lock()
         super(BackendInstance, self).__init__()
 
         log.debug(f'Initialized {self.__class__.__qualname__} with {self._config}')
@@ -68,6 +70,16 @@ class BackendInstance(object):
     def config(self) -> Config:
         return self._config
 
+    @contextmanager
+    def lock(self):
+        lock = self._lock.acquire()
+        try:
+            log.debug(f"Locking {self}")
+            yield lock
+        finally:
+            log.debug(f"Unlocking {self}")
+            self._lock.release()
+
 
 _BLOCKED = 'BLOCKED'
 
@@ -75,18 +87,19 @@ _BLOCKED = 'BLOCKED'
 @dataclass
 class CachingBackendInstanceConfig(Config):
     do_cache: bool = field(default=True)
-    do_background: bool = field(default=False)
+    do_background: bool = field(default=True)
 
     block_timeout: float = field(default=0.1)
-    cache_consumer: bool = field(default=False)
 
 
 class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cache: e.g. 2 GB in-memory, 4GB on-disk, finally the actual video
     """Interface to diskcache.Cache
     """
     _cache: Optional[diskcache.Cache]
+
     _background: Optional[threading.Thread]
-    _background_task: Callable
+    _is_caching: bool
+    _cancel_caching: Optional[threading.Event]
 
     _config: CachingBackendInstanceConfig
     _class = CachingBackendInstanceConfig()
@@ -96,12 +109,22 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
 
         self._cache = None
         self._background = None
+        self._cancel_caching = None
+
+    @backend.expose(backend.is_caching)
+    def is_caching(self) -> bool:
+        return self._is_caching
+
+    @backend.expose(backend.cancel_caching)
+    def cancel_caching(self):
+        if self._cancel_caching is not None:
+            self._cancel_caching.set()
 
     def _get_key(self, method, *args) -> str:
         # Key should be instance-independent to handle multithreading
         #  and caching between application runs.
         # Hashing the string is a significant performance hit.
-        return f"{describe_function(method)}:{args}"
+        return f"{describe_function(method)}{args}"
 
     def _to_cache(self, key: str, value: Any):
         assert self._cache is not None, CacheAccessError
@@ -121,11 +144,22 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
                and isinstance(self._cache[key], str) \
                and self._from_cache(key) == _BLOCKED
 
+    def _touch_keys(self, keys: List[str]):
+        if self._cache is not None:
+            for key in keys:
+                self._cache.touch(key)
+        else:
+            with self.caching():
+                self._touch_keys(keys)
+
     def _drop(self, key: str):
         assert self._cache is not None, CacheAccessError
         del self._cache[key]
 
-    def _cached_call(self, method, *args, **kwargs):
+    def _is_cached(self, method, *args):
+        return self._get_key(method, *args) in self._cache
+
+    def _cached_call(self, method, *args, **kwargs):  # todo: kwargs necessary?
         """Wrapper for a method, handles caching 'at both ends'
         """
         key = self._get_key(method, *args)
@@ -145,15 +179,16 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
                 else:
                     log.vdebug(f"Cache: read {key}.")
                     return value
-            if not self._config.cache_consumer:
-                # Cache a temporary string to 'block' the key
-                log.vdebug(f"{self.__class__}: block {key}.")
-                self._block(key)
-                log.vdebug(f"{self.__class__}: execute {key}.")
-                value = method(*args, **kwargs)
-                log.vdebug(f"{self.__class__}: write {key}.")
-                self._to_cache(key, value)
-                return value
+
+            # Cache a temporary string to 'block' the key
+            log.vdebug(f"{self.__class__}: block {key}.")
+            self._block(key)
+            log.vdebug(f"{self.__class__}: execute {key}.")
+            value = method(*args, **kwargs)
+            log.vdebug(f"{self.__class__}: write {key}.")
+            self._to_cache(key, value)
+            return value
+
 
         log.vdebug(f"Execute {key}.")
         return method(*args, **kwargs)
@@ -165,9 +200,6 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
                 directory=settings.cache.dir,
                 size_limit=settings.cache.size_limit_gb * 1e9,
             )
-            if self._config.do_background:
-                log.debug(f'{self.__class__.__qualname__}: starting background thread.')
-                pass  # todo: can start caching frames in background thread here
 
         return self
 
@@ -178,13 +210,8 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
                 self._cache.close()
                 self._cache = None
 
-            if self._background is not None and self._background.is_alive():
-                log.debug(f'{self.__class__.__qualname__}: stopping background thread.')
-                pass  # todo: can stop background thread here (gracefully)
-                #        ...also: self._background.is_alive() doesn't recognize self...
-
-            if exc_type is not None:
-                return False
+            if exc_type != None:  # `is not` doesn't work here
+                raise(exc_type, exc_value, tb)
             else:
                 return True
 
@@ -568,17 +595,6 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
         for element in caching_instances:
             element.__exit__(*sys.exc_info())
 
-
-    @contextmanager
-    def lock(self):
-        lock = self._lock.acquire()
-        try:
-            log.debug(f"Locking {self}")
-            yield lock
-        finally:
-            log.debug(f"Unlocking {self}")
-            self._lock.release()
-
     @contextmanager
     def time(self, message: str = ''):
         try:
@@ -593,7 +609,6 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
             return Timing(*self._timer.timing)
         else:
             return None
-
 
     def export(self):
         raise NotImplementedError

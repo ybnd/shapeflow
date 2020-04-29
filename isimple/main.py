@@ -262,7 +262,7 @@ class Main(object, metaclass=util.Singleton):
         def remove(id: str):
             return respond(self.remove_instance(id))
 
-        @app.route('/api/<id>/call/get_overlay_png', methods=['GET'])
+        @app.route('/api/<id>/call/get_overlay_png', methods=['GET'])  # todo: why is this here?
         def get_overlay_png(id: str):
             null: dict = {}
             return make_response(self.call(id, 'get_overlay_png', null))
@@ -446,21 +446,18 @@ class Main(object, metaclass=util.Singleton):
 
     # @util.timed
     def call(self, id: str, endpoint: str, data: dict) -> Any:
-        try:
-            t0 = time.time()
-            log.debug(f"{self._roots[id]}: call '{endpoint}'")
-            # todo: sanity check this
-            method = self._roots[id].get(getattr(backend.backend, endpoint))
+        t0 = time.time()
+        log.debug(f"{self._roots[id]}: call '{endpoint}'")
+        # todo: sanity check this
+        method = self._roots[id].get(getattr(backend.backend, endpoint))
 
-            if endpoint in ('set_config',):
-                pass  # todo: store to self._history & update latest configs
+        if endpoint in ('set_config',):
+            pass  # todo: store to self._history & update latest configs
 
-            result = method(**data)
-            log.debug(f"{self._roots[id]}: return '{endpoint}' "
-                      f"({time.time() - t0} s elapsed)")
-            return result
-        except KeyError:
-            log.debug(f"{self._roots[id]}: KeyError @ '{endpoint}'")
+        result = method(**data)
+        log.debug(f"{self._roots[id]}: return '{endpoint}' "
+                  f"({time.time() - t0} s elapsed)")
+        return result
 
     def stream(self, id: str, endpoint: str) -> streaming.FrameStreamer:  # todo: extend to handle json streaming also
         # todo: sanity check this also

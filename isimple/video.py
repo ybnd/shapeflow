@@ -40,22 +40,27 @@ class VideoFileTypeError(BackendSetupError):
 class VideoFileHandler(CachingBackendInstance):
     """Interface to video files ~ OpenCV
     """
+    path: str
+
+    frame_count: int
+    fps: float
+    frame_number: int
+    _requested_frames: List[int]
+
     _capture: cv2.VideoCapture
 
     _shape: tuple
     _stream_methods: list
-
-    _requested_frames: List[int]
-    frame_number: int
 
     colorspace: str
 
     _config: VideoFileHandlerConfig
     _class = VideoFileHandlerConfig()
 
-
     def __init__(self, video_path, stream_methods: list = None, config: VideoFileHandlerConfig = None):
         super(VideoFileHandler, self).__init__(config)
+        self._is_caching = False
+
         if stream_methods == None:
             stream_methods = [self.read_frame]
         else:
@@ -66,7 +71,6 @@ class VideoFileHandler(CachingBackendInstance):
             raise FileNotFoundError
 
         self.path = video_path
-        self.name = video_path.split('\\')[-1].split('.png')[0]
         self._cache = None
         self._background = None
 
@@ -102,9 +106,34 @@ class VideoFileHandler(CachingBackendInstance):
         log.debug(f"Requested frames: {requested_frames}")
         self._requested_frames = requested_frames
 
+        self._touch_keys(
+            [self._get_key(self._read_frame, self.path, fn)
+             for fn in requested_frames]
+        )
+
+    def _cache_frames(self):
+        with self.caching():
+            with self.lock():
+                self._is_caching = True
+                for frame_number in self._requested_frames:
+                    if self._cancel_caching.is_set():
+                        break
+                    args = (self._read_frame, self.path, frame_number)
+                    if not self._is_cached(*args):
+                        log.debug(f"caching {self._get_key(*args)}")
+                        self._cached_call(*args)
+                self._is_caching = False
+            self.seek(0.5)
+
+    def cache_frames(self):
+        if self.config.do_cache and self.config.do_background:
+            self._cancel_caching = threading.Event()
+            self._background = threading.Thread(target=self._cache_frames)
+            self._background.start()
+
     def _resolve_frame(self, frame_number) -> int:
-        """Resolve a frame_number to the nearest requested frame number
-            This is used to limit the polled frames to the
+        """Resolve a frame_number to the nearest requested frame number.
+            This is done in order to limit the polled frames to the
             frames that are to be cached or are cached already.
         """
 
@@ -168,28 +197,30 @@ class VideoFileHandler(CachingBackendInstance):
             Enables caching (if in a caching context!) and provides the video
             file's path to determine the cache key.
         """
-        if frame_number is None:
-            frame_number = self.frame_number
+        with self.lock():
+            if frame_number is None:
+                frame_number = self.frame_number
 
-        if settings.cache.resolve_frame_number:
-            return self._cached_call(self._read_frame, self.path, self._resolve_frame(frame_number))
-        else:
-            return self._cached_call(self._read_frame, self.path, frame_number)
+            if settings.cache.resolve_frame_number:
+                return self._cached_call(self._read_frame, self.path, self._resolve_frame(frame_number))
+            else:
+                return self._cached_call(self._read_frame, self.path, frame_number)
 
     @backend.expose(backend.seek)
     def seek(self, position: float = None) -> float:
         """Seek to the relative position ~ [0,1]
         """
-        if position is not None:
-            frame_number = int(position * self.frame_count)
-            if settings.cache.resolve_frame_number:
-                self.frame_number = self._resolve_frame(frame_number)
-            else:
-                self.frame_number = frame_number
+        with self.lock():
+            if position is not None:
+                frame_number = int(position * self.frame_count)
+                if settings.cache.resolve_frame_number:
+                    self.frame_number = self._resolve_frame(frame_number)
+                else:
+                    self.frame_number = frame_number
 
-        streams.update()
+            streams.update()
 
-        return self.frame_number / self.frame_count
+            return self.frame_number / self.frame_count
 
     @backend.expose(backend.get_seek_position)
     def get_seek_position(self) -> float:
@@ -203,14 +234,14 @@ class PerspectiveTransform(TransformInterface):
     def validate(self, transform: np.ndarray) -> bool:
         return transform.shape == (3, 3)
 
-    def estimate(self, roi: dict, shape: tuple) -> dict:
-        log.vdebug(f'Estimating transform ~ coordinates {roi} & shape {shape}')
+    def from_coordinates(self, roi: dict) -> np.ndarray:
+        return np.float32(
+            [[roi[corner]['x'], roi[corner]['y']]
+             for corner in ['BL', 'TL', 'TR', 'BR']]
+        )
 
-        roi_video = np.float32(
-                [[roi[corner]['x'], roi[corner]['y']]
-                 for corner in ['BL', 'TL', 'TR', 'BR']]
-            )
-        roi_design = np.float32(
+    def to_coordinates(self, shape: tuple) -> np.ndarray:
+        return np.float32(
                 np.array(  # selection rectangle: bottom left to top right
                     [
                         [0, shape[1]],          # BL: (x,y)
@@ -220,7 +251,14 @@ class PerspectiveTransform(TransformInterface):
                     ]
                 )
             )
-        return cv2.getPerspectiveTransform(roi_video, roi_design)
+
+    def estimate(self, roi: dict, shape: tuple) -> dict:
+        log.vdebug(f'Estimating transform ~ coordinates {roi} & shape {shape}')
+
+        return cv2.getPerspectiveTransform(
+            self.from_coordinates(roi),
+            self.to_coordinates(shape)
+        )
 
     def transform(self, img: np.ndarray, transform: np.ndarray, shape: tuple) -> np.ndarray:
         return cv2.warpPerspective(
@@ -231,6 +269,7 @@ class PerspectiveTransform(TransformInterface):
     def coordinate(self, coordinate: Coo, transform: np.ndarray, shape: Tuple[int, int]) -> Coo:
         coordinate.transform(transform, shape)
         return coordinate
+
 
 class TransformHandler(BackendInstance, Handler):
     """Handles coordinate transforms.
@@ -296,7 +335,7 @@ class TransformHandler(BackendInstance, Handler):
             return {}
 
     @backend.expose(backend.estimate_transform)
-    def estimate(self, roi: dict) -> bool:
+    def estimate(self, roi: dict) -> None:
         """Estimate the transform matrix from a set of coordinates.
             Coordinates should correspond to the corners of the outline of
             the design, relative to the video frame size:
@@ -314,11 +353,44 @@ class TransformHandler(BackendInstance, Handler):
             } for k,v in roi.items()
         }
 
-        self.set(self._implementation.estimate(roi, self._design_shape))
+        self.set(self._implementation.estimate(self.flip(roi), self._design_shape))
+        streams.update()
+
+    def flip(self, roi: dict) -> dict:
+        if self.config.flip == (True, False):
+            # Flip vertically
+            return {
+                'BL': roi['TL'],
+                'TL': roi['BL'],
+                'BR': roi['TR'],
+                'TR': roi['BR']
+            }
+        elif self.config.flip == (False, True):
+            # Flip horizontally
+            return {
+                'BL': roi['BR'],
+                'TL': roi['TR'],
+                'BR': roi['BL'],
+                'TR': roi['TL']
+            }
+        elif self.config.flip == (True, True):
+            # Flip both (180° rotation)
+            return {
+                'BL': roi['TR'],
+                'TL': roi['BR'],
+                'BR': roi['TL'],
+                'TR': roi['BL']
+            }
+        else:
+            return roi
+
+    @backend.expose(backend.clear_roi)
+    def clear(self) -> None:
+        self.config(roi=None)
+        self.config(matrix=None)
+        self._inverse = None
 
         streams.update()
-        return True
-
 
     @backend.expose(backend.get_coordinates)
     def get_coordinates(self) -> Optional[list]:
@@ -398,7 +470,7 @@ class FilterHandler(BackendInstance, Handler):
 
     def __init__(self, config: FilterHandlerConfig = None):
         super(FilterHandler, self).__init__(config)
-        self.set_implementation(self.config.type)
+        self.set_implementation(self.config.type.__str__())
         if self.config.data is None:
             self.config(data=self._implementation._config_class())
 
@@ -667,6 +739,7 @@ class DesignFileHandler(CachingBackendInstance):
     def get_dpi(self) -> float:
         return self.config.dpi
 
+    @stream
     @backend.expose(backend.get_overlay)
     def overlay(self) -> np.ndarray:
         return self._overlay
@@ -873,6 +946,9 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             masks=tuple([m.config for m in self.masks]),
         )
 
+        # Start caching frames in the background
+        self.video.cache_frames()
+
         # Initialize FeatureSets
         self._get_featuresets()
 
@@ -916,7 +992,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         return self.config.to_dict()
 
     @backend.expose(backend.set_config)
-    def set_config(self, config: dict) -> bool:
+    def set_config(self, config: dict) -> dict:
         with self.lock():
             if True:  # todo: sanity check
                 do_commit = False
@@ -925,8 +1001,13 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 previous_features = copy.copy(self.config.features)
                 previous_video_path = copy.copy(self.config.video_path)
                 previous_design_path = copy.copy(self.config.design_path)
+                previous_flip = copy.copy((self.config.transform.flip))
 
                 self._config(**config)
+                if hasattr(self, 'transform'):
+                    self.transform._config(**self.config.transform.to_dict())
+                if hasattr(self, 'design'):
+                    self.design._config(**self.config.design.to_dict())
 
                 # Check for changes in features
                 if previous_features != self.config.features:
@@ -950,6 +1031,11 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                     except AttributeError:
                         pass
 
+                # Check for flip
+                if previous_flip != self.config.transform.flip:
+                    self.transform.estimate(self.transform.config.roi)  # todo: self.config.bla.thing should be exactly self.bla.config.thing always
+                    do_commit = True
+
                 # Commit to history if files were changed
                 if previous_video_path != self.config.video_path or previous_design_path != self.config.design_path:
                     do_commit = True
@@ -957,14 +1043,18 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 if do_commit:
                     self.commit()  # todo: isimple.video doesn't know about isimple.history!
 
-                # Check for state transitions  # todo: & push get_state streamer
+                # Check for state transitions
                 if self._state == AnalyzerState.INCOMPLETE:
                     if self.can_launch():
                         self._state = AnalyzerState.CAN_LAUNCH
                 if self._state == AnalyzerState.LAUNCHED:
                     if self.can_run():
                         self._state = AnalyzerState.CAN_RUN
-                return True
+
+                # Push to streams
+                streams.update()
+
+                return self.config.to_dict()
 
     @stream
     @backend.expose(backend.get_frame)  # todo: would like to have some kind of 'deferred expose' decorator?
@@ -973,7 +1063,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
     @backend.expose(backend.get_inverse_transformed_overlay)
     def get_inverse_transformed_overlay(self) -> np.ndarray:
-        return self.transform.inverse(self.design.overlay())
+        return self.transform.inverse(self.design._overlay)
 
     @backend.expose(backend.get_overlaid_frame)
     def get_frame_overlay(self, frame_number: int) -> np.ndarray:
@@ -999,12 +1089,38 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             return cv2.cvtColor(  # todo: loads of unnecessary color conversion here
                 overlay(
                     cv2.cvtColor(self.video.read_frame(frame_number), cv2.COLOR_HSV2BGR),
-                    self.transform.inverse(self.design.overlay()),
+                    self.transform.inverse(self.design._overlay),
                     alpha=self.design.config.overlay_alpha
                 ), cv2.COLOR_BGR2HSV)
         except ValueError:
-            log.debug('transform nto set, showing raw frame')
+            log.debug('transform not set, showing raw frame')
             return self.video.read_frame(frame_number)
+
+    @backend.expose(backend.undo_roi)
+    def undo_roi(self) -> dict:
+        from isimple.history import History
+        _history = History()
+
+        self.commit()
+        roi = _history.get_roi(self.model, next=False)
+        if roi is not None:
+            self.transform.estimate(roi)
+            return roi
+        else:
+            return self.transform.config.roi
+
+    @backend.expose(backend.redo_roi)
+    def redo_roi(self) -> dict:
+        from isimple.history import History
+        _history = History()
+
+        self.commit()
+        roi = _history.get_roi(self.model, next=True)
+        if roi is not None:
+            self.transform.estimate(roi)
+            return roi
+        else:
+            return self.transform.config.roi
 
     @backend.expose(backend.set_filter_click)
     def set_filter_click(self, relative_x: float, relative_y: float) -> dict:

@@ -139,7 +139,12 @@ class RoiModel(NoGetterModel):
         'roi': types.STRING,
 
         'added': types.DATE,
+        'modified': types.DATE,
     }
+
+    def store(self, fields=None):
+        self['modified'] = time.time()
+        super().store()
 
 class VideoFileModel(FileModel):
     _table = 'video_files'
@@ -176,6 +181,7 @@ class VideoAnalysisModel(NoGetterModel):
     _analyzer: Optional[BaseVideoAnalyzer]  # todo: try to be more VideoAnalyzer-agnostic
     _video: Optional[VideoFileModel]
     _design: Optional[DesignFileModel]
+    _roi: Optional[RoiModel]
 
     _table = 'analyses'
     _flex_table = 'analysis_attributes'
@@ -192,6 +198,7 @@ class VideoAnalysisModel(NoGetterModel):
 
         'description': types.STRING,        # description of the analysis
         'added': types.DATE,                # date&time when this analysis was added
+        'modified': types.DATE,             # date&time when this analysis was last modified
         'start_date': types.DATE,           # date&time when this analysis was started
         'finish_date': types.DATE,          # date&time when this analysis was finished
         'elapsed': types.FLOAT,             # duration of analysis (in seconds)
@@ -206,6 +213,7 @@ class VideoAnalysisModel(NoGetterModel):
         self._analyzer = None
         self._video = None
         self._design = None
+        self._roi = None
 
     def set_analyzer(self, analyzer: BaseVideoAnalyzer):
         self._analyzer = analyzer
@@ -246,12 +254,22 @@ class VideoAnalysisModel(NoGetterModel):
                 self.commit_files()
 
             # Store ROI
-            if hasattr(self._analyzer, 'transform'):
-                roi = self._db.add_roi(
-                    self._analyzer.transform.config.roi,
-                    self._video, self._design, self
-                )
-                self['roi'] = roi['id']
+            if self._roi is None:
+                if hasattr(self._analyzer, 'transform'):
+                    self._roi = self._db.add_roi(
+                        self._analyzer.transform.config.roi,
+                        self._video, self._design, self
+                    )
+            if self._roi is not None:
+                if hasattr(self._analyzer, 'transform'):
+                    if self._analyzer.transform.config.roi != json.loads(self._roi['roi']):
+                        self._roi = self._db.add_roi(
+                            self._analyzer.transform.config.roi,
+                            self._video, self._design, self
+                        )
+                else:
+                    self._roi = None
+                    self['roi'] = None
 
             # Store results
             for k, df in self._analyzer.results.items():
@@ -278,6 +296,7 @@ class VideoAnalysisModel(NoGetterModel):
                     'elapsed': t.elapsed,
                 })
 
+        self['modified'] = time.time()
         super().store(fields)
 
     def commit_files(self):
@@ -399,6 +418,33 @@ class History(Database):
 
         return config
 
+    def get_roi(self, analysis: VideoAnalysisModel, next: bool = False) -> dict:
+        """For a given VideoAnalysisModel, get the previous or next roi
+        """
+        if analysis._roi is None:
+            analysis._roi = self._fetch(
+                RoiModel,
+                f"analysis:{analysis} added-"
+            )[0]
+
+        # Query must be performed with formatted timestamp string
+        modified = datetime.fromtimestamp(
+            analysis._roi['modified']
+        ).strftime('%Y-%m-%dT%H:%M:%S')
+
+        if next:
+            q = f"video:{analysis['video']} design:{analysis['design']} " \
+                f"modified:{modified}.. modified+"
+        else:
+            q = f"video:{analysis['video']} design:{analysis['design']} " \
+                f"modified:..{modified} modified-"
+        for match in self._fetch(RoiModel, q):
+            # Make sure not to return the same ROI
+            if match['id'] != analysis._roi['id']:
+                if match['roi'] != analysis._roi['roi']:
+                    return json.loads(match['roi'])
+        # If no other options, return the current ROI
+        return json.loads(analysis._roi['roi'])
 
     def add_analysis(self, analyzer: BaseVideoAnalyzer) -> VideoAnalysisModel:
         model = VideoAnalysisModel()
@@ -426,16 +472,30 @@ class History(Database):
         return model
 
     def add_roi(self, roi: dict, video: VideoFileModel, design: DesignFileModel, analysis: VideoAnalysisModel) -> RoiModel:
-        model = RoiModel()
-        model.update({
-            'roi': json.dumps(roi),
-            'video': video['id'],
-            'design': design['id'],
-            'analysis': analysis['id']
-        })
-        model.add(self)
-        model.store()
+        roi_string = json.dumps(roi)
+
+        # Return existing entry if ROI ~ video, design exists already
+        q = f"video:{video['id']} design:{design['id']} roi:'{roi_string}'"
+
+        match = self._fetch(RoiModel, q)
+        if len(match) > 0:
+            model = match[0]
+            # Update ROI entry
+            model['added'] = time.time()
+        else:
+            # Add a new ROI entry
+            model = RoiModel()
+            model.update({
+                'roi': roi_string,
+                'video': video['id'],
+                'design': design['id'],
+                'analysis': analysis['id']
+            })
+            model.add(self)
+            model.store()
+
         analysis.update({'roi': model['id']})
+        analysis._roi = model
         return model
 
     def clean(self, deep: bool = False):

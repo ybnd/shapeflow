@@ -2,12 +2,55 @@
   <!--  https://stackoverflow.com/questions/14025438 -->
   <div class="fixed-page">
     <PageHeader>
-      <PageHeaderItem>
-        <b-button @click="handleSetFilters">Set filters</b-button>
-      </PageHeaderItem>
       <!--      <PageHeaderItem>-->
       <!--        <b-button>Reset ROI</b-button>-->
       <!--      </PageHeaderItem>-->
+      <PageHeaderItem>
+        <b-button
+          class="header-button-icon"
+          @click="handleClearAlignment"
+          data-toggle="tooltip"
+          title="Clear alignment"
+        >
+          <i class="fa fa-remove" />
+        </b-button>
+        <b-button
+          class="header-button-icon"
+          @click="handleUndoAlignment"
+          data-toggle="tooltip"
+          title="Undo alignment"
+          v-hotkey="keymap"
+        >
+          <i class="fa fa-undo" />
+        </b-button>
+        <b-button
+          class="header-button-icon"
+          @click="handleRedoAlignment"
+          data-toggle="tooltip"
+          title="Redo alignment"
+          v-hotkey="keymap"
+        >
+          <i class="fa fa-repeat" />
+        </b-button>
+      </PageHeaderItem>
+      <PageHeaderItem>
+        <b-button
+          class="header-button-icon"
+          @click="handleFlipV"
+          data-toggle="tooltip"
+          title="Flip horizontally"
+        >
+          <i class="fa fa-arrows-h" />
+        </b-button>
+        <b-button
+          class="header-button-icon"
+          @click="handleFlipH"
+          data-toggle="tooltip"
+          title="Flip vertically"
+        >
+          <i class="fa fa-arrows-v" />
+        </b-button>
+      </PageHeaderItem>
       <PageHeaderSeek :id="id" />
       <PageHeaderItem>
         <b-button-group>
@@ -46,17 +89,21 @@
       >
       </Moveable>
     </div>
-    <div class="controls"></div>
   </div>
 </template>
 
 <script>
 import {
   estimate_transform,
+  clear_roi,
   get_options,
   commit,
   url,
-  get_relative_roi
+  get_relative_roi,
+  undo_roi,
+  redo_roi,
+  flip_transform,
+  set_config
 } from "../../static/api";
 import Moveable from "vue-moveable";
 import {
@@ -70,6 +117,11 @@ import PageHeaderItem from "../../components/header/PageHeaderItem";
 import PageHeaderSeek from "../../components/header/PageHeaderSeek";
 import { throttle, debounce } from "throttle-debounce";
 
+import VueHotkey from "v-hotkey";
+import Vue from "vue";
+
+Vue.use(VueHotkey);
+
 export default {
   name: "align",
   beforeMount() {
@@ -77,7 +129,7 @@ export default {
     window.onresize = this.updateFrame;
   },
   beforeDestroy() {
-    commit(this.previous_id);
+    this.handleSaveAlignment();
 
     this.handleCleanUp();
 
@@ -91,6 +143,31 @@ export default {
     PageHeaderSeek
   },
   methods: {
+    handleClearAlignment() {
+      commit(this.id).then(ok => {
+        if (ok) {
+          clear_roi(this.id).then(ok => {
+            if (ok) {
+              this.setRoi(default_relative_coords);
+              this.handleUpdate();
+            }
+          });
+        }
+      });
+    },
+    handleSaveAlignment() {
+      commit(this.previous_id);
+    },
+    handleUndoAlignment() {
+      undo_roi(this.id).then(roi => {
+        this.setRoi(roi);
+      });
+    },
+    handleRedoAlignment() {
+      redo_roi(this.id).then(roi => {
+        this.setRoi(roi);
+      });
+    },
     handleSetFilters() {
       this.$router.push(`/analysis/filter?id=${this.id}`);
     },
@@ -130,6 +207,10 @@ export default {
         this.$root.$emit(`seek-${this.id}`);
         this.previous_id = this.id;
 
+        this.align.flip = this.$store.getters["analyzers/getConfig"](
+          this.id
+        ).transform.flip;
+
         this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
         get_options("transform").then(options => {
           this.transform_options = options;
@@ -144,12 +225,17 @@ export default {
       }
     },
     setRoi(roi) {
+      console.log("roi");
+      console.log(roi);
       if (!(this.align.roi === roi)) {
         if (roiIsValid(roi)) {
+          console.log("is valid");
           this.align.roi = roi;
         } else {
+          console.log("is invalid");
           this.align.roi = default_relative_coords;
         }
+        this.resolveTransform();
       }
     },
     resolveTransform() {
@@ -184,6 +270,34 @@ export default {
       // todo: rotation messes up perspective
       // todo: during rotation, set warpable to false?
       target.style.transform = transform; // todo: temporarily disable bounds during rotation?
+    },
+    handleFlipH() {
+      this.$store
+        .dispatch("analyzers/set_config", {
+          id: this.id,
+          config: {
+            transform: {
+              flip: [this.align.flip[0], !this.align.flip[1]]
+            }
+          }
+        })
+        .then(config => {
+          this.align.flip = config.transform.flip;
+        });
+    },
+    handleFlipV() {
+      this.$store
+        .dispatch("analyzers/set_config", {
+          id: this.id,
+          config: {
+            transform: {
+              flip: [!this.align.flip[0], this.align.flip[1]]
+            }
+          }
+        })
+        .then(config => {
+          this.align.flip = config.transform.flip;
+        });
     },
     updateRoiCoordinates() {
       if (this.align.frame) {
@@ -238,6 +352,12 @@ export default {
       } catch (err) {
         console.log("oops @ updateFrameOnceHasRect");
       }
+    },
+    stepForward() {
+      this.$root.$emit(`step-forward-${this.id}`);
+    },
+    stepBackward() {
+      this.$root.$emit(`step-backward-${this.id}`);
     }
   },
   watch: {
@@ -252,6 +372,14 @@ export default {
   computed: {
     id() {
       return this.$route.query.id;
+    },
+    keymap() {
+      return {
+        "ctrl+z": this.handleUndoAlignment,
+        "ctrl+shift+z": this.handleRedoAlignment,
+        right: this.stepForward,
+        left: this.stepBackward
+      };
     },
     overlaid_url() {
       return url(
@@ -378,6 +506,6 @@ export default {
 
 /* hide weird .moveable-reverse thing that gets rendered in the top left corner after refresh */
 .moveable-reverse * {
-  visibility: hidden !important;
+  /*visibility: hidden !important;*/
 }
 </style>
