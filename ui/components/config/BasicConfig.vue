@@ -119,35 +119,75 @@
         </b-input-group>
       </b-form-group>
     </b-row>
-    <b-row class="card-form-row">
-      <b-input-group-text class="leftmost-text">
-        <b>Feature</b>
-      </b-input-group-text>
-      <b-form-group>
-        <b-input-group>
-          <b-form-select
-            ref="feature_setting"
-            v-model="config.feature"
-            @change="selectFeature"
-            :plain="false"
-            :options="features.options"
-            class="feature-selector"
+
+    <template v-for="(feature, index) in config.features">
+      <b-row class="feature-row" v-bind:key="`row-${index}`">
+        <b-col class="feature-col" v-bind:key="`feature-col-${index}`">
+          <b-form-row
+            class="feature-row"
+            v-bind:key="`feature-col-row-${index}`"
           >
-          </b-form-select>
-          <template v-for="parameter in features.parameters[config.feature]">
-            <b-input-group-text v-bind:key="`form-text-${parameter}`">
-              {{ features.parameter_descriptions[config.feature][parameter] }}
-            </b-input-group-text>
-            <b-form-input
-              type="text"
-              class="config-form"
-              v-model="config.parameters[config.feature][parameter]"
-              v-bind:key="`form-field-${parameter}`"
-            >
-            </b-form-input>
-          </template>
-        </b-input-group>
-      </b-form-group>
+            <b-input-group
+              ><b-input-group-text class="leftmost-text">
+                <template v-if="index === 0"> <b>Features</b></template>
+                <template v-else></template>
+              </b-input-group-text>
+              <b-form-select
+                ref="feature_setting"
+                v-bind:key="`form-feature-${feature}`"
+                v-model="config.features[index]"
+                @change="selectFeature"
+                :plain="false"
+                :options="features.options"
+                class="feature-selector"
+            /></b-input-group>
+          </b-form-row>
+        </b-col>
+
+        <b-col class="par-col" v-bind:key="`par-col-${feature}`">
+          <b-form-row class="feature-row" v-bind:key="`par-col-row-${feature}`"
+            ><b-form-group>
+              <b-input-group>
+                <template v-for="parameter in features.parameters[feature]">
+                  <b-input-group-text
+                    v-bind:key="`form-text-${index}-${parameter}`"
+                  >
+                    {{ features.parameter_descriptions[feature][parameter] }}
+                  </b-input-group-text>
+                  <b-form-input
+                    type="text"
+                    class="config-form"
+                    v-model="config.parameters[feature][parameter]"
+                    v-bind:key="`form-field-${index}-${parameter}`"
+                  >
+                  </b-form-input>
+                </template>
+                <template v-if="config.features.length > 1">
+                  <b-input-group-text
+                    class="remove-feature"
+                    @click="handleRemoveFeature(index)"
+                  >
+                    <i class="fa fa-close" />
+                  </b-input-group-text>
+                </template>
+              </b-input-group> </b-form-group
+          ></b-form-row>
+        </b-col>
+      </b-row>
+    </template>
+
+    <b-row>
+      <b-input-group-text class="leftmost-text"> </b-input-group-text>
+      <b-col class="feature-col">
+        <b-form-row>
+          <b-input-group-text class="add-feature" @click="handleAddFeature">
+            <i class="fa fa-plus" />
+            <div class="add-feature-text">
+              &nbsp; Add feature...
+            </div>
+          </b-input-group-text>
+        </b-form-row>
+      </b-col>
     </b-row>
   </b-container>
 </template>
@@ -185,7 +225,7 @@ export default {
           frame_interval_setting: "Nf",
           Nf: 100,
           dt: 5,
-          feature: "Volume_uL",
+          features: ["Volume_uL"],
           parameters: {}
         };
       }
@@ -196,9 +236,7 @@ export default {
       return Object.assign(this.config, {
         [`${this.config.frame_interval_setting}`]: Number(
           this.config[`${this.config.frame_interval_setting}`]
-        ),
-        features: [this.config.feature], // todo: temporary - only handling one feature at a time for now
-        feature: undefined
+        )
       });
     },
     selectFrameIntervalSetting(setting) {
@@ -207,6 +245,16 @@ export default {
         console.log(setting);
         this.config.frame_interval_setting = setting;
       }
+    },
+    handleRemoveFeature(index) {
+      this.config.features.splice(index, 1);
+    },
+    handleAddFeature() {
+      this.config.features = [
+        ...this.config.features,
+        this.features.options[0]
+      ];
+      console.log(this.config);
     },
     selectFeature(feature) {
       console.log(`selectFeature(${feature})`);
@@ -355,7 +403,11 @@ export default {
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+@import "../../assets/scss/_bootstrap-variables";
+@import "../../assets/scss/_core-variables";
+@import "node_modules/bootstrap/scss/functions";
+
 .input-group-text {
   border-radius: 0;
   margin-right: -1px;
@@ -374,18 +426,37 @@ export default {
   flex-direction: row;
   flex-shrink: 1;
   flex-grow: 1;
+  align-content: flex-start;
   min-width: 200px;
   /*max-width: 400px;*/
 }
+
+.feature-row {
+  margin-bottom: 2px;
+  height: 30px;
+  max-height: 30px;
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 1;
+  flex-grow: 1;
+  align-content: flex-start;
+  min-width: 200px;
+  /*max-width: 400px;*/
+
+  &:hover * {
+    visibility: visible;
+  }
+}
 .input-group {
+  flex-basis: auto;
   flex-direction: row;
   flex-shrink: 1;
   flex-grow: 1;
   flex-wrap: nowrap;
+  align-items: flex-start;
 }
 .config-form {
   min-width: 60px;
-  max-width: 140px;
   flex-grow: 0;
   margin-right: 5px;
 }
@@ -397,11 +468,62 @@ export default {
   border: hidden;
   background: none;
 }
+.feature-col {
+  margin-left: -10px;
+  margin-right: -15px;
+  display: block;
+  width: 200px;
+  flex-grow: 0;
+}
 .feature-selector {
+  flex-basis: auto;
   min-width: 160px;
   max-width: 160px;
-  padding: 0;
-  margin-right: 5px;
+  flex-shrink: 1;
+  flex-grow: 0;
+}
+
+.remove-feature {
+  visibility: hidden;
+  height: 33px;
+  width: 33px;
+  justify-content: center;
+  border: transparent;
+  background: transparent;
+  -webkit-user-select: none; /* Safari */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* IE10+/Edge */
+  user-select: none; /* Standard */
+  &:hover {
+    /*border: 2px solid theme-color("primary");*/
+    background: theme-color("danger");
+    cursor: pointer;
+  }
+  &:hover * {
+    color: #ffffff; /* todo: change to theme color */
+  }
+}
+
+.add-feature {
+  margin-bottom: 4px;
+  height: 33px;
+  border: transparent;
+  background: transparent;
+  -webkit-user-select: none; /* Safari */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* IE10+/Edge */
+  user-select: none; /* Standard */
+  &:hover {
+    /*border: 2px solid theme-color("primary");*/
+    background: theme-color("gray-500");
+    cursor: pointer;
+  }
+  &:hover * {
+    color: #ffffff; /* todo: change to theme color */
+  }
+}
+.add-feature-text {
+  color: transparent;
 }
 
 .hidden {
