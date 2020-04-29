@@ -13,9 +13,12 @@
 </template>
 
 <script>
+import { seek, get_seek_position } from "../../static/api";
+import { events } from "../../static/events";
+
 import VueSlider from "vue-slider-component";
 import PageHeaderItem from "./PageHeaderItem";
-import { seek, get_seek_position } from "../../static/api";
+
 import { throttle, debounce } from "throttle-debounce";
 
 import VueHotkey from "v-hotkey";
@@ -36,13 +39,17 @@ export default {
   beforeMount() {
     this.updatePosition = setInterval(500, this.getSeekPosition);
 
-    this.$root.$on(`seek-${this.id}`, this.handleSeek);
-    this.$root.$on(`step-forward-${this.id}`, this.stepForward);
-    this.$root.$on(`step-backward-${this.id}`, this.stepBackward);
+    this.$root.$on(events.seek(this.id), this.handleSeek);
+    this.$root.$on(events.step_forward(this.id), this.stepForward);
+    this.$root.$on(events.step_backward(this.id), this.stepBackward);
   },
   beforeDestroy() {
     // todo: unregister listener!
     clearInterval(this.updatePosition);
+
+    this.$root.$on(events.seek(this.id), this.handleSeek);
+    this.$root.$on(events.step_forward(this.id), this.stepForward);
+    this.$root.$on(events.step_backward(this.id), this.stepBackward);
   },
   methods: {
     setSeekPosition() {
@@ -67,11 +74,11 @@ export default {
     },
     stepForward() {
       this.position = this.position + this.step;
-      this.setSeekPosition();
+      this.handleSeek();
     },
     stepBackward() {
       this.position = this.position - this.step;
-      this.setSeekPosition();
+      this.handleSeek();
     }
   },
   computed: {

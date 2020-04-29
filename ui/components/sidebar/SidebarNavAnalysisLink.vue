@@ -57,6 +57,7 @@ template
 
 <script>
 import axios from "axios";
+import { events } from "../../static/events";
 
 export default {
   name: "sidebar-nav-link",
@@ -104,11 +105,11 @@ export default {
     }
   },
   beforeMount() {
-    this.$root.$on(`event-sidebar-highlight-${this.id}`, () => {
+    this.$root.$on(events.sidebar.highlight(this.id), () => {
       console.log(`${this.id} got highlight event`);
       this.highlight = true;
     });
-    this.$root.$on(`event-sidebar-unhighlight-${this.id}`, () => {
+    this.$root.$on(events.sidebar.unhighlight(this.id), () => {
       console.log(`${this.id} got unhighlight event`); // todo: these are not received...
       this.highlight = false;
     });

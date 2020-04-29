@@ -52,6 +52,8 @@
 
 <script>
 import { get_options, set_config, url, analyze } from "../../static/api";
+import { events } from "../../static/events";
+
 import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
 import PageHeaderSeek from "../../components/header/PageHeaderSeek";
@@ -80,7 +82,7 @@ export default {
       if (this.$store.getters["queue/getIndex"](this.id) === -1) {
         this.$router.push(`/`);
       } else {
-        this.$root.$emit(`seek-${this.id}`);
+        this.$root.$emit(events.seek(this.id));
 
         get_options("filter").then(options => {
           this.filter_options = options;

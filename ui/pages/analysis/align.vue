@@ -86,6 +86,7 @@
         @rotate="handleRotate"
         @warp="handleTransform"
         @render="handleUpdate"
+        @renderEnd="handleSaveAlignment"
       >
       </Moveable>
     </div>
@@ -112,6 +113,8 @@ import {
   roiIsValid,
   getInitialTransform
 } from "../../static/coordinates";
+import { events } from "../../static/events";
+
 import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
 import PageHeaderSeek from "../../components/header/PageHeaderSeek";
@@ -204,7 +207,7 @@ export default {
       if (this.$store.getters["queue/getIndex"](this.id) === -1) {
         this.$router.push(`/`);
       } else {
-        this.$root.$emit(`seek-${this.id}`);
+        this.$root.$emit(events.seek(this.id)); // todo: this doesn't trigger the stream for some reason
         this.previous_id = this.id;
 
         this.align.flip = this.$store.getters["analyzers/getConfig"](

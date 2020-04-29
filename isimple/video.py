@@ -50,7 +50,6 @@ class VideoFileHandler(CachingBackendInstance):
     _capture: cv2.VideoCapture
 
     _shape: tuple
-    _stream_methods: list
 
     colorspace: str
 
@@ -197,14 +196,13 @@ class VideoFileHandler(CachingBackendInstance):
             Enables caching (if in a caching context!) and provides the video
             file's path to determine the cache key.
         """
-        with self.lock():
-            if frame_number is None:
-                frame_number = self.frame_number
+        if frame_number is None:
+            frame_number = self.frame_number
 
-            if settings.cache.resolve_frame_number:
-                return self._cached_call(self._read_frame, self.path, self._resolve_frame(frame_number))
-            else:
-                return self._cached_call(self._read_frame, self.path, frame_number)
+        if settings.cache.resolve_frame_number:
+            return self._cached_call(self._read_frame, self.path, self._resolve_frame(frame_number))
+        else:
+            return self._cached_call(self._read_frame, self.path, frame_number)
 
     @backend.expose(backend.seek)
     def seek(self, position: float = None) -> float:
@@ -218,6 +216,7 @@ class VideoFileHandler(CachingBackendInstance):
                 else:
                     self.frame_number = frame_number
 
+            log.debug(f"seeking  {self.path} to {self.frame_number}/{self.frame_count}")
             streams.update()
 
             return self.frame_number / self.frame_count
@@ -637,7 +636,7 @@ class DesignFileHandler(CachingBackendInstance):
             raise FileNotFoundError
 
         self._path = path
-        with self.caching():  # todo: maybe also do this in a separate thread? It's quite slow.
+        with self.caching():
             self._overlay = self.peel_design(path)
             self._shape = (self._overlay.shape[1], self._overlay.shape[0])
 
