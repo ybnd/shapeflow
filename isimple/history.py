@@ -19,7 +19,7 @@ from isimple.dbcore import Model, Database, types, MatchQuery
 from isimple.dbcore.query import InvalidQueryArgumentValueError, InvalidQueryError, NullSort
 from isimple.dbcore.queryparse import parse_query_parts, parse_query_string
 from isimple.util import hash_file, ndarray2str, str2ndarray
-from isimple.config import dumps
+from isimple.config import dumps, normalize_config
 
 from isimple.video import BaseVideoAnalyzer
 
@@ -225,7 +225,7 @@ class VideoAnalysisModel(NoGetterModel):
             # Store analysis setup
             self.update({
                 'analyzer_type': self._analyzer.__class__.__name__,
-                'config': json.dumps(self._analyzer.config.to_dict()),
+                'config': json.dumps(self._analyzer.config.to_dict(do_tag=True)),
                 'description': self._analyzer.description,
             })
 
@@ -352,7 +352,7 @@ class History(Database):
 
     def get_config(self, analysis: VideoAnalysisModel, video: FileModel, design: FileModel = None) -> dict:
         config = {}
-        include = ['design', 'transform', 'masks']
+        include = ['video', 'design', 'transform', 'masks']
 
         # Query history for latest usages of current video
         # (not including the curent analysis)
@@ -374,6 +374,8 @@ class History(Database):
             # Don't return own config
             if match['id'] != analysis_id:
                 match_config = json.loads(match['config'])
+                if len(match_config) > 0:
+                    match_config = normalize_config(match_config)
 
                 # Assimilate `include` fields from match
                 for field in include:
@@ -383,15 +385,16 @@ class History(Database):
                 # Check if enough
                 ok = []
                 if 'transform' in config:
-                    if config['transform']['roi'] is not {}:
-                        ok.append(True)
-                        include.remove('transform')
+                    if 'roi' in config['transform']:
+                        if config['transform']['roi'] is not {}:
+                            ok.append(True)
+                            include.remove('transform')
                 if 'masks' in config:
                     if len(config['masks']) > 0:
                         ok.append(True)
                         include.remove('masks')
 
-                if all(ok):
+                if len(ok) > 0 and all(ok):
                     break
 
         return config

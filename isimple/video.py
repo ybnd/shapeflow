@@ -171,7 +171,7 @@ class VideoFileHandler(CachingBackendInstance):
         if frame_number is None:
             frame_number = self.frame_number
 
-        if self.config.do_resolve_frame_number:
+        if settings.cache.resolve_frame_number:
             return self._cached_call(self._read_frame, self.path, self._resolve_frame(frame_number))
         else:
             return self._cached_call(self._read_frame, self.path, frame_number)
@@ -182,7 +182,7 @@ class VideoFileHandler(CachingBackendInstance):
         """
         if position is not None:
             frame_number = int(position * self.frame_count)
-            if self.config.do_resolve_frame_number:
+            if settings.cache.resolve_frame_number:
                 self.frame_number = self._resolve_frame(frame_number)
             else:
                 self.frame_number = frame_number
@@ -237,7 +237,7 @@ class TransformHandler(BackendInstance, Handler):
     """
     _video_shape: Tuple[int, int]
     _design_shape: Tuple[int, int]
-    _inverse: np.ndarray
+    _inverse: Optional[np.ndarray]
 
     _stream_methods: list
 
@@ -250,12 +250,12 @@ class TransformHandler(BackendInstance, Handler):
 
     def __init__(self, video_shape, design_shape, stream_methods, config: TransformHandlerConfig):
         super(TransformHandler, self).__init__(config)
-        self.set_implementation(self.config.type)
+        self.set_implementation(self.config.type.__str__())
         self._video_shape = (video_shape[0], video_shape[1])  # Don't include color dimension
         self._design_shape = (design_shape[0], design_shape[1])
         self._stream_methods = stream_methods # type: ignore
 
-        self._inverse = np.linalg.inv(self.config.matrix)
+        self.set(self.config.matrix)
 
     @property
     def config(self) -> TransformHandlerConfig:
@@ -266,26 +266,33 @@ class TransformHandler(BackendInstance, Handler):
         # If there's ever any method to set additional transform options, this method/endpoint can be merged into that
         return super(TransformHandler, self).set_implementation(implementation)
 
-    def set(self, transform: np.ndarray):
+    def set(self, transform: Optional[np.ndarray]):
         """Set the transform matrix
         """
-        if self._implementation.validate(transform):
-            self.config(matrix=transform)
-            self._inverse = np.linalg.inv(transform)
+        if transform is not None:
+            if self._implementation.validate(transform):
+                self.config(matrix=transform)
+                self._inverse = np.linalg.inv(transform)
+            else:
+                raise ValueError(f"Invalid transform {transform} for "
+                                 f"'{self._implementation.__class__.__name__}'")
         else:
-            raise ValueError(f"Invalid transform {transform} for "
-                             f"'{self._implementation.__class__.__name__}'")
+            self.config(matrix=None)
+            self._inverse = None
 
     @backend.expose(backend.get_relative_roi)
     def get_relative_roi(self) -> dict:
-        try:
-            return {
-                k: {
-                    'x': v['x'],
-                    'y': v['y']
-                } for k,v in self.config.roi.items()
-            }
-        except KeyError:
+        if self.config.roi is not None:
+            try:
+                return {
+                    k: {
+                        'x': v['x'],
+                        'y': v['y']
+                    } for k,v in self.config.roi.items()
+                }
+            except KeyError:
+                return {}
+        else:
             return {}
 
     @backend.expose(backend.estimate_transform)
@@ -326,17 +333,25 @@ class TransformHandler(BackendInstance, Handler):
             Writes to the provided variable!
             If caller needs the original value, they should copy explicitly
         """
-        return self._implementation.transform(img, self.config.matrix, self._design_shape)
-
+        if self.config.matrix is not None:
+            return self._implementation.transform(img, self.config.matrix, self._design_shape)
+        else:
+            raise ValueError('transform matrix is not set')
     def coordinate(self, coordinate: Coo) -> Coo:
         """Transform a design coordinate to a video coordinate
         """
-        og_co = coordinate.copy()
-        co = self._implementation.coordinate(coordinate, self._inverse, self._video_shape[::-1])  # todo: ugh
-        return co
+        if self._inverse is not None:
+            og_co = coordinate.copy()
+            co = self._implementation.coordinate(coordinate, self._inverse, self._video_shape[::-1])  # todo: ugh
+            return co
+        else:
+            raise ValueError('inverse transform matrix is not set')
 
     def inverse(self, img: np.ndarray) -> np.ndarray:
-        return self._implementation.transform(img, self._inverse, self._video_shape)
+        if self._inverse is not None:
+            return self._implementation.transform(img, self._inverse, self._video_shape)
+        else:
+            raise ValueError('inverse transform matrix is not set')
 
     @property
     def matrix(self):
@@ -633,7 +648,7 @@ class DesignFileHandler(CachingBackendInstance):
             else:
                 names.append(path)
 
-        if not self.config.keep_renders:
+        if not settings.render.keep:
             self._clear_renders()
 
         return masks, names
@@ -917,14 +932,15 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 if previous_features != self.config.features:
                     # Add feature parameters to mask config
                     for feature in self.config.features:  # todo: move down to Feature level
+                        if isinstance(feature, str):
+                            feature = FeatureType(feature)
                         for mask in self.config.masks:
-                            if isinstance(feature, str):
-                                feature = FeatureType(feature)
+
 
                             f = feature.get()
-                            if f.__class__.__name__ not in mask.parameters:
+                            if f not in mask.parameters:
                                 mask.parameters.update({
-                                    f.__class__.__name__: f._parameter_defaults
+                                    feature: self.config.parameters[feature]
                                 })
 
                     do_commit = True
@@ -979,12 +995,16 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     @stream
     @backend.expose(backend.get_inverse_overlaid_frame)
     def get_inverse_overlaid_frame(self, frame_number: Optional[int] = None) -> np.ndarray:
-        return cv2.cvtColor(  # todo: loads of unnecessary color conversion here
-            overlay(
-                cv2.cvtColor(self.video.read_frame(frame_number), cv2.COLOR_HSV2BGR),
-                self.transform.inverse(self.design.overlay()),
-                alpha=self.design.config.overlay_alpha
-            ), cv2.COLOR_BGR2HSV)
+        try:
+            return cv2.cvtColor(  # todo: loads of unnecessary color conversion here
+                overlay(
+                    cv2.cvtColor(self.video.read_frame(frame_number), cv2.COLOR_HSV2BGR),
+                    self.transform.inverse(self.design.overlay()),
+                    alpha=self.design.config.overlay_alpha
+                ), cv2.COLOR_BGR2HSV)
+        except ValueError:
+            log.debug('transform nto set, showing raw frame')
+            return self.video.read_frame(frame_number)
 
     @backend.expose(backend.set_filter_click)
     def set_filter_click(self, relative_x: float, relative_y: float) -> dict:

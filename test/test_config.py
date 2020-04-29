@@ -3,7 +3,7 @@ import unittest
 import os
 
 from isimple.video import *
-from isimple.core.config import Factory, dataclass, Config
+from isimple.core.config import Factory, dataclass, field, Config
 from isimple.core import EnforcedStr
 from isimple.core.interface import FilterType
 
@@ -58,10 +58,10 @@ class ConfigTest(unittest.TestCase):
     def test_from_kwargs(self):
         @dataclass
         class DummyConfig(Config):
-            a: int = 123
-            b: str = 'abc'
-            c: tuple = (4, 5, 6)
-            d: float = 7.89
+            a: int = field(default=123)
+            b: str = field(default='abc')
+            c: tuple = field(default=(4, 5, 6))
+            d: float = field(default=7.89)
 
         conf = DummyConfig(b='not abc')
 
@@ -80,10 +80,10 @@ class ConfigTest(unittest.TestCase):
     def test_instance_attributes(self):
         @dataclass
         class DummyConfig(Config):
-            a: int = 123
-            b: str = 'abc'
-            c: tuple = (4, 5, 6)
-            d: float = 7.89
+            a: int = field(default=123)
+            b: str = field(default='abc')
+            c: tuple = field(default=(4, 5, 6))
+            d: float = field(default=7.89)
 
         conf1 = DummyConfig()
         conf2 = DummyConfig()
@@ -100,6 +100,43 @@ class ConfigTest(unittest.TestCase):
         self.assertNotEqual(conf1.b, conf2.b)
         self.assertNotEqual(conf1.c, conf2.c)
         self.assertEqual(conf1.d, conf2.d)
+
+
+class ConfigResolutionTest(unittest.TestCase):
+    def test_resolution(self):
+        class DummyEnforcedStr(EnforcedStr):
+            _options = ['option1', 'option2']
+
+        @dataclass
+        class DummyResolveConfig(Config):
+            a: np.ndarray = field(default=np.array([4,5,6,7]))
+            b: DummyEnforcedStr = field(default_factory=DummyEnforcedStr)
+
+        original = DummyResolveConfig()
+        loaded = DummyResolveConfig(**original.to_dict())
+
+        self.assertIsInstance(loaded.a, np.ndarray)
+        self.assertIsInstance(loaded.b, DummyEnforcedStr)
+
+    def test_nested_resolution(self):
+        class DummyEnforcedStr(EnforcedStr):
+            _options = ['option1', 'option2']
+
+        @dataclass
+        class DummyNestedConfig(Config):
+            a: np.ndarray = field(default=np.array([4,5,6,7]))
+            b: DummyEnforcedStr = field(default_factory=DummyEnforcedStr)
+
+        @dataclass
+        class DummyResolveConfig(Config):
+            c: DummyNestedConfig = field(default_factory=DummyNestedConfig)
+
+        original = DummyResolveConfig()
+        loaded = DummyResolveConfig(**original.to_dict())
+
+        self.assertIsInstance(loaded.c, DummyNestedConfig)
+        self.assertIsInstance(loaded.c, DummyNestedConfig)
+        self.assertIsInstance(loaded.c, DummyNestedConfig)
 
 
 class BackendConfigTest(unittest.TestCase):

@@ -1,12 +1,16 @@
+import abc
+
 import numpy as np
 from typing import Optional, Union, Type, Dict
-from dataclasses import dataclass
+from dataclasses import dataclass, field, _MISSING_TYPE
 from functools import partial
+import json
 
 from isimple import get_logger, __version__
 from isimple.core import EnforcedStr
 from isimple.maths.colors import Color
 from isimple.util import ndarray2str, str2ndarray
+from isimple.util.meta import resolve_type_to_most_specific, is_optional
 
 
 log = get_logger(__name__)
@@ -95,34 +99,137 @@ def untag(d: dict) -> dict:
     return d
 
 
-@dataclass
-class Config(object):
+class Config(abc.ABC):
     """Abstract class for configuration data.
-        * Default values for Config or Factory subclasses should be provided as
-            None and '' respectively; in this way they should be caught by
-            `self.resolve` and resolved at runtime. This is important to resolve
-            to the latest version of the Factory, as it may have been extended.
+
+    * Usage, where `SomeConfig` is a subclass of `Config`:
+        * Instantiating:
+            ```
+                config = SomeConfig()
+                config = SomeConfig(field1=1.0, field2='text')
+                config = SomeConfig(**dict_with_fields_and_values)
+            ```
+        * Updating:
+            ```
+                config(field1=1.0, field2='text')
+                config(**dict_with_fields_and_values)
+            ```
+
+        * Saving:
+            ```
+                dict_with_fields_and_values = config.to_dict()
+            ```
+
+    * Writing `Config` subclasses:
+        * Use the `@extends(ConfigType)` decorator to make your configuration
+            class accessible from the `ConfigType` Factory (defined below)
+        * Every subclass of `Config` should be made a [dataclass](https://docs.python.org/3/library/dataclasses.html)
+            with the `@dataclass` decorator
+        * Configuration keys are declared as `field` instances
+            - Must be type-annotated for type resolution to work properly!
+            -
+    ```
+        from dataclasses import dataclass, field
+        from isimple.core.config import Config
+
+        @extend(ConfigType)
+        @dataclass
+        class SomeConfig(Config):
+            field1: int = field(default=42)
+            field2: SomeOtherConfig = field(default_factory=SomeOtherConfig)
+    ```
     """
-    def __init__(self, **kwargs):  # todo: cosider __call__(**defaults) if applying resolve() automatically
-        self(**kwargs)
-
-    def __call__(self, **kwargs):
-        for kw, arg in kwargs.items():
-            if hasattr(self, kw) and kw[0] != '_':
-                # Handled initialization explicitly in __post_init__
-                setattr(self, kw, arg)
-            else:
-                log.warning(f"{self.__class__.__name__}: "
-                            f"unexpected argument {{'{kw}': {arg}}}.")
-
-    def __post_init__(self):
-        """Resolve attribute values here  todo: link specific resolve() calls to fields, these should be called at call also!
+    def __init__(self, **kwargs):
+        """Placeholder for dataclass.__init__()
         """
         pass
 
+    def __post_init__(self):
+        """Passes fields to self.__call__() to resolve type
+        """
+        self(**self.__dict__)
+
+    def __call__(self, **kwargs) -> None:
+        """Set fields ~ (field, value) in kwargs.
+
+            * Resolves value to field type ~ Config.resolve()
+
+            * Handles the following schemes:
+                1) nesting:
+                    Config1
+                        field a: Config2
+
+                2) nesting ~ tuple:
+                    Config1
+                        field a: Tuple[Config2, ...]
+                        field b: Tuple[Config3, EnforcedStr1]
+
+                3) nesting ~ dict:
+                    Config1
+                        field a: Dict[str, Config2]
+                        field b: Dict[EnforcedStr1, Config3]
+
+                !! "Doubly nested" tuples or dicts are not handled !!
+                    The type must be contained in the top level
+                    of a tuple or dict for it to be resolved!
+
+                    i.e. Config2 doesn't get resolved in
+                        e.g.: Dict[str, Dict[str, Config2]
+                        e.g.: Tuple[int, Tuple[Config2, ...]
+        """
+
+        for kw, value in kwargs.items():
+            if kw in self.fields():
+                field_type = resolve_type_to_most_specific(self.fields()[kw].type)
+
+                if value is None:
+                    if is_optional(self.fields()[kw].type):
+                        setattr(self, kw, value)
+                    else:
+                        raise ValueError
+                elif type(value) != field_type:
+                    if hasattr(field_type, '__origin__'):
+                        if field_type.__origin__ == tuple:
+                            if field_type.__args__[1] == Ellipsis:
+                                value_type = field_type.__args__[0]
+                                setattr(self, kw,
+                                        tuple([value_type(v) for v in value]))
+                            else:
+                                assert (len(field_type.__args__) == len(value))
+                                setattr(self, kw, tuple(
+                                    [v_type(v) for v_type, v in
+                                     zip(field_type.__args__, value)]))
+                        elif field_type.__origin__ == dict:
+                            k_type = resolve_type_to_most_specific(
+                                field_type.__args__[0])
+                            v_type = resolve_type_to_most_specific(
+                                field_type.__args__[1])
+
+                            try:
+                                setattr(self, kw, {
+                                    k_type(k): v_type(**v) for k, v in
+                                    value.items()
+                                })
+                            except TypeError:  # todo: not great
+                                setattr(self, kw, {
+                                    k_type(k): v for k, v in value.items()
+                                })
+                        else:
+                            setattr(self, kw, self.resolve(value, field_type))
+                    else:
+                        setattr(self, kw, self.resolve(value, field_type))
+                else:
+                    setattr(self, kw, value)
+            elif hasattr(self, kw) and kw[0] != '_':
+                setattr(self, kw, value)
+            else:
+                log.warning(f"{self.__class__.__name__}: "
+                            f"unexpected field {{'{kw}': {value}}}.")
+
     @staticmethod
-    def resolve(val, type, iter: bool = False):
+    def resolve(val, type, iter: bool = False):  # todo: should be private
         """Resolve the value of an attribute to match a specific type
+
         :param val: current value
         :param type: type to resolve to
         :param iter: if True, resolve all elements of val
@@ -157,8 +264,17 @@ class Config(object):
             val = _resolve(val, type)
         return val
 
+    @classmethod
+    def fields(cls) -> dict:  # todo: something something type Config properly as a dataclass?
+        if hasattr(cls, '__dataclass_fields__'):
+            return cls.__dataclass_fields__  # type: ignore
+        else:
+            return {}
+
     def to_dict(self, do_tag: bool = False) -> dict:
-        """Return this instances value as a serializable dict.
+        """Return the configuration as a serializable dict.
+        :param do_tag: if `True`, add configuration class and version fields to the dict
+        :return: dict
         """
         output: dict = {}
         def _represent(obj) -> Union[dict, str]:
@@ -195,11 +311,11 @@ class Config(object):
                     ]) and not any([
                         isinstance(val, Color),
                     ]):
-                        output[attr] = type(val)([*map(_represent, val)])
+                        output[_represent(attr)] = type(val)([*map(_represent, val)])
                     elif isinstance(val, dict):
-                        output[attr] = {k:_represent(v) for k,v in val.items()}
+                        output[_represent(attr)] = {_represent(k):_represent(v) for k,v in val.items()}
                     else:
-                        output[attr] = _represent(val)
+                        output[_represent(attr)] = _represent(val)
             except ValueError:
                 log.debug(f"Config.to_dict() - skipping '{attr}': {val}")
 

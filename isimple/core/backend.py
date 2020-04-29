@@ -73,7 +73,7 @@ _BLOCKED = 'BLOCKED'
 
 
 @dataclass
-class CachingBackendInstanceConfig(abc.ABC, Config):
+class CachingBackendInstanceConfig(Config):
     do_cache: bool = field(default=True)
     do_background: bool = field(default=False)
 
@@ -370,7 +370,7 @@ class FeatureType(Factory):
 
 
 @dataclass
-class BaseAnalyzerConfig(abc.ABC, Config):
+class BaseAnalyzerConfig(Config):
     video_path: Optional[str] = field(default=None)
     design_path: Optional[str] = field(default=None)
     name: Optional[str] = field(default=None)

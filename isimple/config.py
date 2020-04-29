@@ -34,63 +34,46 @@ class FrameIntervalSetting(EnforcedStr):
 @extend(ConfigType)
 @dataclass
 class VideoFileHandlerConfig(CachingBackendInstanceConfig):
-    do_resolve_frame_number: bool = field(default=True)  # todo: this seems more like a global setting
+    pass
 
 
 @extend(ConfigType)
 @dataclass
 class TransformHandlerConfig(Config):
-    type: Union[TransformType, str] = field(default='')
-    matrix: Union[np.ndarray,str] = field(default=np.eye(3))  # todo: should be Optional & default to None for clarity
-    roi: dict = field(default_factory=dict)  # todo: should be Optional & default to None for clarity
-
-    def __post_init__(self):
-        self.type = self.resolve(self.type, TransformType)
-        self.matrix = self.resolve(self.matrix, np.ndarray)
+    type: TransformType = field(default=TransformType())
+    matrix: Optional[np.ndarray] = field(default=None)
+    roi: Optional[dict] = field(default=None)  # todo: maybe make this a config?
 
 
 @extend(ConfigType)
 @dataclass
 class HsvRangeFilterConfig(FilterConfig):
-    radius: Union[HsvColor, str] = field(default=HsvColor(10, 75, 75))
+    radius: HsvColor = field(default=HsvColor(10, 75, 75))
 
-    c0: Union[HsvColor, str] = field(default=HsvColor(0, 0, 0))
-    c1: Union[HsvColor, str] = field(default=HsvColor(0, 0, 0))
-
-    def __post_init__(self):
-        self.radius = self.resolve(self.radius, HsvColor)
-        self.c0 = self.resolve(self.c0, HsvColor)
-        self.c1 = self.resolve(self.c1, HsvColor)
+    c0: HsvColor = field(default=HsvColor(0, 0, 0))
+    c1: HsvColor = field(default=HsvColor(0, 0, 0))
 
 
 @extend(ConfigType)
 @dataclass
 class FilterHandlerConfig(Config):
-    type: Union[FilterType, str] = field(default='')
-    data: FilterConfig = field(default=FilterConfig())
-
-    def __post_init__(self):
-        self.type = self.resolve(self.type, FilterType)
-        self.data = self.resolve(self.data, self.type.get()._config_class)
+    type: FilterType = field(default_factory=FilterType)
+    data: FilterConfig = field(default_factory=FilterConfig)
 
 
 @extend(ConfigType)
 @dataclass
 class MaskConfig(Config):
     name: Optional[str] = field(default=None)
-    ready: bool = field(default = False)
-    skip: bool = field(default = False)
-    filter: Union[FilterHandlerConfig,dict,None] = field(default=None)
+    ready: bool = field(default=False)
+    skip: bool = field(default=False)
+    filter: FilterHandlerConfig = field(default_factory=FilterHandlerConfig)
     parameters: Dict[FeatureType, Dict[str, Any]] = field(default_factory=dict)
-
-    def __post_init__(self):
-        self.filter = self.resolve(self.filter, FilterHandlerConfig)
 
 
 @extend(ConfigType)
 @dataclass
 class DesignFileHandlerConfig(CachingBackendInstanceConfig):
-    keep_renders: bool = field(default=False)  # todo: seems more like a global config
     dpi: int = field(default=400)
 
     overlay_alpha: float = field(default=0.1)
@@ -100,25 +83,17 @@ class DesignFileHandlerConfig(CachingBackendInstanceConfig):
 @extend(ConfigType)
 @dataclass
 class VideoAnalyzerConfig(BaseAnalyzerConfig):
-    frame_interval_setting: Union[FrameIntervalSetting,str] = field(default=FrameIntervalSetting())
+    frame_interval_setting: Union[FrameIntervalSetting,str] = field(default_factory=FrameIntervalSetting)
     dt: Optional[float] = field(default=5.0)
     Nf: Optional[int] = field(default=100)
 
-    video: Union[VideoFileHandlerConfig,dict,None] = field(default=None)
-    design: Union[DesignFileHandlerConfig,dict,None] = field(default=None)
-    transform: Union[TransformHandlerConfig,dict,None] = field(default=None)
-    masks: Tuple[Union[MaskConfig,dict,None], ...] = field(default=(None,))  # todo: would be better as Dict[str, MaskConfig]?
+    video: VideoFileHandlerConfig = field(default_factory=VideoFileHandlerConfig)
+    design: DesignFileHandlerConfig = field(default_factory=DesignFileHandlerConfig)
+    transform: TransformHandlerConfig = field(default_factory=TransformHandlerConfig)
+    masks: Tuple[MaskConfig, ...] = field(default_factory=tuple)
 
     features: Tuple[FeatureType, ...] = field(default=())  # todo: should be a tuple of (FeatureType, <config of feature>)
     parameters: Dict[FeatureType, Dict[str, Any]] = field(default_factory=dict)
-
-    def __post_init__(self):
-        self.frame_interval_setting = self.resolve(self.frame_interval_setting, FrameIntervalSetting)
-        self.video = self.resolve(self.video, VideoFileHandlerConfig)
-        self.design = self.resolve(self.design, DesignFileHandlerConfig)
-        self.transform = self.resolve(self.transform, TransformHandlerConfig)
-        self.masks = tuple(self.resolve(self.masks, MaskConfig, iter=True))
-        self.features = tuple(self.resolve(self.features, FeatureType, iter=True))
 
 
 def load(path: str) -> VideoAnalyzerConfig:
@@ -214,6 +189,15 @@ def normalize_config(d: dict) -> dict:
                         m['ready'] = not (m['filter']['data']['c0'] == 'HsvColor(h=0, s=0, v=0')
                     except KeyError:
                         m['ready'] = False
+        if before_version(d[VERSION], '0.3.7'):
+            normalizing_to('0.3.7')
+            # remove DesignFileHandlerConfig.keep_renders & VideoFileHandlerConfig.do_resolve_frame_number
+            if 'video' in d:
+                if 'do_resolve_frame_number' in d['video']:
+                    d.pop('do_resolve_frame_number')
+            if 'design' in d:
+                if 'keep_renders' in d['design']:
+                    d.pop('keep_renders')
     else:
         raise NotImplementedError
 
@@ -221,7 +205,7 @@ def normalize_config(d: dict) -> dict:
     config_type = ConfigType(d[CLASS]).get()
     for k in list(d.keys()):
         if k not in (VERSION, CLASS):
-            if not hasattr(config_type, k):
+            if not k in config_type.fields():
                 log.warning(f"Removed unexpected attribute "
                             f"'{k}':{d.pop(k)} from {d[CLASS]}")
 

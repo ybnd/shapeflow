@@ -5,8 +5,8 @@ import json
 
 from typing import _GenericAlias, Union, Tuple, List, Dict, Optional  #type: ignore
 
-from isimple.core.schema import resolve_type_to_most_specific, \
-    get_config_schema, get_method_schema, schema
+from isimple.core.schema import get_config_schema, get_method_schema, schema
+from isimple.util.meta import resolve_type_to_most_specific
 from isimple.config import VideoAnalyzerConfig
 
 

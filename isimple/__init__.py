@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 import diskcache
 
 # Library version
-__version__: str = '0.3.6'  # todo: since this version is "global", maybe should merge all config stuff into isimple.core.config after all?
+__version__: str = '0.3.7'
 
 VDEBUG = 9
 logging.addLevelName(VDEBUG, "VDEBUG")
@@ -75,11 +75,13 @@ class LogSettings(_Settings):  # todo: this class should track whether path exis
 class CacheSettings(_Settings):  # todo: this class should track whether path exists
     dir: str = field(default=os.path.join(ROOTDIR, 'cache'))
     size_limit_gb: int = field(default=4)
+    resolve_frame_number: bool = field(default=True)
 
 
 @dataclass
 class RenderSettings(_Settings):  # todo: this class should track whether path exists
     dir: str = field(default=os.path.join(ROOTDIR, 'render'))
+    keep: bool = field(default=False)
 
 
 @dataclass()

@@ -1,5 +1,5 @@
 import inspect
-from typing import List, Union, Dict, Any
+from typing import List, Union, Dict, Any, Collection, _GenericAlias
 
 
 def describe_function(f):
@@ -84,3 +84,43 @@ def get_overridden_methods(c, m) -> list:
             implementations.append(getattr(base, m.__name__))
 
     return implementations
+
+
+def resolve_type_to_most_specific(t: _GenericAlias) -> _GenericAlias:
+    """Resolve Union in a type annotation to its most specific element
+        * Use case:
+        todo: extend to Optional
+    :param t:
+    :return:
+    """
+    if hasattr(t, '__origin__'):
+        if t.__origin__ == Union:
+        # Return the argument with the highest number of bases
+        #   * If there are multiple 'specific options', return the first one (!)
+        #   * Doesn't cover nested Union which seems to be resolved to
+        #       a flat Union at runtime anyway.
+            candidates = tuple(
+                [a for a in t.__args__
+                 if nbases(a) == nbases(max(t.__args__, key=nbases))]
+            )
+            if len(candidates) == 1:
+                return candidates[0]
+            else:
+                return t.__args__[0]
+        elif issubclass(t.__origin__, Collection):
+        # Recurse over arguments
+            t.__args__ = tuple(
+                [resolve_type_to_most_specific(a) for a in t.__args__]
+            )
+            return t
+    else:
+        return t
+
+
+def is_optional(t: _GenericAlias) -> bool:
+    """Returns `True` if is a Union containing NoneType
+    """
+    if hasattr(t, '__origin__'):
+        if t.__origin__ == Union:
+            return type(None) in t.__args__
+    return False
