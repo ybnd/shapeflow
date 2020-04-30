@@ -4,6 +4,7 @@
 import json
 import pickle
 import os
+from contextlib import contextmanager
 import time
 import webbrowser
 from threading import Thread, Event, Lock
@@ -71,6 +72,7 @@ class Main(object, metaclass=util.Singleton):
 
     _server: ServerThread
 
+    _lock = Lock()
     _ping = Event()
     _unload = Event()
     _quit = Event()
@@ -82,6 +84,16 @@ class Main(object, metaclass=util.Singleton):
     _stop_log: Event
     _latest: List[history.VideoAnalysisModel]
     _latest_configs: List[dict]
+
+    @contextmanager  # todo: should be a Lockable mixin
+    def lock(self):
+        lock = self._lock.acquire()
+        try:
+            log.debug(f"Locking {self}")
+            yield lock
+        finally:
+            log.debug(f"Unlocking {self}")
+            self._lock.release()
 
     def __init__(self):
         app = Flask(__name__, static_url_path='')
@@ -444,10 +456,9 @@ class Main(object, metaclass=util.Singleton):
                 'methods': {e.name:[schema.schema(m) for m in ms] for e,ms in root.instance_mapping.items()}
         }
 
-    # @util.timed
     def call(self, id: str, endpoint: str, data: dict) -> Any:
         t0 = time.time()
-        log.debug(f"{self._roots[id]}: call '{endpoint}'")
+        log.vdebug(f"{self._roots[id]}: call '{endpoint}'")
         # todo: sanity check this
         method = self._roots[id].get(getattr(backend.backend, endpoint))
 
@@ -455,7 +466,7 @@ class Main(object, metaclass=util.Singleton):
             pass  # todo: store to self._history & update latest configs
 
         result = method(**data)
-        log.debug(f"{self._roots[id]}: return '{endpoint}' "
+        log.vdebug(f"{self._roots[id]}: return '{endpoint}' "
                   f"({time.time() - t0} s elapsed)")
         return result
 

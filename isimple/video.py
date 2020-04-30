@@ -642,9 +642,10 @@ class DesignFileHandler(CachingBackendInstance):
 
             self._masks = []
             for i, (mask, name) in enumerate(zip(*self.read_masks(path))):
-                if mask_config is not None and len(mask_config) >= i + 1:  # handle case len(mask_config) < len(self.read_masks(path))
+                if mask_config is not None and len(mask_config) > 0 and len(mask_config) >= i + 1:  # handle case len(mask_config) < len(self.read_masks(path))
                     self._masks.append(
-                        Mask(mask, name, mask_config[i], dpi=self.config.dpi))
+                        Mask(mask, name, mask_config[i], dpi=self.config.dpi)
+                    )
                 else:
                     self._masks.append(Mask(mask, name, dpi=self.config.dpi))
 

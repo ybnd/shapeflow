@@ -41,7 +41,7 @@ class CacheAccessError(RootException):
 
 class BackendInstance(object):
     _config: Config
-    _lock: threading.Lock
+    _lock: Optional[threading.Lock]
 
     def __init__(self, config: Optional[Config]):
         self._configure(config)
@@ -70,7 +70,7 @@ class BackendInstance(object):
     def config(self) -> Config:
         return self._config
 
-    @contextmanager
+    @contextmanager  # todo: should be a Lockable mixin
     def lock(self):
         lock = self._lock.acquire()
         try:

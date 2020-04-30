@@ -195,14 +195,23 @@ class Config(abc.ABC):
                     if hasattr(field_type, '__origin__'):
                         if field_type.__origin__ == tuple:
                             if field_type.__args__[1] == Ellipsis:
-                                value_type = field_type.__args__[0]
-                                setattr(self, kw,
-                                        tuple([value_type(v) for v in value]))
+                                v_type = field_type.__args__[0]
+                                setattr(
+                                    self, kw,
+                                    tuple([
+                                        self._resolve_value(v, v_type)
+                                        for v in value
+                                    ])
+                                )
                             else:
                                 assert (len(field_type.__args__) == len(value))
-                                setattr(self, kw, tuple(
-                                    [v_type(v) for v_type, v in
-                                     zip(field_type.__args__, value)]))
+                                setattr(
+                                    self, kw,
+                                    tuple([
+                                        self._resolve_value(v, v_type)
+                                        for v_type, v in zip(field_type.__args__, value)
+                                    ])
+                                )
                         elif field_type.__origin__ == dict:
                             k_type = resolve_type_to_most_specific(
                                 field_type.__args__[0])
@@ -211,8 +220,8 @@ class Config(abc.ABC):
 
                             try:
                                 setattr(self, kw, {
-                                    k_type(k): v_type(**v) for k, v in
-                                    value.items()
+                                    k_type(k): self._resolve_value(v, v_type)
+                                    for k, v in value.items()
                                 })
                             except TypeError:  # todo: not great
                                 setattr(self, kw, {
