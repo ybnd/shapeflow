@@ -7,6 +7,7 @@ from isimple.maths.colors import HsvColor
 
 
 class BackendRegistry(ImmutableRegistry):
+    status = Endpoint(Callable[[], dict], stream_json)
     can_launch = Endpoint(Callable[[], bool])
     can_run = Endpoint(Callable[[], bool])
     confirm_run = Endpoint(Callable[[], None])
@@ -23,7 +24,6 @@ class BackendRegistry(ImmutableRegistry):
     undo_roi = Endpoint(Callable[[], None])
     redo_roi = Endpoint(Callable[[], None])
     get_name = Endpoint(Callable[[], str])
-    get_total_frames = Endpoint(Callable[[], int])
     seek = Endpoint(Callable[[float], float])
     get_seek_position = Endpoint(Callable[[], float])
     get_raw_frame = Endpoint(Callable[[Optional[int]], np.ndarray], stream_image)
@@ -34,9 +34,6 @@ class BackendRegistry(ImmutableRegistry):
     get_coordinates = Endpoint(Callable[[], Optional[list]])
     get_mask_name = Endpoint(Callable[[int], str])
     get_mask_names = Endpoint(Callable[[], tuple])
-    set_filter_implementation = Endpoint(Callable[[str], str])
-    set_filter_parameters = Endpoint(Callable[[FilterConfig, HsvColor], FilterConfig])  # todo: frontend shouldn't have to care about FilterConfig!
-    get_filter_parameters = Endpoint(Callable[[], FilterConfig])
     get_filter_mean_color = Endpoint(Callable[[], HsvColor])
     get_overlay = Endpoint(Callable[[], np.ndarray], stream_image)
     get_overlay_png = Endpoint(Callable[[], bytes], stream_image)

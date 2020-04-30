@@ -299,14 +299,17 @@ class Main(object, metaclass=util.Singleton):
             # todo: there's no way to handle requests to stream endpoints that don't stream
             return Response(
                 self.stream(id, endpoint).stream(),
-                mimetype = "multipart/x-mixed-replace; boundary=frame",
+                mimetype =  streaming.JpegStreamer.mime_type()
             )
 
         @app.route('/api/<id>/stream-json/<endpoint>', methods=['GET'])
         def stream_json(id: str, endpoint: str):
             """Stream JSON data
             """
-            raise NotImplementedError
+            return Response(
+                self.stream(id, endpoint).stream(),
+                mimetype = streaming.JsonStreamer.mime_type()
+            )
 
         @app.route('/api/list', methods=['GET'])
         def get_list():
@@ -418,7 +421,7 @@ class Main(object, metaclass=util.Singleton):
             return False
 
     def save_state(self):
-        log.debug("saving state")
+        log.debug("saving application state...")
 
         s = {
             k:{'config': root.config, 'state': root.state} for k,root in self._roots.items()
@@ -428,7 +431,7 @@ class Main(object, metaclass=util.Singleton):
             pickle.dump(s, f)
 
     def load_state(self):
-        log.debug("loading state")
+        log.debug("loading application state...")
 
         try:
             with open(os.path.join(isimple.ROOTDIR, 'state'), 'rb') as f:

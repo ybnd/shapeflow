@@ -21,6 +21,7 @@ from isimple.maths.colors import HsvColor
 from isimple.util.meta import describe_function
 from isimple.util import Timer, Timing, hash_file
 from isimple.core.config import Factory, untag, Config
+from isimple.core.streaming import stream
 
 
 log = get_logger(__name__)
@@ -177,10 +178,11 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
                 if isinstance(value, str) and value == _BLOCKED:
                     log.warning(f'{self.__class__}: timed out waiting for {key}.')
                 else:
-                    log.vdebug(f"Cache: read {key}.")
+                    log.debug(f"{self.__class__}: read {key}.")
                     return value
 
             # Cache a temporary string to 'block' the key
+            log.debug(f"{self.__class__}: caching {key}")
             log.vdebug(f"{self.__class__}: block {key}.")
             self._block(key)
             log.vdebug(f"{self.__class__}: execute {key}.")
@@ -432,7 +434,9 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
     _instances: List[BackendInstance]
     _instance_class = BackendInstance
     _config: BaseAnalyzerConfig
+
     _state: int
+    _busy: bool
     _progress: float
 
     _lock: Optional[threading.Lock]
@@ -468,6 +472,7 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
         self._hash_design = None
 
         self._state = AnalyzerState.INCOMPLETE
+        self._busy = False
         self._progress = 0.0
         self._model = None
 
@@ -521,12 +526,28 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
     def launched(self):
         return self._launched
 
-    @property
-    def state(self):
-        return self._state
+    def set_state(self, state: int):
+        self._state = state
+        self.status()  # todo: should push <id>/stream-json/status if open
 
     @property
-    def progress(self):
+    def state(self) -> int:
+        return self._state
+
+    def set_busy(self, busy: bool):
+        self._busy = busy
+        self.status()  # todo: should push <id>/stream-json/status if open
+
+    @property
+    def busy(self) -> bool:
+        return self._busy
+
+    def set_progress(self, progress: float):
+        self._progress = progress
+        self.status()  # todo: should push <id>/stream-json/status if open
+
+    @property
+    def progress(self) -> float:
         return self._progress
 
     @abc.abstractmethod
@@ -545,6 +566,16 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
     @backend.expose(backend.analyze)
     def analyze(self) -> bool:
         raise NotImplementedError
+
+    @stream
+    @backend.expose(backend.launch)
+    def status(self) -> dict:
+        return {
+            'id': self.id,
+            'state': self.state,
+            'busy': self.busy,
+            'progress': self.progress,
+        }
 
     @backend.expose(backend.launch)
     def launch(self) -> bool:

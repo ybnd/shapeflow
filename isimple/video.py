@@ -112,17 +112,15 @@ class VideoFileHandler(CachingBackendInstance):
 
     def _cache_frames(self):
         with self.caching():
-            with self.lock():
-                self._is_caching = True
-                for frame_number in self._requested_frames:
-                    if self._cancel_caching.is_set():
-                        break
-                    args = (self._read_frame, self.path, frame_number)
-                    if not self._is_cached(*args):
-                        log.debug(f"caching {self._get_key(*args)}")
-                        self._cached_call(*args)
-                self._is_caching = False
-            self.seek(0.5)
+            self._is_caching = True
+            for frame_number in self._requested_frames:
+                if self._cancel_caching.is_set():
+                    break
+                args = (self._read_frame, self.path, frame_number)
+                if not self._is_cached(*args):
+                    self._cached_call(*args)
+            self._is_caching = False
+        self.seek(0.5)
 
     def cache_frames(self):
         if self.config.do_cache and self.config.do_background:
@@ -164,19 +162,18 @@ class VideoFileHandler(CachingBackendInstance):
             video file, which is used to make the cache key in order to make
             this function cachable across multiple files.
         """
-        if frame_number is None:
-            frame_number = self.frame_number
+        with self.lock():
+            if frame_number is None:
+                frame_number = self.frame_number
 
-        self._set_position(frame_number)  # todo: check if it's a problem for multiple cv2.VideoCapture instances to read from the same file at the same time (case of background caching while seeking in the video)
-        ret, frame = self._capture.read()
+            log.debug(f"reading  {self.path} frame {self.frame_number}")
 
-        if ret:
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV, frame)
-            return frame
+            self._set_position(frame_number)
+            ret, frame = self._capture.read()
 
-    @backend.expose(backend.get_total_frames)
-    def get_total_frames(self) -> int:
-        return self.frame_count
+            if ret:
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV, frame)
+                return frame
 
     @backend.expose(backend.get_time)
     def get_time(self, frame_number: int = None) -> float:
@@ -216,7 +213,7 @@ class VideoFileHandler(CachingBackendInstance):
                 else:
                     self.frame_number = frame_number
 
-            log.debug(f"seeking  {self.path} to {self.frame_number}/{self.frame_count}")
+            log.debug(f"seeking  {self.path} {self.frame_number}/{self.frame_count}")
             streams.update()
 
             return self.frame_number / self.frame_count
@@ -481,7 +478,6 @@ class FilterHandler(BackendInstance, Handler):
     def mean_color(self) -> HsvColor:
         return self._implementation.mean_color(self.config.data)
 
-    @backend.expose(backend.set_filter_parameters)
     def set(self, filter: FilterConfig = None, color: HsvColor = None) -> FilterConfig:
         if isinstance(self.config.data, dict):
             self.config.data = FilterConfig(**self.config.data)
@@ -505,12 +501,6 @@ class FilterHandler(BackendInstance, Handler):
         assert isinstance(self.config.data, FilterConfig)
         return self.config.data
 
-    @backend.expose(backend.get_filter_parameters)
-    def get_filter(self) -> FilterConfig:
-        assert isinstance(self.config.data, FilterConfig)
-        return self.config.data
-
-    @backend.expose(backend.set_filter_implementation)
     def set_implementation(self, implementation: str) -> str:
         return super(FilterHandler, self).set_implementation(implementation)
 

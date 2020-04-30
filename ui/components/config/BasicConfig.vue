@@ -220,8 +220,8 @@ export default {
       type: Object,
       default: () => {
         return {
-          video_path: "",
-          design_path: "",
+          video_path: "/home/ybnd/projects/200210 - isimple/data/shuttle.mp4",
+          design_path: "/home/ybnd/projects/200210 - isimple/data/shuttle.svg",
           frame_interval_setting: "Nf",
           Nf: 100,
           dt: 5,
@@ -357,7 +357,11 @@ export default {
       async get() {
         return get_options("video_path").then(options => {
           console.log(options);
-          this.config.video_path = options[0];
+
+          if (!this.config.video_path) {
+            this.config.video_path = options[0];
+          }
+
           return options;
         });
       },
@@ -367,7 +371,11 @@ export default {
       async get() {
         return get_options("design_path").then(options => {
           console.log(options);
-          this.config.design_path = options[0];
+
+          if (!this.config.design_path) {
+            this.config.design_path = options[0];
+          }
+
           return options;
         });
       },

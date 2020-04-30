@@ -1,5 +1,6 @@
 import abc
 import sys
+import json
 from typing import Optional, Tuple, Generator, Callable, Dict, Type, Any, Union, List
 import time
 from functools import wraps
@@ -19,84 +20,136 @@ from isimple.util import timed, sizeof_fmt
 
 log = get_logger(__name__)
 
-class FrameStreamer(abc.ABC):  # todo: should be child of Streamer, along with JsonStreamer
+
+class BaseStreamer(abc.ABC):
     _queue: queue.Queue
     _stop: threading.Event
 
     _empty_queue_timeout: float = 0.02
     _stop_timeout: float = 60
 
+    _boundary: bytes
+    _content_type: bytes
+
     def __init__(self):
         self._queue = queue.Queue()
         self._stop = threading.Event()
 
-    def push(self, frame: np.ndarray):
-        self._queue.put(frame)
+    def push(self, value: Any):
+        if self._validate(value):
+            self._queue.put(value)
+        else:
+            log.warning(f"{self.__class__.__name__}: skipping invalid value")
+
+    def stream(self) -> Generator[Any, None, None]:
+        self._stop.clear()
+
+        while not self._stop.is_set():
+            if not self._queue.empty():
+                value = self._queue.get()
+                output = self._decorate(self._encode(value))
+
+                if output is not None:
+                    yield output
+                    yield output   # todo: doesn't work properly if not yielded twice
+                else:
+                    log.warning(f"{self.__class__.__name__}: encoding failed")
+                    continue
+            else:
+                time.sleep(self._empty_queue_timeout)
 
     def stop(self):
         self._stop.set()
         with self._queue.mutex:
             self._queue.queue.clear()
 
-    def stream(self) -> Generator[bytes, None, None]:  # todo: maybe Generator is having some threading issues here? https://anandology.com/blog/using-iterators-and-generators/
-        self._stop.clear()
-        last_yield = time.time()
+    @classmethod
+    def mime_type(cls):
+        return f"multipart/x-mixed-replace; boundary={cls._boundary.decode('utf-8')}"
 
-        while not self._stop.is_set():
-            if not self._queue.empty():
-                frame = self._queue.get()
-
-                (success, encoded_frame) = self._encode(frame)
-
-
-                if not success:
-                    continue
-                else:
-                    last_yield = time.time()
-                    log.vdebug(
-                        f"frame: {sizeof_fmt(len(encoded_frame))}")
-
-                    yield self._decorate(encoded_frame)
-                    yield self._decorate(encoded_frame)
-            else:
-                # if time.time() - last_yield > self._stop_timeout:
-                #     self.stop()
-                # else:
-                time.sleep(self._empty_queue_timeout)  # todo: is this a good idea ~ performance?
+    @classmethod
+    def content_type(cls):
+        return cls._content_type
 
     @abc.abstractmethod
-    def _encode(self, frame: np.ndarray) -> Tuple[bool, bytes]:
+    def _validate(self, value: Any) -> bool:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def _decorate(self, encoded_frame: bytes) -> bytes:
+    def _encode(self, value: Any) -> Optional[bytes]:
         raise NotImplementedError
+
+    def _decorate(self, data: Optional[bytes]) -> Optional[bytes]:
+        if data is not None:
+            try:
+                return (
+                    b"--frame\r\nContent-Type: "
+                    + self.content_type()
+                    + b"\r\n\r\n" +
+                    bytearray(data)
+                    + b"\r\n"
+                )
+            except Exception as e:
+                log.error(e)
+                return None
+        else:
+            return None
+
+
+class JsonStreamer(BaseStreamer):
+    _boundary = b"data"
+    _content_type = b"application/json"
+
+    def _validate(self, value: Any) -> bool:
+        return isinstance(value, dict)
+
+    def _encode(self, value: dict) -> Optional[bytes]:
+        try:
+            return json.dumps(value).encode('utf-8')
+        except Exception:  # todo: make more specific
+            return None
+
+
+class FrameStreamer(BaseStreamer):  # todo: should be child of Streamer, along with JsonStreamer
+    _boundary = b"frame"
+
+    _empty_queue_timeout: float = 0.02
+    _stop_timeout: float = 60
+
+    def _validate(self, value: Any) -> bool:
+        return isinstance(value, np.ndarray)
 
 
 class JpegStreamer(FrameStreamer):
-    def _encode(self, frame: np.ndarray) -> Tuple[bool, bytes]:
-        # Assume HSV input frame, cv2.imencode works with BGR
-        return cv2.imencode(
+    _content_type = b"image/jpeg"
+
+    def _encode(self, frame: np.ndarray) -> Optional[bytes]:
+        # Assuming HSV input frame, cv2.imencode works with BGR
+        (success, encoded_frame) = cv2.imencode(
             ".jpg", cv2.cvtColor(frame, cv2.COLOR_HSV2BGR),
             params = [cv2.IMWRITE_JPEG_QUALITY, 50]
         )
 
-    def _decorate(self, encoded_frame: bytes) -> bytes:
-        return (b"--frame\r\nContent-Type: image/jpeg\r\n\r\n" +
-                bytearray(encoded_frame) + b"\r\n")
+        if success:
+            return encoded_frame
+        else:
+            return None
 
 
 class PngStreamer(FrameStreamer):
-    def _encode(self, frame: np.ndarray) -> Tuple[bool, bytes]:
+    _content_type = b"image/png"
+
+    def _encode(self, frame: np.ndarray) -> Optional[bytes]:
         # Assume HSV input frame, cv2.imencode works with BGR
-        return cv2.imencode(
+        (success, encoded_frame) = cv2.imencode(
             ".png", cv2.cvtColor(frame, cv2.COLOR_HSV2BGR),
             params = [cv2.IMWRITE_PNG_COMPRESSION, 10]
         )
 
-    def _decorate(self, encoded_frame: bytes) -> bytes:
-        return (b"--frame\r\nContent-Type: image/png\r\n\r\n" +
-                bytearray(encoded_frame) + b"\r\n")
+        if success:
+            return encoded_frame
+        else:
+            return None
 
 
 class StreamHandler(object):  # todo: is a singleton
