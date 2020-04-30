@@ -82,8 +82,6 @@ export default {
       if (this.$store.getters["queue/getIndex"](this.id) === -1) {
         this.$router.push(`/`);
       } else {
-        this.$root.$emit(events.seek(this.id));
-
         get_options("filter").then(options => {
           this.filter_options = options;
         });
@@ -92,6 +90,7 @@ export default {
 
         this.$store.dispatch("filter/init", { id: this.id }).then(() => {
           this.$store.dispatch("analyzers/get_config", { id: this.id });
+          this.$root.$emit(events.seek.reset(this.id));
         });
       }
     },

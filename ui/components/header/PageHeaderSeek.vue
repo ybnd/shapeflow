@@ -37,28 +37,36 @@ export default {
   },
   components: { VueSlider, PageHeaderItem },
   beforeMount() {
-    this.updatePosition = setInterval(500, this.getSeekPosition);
+    this.resetSeekPosition();
 
-    this.$root.$on(events.seek(this.id), this.handleSeek);
-    this.$root.$on(events.step_forward(this.id), this.stepForward);
-    this.$root.$on(events.step_backward(this.id), this.stepBackward);
+    this.syncInterval = setInterval(this.getSeekPosition, 1000);
+
+    this.$root.$on(events.seek.get(this.id), this.getSeekPosition);
+    this.$root.$on(events.seek.set(this.id), this.handleSeek);
+    this.$root.$on(events.seek.reset(this.id), this.resetSeekPosition);
+    this.$root.$on(events.seek.step_fw(this.id), this.stepForward);
+    this.$root.$on(events.seek.step_bw(this.id), this.stepBackward);
   },
   beforeDestroy() {
-    // todo: unregister listener!
-    clearInterval(this.updatePosition);
+    this.position = null;
 
-    this.$root.$on(events.seek(this.id), this.handleSeek);
-    this.$root.$on(events.step_forward(this.id), this.stepForward);
-    this.$root.$on(events.step_backward(this.id), this.stepBackward);
+    clearInterval(this.syncInterval);
+
+    this.$root.$off(events.seek.get(this.id), this.getSeekPosition);
+    this.$root.$off(events.seek.set(this.id), this.handleSeek);
+    this.$root.$off(events.seek.reset(this.id), this.resetSeekPosition);
+    this.$root.$off(events.seek.step_fw(this.id), this.stepForward);
+    this.$root.$off(events.seek.step_bw(this.id), this.stepBackward);
   },
   methods: {
-    setSeekPosition() {
-      seek(this.id, this.position).then(position => {
+    getSeekPosition() {
+      // todo: replace with stream?
+      get_seek_position(this.id).then(position => {
         this.position = position;
       });
     },
-    getSeekPosition() {
-      get_seek_position(this.id).then(position => {
+    setSeekPosition() {
+      seek(this.id, this.position).then(position => {
         this.position = position;
       });
     },
@@ -69,8 +77,10 @@ export default {
         this.setSeekPosition();
       })
     ),
-    formatTooltip(tooltip) {
-      return `${Math.round(tooltip * 100)}%`;
+    resetSeekPosition() {
+      console.log(`PageHeaderSeek(${this.id}.resetSeek()`);
+      this.position = null;
+      this.handleSeek();
     },
     stepForward() {
       this.position = this.position + this.step;
@@ -79,6 +89,9 @@ export default {
     stepBackward() {
       this.position = this.position - this.step;
       this.handleSeek();
+    },
+    formatTooltip(tooltip) {
+      return `${Math.round(tooltip * 100)}%`;
     }
   },
   computed: {
@@ -105,7 +118,7 @@ export default {
         interval: 0.01,
         disabled: false,
         clickable: true,
-        duration: 0.1,
+        duration: 0.05,
         adsorb: false,
         lazy: false,
         tooltip: "active",
@@ -119,7 +132,8 @@ export default {
         order: true,
         marks: false,
         process: false
-      }
+      },
+      syncInterval: null
     };
   }
 };

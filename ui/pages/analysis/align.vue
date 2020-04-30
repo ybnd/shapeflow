@@ -171,9 +171,6 @@ export default {
         this.setRoi(roi);
       });
     },
-    handleSetFilters() {
-      this.$router.push(`/analysis/filter?id=${this.id}`);
-    },
     handleCleanUp() {
       console.log("handleCleanUp");
       // this.$store.commit("align/clearAlign", { id: this.previous_id });
@@ -207,7 +204,6 @@ export default {
       if (this.$store.getters["queue/getIndex"](this.id) === -1) {
         this.$router.push(`/`);
       } else {
-        this.$root.$emit(events.seek(this.id)); // todo: this doesn't trigger the stream for some reason
         this.previous_id = this.id;
 
         this.align.flip = this.$store.getters["analyzers/getConfig"](
@@ -222,6 +218,7 @@ export default {
         // this.$store.dispatch("align/init", { id: this.id }).then(() => {
         get_relative_roi(this.id).then(roi => {
           this.setRoi(roi);
+          this.$root.$emit(events.seek.reset(this.id)); // todo: this doesn't trigger the stream for some reason
           // this.$store.dispatch("analyzers/get_config", { id: this.id }); // todo: why?
         });
         this.handleUpdate();
@@ -357,10 +354,10 @@ export default {
       }
     },
     stepForward() {
-      this.$root.$emit(`step-forward-${this.id}`);
+      this.$root.$emit(events.seek.step_fw(this.id));
     },
     stepBackward() {
-      this.$root.$emit(`step-backward-${this.id}`);
+      this.$root.$emit(events.seek.step_bw(this.id));
     }
   },
   watch: {

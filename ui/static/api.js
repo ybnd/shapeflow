@@ -2,11 +2,10 @@ import axios from "axios";
 
 let API = "/api/";
 
-export function url(id, endpoint = "") {
-  return API + `${id}/${endpoint}`;
+export function url() {
+  return API + Array.from(arguments).join("/");
 }
 
-// define roi state Enum
 export const AnalyzerState = {
   UNKNOWN: 0,
   INCOMPLETE: 1,
@@ -21,16 +20,16 @@ export const AnalyzerState = {
 
 export function ping() {
   // todo: deprecated, just ping with list()
-  axios.get(API + "ping");
+  axios.get(url("ping"));
 }
 
 export function unload() {
   // axios can't be called on page unload, use sendBeacon instead
-  return navigator.sendBeacon(API + "unload");
+  return navigator.sendBeacon(url("unload"));
 }
 
 export async function settings_schema() {
-  return axios.get(API + "settings_schema").then(response => {
+  return axios.get(url("settings_schema")).then(response => {
     if (response.status === 200) {
       return response.data; // todo: this pattern is QUITE common
     }
@@ -38,7 +37,7 @@ export async function settings_schema() {
 }
 
 export async function get_settings() {
-  return axios.get(API + "get_settings").then(response => {
+  return axios.get(url("get_settings")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -47,7 +46,7 @@ export async function get_settings() {
 
 export async function set_settings(settings) {
   return axios
-    .post(API + "set_settings", { settings: settings })
+    .post(url("set_settings"), { settings: settings })
     .then(response => {
       if (response.status === 200) {
         return response.data;
@@ -56,7 +55,7 @@ export async function set_settings(settings) {
 }
 
 export async function list() {
-  return axios.get(API + "list").then(response => {
+  return axios.get(url("list")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -65,7 +64,7 @@ export async function list() {
 
 export async function init() {
   // initialize an Analyzer in the backend & return its id
-  return axios.post(API + "init").then(response => {
+  return axios.post(url("init")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -97,7 +96,7 @@ export async function get_schemas(id) {
 }
 
 export async function get_options(for_type) {
-  return axios.get(API + "options/" + for_type).then(response => {
+  return axios.get(url("options", for_type)).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -105,7 +104,7 @@ export async function get_options(for_type) {
 }
 
 export async function select_video_path() {
-  return axios.get(API + "select_video_path").then(response => {
+  return axios.get(url("select_video_path")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -113,7 +112,7 @@ export async function select_video_path() {
 }
 
 export async function select_design_path() {
-  return axios.get(API + "select_design_path").then(response => {
+  return axios.get(url("select_design_path")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -122,7 +121,7 @@ export async function select_design_path() {
 
 export async function check_video_path(video_path) {
   return axios
-    .put(API + "check_video_path", { video_path: video_path })
+    .put(url("check_video_path"), { video_path: video_path })
     .then(response => {
       if (response.status === 200) {
         return response.data;
@@ -132,7 +131,7 @@ export async function check_video_path(video_path) {
 
 export async function check_design_path(design_path) {
   return axios
-    .put(API + "check_design_path", { design_path: design_path })
+    .put(url("check_design_path"), { design_path: design_path })
     .then(response => {
       if (response.status === 200) {
         return response.data;
@@ -291,7 +290,7 @@ export function get_log() {
 }
 
 export async function stop_log() {
-  return axios.put(API + "/stop_log").then(response => {
+  return axios.put(url("/stop_log")).then(response => {
     if (response.status === 200) {
       return true;
     }

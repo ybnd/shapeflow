@@ -195,11 +195,12 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
 
     def __enter__(self):
         if self._config.do_cache:
-            log.debug(f'{self.__class__.__qualname__}: opening cache.')
-            self._cache = diskcache.Cache(
-                directory=settings.cache.dir,
-                size_limit=settings.cache.size_limit_gb * 1e9,
-            )
+            if self._cache is None:
+                log.debug(f'{self.__class__.__qualname__}: opening cache.')
+                self._cache = diskcache.Cache(
+                    directory=settings.cache.dir,
+                    size_limit=settings.cache.size_limit_gb * 1e9,
+                )
 
         return self
 

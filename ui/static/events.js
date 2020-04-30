@@ -1,12 +1,20 @@
 export let events = {
-  seek(analyzer_id) {
-    return `seek-${analyzer_id}`;
-  },
-  step_forward(analyzer_id) {
-    return `step-forward-${analyzer_id}`;
-  },
-  step_backward(analyzer_id) {
-    `step-backward-${analyzer_id}`;
+  seek: {
+    get(analyzer_id) {
+      return `seek-sync-${analyzer_id}`;
+    },
+    reset(analyzer_id) {
+      return `seek-reset-${analyzer_id}`;
+    },
+    set(analyzer_id) {
+      return `seek-go-${analyzer_id}`;
+    },
+    step_fw(analyzer_id) {
+      return `seek-forward-${analyzer_id}`;
+    },
+    step_bw(analyzer_id) {
+      return `seek-backward-${analyzer_id}`;
+    }
   },
   sidebar: {
     remove(analyzer_id) {
