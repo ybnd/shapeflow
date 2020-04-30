@@ -383,7 +383,7 @@ class FeatureSet(object):
         return self._features
 
 
-class FeatureType(Factory):
+class FeatureType(Factory):  # todo: nest in Feature?
     _type = Feature
 
     def get(self) -> Type[Feature]:

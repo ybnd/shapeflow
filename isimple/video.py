@@ -642,10 +642,12 @@ class DesignFileHandler(CachingBackendInstance):
 
             self._masks = []
             for i, (mask, name) in enumerate(zip(*self.read_masks(path))):
-                if mask_config is not None and len(mask_config) >= i+1:  # handle case len(mask_config) < len(self.read_masks(path))
-                    self._masks.append(Mask(mask, name, mask_config[i], dpi=self.config.dpi))
+                if mask_config is not None and len(mask_config) >= i + 1:  # handle case len(mask_config) < len(self.read_masks(path))
+                    self._masks.append(
+                        Mask(mask, name, mask_config[i], dpi=self.config.dpi))
                 else:
                     self._masks.append(Mask(mask, name, dpi=self.config.dpi))
+
 
     @property
     def config(self) -> DesignFileHandlerConfig:
@@ -787,6 +789,8 @@ class MaskFunction(Feature):
     mask: Mask
     filter: FilterHandler
 
+    _feature_type: FeatureType
+
     def __init__(self, mask: Mask):
         self.mask = mask
         self.filter = mask.filter
@@ -795,14 +799,37 @@ class MaskFunction(Feature):
             (self.mask, self.filter)
         )
 
+        self._feature_type = FeatureType(self.__class__.__name__)
+
         self._skip = mask.config.skip
         self._ready = mask.config.ready
 
-    def unpack(self):
-        return tuple([
-            self.mask.config.parameters[self.__class__.__name__][p]
-            for p in self.parameters()
-        ])
+    @property
+    def feature_type(self) -> FeatureType:
+        return self._feature_type
+
+    def unpack(self) -> tuple:
+        """Resolve `self.mask.config.parameters` & `self.default_parameters()`
+            to a tuple of values in the order of `self.parameters()`
+        """
+
+        if self.feature_type in self.mask.config.parameters:
+            pars = []
+            for parameter in self.parameters():
+                if parameter in self.mask.config.parameters[self.feature_type]:
+                    pars.append(
+                        self.mask.config.parameters[self.feature_type][parameter]
+                    )
+                else:
+                    pars.append(
+                        self.parameter_defaults()[parameter]
+                    )
+            return tuple(pars)
+        else:
+            return tuple(
+                [self.parameter_defaults()[parameter]
+                 for parameter in self.parameters()]
+            )
 
     def px2mm(self, value):
         return value / (self.mask.dpi / 25.4)
@@ -876,7 +903,7 @@ class Volume_uL(MaskFunction):
     }
 
     def _function(self, frame: np.ndarray) -> Any:
-        h = self.unpack()
+        h, = self.unpack()
         return self.pxsq2mmsq(area_pixelsum(frame)) * h  # todo: better parameter handling for Feature subclasses
 
 
@@ -1003,6 +1030,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 previous_flip = copy.copy((self.config.transform.flip))
 
                 self._config(**config)
+                self._config.resolve()
+
                 if hasattr(self, 'transform'):
                     self.transform._config(**self.config.transform.to_dict())
                 if hasattr(self, 'design'):
@@ -1271,6 +1300,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         """Load video analysis configuration from history database
         """
         log.info('loading config from database...')
+        include = ['video', 'design', 'transform', 'masks']
+
         from isimple.history import History, VideoFileModel, DesignFileModel  # todo: fix history / video circular dependency
         _history = History()
 
@@ -1278,14 +1309,25 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             video = _history.add_file(self.config.video_path, VideoFileModel)
             if self.config.design_path is not None and os.path.isfile(self.config.design_path):
                 design = _history.add_file(self.config.design_path, DesignFileModel)
-                config = _history.get_config(self.model, video, design)
+                config = _history.get_config(
+                    self.model,
+                    video,
+                    design,
+                    include = include
+                )
                 design.remove()
             else:
-                config = _history.get_config(self.model, video)
+                config = _history.get_config(
+                    self.model,
+                    video,
+                    include=include
+                )
             video.remove()
 
-            log.debug(f'loaded config: {config}')
             self._config(**config)
+            self._config.resolve()
+
+            log.debug(f'loaded config: {config}')
         else:
             log.debug('could not load config - no video path!')
         # todo: push get_state streamer

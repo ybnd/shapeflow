@@ -69,7 +69,8 @@ class MaskConfig(Config):
     ready: bool = field(default=False)
     skip: bool = field(default=False)
     filter: FilterHandlerConfig = field(default_factory=FilterHandlerConfig)
-    parameters: Dict[FeatureType, Dict[str, Any]] = field(default_factory=dict)
+
+    parameters: Dict[FeatureType, Dict[str, Tuple[bool, Any]]] = field(default_factory=dict)
 
 
 @extend(ConfigType)
@@ -95,6 +96,19 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
 
     features: Tuple[FeatureType, ...] = field(default=())  # todo: should be a tuple of (FeatureType, <config of feature>)
     parameters: Dict[FeatureType, Dict[str, Any]] = field(default_factory=dict)
+
+    def resolve(self):
+        super(VideoAnalyzerConfig, self).resolve()
+
+        # Remove unused parameters
+        for feature in list(self.parameters.keys()):
+            if feature not in self.features:
+                self.parameters.pop(feature)
+
+        # Propagate global parameters to masks
+        #   this overwrites any values that were overridden by the masks!
+        for mask in self.masks:
+            mask(parameters=self.parameters)
 
 
 def load(path: str) -> VideoAnalyzerConfig:

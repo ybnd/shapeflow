@@ -145,9 +145,13 @@ class Config(abc.ABC):
         pass
 
     def __post_init__(self):
+        self.resolve()
+
+    def resolve(self):
         """Passes fields to self.__call__() to resolve type
-        """
+                """
         self(**self.__dict__)
+
 
     def __call__(self, **kwargs) -> None:
         """Set fields ~ (field, value) in kwargs.
@@ -215,9 +219,9 @@ class Config(abc.ABC):
                                     k_type(k): v for k, v in value.items()
                                 })
                         else:
-                            setattr(self, kw, self.resolve(value, field_type))
+                            setattr(self, kw, self._resolve_value(value, field_type))
                     else:
-                        setattr(self, kw, self.resolve(value, field_type))
+                        setattr(self, kw, self._resolve_value(value, field_type))
                 else:
                     setattr(self, kw, value)
             elif hasattr(self, kw) and kw[0] != '_':
@@ -227,7 +231,7 @@ class Config(abc.ABC):
                             f"unexpected field {{'{kw}': {value}}}.")
 
     @staticmethod
-    def resolve(val, type, iter: bool = False):  # todo: should be private
+    def _resolve_value(val, type, iter: bool = False):  # todo: should be private
         """Resolve the value of an attribute to match a specific type
 
         :param val: current value
@@ -236,7 +240,7 @@ class Config(abc.ABC):
         :return: the resolved value for `val`; this should be written to the
                   original attribute, i.e. `self.attr = resolve(self.attr, type)`
         """
-        def _resolve(val, type):
+        def __resolve_value(val, type):
             if isinstance(val, type):
                 pass
             elif isinstance(val, str):
@@ -258,10 +262,10 @@ class Config(abc.ABC):
             return val
 
         if iter:
-            val = map(partial(_resolve, type=type), val)
+            val = map(partial(__resolve_value, type=type), val)
         else:
             # Resolve `val`
-            val = _resolve(val, type)
+            val = __resolve_value(val, type)
         return val
 
     @classmethod

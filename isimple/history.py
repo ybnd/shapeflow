@@ -369,9 +369,10 @@ class History(Database):
 
         return models
 
-    def get_config(self, analysis: VideoAnalysisModel, video: FileModel, design: FileModel = None) -> dict:
+    def get_config(self, analysis: VideoAnalysisModel, video: FileModel, design: FileModel = None, include: List[str] = None) -> dict:
         config = {}
-        include = ['video', 'design', 'transform', 'masks']
+        if include is None:
+            include = ['video', 'design', 'transform', 'masks']
 
         # Query history for latest usages of current video
         # (not including the curent analysis)
