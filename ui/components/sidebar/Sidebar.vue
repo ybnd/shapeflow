@@ -50,7 +50,7 @@ export default {
   beforeMount() {
     this.sync();
     this.interval_update = setInterval(this.updateQueue, 100);
-    this.interval_sync = setInterval(this.sync, 5000);
+    // this.interval_sync = setInterval(this.sync, 5000);
   },
   methods: {
     handleClick(e) {

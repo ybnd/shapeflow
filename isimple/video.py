@@ -1004,6 +1004,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 [], columns=['time'] + [f.name for f in fs.features], index=list(self.frame_numbers())
             )
 
+    @stream
     @backend.expose(backend.get_config)
     def get_config(self) -> dict:
         return self.config.to_dict()

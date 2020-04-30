@@ -7,14 +7,27 @@ import {
   get_schemas,
   init,
   list,
-  launch
+  launch,
+  stream,
+  get_status
 } from "../static/api";
 
 import assert from "assert";
 
 export const state = () => {
   return {
-    // maps id to {name, state, progress, config}
+    /* maps id to
+      {
+        name,
+        status,
+        config,
+        src: {
+          status,
+          config
+        }
+      }
+
+    */
   };
 };
 
@@ -33,31 +46,38 @@ export const mutations = {
     }
   },
 
-  setAnalyzerState(state, { id, analyzer_state }) {
+  setAnalyzerSources(state, { id, src }) {
     try {
       assert(!(id === undefined), "no id provided");
-      assert(!(analyzer_state === undefined), "no state");
-      state[id] = { ...state[id], state: analyzer_state };
+      assert(!(src === undefined), "no sources provided");
+      assert("status" in src, "status EventSource not provided");
+      assert("config" in src, "config EventSource not provided");
+
+      state[id] = { ...state[id], src: src };
     } catch (err) {
-      console.warn(
-        `setAnalyzerState failed: '${id}', analyzer_state: ${analyzer_state}`
-      );
+      console.warn(`setAnalyzerSources failed: '${id}'`);
     }
   },
 
-  setAnalyzerProgress(state, { id, analyzer_progress }) {
+  setAnalyzerStatus(state, { id, analyzer_status: analyzer_status }) {
+    console.log("analyzers/setAnalyzerStatus");
+    console.log(id);
+    console.log(analyzer_status);
     try {
       assert(!(id === undefined), "no id provided");
-      assert(!(analyzer_progress === undefined), "no progress");
-      state[id] = { ...state[id], progress: analyzer_progress };
+      assert(!(analyzer_status === undefined), "no status");
+      state[id] = { ...state[id], status: analyzer_status };
     } catch (err) {
       console.warn(
-        `setAnalyzerProgress failed: '${id}', analyzer_progress: ${analyzer_progress}`
+        `setAnalyzerStatus failed: '${id}', analyzer_status: ${analyzer_status}`
       );
     }
   },
 
   setAnalyzerConfig(state, { id, analyzer_config }) {
+    console.log("analyzers/setAnalyserConfig");
+    console.log(id);
+    console.log(analyzer_config);
     try {
       assert(!(id === undefined), "no id provided");
       assert(!(analyzer_config === undefined), "no config");
@@ -75,21 +95,12 @@ export const mutations = {
       );
     }
   },
-
-  setAnalyzerSchemas(state, { id, analyzer_schemas }) {
-    try {
-      assert(!(id === undefined), "no id provided");
-      assert(!(analyzer_schemas === undefined), "no schemas");
-      state[id] = { ...state[id], schemas: analyzer_schemas };
-    } catch (err) {
-      console.warn(
-        `setAnalyzerSchemas failed: '${id}', analyzer_schemas: ${analyzer_schemas}`
-      );
-    }
-  },
   dropAnalyzer(state, { id }) {
     try {
       assert(!(id === undefined), "no id provided");
+
+      state[id].src.status.close();
+      state[id].src.config.close();
       delete state[id];
     } catch {
       `dropAnalyzer failed: '${id}'`;
@@ -97,8 +108,12 @@ export const mutations = {
   }
 };
 export const getters = {
-  getState: state => id => {
-    return state[id].state;
+  getStatus: state => id => {
+    if (id in state) {
+      if ("status" in state[id]) {
+        return state[id].status;
+      }
+    }
   },
   getConfig: state => id => {
     return state[id].config;
@@ -120,14 +135,58 @@ export const getters = {
   },
   getName: state => id => {
     return state[id].name;
+  },
+  hasSources: state => id => {
+    if (id in state) {
+      if ("src" in state[id]) {
+        return (
+          state[id].src.status.readyState === 2 &&
+          state[id].src.config.readyState === 2
+        );
+      } else {
+        return false;
+      }
+    } else {
+      return false;
+    }
   }
 };
 
 export const actions = {
   // todo: when running slowly (e.g. debugging), analyzers get duplicated
-  async init({ commit }, { config = {} }) {
+  async sources({ commit, getters }, { id }) {
+    try {
+      if (!getters["hasSources"](id)) {
+        commit("setAnalyzerSources", {
+          id: id,
+          src: {
+            status: stream(id, "stream-json/status", function(message) {
+              console.log(`${id} status: ${message.data}`);
+              commit("setAnalyzerStatus", {
+                id: id,
+                analyzer_status: JSON.parse(message.data)
+              });
+            }),
+            config: stream(id, "stream-json/get_config", function(message) {
+              console.log(`${id} config: ${message.data}`);
+              commit("setAnalyzerConfig", {
+                id: id,
+                analyzer_config: JSON.parse(message.data)
+              });
+            })
+          }
+        });
+      }
+    } catch (err) {
+      console.warn(err);
+    }
+    assert(!(id === undefined), "no id provided");
+  },
+
+  async init({ commit, dispatch }, { config = {} }) {
     return init().then(id => {
       commit("addAnalyzer", { id: id });
+      dispatch("sources", { id: id });
 
       var config_promise;
       if (config === {}) {
@@ -143,14 +202,11 @@ export const actions = {
         // });
         launch(id).then(ok => {
           if (ok) {
-            get_state(id).then(state => {
-              commit("setAnalyzerState", { id: id, analyzer_state: state });
-              commit("queue/addToQueue", { id: id }, { root: true });
-            });
+            commit("queue/addToQueue", { id: id }, { root: true });
           } else {
             commit("dropAnalyzer", { id: id });
             console.warn(
-              `Could not launch '${id}'; check the backend logs for details.`
+              `Could not launch '${id}'; check the backend log for details.`
             );
           }
         });
@@ -162,7 +218,7 @@ export const actions = {
   async sync({ commit, rootGetters }) {
     try {
       return await list().then(data => {
-        let ids = data.ids;
+        let ids = data.ids; // todo: don't add state/progress to list
         let state = data.states;
         let progress = data.progress;
 
@@ -186,33 +242,9 @@ export const actions = {
             if (!q.includes(ids[i])) {
               // add new id to the queue
               commit("addAnalyzer", { id: ids[i] });
-              // get_schemas(ids[i]).then(schemas => {
-              //   commit("setAnalyzerSchemas", {
-              //     id: ids[i],
-              //     analyzer_schemas: schemas
-              //   });
-              // });
-              get_config(ids[i]).then(config => {
-                commit("setAnalyzerState", {
-                  id: ids[i],
-                  analyzer_state: state[i]
-                });
-                commit("setAnalyzerProgress", {
-                  id: ids[i],
-                  analyzer_state: progress[i]
-                });
-                commit("setAnalyzerConfig", {
-                  id: ids[i],
-                  analyzer_config: config
-                });
-                commit("queue/addToQueue", { id: ids[i] }, { root: true });
-              });
-            } else {
-              commit("setAnalyzerState", {
-                id: ids[i],
-                analyzer_state: state[i]
-              });
+              commit("queue/addToQueue", { id: ids[i] }, { root: true });
             }
+            dispatch("sources", { id: ids[i] });
           }
         }
         return true;
@@ -224,6 +256,7 @@ export const actions = {
   },
 
   async get_config({ commit }, { id }) {
+    // todo: should not be needed if streaming works
     try {
       assert(!(id === undefined), "no id provided");
 

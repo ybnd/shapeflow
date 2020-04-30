@@ -571,7 +571,6 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
     @backend.expose(backend.status)
     def status(self) -> dict:
         return {
-            'id': self.id,
             'state': self.state,
             'busy': self.busy,
             'progress': self.progress,
@@ -581,9 +580,11 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
     def launch(self) -> bool:
         with self.lock():
             if self.can_launch():
+                self.set_busy(True)
                 self._launch()
                 self._gather_instances()
-                self._state = AnalyzerState.LAUNCHED
+                self.set_busy(False)
+                self.set_state(AnalyzerState.LAUNCHED) # todo: ugh
                 return True
             else:
                 log.warning(f"{self.__class__.__qualname__} can not be launched.")  # todo: try to be more verbose

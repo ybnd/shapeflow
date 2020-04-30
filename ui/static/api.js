@@ -155,6 +155,14 @@ export async function get_state(id) {
   });
 }
 
+export async function get_status(id) {
+  return axios.get(url(id, "call/status")).then(response => {
+    if (response.status === 200) {
+      return response.data;
+    }
+  });
+}
+
 export async function get_relative_roi(id) {
   return axios.get(url(id, "call/get_relative_roi")).then(response => {
     if (response.status === 200) {
@@ -295,4 +303,14 @@ export async function stop_log() {
       return true;
     }
   });
+}
+
+export function stream(id, endpoint, callback) {
+  console.log(`registering EventSource for ${id}/${endpoint}`);
+
+  let evl = new EventSource(url(id, endpoint));
+  evl.onmessage = callback;
+
+  console.log(evl);
+  return evl;
 }

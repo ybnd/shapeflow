@@ -18,7 +18,7 @@
       <!--      </b-popover>-->
       {{ name }}
     </div>
-    <template v-if="state === ast.INCOMPLETE">
+    <template v-if="status.state === ast.INCOMPLETE">
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
           name="Configure"
@@ -33,7 +33,7 @@
         />
       </ul>
     </template>
-    <template v-if="state === ast.LAUNCHED">
+    <template v-if="status.state === ast.LAUNCHED">
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
           name="Configure"
@@ -58,7 +58,7 @@
         />
       </ul>
     </template>
-    <template v-else-if="state === ast.CAN_LAUNCH">
+    <template v-else-if="status.state === ast.CAN_LAUNCH">
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
           name="Configure"
@@ -73,7 +73,7 @@
         />
       </ul>
     </template>
-    <template v-if="state === ast.CAN_RUN">
+    <template v-if="status.state === ast.CAN_RUN">
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
           name="Configure"
@@ -103,7 +103,7 @@
         />
       </ul>
     </template>
-    <template v-else-if="state === ast.RUNNING">
+    <template v-else-if="status.state === ast.RUNNING">
       <b-progress class="progress" height="2px" :value="progress"></b-progress>
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
@@ -114,7 +114,7 @@
         />
       </ul>
     </template>
-    <template v-else-if="state === ast.DONE">
+    <template v-else-if="status.state === ast.DONE">
       <b-progress
         class="progress"
         height="2px"
@@ -145,7 +145,7 @@
         />
       </ul>
     </template>
-    <template v-else-if="state === ast.CANCELED">
+    <template v-else-if="status.state === ast.CANCELED">
       <b-progress
         class="progress"
         height="2px"
@@ -181,7 +181,7 @@
         />
       </ul>
     </template>
-    <template v-else-if="state === ast.ERROR">
+    <template v-else-if="status.state === ast.ERROR">
       <b-progress
         class="progress"
         height="2px"
@@ -290,8 +290,9 @@ export default {
     name() {
       return this.$store.getters["analyzers/getName"](this.id);
     },
-    state() {
-      return this.$store.getters["analyzers/getState"](this.id);
+    status() {
+      console.log(`SidebarNavAnalysis @ ${this.id} -- status`);
+      return this.$store.getters["analyzers/getStatus"](this.id);
     },
     link() {
       return {

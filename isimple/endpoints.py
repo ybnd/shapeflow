@@ -18,7 +18,7 @@ class BackendRegistry(ImmutableRegistry):
     cancel_caching = Endpoint(Callable[[], bool])
     get_value = Endpoint(Callable[[], dict], stream_json)
     get_state = Endpoint(Callable[[], dict], stream_json)
-    get_config = Endpoint(Callable[[], dict])
+    get_config = Endpoint(Callable[[], dict], stream_json)
     set_config = Endpoint(Callable[[dict], dict])
     get_relative_roi = Endpoint(Callable[[], dict])
     undo_roi = Endpoint(Callable[[], None])
