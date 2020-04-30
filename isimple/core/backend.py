@@ -568,7 +568,7 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
         raise NotImplementedError
 
     @stream
-    @backend.expose(backend.launch)
+    @backend.expose(backend.status)
     def status(self) -> dict:
         return {
             'id': self.id,

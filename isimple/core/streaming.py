@@ -6,6 +6,7 @@ import time
 from functools import wraps
 
 from isimple import get_logger
+from isimple.core import _Streaming
 import queue
 import threading
 import time
@@ -28,8 +29,12 @@ class BaseStreamer(abc.ABC):
     _empty_queue_timeout: float = 0.02
     _stop_timeout: float = 60
 
-    _boundary: bytes
-    _content_type: bytes
+    _boundary: Optional[bytes] = None
+    _content_type: Optional[bytes] = None
+    _mime_type: Optional[str] = None
+
+    _opener: Optional[bytes] = None
+    _closer: Optional[bytes] = None
 
     def __init__(self):
         self._queue = queue.Queue()
@@ -43,6 +48,9 @@ class BaseStreamer(abc.ABC):
 
     def stream(self) -> Generator[Any, None, None]:
         self._stop.clear()
+
+        if self.opener is not None:
+            yield self.opener
 
         while not self._stop.is_set():
             if not self._queue.empty():
@@ -58,14 +66,28 @@ class BaseStreamer(abc.ABC):
             else:
                 time.sleep(self._empty_queue_timeout)
 
+        if self.closer is not None:
+            yield self.closer
+
+    @property
+    def opener(self) -> Optional[bytes]:
+        return self._opener
+
+    @property
+    def closer(self) -> Optional[bytes]:
+        return self._closer
+
     def stop(self):
         self._stop.set()
         with self._queue.mutex:
             self._queue.queue.clear()
 
     @classmethod
-    def mime_type(cls):
-        return f"multipart/x-mixed-replace; boundary={cls._boundary.decode('utf-8')}"
+    def mime_type(cls) -> str:
+        if cls._mime_type is None:
+            return f"multipart/x-mixed-replace; boundary={cls._boundary.decode('utf-8')}"
+        else:
+            return cls._mime_type
 
     @classmethod
     def content_type(cls):
@@ -78,6 +100,42 @@ class BaseStreamer(abc.ABC):
     @abc.abstractmethod
     def _encode(self, value: Any) -> Optional[bytes]:
         raise NotImplementedError
+
+    @abc.abstractmethod
+    def _decorate(self, value: Optional[bytes]) -> Optional[bytes]:
+        raise NotImplementedError
+
+
+
+
+class JsonStreamer(BaseStreamer):
+    _boundary = b"data"
+    _mime_type = "text/event-stream"
+
+    def _validate(self, value: Any) -> bool:
+        return isinstance(value, dict)
+
+    def _encode(self, value: dict) -> Optional[bytes]:
+        try:
+            return json.dumps(value).encode('utf-8')
+        except Exception:  # todo: make more specific
+            return None
+
+    def _decorate(self, value: Optional[bytes]) -> Optional[bytes]:
+        if value is not None:
+            return b"data:   " + value + b"\n\n"
+        else:
+            return None
+
+
+class FrameStreamer(BaseStreamer):  # todo: should be child of Streamer, along with JsonStreamer
+    _boundary = b"frame"
+
+    _empty_queue_timeout: float = 0.02
+    _stop_timeout: float = 60
+
+    def _validate(self, value: Any) -> bool:
+        return isinstance(value, np.ndarray)
 
     def _decorate(self, data: Optional[bytes]) -> Optional[bytes]:
         if data is not None:
@@ -94,30 +152,6 @@ class BaseStreamer(abc.ABC):
                 return None
         else:
             return None
-
-
-class JsonStreamer(BaseStreamer):
-    _boundary = b"data"
-    _content_type = b"application/json"
-
-    def _validate(self, value: Any) -> bool:
-        return isinstance(value, dict)
-
-    def _encode(self, value: dict) -> Optional[bytes]:
-        try:
-            return json.dumps(value).encode('utf-8')
-        except Exception:  # todo: make more specific
-            return None
-
-
-class FrameStreamer(BaseStreamer):  # todo: should be child of Streamer, along with JsonStreamer
-    _boundary = b"frame"
-
-    _empty_queue_timeout: float = 0.02
-    _stop_timeout: float = 60
-
-    def _validate(self, value: Any) -> bool:
-        return isinstance(value, np.ndarray)
 
 
 class JpegStreamer(FrameStreamer):
@@ -152,6 +186,11 @@ class PngStreamer(FrameStreamer):
             return None
 
 
+_stream_mapping: dict = {
+    _Streaming('json'): JsonStreamer,
+    _Streaming('image'): JpegStreamer,
+}
+
 class StreamHandler(object):  # todo: is a singleton
     """A singleton object to handle streaming frames from methods
     """
@@ -162,7 +201,7 @@ class StreamHandler(object):  # todo: is a singleton
         self._streams = {}
         self._lock = threading.Lock()
 
-    def register(self, instance: object, method, stream_type: Type[FrameStreamer] = JpegStreamer) -> FrameStreamer:
+    def register(self, instance: object, method) -> FrameStreamer:
         """Register `method`, start a streamer.
             If `method` has been registered already, return its streamer.
         """
@@ -173,7 +212,7 @@ class StreamHandler(object):  # todo: is a singleton
                 self._streams[k].stop()
                 del self._streams[k]
 
-            stream = stream_type()
+            stream = _stream_mapping[method._endpoint.streaming]()
             self._streams[k] = stream
 
             log.debug(f'registering {k} as {stream}')
