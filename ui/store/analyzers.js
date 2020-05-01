@@ -16,18 +16,10 @@ import assert from "assert";
 
 export const state = () => {
   return {
-    /* maps id to
-      {
-        name,
-        status,
-        config,
-        src: {
-          status,
-          config
-        }
-      }
-
-    */
+    queue: [],
+    status: {},
+    config: {},
+    source: {}
   };
 };
 
@@ -37,12 +29,15 @@ export const mutations = {
       assert(!(id === undefined), "no id provided");
 
       if (!(id in state)) {
-        state = { ...state, [id]: {} };
+        state.status = { ...state.config, [id]: {} };
+        state.config = { ...state.status, [id]: {} };
+        state.source = { ...state.source, [id]: {} };
       } else {
         console.warn(`addAnalyzerState: '${id}' already defined`);
       }
     } catch (err) {
       console.warn(`addAnalyzer failed: '${id}'`);
+      console.warn(err);
     }
   },
 
@@ -53,61 +48,79 @@ export const mutations = {
       assert("status" in src, "status EventSource not provided");
       assert("config" in src, "config EventSource not provided");
 
-      state[id] = { ...state[id], src: src };
+      state.source[id] = {
+        ...state.source[id],
+        ...src
+      };
     } catch (err) {
       console.warn(`setAnalyzerSources failed: '${id}'`);
+      console.warn(err);
     }
   },
 
   setAnalyzerStatus(state, { id, analyzer_status: analyzer_status }) {
-    console.log("analyzers/setAnalyzerStatus");
-    console.log(id);
-    console.log(analyzer_status);
+    // console.log("analyzers/setAnalyzerStatus");
+    // console.log(id);
+    // console.log(analyzer_status);
     try {
       assert(!(id === undefined), "no id provided");
       assert(!(analyzer_status === undefined), "no status");
-      state[id] = { ...state[id], status: analyzer_status };
+
+      state.status[id] = {
+        ...state.status[id],
+        ...analyzer_status
+      };
     } catch (err) {
-      console.warn(
-        `setAnalyzerStatus failed: '${id}', analyzer_status: ${analyzer_status}`
-      );
+      console.warn(`setAnalyzerStatus failed: '${id}', analyzer_status: `);
+      console.warn(analyzer_status);
+      console.warn(err);
     }
   },
 
   setAnalyzerConfig(state, { id, analyzer_config }) {
-    console.log("analyzers/setAnalyserConfig");
-    console.log(id);
-    console.log(analyzer_config);
+    // console.log("analyzers/setAnalyserConfig");
+    // console.log(id);
+    // console.log(analyzer_config);
     try {
       assert(!(id === undefined), "no id provided");
       assert(!(analyzer_config === undefined), "no config");
-      state[id] = { ...state[id], config: analyzer_config };
+
+      state.config[id] = {
+        ...state.config[id],
+        ...analyzer_config
+      };
 
       if (!(analyzer_config.name === undefined)) {
-        state[id].name = analyzer_config.name;
+        state.config[id].name = analyzer_config.name;
       } else {
-        state[id].name = "!! unnamed !!";
+        state.config[id].name = "!! unnamed !!";
         console.warn(`setAnalyzerConfig: using default name for '${id}'`);
       }
     } catch (err) {
-      console.warn(
-        `setAnalyzerConfig failed: '${id}', analyzer_config: ${analyzer_config}`
-      );
+      console.warn(`setAnalyzerConfig failed: '${id}', analyzer_config: `);
+      console.warn(analyzer_config);
+      console.warn(err);
     }
   },
   dropAnalyzer(state, { id }) {
     try {
       assert(!(id === undefined), "no id provided");
 
-      state[id].src.status.close();
-      state[id].src.config.close();
-      delete state[id];
+      state.source[id].status.close();
+      state.source[id].config.close();
+
+      delete state.status[id];
+      delete state.config[id];
+      delete state.source[id];
     } catch {
       `dropAnalyzer failed: '${id}'`;
     }
   }
 };
 export const getters = {
+  getFullStatus: state => {
+    return state.status;
+  },
   getStatus: state => id => {
     if (id in state) {
       if ("status" in state[id]) {
@@ -116,32 +129,32 @@ export const getters = {
     }
   },
   getConfig: state => id => {
-    return state[id].config;
+    return state.config[id];
   },
   getFeatures: state => id => {
-    return state[id].config.features;
+    return state.config[id].features;
   },
   getMasks: state => id => {
-    return state[id].config.masks.map(({ name }) => name);
+    return state.config[id].masks.map(({ name }) => name);
   },
   getFilterType: state => (id, mask_index) => {
-    return state[id].config.masks[mask_index].filter.type;
+    return state.config[id].masks[mask_index].filter.type;
   },
   getFilterData: state => (id, mask_index) => {
-    return state[id].config.masks[mask_index].filter.data;
+    return state.config[id].masks[mask_index].filter.data;
   },
   getRoi: state => id => {
-    return state[id].config.transform.roi;
+    return state.config[id].transform.roi;
   },
   getName: state => id => {
-    return state[id].name;
+    return state.config[id].name;
   },
   hasSources: state => id => {
     if (id in state) {
       if ("src" in state[id]) {
         return (
-          state[id].src.status.readyState === 2 &&
-          state[id].src.config.readyState === 2
+          state.source[id].status.readyState === 2 &&
+          state.source[id].config.readyState === 2
         );
       } else {
         return false;
@@ -153,25 +166,31 @@ export const getters = {
 };
 
 export const actions = {
-  // todo: when running slowly (e.g. debugging), analyzers get duplicated
   async sources({ commit, getters }, { id }) {
     try {
+      assert(!(id === undefined), "no id provided");
       if (!getters["hasSources"](id)) {
         commit("setAnalyzerSources", {
           id: id,
           src: {
             status: stream(id, "stream-json/status", function(message) {
-              console.log(`${id} status: ${message.data}`);
+              // console.log(`${id} status:`);
+              let status = JSON.parse(message.data);
+              // console.log(status);
+
               commit("setAnalyzerStatus", {
                 id: id,
-                analyzer_status: JSON.parse(message.data)
+                analyzer_status: status
               });
             }),
             config: stream(id, "stream-json/get_config", function(message) {
-              console.log(`${id} config: ${message.data}`);
+              // console.log(`${id} config:`);
+              let config = JSON.parse(message.data);
+              // console.log(config);
+
               commit("setAnalyzerConfig", {
                 id: id,
-                analyzer_config: JSON.parse(message.data)
+                analyzer_config: config
               });
             })
           }
@@ -180,35 +199,27 @@ export const actions = {
     } catch (err) {
       console.warn(err);
     }
-    assert(!(id === undefined), "no id provided");
   },
 
   async init({ commit, dispatch }, { config = {} }) {
     return init().then(id => {
       commit("addAnalyzer", { id: id });
-      dispatch("sources", { id: id });
+      dispatch("sources", { id: id }).then(() => {
+        commit("queue/addToQueue", { id: id }, { root: true });
 
-      var config_promise;
-      if (config === {}) {
-        config_promise = get_config(id);
-      } else {
-        config_promise = set_config(id, config);
-      }
-
-      config_promise.then(config => {
-        commit("setAnalyzerConfig", { id: id, analyzer_config: config });
-        // get_schemas(id).then(schemas => {
-        //   commit("setAnalyzerSchemas", { id: id, analyzer_schemas: schemas });
-        // });
-        launch(id).then(ok => {
-          if (ok) {
-            commit("queue/addToQueue", { id: id }, { root: true });
-          } else {
-            commit("dropAnalyzer", { id: id });
-            console.warn(
-              `Could not launch '${id}'; check the backend log for details.`
-            );
-          }
+        set_config(id, config).then(config => {
+          commit("setAnalyzerConfig", { id: id, analyzer_config: config });
+          // get_schemas(id).then(schemas => {
+          //   commit("setAnalyzerSchemas", { id: id, analyzer_schemas: schemas });
+          // });
+          launch(id).then(ok => {
+            if (ok) {
+              console.log(`Launched '${id}'`);
+            } else {
+              commit("dropAnalyzer", { id: id });
+              console.warn(`Could not launch '${id}'`);
+            }
+          });
         });
       });
       return id;

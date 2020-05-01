@@ -21,7 +21,7 @@ from isimple.maths.colors import HsvColor
 from isimple.util.meta import describe_function
 from isimple.util import Timer, Timing, hash_file
 from isimple.core.config import Factory, untag, Config
-from isimple.core.streaming import stream
+from isimple.core.streaming import stream, streams
 
 
 log = get_logger(__name__)
@@ -42,7 +42,6 @@ class CacheAccessError(RootException):
 
 class BackendInstance(object):
     _config: Config
-    _lock: Optional[threading.Lock]
 
     def __init__(self, config: Optional[Config]):
         self._configure(config)
@@ -71,16 +70,6 @@ class BackendInstance(object):
     def config(self) -> Config:
         return self._config
 
-    @contextmanager  # todo: should be a Lockable mixin
-    def lock(self):
-        lock = self._lock.acquire()
-        try:
-            log.debug(f"Locking {self}")
-            yield lock
-        finally:
-            log.debug(f"Unlocking {self}")
-            self._lock.release()
-
 
 _BLOCKED = 'BLOCKED'
 
@@ -98,9 +87,9 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
     """
     _cache: Optional[diskcache.Cache]
 
-    _background: Optional[threading.Thread]
     _is_caching: bool
-    _cancel_caching: Optional[threading.Event]
+    _background: threading.Thread
+    _cancel_caching: threading.Event
 
     _config: CachingBackendInstanceConfig
     _class = CachingBackendInstanceConfig()
@@ -109,8 +98,7 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
         super(CachingBackendInstance, self).__init__(config)
 
         self._cache = None
-        self._background = None
-        self._cancel_caching = None
+        self._cancel_caching = threading.Event()
 
     @backend.expose(backend.is_caching)
     def is_caching(self) -> bool:
@@ -227,7 +215,7 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
             self.__exit__(*sys.exc_info())
 
 
-class Handler(object):  # todo: implementations of CachingBackendInstance in `_implementation` will not be found by `_gather_instances`
+class Handler(object):
     """
     """
 
@@ -430,7 +418,7 @@ class AnalyzerState(IntEnum):  # todo: would be cool to compare this and analyze
         ]
 
 
-class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
+class BaseVideoAnalyzer(BackendInstance, RootInstance):
     _instances: List[BackendInstance]
     _instance_class = BackendInstance
     _config: BaseAnalyzerConfig
@@ -439,8 +427,7 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
     _busy: bool
     _progress: float
 
-    _lock: Optional[threading.Lock]
-    _cancel: Optional[threading.Event]
+    _cancel: threading.Event
 
     results: Dict[str, pd.DataFrame]
 
@@ -456,13 +443,9 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
 
     _model: Optional[object]
 
-    _stream_methods: list
-
     def __init__(self, config: BaseAnalyzerConfig = None):
-        self.get_id()
-        self._stream_methods = []
-
         super().__init__(config)
+
         self._description = ''
         self._timer = Timer(self)
         self._launched = False
@@ -476,16 +459,6 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
         self._progress = 0.0
         self._model = None
 
-        self._lock = threading.Lock()
-        self._cancel = threading.Event()
-
-    @property
-    def id(self):
-        return self._id
-
-    @property
-    def stream_methods(self):
-        return self._stream_methods
 
     def set_model(self, model):
         self._model = model
@@ -528,7 +501,6 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
 
     def set_state(self, state: int):
         self._state = state
-        self.status()  # todo: should push <id>/stream-json/status if open
 
     @property
     def state(self) -> int:
@@ -536,7 +508,6 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
 
     def set_busy(self, busy: bool):
         self._busy = busy
-        self.status()  # todo: should push <id>/stream-json/status if open
 
     @property
     def busy(self) -> bool:
@@ -544,7 +515,6 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
 
     def set_progress(self, progress: float):
         self._progress = progress
-        self.status()  # todo: should push <id>/stream-json/status if open
 
     @property
     def progress(self) -> float:
@@ -567,12 +537,17 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
     def analyze(self) -> bool:
         raise NotImplementedError
 
+    @property
+    def position(self) -> float:
+        return -1.0
+
     @stream
     @backend.expose(backend.status)
     def status(self) -> dict:
         return {
             'state': self.state,
             'busy': self.busy,
+            'position': self.position,
             'progress': self.progress,
         }
 
@@ -580,11 +555,10 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
     def launch(self) -> bool:
         with self.lock():
             if self.can_launch():
-                self.set_busy(True)
                 self._launch()
                 self._gather_instances()
-                self.set_busy(False)
-                self.set_state(AnalyzerState.LAUNCHED) # todo: ugh
+                self.set_state(AnalyzerState.LAUNCHED)
+                streams.update()
                 return True
             else:
                 log.warning(f"{self.__class__.__qualname__} can not be launched.")  # todo: try to be more verbose
@@ -652,14 +626,6 @@ class BaseVideoAnalyzer(abc.ABC, BackendInstance, RootInstance):
     @property
     def description(self):
         return self._description
-
-    def cancel(self) -> bool:
-        if self._cancel is not None:
-            self._cancel.set()
-            self._state = AnalyzerState.CANCELED
-            return True
-        else:
-            raise ValueError('cancel event was set to None')
 
 
 class AnalyzerType(Factory):

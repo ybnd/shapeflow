@@ -34,6 +34,8 @@ import SidebarNavItem from "./SidebarNavItem";
 import draggable from "vuedraggable";
 import { mapState } from "vuex";
 
+import { events } from "../../static/events";
+
 export default {
   name: "sidebar",
   components: {
@@ -59,6 +61,12 @@ export default {
     },
     updateQueue() {
       this.queue = this.$store.getters["queue/getQueue"];
+      this.status = this.$store.getters["analyzers/getFullStatus"];
+
+      for (let i = 0; i < this.queue.length; i++) {
+        let id = this.queue[i];
+        this.$root.$emit(events.sidebar.status(id), this.status[id]);
+      }
     },
     sync() {
       if (!this.waiting) {
@@ -87,6 +95,7 @@ export default {
   data: () => {
     return {
       queue: [], // local copy of queue
+      status: {},
       interval_update: null,
       interval_sync: null,
       waiting: false

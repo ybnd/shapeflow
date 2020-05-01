@@ -13,7 +13,7 @@
 </template>
 
 <script>
-import { seek, get_seek_position } from "../../static/api";
+import { seek } from "../../static/api";
 import { events } from "../../static/events";
 
 import VueSlider from "vue-slider-component";
@@ -39,8 +39,6 @@ export default {
   beforeMount() {
     this.resetSeekPosition();
 
-    this.syncInterval = setInterval(this.getSeekPosition, 1000);
-
     this.$root.$on(events.seek.get(this.id), this.getSeekPosition);
     this.$root.$on(events.seek.set(this.id), this.handleSeek);
     this.$root.$on(events.seek.reset(this.id), this.resetSeekPosition);
@@ -59,12 +57,6 @@ export default {
     this.$root.$off(events.seek.step_bw(this.id), this.stepBackward);
   },
   methods: {
-    getSeekPosition() {
-      // todo: replace with stream?
-      get_seek_position(this.id).then(position => {
-        this.position = position;
-      });
-    },
     setSeekPosition() {
       seek(this.id, this.position).then(position => {
         this.position = position;

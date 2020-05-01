@@ -17,6 +17,9 @@ export let events = {
     }
   },
   sidebar: {
+    status(analyzer_id) {
+      return `sidebar-status-${analyzer_id}`;
+    },
     remove(analyzer_id) {
       return `sidebar-remove-${analyzer_id}`;
     },

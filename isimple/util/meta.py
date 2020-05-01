@@ -124,3 +124,10 @@ def is_optional(t: _GenericAlias) -> bool:
         if t.__origin__ == Union:
             return type(None) in t.__args__
     return False
+
+
+def unbind(m):
+    try:
+        return m.__func__
+    except AttributeError:
+        return m

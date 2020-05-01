@@ -5,19 +5,38 @@
       @click="handleDropdownClick"
       :id="'dropdown-' + id"
     >
-      <!--      <b-popover class="analysis-info-popover"-->
-      <!--        :target="'dropdown-'+id" container="body" placement="right" boundary="viewport"-->
-      <!--        triggers="hover focus click" :delay="{'show': 500, 'hide': 25}">-->
+      <!--      <b-popover-->
+      <!--        class="analysis-info-popover"-->
+      <!--        :target="'dropdown-' + id"-->
+      <!--        container="body"-->
+      <!--        placement="right"-->
+      <!--        boundary="viewport"-->
+      <!--        triggers="hover focus click"-->
+      <!--        :delay="{ show: 500, hide: 25 }"-->
+      <!--      >-->
       <!--        <div class="analysis-info-line">-->
-      <!--          <i class="fa fa-file-video-o"/> {{config.video_path}}-->
+      <!--          <i class="fa fa-file-video-o" /> {{ config.video_path }}-->
       <!--        </div>-->
       <!--        <div class="analysis-info-line">-->
-      <!--          <i class="fa fa-file-code-o"/> {{config.design_path}}-->
+      <!--          <i class="fa fa-file-code-o" /> {{ config.design_path }}-->
       <!--        </div>-->
-
       <!--      </b-popover>-->
       {{ name }}
     </div>
+    <template v-if="status.progress > 0">
+      <b-progress
+        height="2px"
+        :class="{
+          'sidebar-progress': true,
+          busy: status.busy,
+          error: status.state === ast.ERROR,
+          canceled: status.state === ast.CANCELED,
+          done: status.state === ast.DONE
+        }"
+        v-bind:value="status.progress"
+        max="1"
+      ></b-progress>
+    </template>
     <template v-if="status.state === ast.INCOMPLETE">
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
@@ -93,7 +112,7 @@
         <SidebarNavAnalysisLink
           name="Analyze"
           icon="icon-control-play"
-          @click="handleAnalyze"
+          :id="link.analyze"
         />
         <SidebarNavAnalysisLink
           name="Remove"
@@ -104,7 +123,6 @@
       </ul>
     </template>
     <template v-else-if="status.state === ast.RUNNING">
-      <b-progress class="progress" height="2px" :value="progress"></b-progress>
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
           name="Cancel"
@@ -229,6 +247,8 @@ import {
   cancel
 } from "../../static/api";
 
+import { events } from "../../static/events";
+
 // todo: should do color/icon resolution in a separate .js module, should be shared with e.g. dashboard
 export default {
   props: {
@@ -240,29 +260,29 @@ export default {
   components: {
     SidebarNavAnalysisLink
   },
-  beforeMount() {
+  mounted() {
+    this.$root.$on(this.event.status, this.handleUpdateStatus);
     this.$root.$on(this.event.remove, this.handleRemove);
     this.$root.$on(this.event.cancel, this.handleCancel);
-    this.$root.$on(this.event.open, () => {
-      console.log(`${this.id} got open event`); // todo: doesn't seem to work
-      this.dropdown = true;
-    });
+    this.$root.$on(this.event.open, this.handleOpen);
   },
   destroyed() {
-    // todo: unregister listeners!
+    this.$root.$off(this.event.status, this.handleUpdateStatus);
+    this.$root.$off(this.event.remove, this.handleRemove);
+    this.$root.$off(this.event.cancel, this.handleCancel);
+    this.$root.$off(this.event.open, this.handleOpen);
   },
   methods: {
     handleDropdownClick(e) {
       e.preventDefault();
       e.target.parentElement.classList.toggle("open");
     },
-    syncStore() {
-      this.$store.dispatch("analyzers/sync");
+    handleOpen() {
+      console.log(`${this.id} got open event`); // todo: doesn't seem to work
+      this.dropdown = true;
     },
-    handleAnalyze() {
-      analyze(this.id).then(() => {
-        this.syncStore();
-      });
+    handleUpdateStatus(status) {
+      this.status = status;
     },
     handleRemove() {
       console.log(`sidebar: handling remove event (${this.id})`);
@@ -273,26 +293,19 @@ export default {
         ) {
           this.$router.push("/");
         }
-        this.syncStore();
+        this.syncStore(); // todo oops
       });
     },
     handleCancel() {
       console.log(`sidebar: handling cancel event (${this.id})`);
       cancel(this.id).then(() => {
-        this.syncStore();
+        this.syncStore(); // todo oops
       });
     }
   },
   computed: {
-    classList() {
-      return ["nav-link", this.dropdown ? "open" : ""];
-    },
     name() {
       return this.$store.getters["analyzers/getName"](this.id);
-    },
-    status() {
-      console.log(`SidebarNavAnalysis @ ${this.id} -- status`);
-      return this.$store.getters["analyzers/getStatus"](this.id);
     },
     link() {
       return {
@@ -304,26 +317,52 @@ export default {
     },
     event() {
       return {
-        cancel: `event-cancel-${this.id}`,
-        remove: `event-remove-${this.id}`,
-        open: `event-sidebar-open-${this.id}`
+        status: events.sidebar.status(this.id),
+        cancel: events.sidebar.cancel(this.id),
+        remove: events.sidebar.remove(this.id),
+        open: events.sidebar.open(this.id)
       };
     }
   },
   data() {
     return {
       dropdown: false,
-      ast: ast
+      ast: ast,
+      status: {
+        state: ast.UNKNOWN,
+        busy: false,
+        progress: 0,
+        position: 0
+      }
     };
   }
 };
 </script>
 
-<style>
-.analysis-info-popover {
-  min-width: 25px;
-  max-width: 400px;
+<style lang="scss">
+@import "../../assets/scss/_bootstrap-variables";
+@import "../../assets/scss/_core-variables";
+@import "node_modules/bootstrap/scss/functions";
+
+.sidebar-progress * {
+  background-color: theme-color("primary") !important;
 }
-.analysis-info-line {
+.sidebar-progress.busy * {
+  background-color: theme-color("secondary") !important;
+}
+
+/* todo: make sure this overrides busy */
+.sidebar-progress.error * {
+  background-color: theme-color("danger") !important;
+}
+
+/* todo: make sure this overrides busy */
+.sidebar-progress.done * {
+  background-color: theme-color("success") !important;
+}
+
+/* todo: make sure this overrides busy */
+.sidebar-progress.canceled * {
+  background-color: theme-color("warning") !important;
 }
 </style>

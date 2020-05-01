@@ -1,5 +1,8 @@
+import abc
+import threading
 from typing import Callable, Dict, List, Tuple, Type
 from collections import namedtuple
+from contextlib import contextmanager
 
 import uuid
 
@@ -230,14 +233,40 @@ class ImmutableRegistry(EndpointRegistry):
         return self._endpoints.endpoints
 
 
+class Lockable(abc.ABC):
+    _lock: threading.Lock
+    _cancel: threading.Event
 
-class RootInstance(object):
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._cancel = threading.Event()
+
+    @contextmanager  # todo: should be a Lockable mixin
+    def lock(self):
+        lock = self._lock.acquire()
+        try:
+            log.debug(f"Locking {self}")
+            yield lock
+        finally:
+            log.debug(f"Unlocking {self}")
+            self._lock.release()
+
+    def cancel(self) -> bool:
+        self._cancel.set()
+        return True
+
+
+class RootInstance(Lockable):
     _id: str
 
     _endpoints: ImmutableRegistry
     _instances: List
     _instance_class = object
     _instance_mapping: Dict[Endpoint, List[Callable]]
+
+    def __init__(self):
+        super().__init__()
+        self.get_id()
 
     def get_id(self):
         self._id = str(uuid.uuid1())

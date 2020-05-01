@@ -14,7 +14,7 @@ from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     HsvRangeFilterConfig, FilterHandlerConfig, MaskConfig, \
     DesignFileHandlerConfig, VideoAnalyzerConfig, load, dump, \
     FrameIntervalSetting, BaseAnalyzerConfig
-from isimple.core import RootInstance
+from isimple.core import RootInstance, Lockable
 from isimple.core.backend import BackendInstance, CachingBackendInstance, \
     Handler, BaseVideoAnalyzer, BackendSetupError, AnalyzerType, Feature, \
     FeatureSet, \
@@ -37,7 +37,7 @@ class VideoFileTypeError(BackendSetupError):
     msg = 'Unrecognized video file type'  # todo: formatting
 
 
-class VideoFileHandler(CachingBackendInstance):
+class VideoFileHandler(CachingBackendInstance, Lockable):
     """Interface to video files ~ OpenCV
     """
     path: str
@@ -56,15 +56,11 @@ class VideoFileHandler(CachingBackendInstance):
     _config: VideoFileHandlerConfig
     _class = VideoFileHandlerConfig()
 
-    def __init__(self, video_path, stream_methods: list = None, config: VideoFileHandlerConfig = None):
+    _progress_callback: Callable[[float], None]
+
+    def __init__(self, video_path, config: VideoFileHandlerConfig = None):
         super(VideoFileHandler, self).__init__(config)
         self._is_caching = False
-
-        if stream_methods == None:
-            stream_methods = [self.read_frame]
-        else:
-            assert isinstance(stream_methods, list)
-            self._stream_methods = stream_methods
 
         if not os.path.isfile(video_path):
             raise FileNotFoundError
@@ -109,24 +105,34 @@ class VideoFileHandler(CachingBackendInstance):
             [self._get_key(self._read_frame, self.path, fn)
              for fn in requested_frames]
         )
-
-    def _cache_frames(self):
-        with self.caching():
-            self._is_caching = True
-            for frame_number in self._requested_frames:
-                if self._cancel_caching.is_set():
-                    break
-                args = (self._read_frame, self.path, frame_number)
-                if not self._is_cached(*args):
-                    self._cached_call(*args)
+    # todo: state callback object
+    def _cache_frames(self, progress_callback: Callable[[float], None], state_callback: Callable[[int], None]):
+        try:
+            with self.caching():
+                self._is_caching = True
+                for frame_number in self._requested_frames:
+                    if self._cancel_caching.is_set():
+                        break
+                    args = (self._read_frame, self.path, frame_number)
+                    if not self._is_cached(*args):
+                        self._cached_call(*args)
+                        progress_callback(frame_number / float(self.frame_count))
+                        streams.update()
+                progress_callback(0.0)
+                streams.update()
+            self.seek(0.5)
             self._is_caching = False
-        self.seek(0.5)
+        except Exception:
+            state_callback(AnalyzerState.ERROR)
 
-    def cache_frames(self):
+    def cache_frames(self, progress_callback: Callable[[float], None], state_callback: Callable[[int], None]):
         if self.config.do_cache and self.config.do_background:
-            self._cancel_caching = threading.Event()
-            self._background = threading.Thread(target=self._cache_frames)
+            self._background = threading.Thread(
+                target=self._cache_frames, args=(progress_callback, state_callback,)
+            )
             self._background.start()
+
+
 
     def _resolve_frame(self, frame_number) -> int:
         """Resolve a frame_number to the nearest requested frame number.
@@ -283,12 +289,11 @@ class TransformHandler(BackendInstance, Handler):
     _config: TransformHandlerConfig
     _class = TransformHandlerConfig()
 
-    def __init__(self, video_shape, design_shape, stream_methods, config: TransformHandlerConfig):
+    def __init__(self, video_shape, design_shape, config: TransformHandlerConfig):
         super(TransformHandler, self).__init__(config)
         self.set_implementation(self.config.type.__str__())
         self._video_shape = (video_shape[0], video_shape[1])  # Don't include color dimension
         self._design_shape = (design_shape[0], design_shape[1])
-        self._stream_methods = stream_methods # type: ignore
 
         self.set(self.config.matrix)
 
@@ -948,10 +953,14 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         self.load_config()
 
         log.debug(f'{self.__class__.__name__}: launch nested instances.')
-        self.video = VideoFileHandler(self.config.video_path, self.stream_methods, self.config.video)  # todo: stream_methods list should be generated automatically
+        self.video = VideoFileHandler(self.config.video_path, self.config.video)
         self.video.set_requested_frames(list(self.frame_numbers()))
+
+        # Start caching frames in the background
+        self.video.cache_frames(self.set_progress, self.set_state)
+
         self.design = DesignFileHandler(self.config.design_path, self.config.design, self.config.masks)
-        self.transform = TransformHandler(self.video.shape, self.design.shape, self.stream_methods, self.config.transform)
+        self.transform = TransformHandler(self.video.shape, self.design.shape, self.config.transform)
         self.masks = self.design.masks
         self.filters = [mask.filter for mask in self.masks]
 
@@ -962,9 +971,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             transform=self.transform.config,
             masks=tuple([m.config for m in self.masks]),
         )
-
-        # Start caching frames in the background
-        self.video.cache_frames()
 
         # Initialize FeatureSets
         self._get_featuresets()
@@ -980,6 +986,13 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         self.commit()
 
         # todo: push get_state streamer
+
+    @property
+    def busy(self):
+        if hasattr(self, 'video'):
+            return self._busy or self.video.is_caching()
+        else:
+            return self._busy
 
     def _get_featuresets(self):
         features = []
@@ -1007,7 +1020,14 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     @stream
     @backend.expose(backend.get_config)
     def get_config(self) -> dict:
-        return self.config.to_dict()
+        return self.config.to_dict()   # todo: what about... only streaming what has actually changed?
+
+    @property
+    def position(self):
+        if hasattr(self, 'video'):
+            return self.video.get_seek_position()
+        else:
+            return -1.0
 
     @backend.expose(backend.set_config)
     def set_config(self, config: dict) -> dict:

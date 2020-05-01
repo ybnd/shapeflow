@@ -60,7 +60,8 @@ class ServerThread(Thread, metaclass=util.Singleton):
         self._stopevent.set()
 
 
-class Main(object, metaclass=util.Singleton):
+class Main(isimple.core.Lockable, ):
+    __metaclass__ = util.Singleton
     _app: Flask
 
     _roots: Dict[str, backend.BaseVideoAnalyzer] = {}
@@ -85,15 +86,6 @@ class Main(object, metaclass=util.Singleton):
     _latest: List[history.VideoAnalysisModel]
     _latest_configs: List[dict]
 
-    @contextmanager  # todo: should be a Lockable mixin
-    def lock(self):
-        lock = self._lock.acquire()
-        try:
-            log.debug(f"Locking {self}")
-            yield lock
-        finally:
-            log.debug(f"Unlocking {self}")
-            self._lock.release()
 
     def __init__(self):
         app = Flask(__name__, static_url_path='')
@@ -461,7 +453,7 @@ class Main(object, metaclass=util.Singleton):
 
     def call(self, id: str, endpoint: str, data: dict) -> Any:
         t0 = time.time()
-        log.vdebug(f"{self._roots[id]}: call '{endpoint}'")
+        log.debug(f"{self._roots[id]}: call '{endpoint}'")
         # todo: sanity check this
         method = self._roots[id].get(getattr(backend.backend, endpoint))
 
@@ -469,7 +461,7 @@ class Main(object, metaclass=util.Singleton):
             pass  # todo: store to self._history & update latest configs
 
         result = method(**data)
-        log.vdebug(f"{self._roots[id]}: return '{endpoint}' "
+        log.debug(f"{self._roots[id]}: return '{endpoint}' "
                   f"({time.time() - t0} s elapsed)")
         return result
 

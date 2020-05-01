@@ -6,8 +6,12 @@ import time
 from functools import wraps
 
 from isimple import get_logger
-from isimple.core import _Streaming
+from isimple.core import _Streaming, Lockable
+
+from isimple.util import Singleton
+from isimple.util.meta import unbind
 import queue
+
 import threading
 import time
 
@@ -191,21 +195,22 @@ _stream_mapping: dict = {
     _Streaming('image'): JpegStreamer,
 }
 
-class StreamHandler(object):  # todo: is a singleton
+class StreamHandler(Lockable):
     """A singleton object to handle streaming frames from methods
     """
+    __metaclass__ = Singleton
+
     _streams: Dict[tuple, FrameStreamer]
-    _lock: threading.Lock
 
     def __init__(self):
+        super().__init__()
         self._streams = {}
-        self._lock = threading.Lock()
 
     def register(self, instance: object, method) -> FrameStreamer:
         """Register `method`, start a streamer.
             If `method` has been registered already, return its streamer.
         """
-        with self.lock:
+        with self.lock():
             k = self.key(instance, method)
             if k in self._streams:
                 log.debug(f'cleaning up {self._streams[k]}')
@@ -222,33 +227,28 @@ class StreamHandler(object):  # todo: is a singleton
     def is_registered(self, instance: object, method) -> bool:
         return self.key(instance, method) in self._streams
 
-    @property
-    def lock(self):
-        return self._lock
-
     def key(self, instance, method):
         return (instance, method)
 
     def push(self, instance: object, method, frame: np.ndarray):
         """If `method` is registered, push `frame` to its streamer.
         """
-        with self.lock:
-            if isinstance(method, list):
-                for m in method:
-                    k = self.key(instance, m)
-                    if k in self._streams:
-                        log.debug(f"pushing {m.__qualname__} to stream")
-                        self._streams[k].push(frame)
-            else:
-                k = self.key(instance, method)
+        if isinstance(method, list):
+            for m in method:
+                k = self.key(instance, m)
                 if k in self._streams:
-                    log.debug(f"pushing {method.__qualname__} to stream")
+                    log.debug(f"pushing {m.__qualname__} to stream")
                     self._streams[k].push(frame)
+        else:
+            k = self.key(instance, method)
+            if k in self._streams:
+                log.debug(f"pushing {method.__qualname__} to stream")
+                self._streams[k].push(frame)
 
     def unregister(self, instance: object, method):
         """Unregister `method`: stop its streamer & delete
         """  # todo: should unregister explicitly e.g. when closing a page
-        with self.lock:
+        with self.lock():
             k = self.key(instance, method)
             if k in self._streams:
                 self._streams[k].stop()
@@ -280,11 +280,18 @@ def stream(method):  # todo: check method._endpoint._streaming & select Streamer
         To stream frames, the wrapped method should be registered
          in the global StreamHandler `streams`.
     """
+
+    # @timed
     @wraps(method)
     def wrapped_method(*args, **kwargs):
         frame = method(*args, **kwargs)
+
         # Push frame to streamer
-        streams.push(instance = args[0], method = method, frame = frame)
+        streams.push(
+            instance = args[0],
+            method = unbind(method),
+            frame = frame
+        )
         return frame
 
     # Pass on attributes from `method` to `wrapped_method` todo: this is *very* wonky!
