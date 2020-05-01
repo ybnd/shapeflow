@@ -201,22 +201,27 @@ export const actions = {
     }
   },
 
+  async queue({ commit, dispatch }, { id }) {
+    commit("addAnalyzer", { id: id });
+    return dispatch("sources", { id: id }).then(() => {
+      commit("queue/addToQueue", { id: id }, { root: true });
+    });
+  },
+
+  async unqueue({ commit }, { id }) {
+    commit("queue/dropFromQueue", { id: id }, { root: true });
+    commit("dropAnalyzer", { id: id });
+  },
+
   async init({ commit, dispatch }, { config = {} }) {
     return init().then(id => {
-      commit("addAnalyzer", { id: id });
-      dispatch("sources", { id: id }).then(() => {
-        commit("queue/addToQueue", { id: id }, { root: true });
-
-        set_config(id, config).then(config => {
-          commit("setAnalyzerConfig", { id: id, analyzer_config: config });
-          // get_schemas(id).then(schemas => {
-          //   commit("setAnalyzerSchemas", { id: id, analyzer_schemas: schemas });
-          // });
+      dispatch("queue", { id: id }).then(() => {
+        dispatch("set_config", { id: id, config: config }).then(() => {
           launch(id).then(ok => {
             if (ok) {
               console.log(`Launched '${id}'`);
             } else {
-              commit("dropAnalyzer", { id: id });
+              dispatch("unqueue", { id: id });
               console.warn(`Could not launch '${id}'`);
             }
           });
@@ -226,36 +231,28 @@ export const actions = {
     });
   },
 
-  async sync({ commit, rootGetters }) {
+  async sync({ commit, dispatch, rootGetters }) {
     try {
-      return await list().then(data => {
-        let ids = data.ids; // todo: don't add state/progress to list
-        let state = data.states;
-        let progress = data.progress;
-
-        // remove dead ids from the queue
+      return await list().then(ids => {
+        // unqueue dead ids
         let q = rootGetters["queue/getQueue"];
         if (q.length > 0) {
           for (let i = 0; i < q.length; i++) {
-            if (ids.includes(q[i])) {
-              // this id is still alive
-            } else {
-              commit("queue/dropFromQueue", { id: q[i] }, { root: true });
-              commit("dropAnalyzer", { id: q[i] });
+            if (!ids.includes(q[i])) {
+              dispatch("unqueue", { id: q[i] });
             }
           }
         }
-
-        // set id state
+        // queue new ids
         if (ids.length > 0) {
           let q = rootGetters["queue/getQueue"];
           for (let i = 0; i < ids.length; i++) {
             if (!q.includes(ids[i])) {
-              // add new id to the queue
-              commit("addAnalyzer", { id: ids[i] });
-              commit("queue/addToQueue", { id: ids[i] }, { root: true });
+              dispatch("queue", { id: ids[i] }).then(() => {
+                dispatch("get_status", { id: ids[i] });
+                dispatch("get_config", { id: ids[i] });
+              });
             }
-            dispatch("sources", { id: ids[i] });
           }
         }
         return true;
@@ -267,19 +264,32 @@ export const actions = {
   },
 
   async get_config({ commit }, { id }) {
-    // todo: should not be needed if streaming works
     try {
       assert(!(id === undefined), "no id provided");
 
-      return await get_config(id).then(config => {
+      return get_config(id).then(config => {
         commit("setAnalyzerConfig", {
           id: id,
           analyzer_config: config
         });
+        return config;
       });
     } catch (e) {
       console.warn(`could not get config for ${id}`);
-      return false;
+      return undefined;
+    }
+  },
+
+  async get_status({ commit }, { id }) {
+    try {
+      assert(!(id === undefined), "no id provided");
+
+      return get_status(id).then(status => {
+        commit("setAnalyzerStatus", { id: id, analyzer_status: status });
+      });
+    } catch (e) {
+      console.warn(`could not get status for ${id}`);
+      return undefined;
     }
   },
 
@@ -297,7 +307,7 @@ export const actions = {
       });
     } catch (e) {
       console.warn(`could not set config for ${id}`);
-      return false;
+      return undefined;
     }
   }
 };

@@ -63,7 +63,7 @@ class BaseStreamer(abc.ABC):
 
                 if output is not None:
                     yield output
-                    yield output   # todo: doesn't work properly if not yielded twice
+                    yield output   # todo: doesn't work properly if not yielded twice for some reason
                 else:
                     log.warning(f"{self.__class__.__name__}: encoding failed")
                     continue
@@ -230,20 +230,20 @@ class StreamHandler(Lockable):
     def key(self, instance, method):
         return (instance, method)
 
-    def push(self, instance: object, method, frame: np.ndarray):
-        """If `method` is registered, push `frame` to its streamer.
+    def push(self, instance: object, method, data: np.ndarray):
+        """If `method` is registered, push `data` to its streamer.
         """
         if isinstance(method, list):
             for m in method:
                 k = self.key(instance, m)
                 if k in self._streams:
                     log.debug(f"pushing {m.__qualname__} to stream")
-                    self._streams[k].push(frame)
+                    self._streams[k].push(data)
         else:
             k = self.key(instance, method)
             if k in self._streams:
                 log.debug(f"pushing {method.__qualname__} to stream")
-                self._streams[k].push(frame)
+                self._streams[k].push(data)
 
     def unregister(self, instance: object, method):
         """Unregister `method`: stop its streamer & delete
@@ -290,7 +290,7 @@ def stream(method):  # todo: check method._endpoint._streaming & select Streamer
         streams.push(
             instance = args[0],
             method = unbind(method),
-            frame = frame
+            data= frame
         )
         return frame
 

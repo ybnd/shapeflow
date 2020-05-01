@@ -88,6 +88,7 @@ class Main(isimple.core.Lockable, ):
 
 
     def __init__(self):
+        super().__init__()
         app = Flask(__name__, static_url_path='')
         app.config.from_object(__name__)
 
@@ -307,11 +308,7 @@ class Main(isimple.core.Lockable, ):
         def get_list():
             active()
             log.vdebug(f"Listing analyzers")
-            return respond({
-                'ids': [k for k in self._roots.keys()],  # todo: goes through self._roots 3 times!
-                'states': [v.state for v in self._roots.values()],
-                'progress': [v.progress for v in self._roots.values()],
-            })
+            return respond([k for k in self._roots.keys()])
 
         @app.route('/api/get_log')
         def get_log():
