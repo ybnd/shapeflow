@@ -432,7 +432,7 @@ class TransformHandler(BackendInstance, Handler):
 
 
 @extend(FilterType)
-class HsvRangeFilter(FilterInterface):  # todo: may be better to **wrap** this in Filter instead of inheriting from it
+class HsvRangeFilter(FilterInterface):
     """Filters by a range of hues ~ HSV representation
     """
     _config_class = HsvRangeFilterConfig

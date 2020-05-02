@@ -236,7 +236,7 @@ class Handler(object):
         return self._implementation.__class__.__qualname__
 
 
-class Feature(abc.ABC):
+class Feature(abc.ABC):  # todo: should probably use Config for parameters after all :)
     """A feature implements interactions between BackendElements to
         produce a certain value
     """

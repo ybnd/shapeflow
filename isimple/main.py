@@ -92,7 +92,7 @@ class Main(isimple.core.Lockable, ):
         app = Flask(__name__, static_url_path='')
         app.config.from_object(__name__)
 
-        self.get_latest()
+        self.get_latest()  # todo: should update once in a while
 
         # Serve webapp
         @app.route('/', methods=['GET'])
@@ -147,11 +147,9 @@ class Main(isimple.core.Lockable, ):
 
         @app.route('/api/options/<for_type>', methods=['GET'])
         def get_options(for_type):
-            log.debug(f"get_enum for type '{for_type}'")
+            log.debug(f"get options for '{for_type}'")
             if for_type == "state":
-                return respond([
-                    name for name, _ in video.AnalyzerState.__members__.items()
-                ])
+                return respond(dict(video.AnalyzerState.__members__))
             elif for_type == "analyzer":
                 return respond(video.AnalyzerType().options)
             elif for_type == "feature":

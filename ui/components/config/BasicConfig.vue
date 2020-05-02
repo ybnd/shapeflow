@@ -157,7 +157,11 @@
                   <b-form-input
                     type="text"
                     class="config-form"
-                    v-model="config.parameters[feature][parameter]"
+                    :value="
+                      hasParameterData(feature, parameter)
+                        ? config.parameters[feature][parameter]
+                        : features.parameter_defaults[feature][parameter]
+                    "
                     v-bind:key="`form-field-${index}-${parameter}`"
                   >
                   </b-form-input>
@@ -205,6 +209,8 @@ import {
 import AsyncComputed from "vue-async-computed";
 import Vue from "vue";
 
+import _ from "lodash";
+
 Vue.use(AsyncComputed);
 
 export default {
@@ -232,6 +238,11 @@ export default {
     }
   },
   methods: {
+    hasParameterData(feature, parameter) {
+      if (_.has(this.config.parameters, feature)) {
+        return _.has(this.config.parameters[feature], parameter);
+      }
+    },
     getConfig() {
       return Object.assign(this.config, {
         [`${this.config.frame_interval_setting}`]: Number(
@@ -313,6 +324,16 @@ export default {
   },
   watch: {
     features() {
+      // for any features that we don't have values for, set defaults
+      for (let i = 0; i < features.options.length; i++) {
+        if (!(features.options[i] in this.config.parameters)) {
+          this.config.parameters = {
+            ...this.config.parameters,
+            [features.options[i]]:
+              features.parameter_defaults[features.options[i]]
+          };
+        }
+      }
       if (this.features.options !== undefined) {
         this.selectFeature(this.config.feature);
       }
@@ -325,34 +346,15 @@ export default {
       }
     }
   },
+  computed: {
+    features() {
+      return this.$store.state.options.feature;
+    },
+    frame_interval_settings() {
+      return this.$store.state.options.frame_interval_setting;
+    }
+  },
   asyncComputed: {
-    features: {
-      async get() {
-        return get_options("feature").then(features => {
-          this.config.parameters = features.parameter_defaults;
-          return features;
-        });
-      },
-      default: {
-        options: [],
-        descriptions: {},
-        parameters: {},
-        parameter_defaults: {},
-        parameter_descriptions: {}
-      }
-    },
-    frame_interval_settings: {
-      async get() {
-        return get_options("frame_interval_setting").then(options => {
-          console.log(options);
-          return options;
-        });
-      },
-      default: {
-        options: [],
-        descriptions: {}
-      }
-    },
     video_path_options: {
       async get() {
         return get_options("video_path").then(options => {
@@ -389,17 +391,6 @@ export default {
       invalidVideo: false,
       validDesign: false,
       invalidDesign: false,
-      frame_interval_settings: {
-        options: [],
-        descriptions: {}
-      },
-      features: {
-        options: [],
-        descriptions: {},
-        parameters: {},
-        parameter_defaults: {},
-        parameter_descriptions: {}
-      },
       video_path_options: [],
       design_path_options: [],
       frame_interval_setting_text: {

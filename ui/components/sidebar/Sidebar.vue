@@ -50,6 +50,7 @@ export default {
     draggable
   },
   beforeMount() {
+    this.$store.dispatch("options/sync");
     this.sync();
     this.interval_update = setInterval(this.updateQueue, 100);
     // this.interval_sync = setInterval(this.sync, 5000);
