@@ -79,7 +79,7 @@ export default {
   methods: {
     initFilter() {
       // Check if this.id is queued. If not, navigate to /
-      if (this.$store.getters["queue/getIndex"](this.id) === -1) {
+      if (this.$store.getters["analyzers/getIndex"](this.id) === -1) {
         this.$router.push(`/`);
       } else {
         get_options("filter").then(options => {
@@ -197,10 +197,10 @@ export default {
       return this.$route.query.id;
     },
     state_url() {
-      return url(this.$route.query.id, "stream-image/get_state_frame");
+      return url(this.$route.query.id, "stream/get_state_frame");
     },
     frame_url() {
-      return url(this.$route.query.id, "stream-image/get_frame");
+      return url(this.$route.query.id, "stream/get_frame");
     }
   },
   data: () => ({

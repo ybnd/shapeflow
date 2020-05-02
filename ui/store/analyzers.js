@@ -16,10 +16,10 @@ import assert from "assert";
 
 export const state = () => {
   return {
-    queue: [],
-    status: {},
-    config: {},
-    source: {}
+    queue: [], // array of analyzer ids (uuid strings)
+    status: {}, // id: analyzer status object
+    config: {}, // id: analyzer config object
+    source: {} // id: analyzer data sources (EventSource for status & config)
   };
 };
 
@@ -115,9 +115,43 @@ export const mutations = {
     } catch {
       `dropAnalyzer failed: '${id}'`;
     }
+  },
+  addToQueue(state, { id }) {
+    try {
+      assert(!(id === undefined), "no id provided");
+      if (!state.queue.includes(id)) {
+        state.queue = [...state.queue, id];
+      }
+    } catch {
+      console.warn(`addToQueue failed: '${id}'`);
+    }
+  },
+  dropFromQueue(state, { id }) {
+    try {
+      assert(!(id === undefined), "no id provided");
+      if (state.queue.includes(id)) {
+        Vue.set(state, "queue", state.queue.splice(state.queue.indexOf(id, 1))); // todo: probably wrong
+      }
+    } catch {
+      console.warn(`dropFromQueue failed: '${id}'`);
+    }
+  },
+  clearQueue(state) {
+    state.queue = [];
+  },
+  setQueue(state, { queue }) {
+    state.queue = queue;
   }
 };
+
 export const getters = {
+  getQueue: state => {
+    // Clone instead of returning reference
+    return [...state.queue];
+  },
+  getIndex: state => id => {
+    return state.queue.indexOf(id);
+  },
   getFullStatus: state => {
     return state.status;
   },
@@ -204,12 +238,12 @@ export const actions = {
   async queue({ commit, dispatch }, { id }) {
     commit("addAnalyzer", { id: id });
     return dispatch("sources", { id: id }).then(() => {
-      commit("queue/addToQueue", { id: id }, { root: true });
+      commit("addToQueue", { id: id });
     });
   },
 
   async unqueue({ commit }, { id }) {
-    commit("queue/dropFromQueue", { id: id }, { root: true });
+    commit("dropFromQueue", { id: id });
     commit("dropAnalyzer", { id: id });
   },
 
@@ -231,11 +265,11 @@ export const actions = {
     });
   },
 
-  async sync({ commit, dispatch, rootGetters }) {
+  async sync({ commit, dispatch, getters }) {
     try {
       return await list().then(ids => {
         // unqueue dead ids
-        let q = rootGetters["queue/getQueue"];
+        let q = getters["getQueue"];
         if (q.length > 0) {
           for (let i = 0; i < q.length; i++) {
             if (!ids.includes(q[i])) {
@@ -245,7 +279,7 @@ export const actions = {
         }
         // queue new ids
         if (ids.length > 0) {
-          let q = rootGetters["queue/getQueue"];
+          let q = getters["getQueue"];
           for (let i = 0; i < ids.length; i++) {
             if (!q.includes(ids[i])) {
               dispatch("queue", { id: ids[i] }).then(() => {

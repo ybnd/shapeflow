@@ -201,7 +201,7 @@ export default {
       console.log("handleInit");
       this.getRefs();
       // Check if this.id is queued. If not, navigate to /
-      if (this.$store.getters["queue/getIndex"](this.id) === -1) {
+      if (this.$store.getters["analyzers/getIndex"](this.id) === -1) {
         this.$router.push(`/`);
       } else {
         this.previous_id = this.id;

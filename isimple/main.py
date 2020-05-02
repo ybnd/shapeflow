@@ -285,23 +285,13 @@ class Main(isimple.core.Lockable, ):
             return respond(result)
 
         # Streaming
-        @app.route('/api/<id>/stream-image/<endpoint>', methods=['GET'])
-        def stream_image(id: str, endpoint: str):
-            """Stream image data
-            """
-            # todo: there's no way to handle requests to stream endpoints that don't stream
-            return Response(
-                self.stream(id, endpoint).stream(),
-                mimetype =  streaming.JpegStreamer.mime_type()
-            )
-
-        @app.route('/api/<id>/stream-json/<endpoint>', methods=['GET'])
-        def stream_json(id: str, endpoint: str):
+        @app.route('/api/<id>/stream/<endpoint>', methods=['GET'])
+        def stream(id: str, endpoint: str):
             """Stream JSON data
             """
             return Response(
                 self.stream(id, endpoint).stream(),
-                mimetype = streaming.JsonStreamer.mime_type()
+                mimetype = self.stream(id, endpoint).mime_type()
             )
 
         @app.route('/api/list', methods=['GET'])

@@ -60,7 +60,7 @@ export default {
       e.target.parentElement.classList.toggle("open");
     },
     updateQueue() {
-      this.queue = this.$store.getters["queue/getQueue"];
+      this.queue = this.$store.getters["analyzers/getQueue"];
       this.status = this.$store.getters["analyzers/getFullStatus"];
 
       for (let i = 0; i < this.queue.length; i++) {
@@ -73,7 +73,7 @@ export default {
         this.waiting = true;
         this.$store.dispatch("analyzers/sync").then(ok => {
           if (ok) {
-            this.queue = this.$store.getters["queue/getQueue"];
+            this.queue = this.$store.getters["analyzers/getQueue"];
           } else {
             // Received 404 -> assume server is down, don't sync anymore
             clearInterval(this.interval_update);
@@ -85,7 +85,7 @@ export default {
       }
     },
     handleReorderQueue() {
-      this.$store.commit("queue/setQueue", { queue: this.queue });
+      this.$store.commit("analyzers/setQueue", { queue: this.queue });
     },
     setCurrent(page, id) {
       // todo: open id's dropdown ~ event

@@ -14,7 +14,7 @@ export default {
   },
   methods: {
     initConfig() {
-      if (this.$store.getters["queue/getIndex"](this.id) === -1) {
+      if (this.$store.getters["analyzers/getIndex"](this.id) === -1) {
         this.$router.push(`/`);
       } else {
       }
