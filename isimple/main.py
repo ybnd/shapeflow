@@ -92,6 +92,8 @@ class Main(isimple.core.Lockable, ):
         app = Flask(__name__, static_url_path='')
         app.config.from_object(__name__)
 
+        self._stop_log = Event()
+
         self.get_latest()  # todo: should update once in a while
 
         # Serve webapp
@@ -236,12 +238,13 @@ class Main(isimple.core.Lockable, ):
         # API: working with Analyzer instances
         @app.route('/api/init', methods=['POST'])
         def init():  # todo: also add a model instance to self._models
-            active()
-            if 'type' in request.args.to_dict():
-                bt = request.args.to_dict()['type']
-            else:
-                bt = None
-            return respond(self.add_instance(video.AnalyzerType(bt)))
+            with self.lock():
+                active()
+                if 'type' in request.args.to_dict():
+                    bt = request.args.to_dict()['type']
+                else:
+                    bt = None
+                return respond(self.add_instance(video.AnalyzerType(bt)))
 
         @app.route('/api/<id>/call/get_schemas', methods=['GET'])
         def get_schemas(id: str):
@@ -263,7 +266,8 @@ class Main(isimple.core.Lockable, ):
 
         @app.route('/api/<id>/remove', methods=['POST'])
         def remove(id: str):
-            return respond(self.remove_instance(id))
+            with self.lock():
+                return respond(self.remove_instance(id))
 
         @app.route('/api/<id>/call/get_overlay_png', methods=['GET'])  # todo: why is this here?
         def get_overlay_png(id: str):
@@ -287,11 +291,13 @@ class Main(isimple.core.Lockable, ):
         def stream(id: str, endpoint: str):
             """Stream JSON data
             """
+            stream = self.stream(id, endpoint)
             return Response(
-                self.stream(id, endpoint).stream(),
-                mimetype = self.stream(id, endpoint).mime_type()
+                stream.stream(),
+                mimetype = stream.mime_type()
             )
 
+        # Utility
         @app.route('/api/list', methods=['GET'])
         def get_list():
             active()
@@ -307,15 +313,16 @@ class Main(isimple.core.Lockable, ):
             if hasattr(self, '_stop_log'):
                 self._stop_log.set()
 
+            self._stop_log.clear()
+
             def generate():
-                self._stop_log = Event()
                 with open(isimple.settings.log.path) as f:
                     while not self._stop_log.is_set():
                         yield f.read()
                         time.sleep(1)
 
             response = Response(generate(), mimetype='text/plain')
-            response.headers['Content-Disposition'] = 'attachment; filename=data.csv'
+            response.headers['Content-Disposition'] = 'attachment; filename=current.log'
             return response
 
         @app.route('/api/stop_log', methods=['PUT'])
@@ -327,13 +334,15 @@ class Main(isimple.core.Lockable, ):
         # Application state
         @app.route('/api/app-state/save')
         def save_state():
-            self.save_state()
-            return respond(True)
+            with self.lock():
+                self.save_state()
+                return respond(True)
 
         @app.route('/api/app-state/load')
         def load_state():
-            self.load_state()
-            return respond(True)
+            with self.lock():
+                self.load_state()
+                return respond(True)
 
         self._app = app
 
@@ -382,7 +391,7 @@ class Main(isimple.core.Lockable, ):
             type = video.AnalyzerType()
 
         analyzer = type.get()()
-        log.debug(f"Added instance {{'{analyzer.id}': {analyzer}}}")
+        log.debug(f"Added root {{'{analyzer.id}': {analyzer}}}")
         self._roots[analyzer.id] = analyzer
         assert isinstance(analyzer, video.VideoAnalyzer)
         self._history.add_analysis(analyzer)
@@ -391,9 +400,10 @@ class Main(isimple.core.Lockable, ):
     def remove_instance(self, id: str) -> bool:
         if id in self._roots:
             analyzer = self._roots.pop(id)
-            analyzer.commit()
-            del analyzer
-            return True
+            with analyzer.lock():
+                analyzer.commit()
+                del analyzer
+                return True
         else:
             return False
 
@@ -441,9 +451,6 @@ class Main(isimple.core.Lockable, ):
         log.debug(f"{self._roots[id]}: call '{endpoint}'")
         # todo: sanity check this
         method = self._roots[id].get(getattr(backend.backend, endpoint))
-
-        if endpoint in ('set_config',):
-            pass  # todo: store to self._history & update latest configs
 
         result = method(**data)
         log.debug(f"{self._roots[id]}: return '{endpoint}' "

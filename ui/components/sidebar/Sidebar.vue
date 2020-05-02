@@ -53,7 +53,7 @@ export default {
     this.$store.dispatch("options/sync");
     this.sync();
     this.interval_update = setInterval(this.updateQueue, 100);
-    // this.interval_sync = setInterval(this.sync, 5000);
+    this.interval_sync = setInterval(this.sync, 5000);
   },
   methods: {
     handleClick(e) {
@@ -76,13 +76,12 @@ export default {
           if (ok) {
             this.queue = this.$store.getters["analyzers/getQueue"];
           } else {
-            // Received 404 -> assume server is down, don't sync anymore
-            clearInterval(this.interval_update);
+            console.warn("backend may be down");
           }
           this.waiting = false;
         });
       } else {
-        console.warn("backend is overwhelmed :(");
+        console.warn("backend may be down");
       }
     },
     handleReorderQueue() {

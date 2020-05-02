@@ -293,13 +293,13 @@ export default {
         ) {
           this.$router.push("/");
         }
-        this.syncStore(); // todo oops
+        this.$store.dispatch("analyzers/sync");
       });
     },
     handleCancel() {
       console.log(`sidebar: handling cancel event (${this.id})`);
       cancel(this.id).then(() => {
-        this.syncStore(); // todo oops
+        this.$store.dispatch("analyzers/sync");
       });
     }
   },

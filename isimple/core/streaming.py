@@ -245,7 +245,7 @@ class StreamHandler(Lockable):
                 log.debug(f"pushing {method.__qualname__} to stream")
                 self._streams[k].push(data)
 
-    def unregister(self, instance: object, method):
+    def unregister(self, instance: object, method = None):
         """Unregister `method`: stop its streamer & delete
         """  # todo: should unregister explicitly e.g. when closing a page
         with self.lock():

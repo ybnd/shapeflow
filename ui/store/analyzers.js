@@ -201,26 +201,27 @@ export const getters = {
 
 export const actions = {
   async sources({ commit, getters }, { id }) {
+    // todo: this doesn't need to be an action
     try {
       assert(!(id === undefined), "no id provided");
       if (!getters["hasSources"](id)) {
         commit("setAnalyzerSources", {
           id: id,
           src: {
-            status: stream(id, "stream-json/status", function(message) {
-              // console.log(`${id} status:`);
+            status: stream(id, "stream/status", function(message) {
+              console.log(`${id} status:`);
               let status = JSON.parse(message.data);
-              // console.log(status);
+              console.log(status);
 
               commit("setAnalyzerStatus", {
                 id: id,
                 analyzer_status: status
               });
             }),
-            config: stream(id, "stream-json/get_config", function(message) {
-              // console.log(`${id} config:`);
+            config: stream(id, "stream/get_config", function(message) {
+              console.log(`${id} config:`);
               let config = JSON.parse(message.data);
-              // console.log(config);
+              console.log(config);
 
               commit("setAnalyzerConfig", {
                 id: id,

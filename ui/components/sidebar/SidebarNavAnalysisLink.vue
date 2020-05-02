@@ -133,7 +133,7 @@ export default {
       return this.id.substring(0, 4) === "/api";
     },
     isTwoStage() {
-      return this.id.substring(0, 5) === "event";
+      return this.id.substring(0, 5) === "sideb"; // todo: very shitty way to distinguish link type :)
     }
   },
   data() {
