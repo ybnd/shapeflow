@@ -1,7 +1,7 @@
 <template>
   <div class="content">
     <b-tbody class="log-table" @scroll="handleScroll" ref="log">
-      <tr v-for="row in log.split('\n')" :key="row" class="log-row">
+      <tr v-for="(row, index) in log.split('\n')" :key="index" class="log-row">
         <td class="log-line">{{ row }}</td>
       </tr>
     </b-tbody>

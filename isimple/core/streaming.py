@@ -200,7 +200,7 @@ class StreamHandler(Lockable):
     """
     __metaclass__ = Singleton
 
-    _streams: Dict[tuple, FrameStreamer]
+    _streams: Dict[object, Dict[Callable, FrameStreamer]]
 
     def __init__(self):
         super().__init__()
@@ -211,53 +211,66 @@ class StreamHandler(Lockable):
             If `method` has been registered already, return its streamer.
         """
         with self.lock():
-            k = self.key(instance, method)
-            if k in self._streams:
-                log.debug(f'cleaning up {self._streams[k]}')
-                self._streams[k].stop()
-                del self._streams[k]
+            method = unbind(method)
 
-            stream = _stream_mapping[method._endpoint.streaming]()
-            self._streams[k] = stream
+            if self.is_registered(instance, method):
+                stream = self._streams[instance][method]
+            else:
+                stream = _stream_mapping[method._endpoint.streaming]()
 
-            log.debug(f'registering {k} as {stream}')
+                if instance not in self._streams:
+                    self._streams[instance] = {}
+
+                self._streams[instance][method] = stream
+
+                log.debug(f'registering {instance}, {method} as {stream}')
 
             return stream
 
-    def is_registered(self, instance: object, method) -> bool:
-        return self.key(instance, method) in self._streams
+    def is_registered(self, instance: object, method = None) -> bool:
+        if instance in self._streams:
+            if method is not None:
+                return method in self._streams[instance]
+            else:
+                return True
+        else:
+            return False
 
-    def key(self, instance, method):
-        return (instance, method)
-
-    def push(self, instance: object, method, data: np.ndarray):
+    def push(self, instance: object, method, data):
         """If `method` is registered, push `data` to its streamer.
         """
+        method = unbind(method)
+
         if isinstance(method, list):
             for m in method:
-                k = self.key(instance, m)
-                if k in self._streams:
+                if self.is_registered(instance, m):
                     log.debug(f"pushing {m.__qualname__} to stream")
-                    self._streams[k].push(data)
+                    self._streams[instance][m].push(data)
         else:
-            k = self.key(instance, method)
-            if k in self._streams:
+            if self.is_registered(instance, method):
                 log.debug(f"pushing {method.__qualname__} to stream")
-                self._streams[k].push(data)
+                self._streams[instance][method].push(data)
 
     def unregister(self, instance: object, method = None):
         """Unregister `method`: stop its streamer & delete
         """  # todo: should unregister explicitly e.g. when closing a page
         with self.lock():
-            k = self.key(instance, method)
-            if k in self._streams:
-                self._streams[k].stop()
-                del self._streams[k]
+            method = unbind(method)
+            if self.is_registered(instance, method):
+                if method is not None:
+                    self._streams[instance][method].stop()
+                    del self._streams[instance][method]
+                else:
+                    for stream in self._streams[instance].values():
+                        stream.stop()
+                    del self._streams[instance]
+
 
     def update(self):
         try:
-            for instance, method in self._streams.keys():
-                self.push(instance, method, method())
+            for instance in self._streams.keys():
+                for method in self._streams[instance].keys():
+                    self.push(instance, method, method(instance))
         except RuntimeError:
             log.debug(f"new stream opened while updating")
             # Repeat the update. This doesn't happen too often,
