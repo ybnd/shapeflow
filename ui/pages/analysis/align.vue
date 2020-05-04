@@ -212,8 +212,8 @@ export default {
 
         this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
         get_options("transform").then(options => {
-          this.transform_options = options;
-          this.transform = options[0];
+          this.transform_options = options; // todo: get from store.options.transform
+          this.transform = options[0]; // todo: get from store.analyzers.config
         });
         // this.$store.dispatch("align/init", { id: this.id }).then(() => {
         get_relative_roi(this.id).then(roi => {

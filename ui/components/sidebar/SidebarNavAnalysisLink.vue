@@ -7,26 +7,25 @@
         :class="classList"
         class="sidebar-analysis-link"
       >
-        &ensp;
         <i :class="icon"></i> {{ name }}
-        <b-badge v-if="badge && badge.text" :variant="badge.variant">{{
-          badge.text
-        }}</b-badge>
-        <b-popover
-          :target="id"
-          :show.sync="show_popup"
-          @ok="doRequest"
-          container="body"
-          placement="right"
-          boundary="viewport"
-        >
-          <b-button variant="primary" @click="handleClickStageTwo">
-            <i class="fa fa-check" /> {{ name }}
-          </b-button>
-          <b-button variant="danger" @click="handleHideStageTwo">
-            <i class="fa fa-times" />
-          </b-button>
-        </b-popover>
+        <template v-if="show_popup">
+          <b-popover
+            :target="id"
+            :id="`popover-${id}`"
+            :show.sync="show_popup"
+            @ok="doRequest"
+            container="body"
+            placement="right"
+            boundary="viewport"
+          >
+            <b-button variant="primary" @click="handleClickStageTwo">
+              <i class="fa fa-check" /> {{ name }}
+            </b-button>
+            <b-button variant="danger" @click="handleHideStageTwo">
+              <i class="fa fa-times" />
+            </b-button>
+          </b-popover>
+        </template>
       </div>
     </template>
     <template v-else-if="isApiLink">
@@ -53,7 +52,6 @@
     </template>
   </div>
 </template>
-template
 
 <script>
 import axios from "axios";
@@ -89,7 +87,6 @@ export default {
       this.$router.push(this.id);
     },
     doRequest(rl) {
-      this.show_popup = false;
       // id should be set to the url
       axios.post(this.id);
     },
@@ -113,27 +110,24 @@ export default {
       console.log(`${this.id} got unhighlight event`); // todo: these are not received...
       this.highlight = false;
     });
+    this.handleHideStageTwo();
   },
   computed: {
     classList() {
       return [
         "nav-link",
         this.highlight ? "highlighted" : "",
-        this.linkVariant,
-        ...this.itemClasses
+        this.linkVariant
       ];
     },
     linkVariant() {
       return this.variant ? `nav-link-${this.variant}` : "";
     },
-    itemClasses() {
-      return this.classes ? this.classes.split(" ") : [];
-    },
     isApiLink() {
       return this.id.substring(0, 4) === "/api";
     },
     isTwoStage() {
-      return this.id.substring(0, 5) === "sideb"; // todo: very shitty way to distinguish link type :)
+      return this.id.substring(0, 7) === "sidebar"; // todo: very shitty way to distinguish link type :)
     }
   },
   data() {
