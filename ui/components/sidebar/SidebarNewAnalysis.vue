@@ -2,7 +2,7 @@
   <div class="hovertext">
     <div @click="show = true" :class="classList" id="new-analysis">
       <i :class="'fa fa-plus'"></i>
-      New analysis...
+      Analysis...
       <b-popover
         target="new-analysis"
         :show.sync="show"
@@ -29,7 +29,7 @@
                     @click="handleNewAnalysis"
                     class="popover-ok"
                   >
-                    <i class="fa fa-check" /> New analysis
+                    <i class="fa fa-check" /> Add analysis
                   </b-button>
                   <b-button
                     variant="danger"
@@ -73,8 +73,8 @@ export default {
     handleNewAnalysis() {
       let config = this.$refs.new_analyzer_form.getConfig();
 
-      console.log("new analysis: config is");
-      console.log(config);
+      // console.log("new analysis: config is");
+      // console.log(config);
 
       this.$refs.new_analyzer_form.hasValidFiles().then(ok => {
         if (ok) {
@@ -85,12 +85,6 @@ export default {
           console.log("FORM IS NOT COMPLETE");
         }
       });
-    },
-    selectFrameIntervalSetting(e) {
-      this.selected = e.target.value;
-      console.log("ass");
-      console.log(this.selected);
-      console.log(this.interval_placeholder[selected]);
     }
   },
   computed: {
@@ -127,10 +121,10 @@ export default {
 </script>
 
 <style scoped>
-.hovertext .nav-link {
+.hovertext * {
   color: transparent;
 }
-.hovertext:hover .nav-link {
+.hovertext:hover * {
 }
 
 .popover {

@@ -38,16 +38,17 @@ $item-height: calc(#{$header-height} - 15px);
 .page-header-item .btn {
   height: $item-height;
 }
-.page-header-item .slider-container {
+.page-header-item * {
   height: $item-height;
   max-height: $item-height;
-}
-.page-header-item .dropdown-item {
-  background-color: $gray-100;
 }
 
 .header-button-icon {
   width: $item-height;
   font-size: 16px;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 4px;
+  padding-right: 4px;
 }
 </style>

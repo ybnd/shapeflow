@@ -35,7 +35,6 @@
         :class="classList"
         class="sidebar-analysis-link"
       >
-        &ensp;
         <i :class="icon"></i> {{ name }}
       </div>
     </template>
@@ -46,7 +45,6 @@
         :class="classList"
         class="sidebar-analysis-link"
       >
-        &ensp;
         <i :class="icon"></i> {{ name }}
       </div>
     </template>

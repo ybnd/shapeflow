@@ -252,8 +252,8 @@ export default {
     },
     selectFrameIntervalSetting(setting) {
       if (setting in this.frame_interval_settings) {
-        console.log("selecting frame_interval_setting");
-        console.log(setting);
+        // console.log("selecting frame_interval_setting");
+        // console.log(setting);
         this.config.frame_interval_setting = setting;
       }
     },
@@ -265,14 +265,14 @@ export default {
         ...this.config.features,
         this.features.options[0]
       ];
-      console.log(this.config);
+      // console.log(this.config);
     },
     selectFeature(feature) {
-      console.log(`selectFeature(${feature})`);
-      console.log(this.features);
+      // console.log(`selectFeature(${feature})`);
+      // console.log(this.features);
       if (this.features.options.includes(feature)) {
-        console.log("selecting feature");
-        console.log(feature);
+        // console.log("selecting feature");
+        // console.log(feature);
         this.config.feature = feature;
       }
     },
@@ -284,7 +284,7 @@ export default {
       });
     },
     selectVideoFileFromDropdown(path) {
-      console.log(`selectVideoFileFromDropdown: ${path}`);
+      // console.log(`selectVideoFileFromDropdown: ${path}`);
       if (path) {
         this.config.video_path = path;
       }
@@ -297,7 +297,7 @@ export default {
       });
     },
     selectDesignFileFromDropdown(path) {
-      console.log(`selectDesignFileFromDropdown: ${path}`);
+      // console.log(`selectDesignFileFromDropdown: ${path}`);
       if (path) {
         this.config.design_path = path;
       }
@@ -342,7 +342,7 @@ export default {
       try {
         this.selectFrameIntervalSetting(this.config.frame_interval_setting);
       } catch (err) {
-        console.log(err);
+        console.warn(err);
       }
     }
   },
@@ -358,7 +358,7 @@ export default {
     video_path_options: {
       async get() {
         return get_options("video_path").then(options => {
-          console.log(options);
+          // console.log(options);
 
           if (!this.config.video_path) {
             this.config.video_path = options[0];
@@ -372,7 +372,7 @@ export default {
     design_path_options: {
       async get() {
         return get_options("design_path").then(options => {
-          console.log(options);
+          // console.log(options);
 
           if (!this.config.design_path) {
             this.config.design_path = options[0];

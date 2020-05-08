@@ -1,16 +1,16 @@
 <template>
-  <router-link tag="li" class="nav-item nav-dropdown" :to="url" disabled>
+  <div class="nav-item nav-dropdown" :to="url" disabled>
     <div
       class="nav-link nav-dropdown-toggle"
       @load="closedByDefault"
       @click="handleClick"
     >
-      <i :class="icon" />{{ name }}
+      <i v-if="icon" :class="icon" />{{ name }}
     </div>
     <ul class="nav-dropdown-items">
       <slot></slot>
     </ul>
-  </router-link>
+  </div>
 </template>
 
 <script>
@@ -36,6 +36,7 @@ export default {
   methods: {
     closedByDefault(e) {
       e.preventDefault();
+      // todo: doesn't work because it gets classed with 'nuxt-link-exact-active' 'active' 'open' by default...
       e.target.parentElement.toggleClass("nav-dropdown-toggle");
     },
     handleClick(e) {
