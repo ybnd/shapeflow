@@ -21,7 +21,7 @@ from isimple.maths.colors import HsvColor
 from isimple.util.meta import describe_function
 from isimple.util import Timer, Timing, hash_file
 from isimple.core.config import Factory, untag, Config
-from isimple.core.streaming import stream, streams
+from isimple.core.streaming import stream, streams, EventStreamer
 
 
 log = get_logger(__name__)
@@ -419,6 +419,7 @@ class AnalyzerState(IntEnum):  # todo: would be cool to compare this and analyze
 
 
 class BaseVideoAnalyzer(BackendInstance, RootInstance):
+    _endpoints: BackendRegistry = backend
     _instances: List[BackendInstance]
     _instance_class = BackendInstance
     _config: BaseAnalyzerConfig
@@ -442,8 +443,11 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
     _ok_to_run: bool
 
     _model: Optional[object]
+    _eventstreamer: Optional[EventStreamer]
 
-    def __init__(self, config: BaseAnalyzerConfig = None):
+    def __init__(self, config: BaseAnalyzerConfig = None, eventstreamer: EventStreamer = None):
+        self.set_eventstreamer(eventstreamer)
+
         super().__init__(config)
 
         self._description = ''
@@ -459,7 +463,6 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
         self._progress = 0.0
         self._model = None
 
-
     def set_model(self, model):
         self._model = model
         if self.config.name is None:
@@ -468,6 +471,17 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
     @property
     def model(self):
         return self._model
+
+    @property
+    def eventstreamer(self):
+        return self._eventstreamer
+
+    def set_eventstreamer(self, eventstreamer: EventStreamer = None):
+        self._eventstreamer = eventstreamer
+
+    def event(self, category: str, data: dict):
+        if self.eventstreamer is not None:
+            self.eventstreamer.event(category, self.id, data)  # todo: category is 'fragile!'
 
     @backend.expose(backend.commit)
     def commit(self) -> bool:
@@ -544,12 +558,15 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
     @stream
     @backend.expose(backend.status)
     def status(self) -> dict:
-        return {
+        status = {
             'state': self.state,
             'busy': self.busy,
             'position': self.position,
             'progress': self.progress,
         }
+
+        self.event('status', status)
+        return status
 
     @backend.expose(backend.launch)
     def launch(self) -> bool:
@@ -558,7 +575,7 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
                 self._launch()
                 self._gather_instances()
                 self.set_state(AnalyzerState.LAUNCHED)
-                streams.update()
+                self.status()
                 return True
             else:
                 log.warning(f"{self.__class__.__qualname__} can not be launched.")  # todo: try to be more verbose

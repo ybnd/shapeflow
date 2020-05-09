@@ -1,5 +1,5 @@
 <template>
-  <div class="nav-item nav-dropdown">
+  <div class="nav-item nav-dropdown" :ref="`dropdown-${id}`">
     <div
       class="nav-link nav-dropdown-toggle"
       @click="handleDropdownClick"
@@ -279,7 +279,7 @@ export default {
     },
     handleOpen() {
       console.log(`${this.id} got open event`); // todo: doesn't seem to work
-      this.dropdown = true;
+      this.$refs[`dropdown-${this.id}`].classList.add("open");
     },
     handleUpdateStatus(status) {
       this.status = status;
@@ -326,7 +326,6 @@ export default {
   },
   data() {
     return {
-      dropdown: false,
       ast: ast,
       status: {
         state: ast.UNKNOWN,

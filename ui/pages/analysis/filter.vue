@@ -21,7 +21,7 @@
             </b-dropdown-item>
           </b-dropdown>
           <b-dropdown
-            :text="`${this.filter}`"
+            :text="`${this.filter_type}`"
             data-toggle="tooltip"
             title="Filter type"
           >
@@ -37,12 +37,12 @@
       </PageHeaderItem>
     </PageHeader>
     <div class="filter">
-      <img :src="frame_url" alt="" class="streamed-image-f" />
+      <img :src="`${frame_url}?${opened_at}`" alt="" class="streamed-image-f" />
       <img
-        :src="state_url"
+        :src="`${state_url}?${opened_at}`"
         alt=""
         class="streamed-image-f overlay"
-        ref="frame"
+        :ref="ref_frame"
         @click="handleClick"
       />
     </div>
@@ -51,25 +51,30 @@
 </template>
 
 <script>
-import { get_options, set_config, url, analyze } from "../../static/api";
+import {
+  get_options,
+  set_config,
+  url,
+  analyze,
+  stop_stream,
+  endpoints
+} from "../../static/api";
 import { events } from "../../static/events";
 
 import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
 import PageHeaderSeek from "../../components/header/PageHeaderSeek";
 import { throttle, debounce } from "throttle-debounce";
+import { clickEventToRelativeCoordinate } from "../../static/coordinates";
 
 export default {
-  name: "filter",
+  name: "analyzer-filter",
   beforeMount() {
-    this.initFilter();
-    this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
-    this.waitForMasks = setInterval(this.getMasks, 100);
-    this.waitForFeatures = setInterval(this.getFeatures, 100);
+    this.handleInit();
+    window.onresize = this.updateFrame;
   },
   beforeDestroy() {
-    clearInterval(this.waitUntilHasRect);
-    clearInterval(this.updateCall);
+    this.handleCleanUp();
   },
   components: {
     PageHeader,
@@ -77,28 +82,73 @@ export default {
     PageHeaderSeek
   },
   methods: {
-    initFilter() {
+    handleInit() {
+      console.log("filter: handleInit()");
+      this.previous_id = this.id;
+
+      this.opened_at = Date.now();
+      this.getRefs();
+
       // Check if this.id is queued. If not, navigate to /
       if (this.$store.getters["analyzers/getIndex"](this.id) === -1) {
         this.$router.push(`/`);
       } else {
+        this.$root.$emit(events.sidebar.open(this.id));
+
+        this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
+        this.waitForMasks = setInterval(this.getMasks, 100);
+        this.waitForFeatures = setInterval(this.getFeatures, 100);
+
         get_options("filter").then(options => {
           this.filter_options = options;
         });
 
         console.log(`setting this.feature to ${this.feature}`);
 
-        this.$store.dispatch("filter/init", { id: this.id }).then(() => {
-          this.$store.dispatch("analyzers/get_config", { id: this.id });
+        this.$store.dispatch("analyzers/get_config").then(() => {
           this.$root.$emit(events.seek.reset(this.id));
         });
       }
+    },
+    handleCleanUp() {
+      console.log("filter: handleCleanUp()");
+
+      stop_stream(this.previous_id, endpoints.GET_FRAME);
+      stop_stream(this.previous_id, endpoints.GET_STATE_FRAME);
+
+      clearInterval(this.waitUntilHasRect);
+      clearInterval(this.waitForFeatures);
+      clearInterval(this.waitForMasks);
+
+      this.filter = {
+        frame: null
+      };
+      this.refs = {
+        frame: null
+      };
+    },
+    getRefs() {
+      console.log("filter: getRefs()");
+
+      console.log("this.ref_frame = ");
+      console.log(this.ref_frame);
+
+      console.log("this.$refs attrs = ");
+      console.log(Object.keys(this.$refs));
+
+      console.log("this.$refs[this.ref_frame] = ");
+      console.log(this.$refs[this.ref_frame]);
+
+      this.refs.frame = this.$refs[this.ref_frame];
     },
     getMasks() {
       console.log("filter: getMasks()");
       this.masks = this.$store.getters["analyzers/getMasks"](this.id);
       this.mask = this.masks[0];
-      this.filter = this.$store.getters["analyzers/getFilterType"](this.id, 0);
+      this.filter_type = this.$store.getters["analyzers/getFilterType"](
+        this.id,
+        0
+      );
       if (this.masks.length !== 0) {
         if (this.masks[0] !== undefined) {
           console.log("filter: getMasks() -- clearing interval");
@@ -119,16 +169,16 @@ export default {
     },
     updateFrame() {
       console.log("Updating frame...");
-      let frame = this.$refs.frame.getBoundingClientRect();
+      let frame = this.refs.frame.getBoundingClientRect();
       console.log(frame);
-      this.$store.commit("filter/setFrame", { id: this.id, frame: frame });
+      this.filter.frame = frame;
     },
     updateFrameOnceHasRect() {
       // todo: clean up
       let frame_ok = false;
       let overlay_ok = false;
       if (!(this.waitUntilHasRect === undefined)) {
-        if (this.$refs.frame.getBoundingClientRect()["width"] > 50) {
+        if (this.refs.frame.getBoundingClientRect()["width"] > 50) {
           console.log("HAS FRAME");
           this.updateFrame();
           frame_ok = true;
@@ -139,7 +189,14 @@ export default {
       }
     },
     handleClick(e) {
-      this.$store.dispatch("filter/set", { id: this.id, event: e });
+      set_filter(
+        this.id,
+        clickEventToRelativeCoordinate(e, this.filter.frame)
+      ).then(message => {
+        if (message) {
+          console.log(`//PUT THIS IN A POPUP OR SOMETHING// ${message}`);
+        }
+      });
     },
     handleAnalyze() {
       analyze(this.id);
@@ -159,7 +216,7 @@ export default {
     handleSetMask(mask, index) {
       this.mask = mask;
 
-      this.filter = this.$store.getters["analyzers/getFilterType"](
+      this.filter_type = this.$store.getters["analyzers/getFilterType"](
         this.id,
         index
       );
@@ -178,7 +235,9 @@ export default {
           config: config
         })
         .then(() => {
-          this.filter = this.$store.getters["analyzers/getFilterType"](this.id);
+          this.filter_type = this.$store.getters["analyzers/getFilterType"](
+            this.id
+          );
         });
     }
   },
@@ -197,23 +256,33 @@ export default {
       return this.$route.query.id;
     },
     state_url() {
-      return url(this.$route.query.id, "stream/get_state_frame");
+      return url(this.$route.query.id, "stream", endpoints.GET_STATE_FRAME);
     },
     frame_url() {
-      return url(this.$route.query.id, "stream/get_frame");
+      return url(this.$route.query.id, "stream", endpoints.GET_FRAME);
+    },
+    ref_frame() {
+      return `filter-frame-${this.$route.query.id}`;
     }
   },
   data: () => ({
+    opened_at: 0,
     waitUntilHasRect: null,
     waitForMasks: null,
     waitForFeatures: null,
-    filter: "",
+    filter_type: "",
     filter_options: undefined,
     filter_data: {},
     mask: "",
     masks: [],
     feature: "",
-    features: []
+    features: [],
+    filter: {
+      frame: null
+    },
+    refs: {
+      frame: null
+    }
   })
 };
 </script>

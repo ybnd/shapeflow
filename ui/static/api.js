@@ -18,6 +18,14 @@ export const AnalyzerState = {
   ERROR: 8
 };
 
+export const EVENT_CATEGORIES = ["status", "config"];
+
+export const endpoints = {
+  GET_INVERSE_OVERLAID_FRAME: "get_inverse_overlaid_frame",
+  GET_STATE_FRAME: "get_state_frame",
+  GET_FRAME: "get_frame"
+};
+
 export function ping() {
   // todo: deprecated, just ping with list()
   axios.get(url("ping"));
@@ -298,17 +306,25 @@ export function get_log() {
 }
 
 export async function stop_log() {
-  return axios.put(url("/stop_log")).then(response => {
+  return axios.put(url("stop_log")).then(response => {
     if (response.status === 200) {
       return true;
     }
   });
 }
 
-export function stream(id, endpoint, callback) {
-  console.log(`registering EventSource for ${id}/${endpoint}`);
+export async function stop_stream(id, endpoint) {
+  return axios.get(url(id, "stream", endpoint, "stop")).then(response => {
+    if (response.status === 200) {
+      return true;
+    }
+  });
+}
 
-  let evl = new EventSource(url(id, endpoint));
+export function events(callback) {
+  console.log(`registering EventSource for /api/stream/events`);
+
+  let evl = new EventSource(url("stream", "events"));
   evl.onmessage = callback;
 
   console.log(evl);

@@ -67,7 +67,6 @@ class VideoFileHandler(CachingBackendInstance, Lockable):
 
         self.path = video_path
         self._cache = None
-        self._background = None
 
         self._capture = cv2.VideoCapture(
             os.path.join(os.getcwd(), self.path)
@@ -128,10 +127,9 @@ class VideoFileHandler(CachingBackendInstance, Lockable):
     def cache_frames(self, progress_callback: Callable[[float], None], state_callback: Callable[[int], None]):
         if self.config.do_cache and self.config.do_background:
             self._background = threading.Thread(
-                target=self._cache_frames, args=(progress_callback, state_callback,)
+                target=self._cache_frames, args=(progress_callback, state_callback,), daemon=True
             )
             self._background.start()
-
 
 
     def _resolve_frame(self, frame_number) -> int:
@@ -912,8 +910,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     """
     _config: VideoAnalyzerConfig
     _class = VideoAnalyzerConfig('', '')  # todo: why is this again?
-    _gui: Optional[RootInstance]
-    _endpoints: BackendRegistry = backend
+    # _endpoints: BackendRegistry = backend
 
     video: VideoFileHandler
     design: DesignFileHandler
@@ -985,7 +982,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         # Commit to history
         self.commit()
 
-        # todo: push get_state streamer
+        # Push config event
+        self.get_config()
 
     @property
     def busy(self):
@@ -1020,7 +1018,9 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     @stream
     @backend.expose(backend.get_config)
     def get_config(self) -> dict:
-        return self.config.to_dict()   # todo: what about... only streaming what has actually changed?
+        config = self.config.to_dict()
+        self.event('config', config)
+        return config
 
     @property
     def position(self):
@@ -1094,7 +1094,10 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 # Push to streams
                 streams.update()
 
-                return self.config.to_dict()
+                config = self.config.to_dict()
+                self.event('config', config)
+
+                return config
 
     @stream
     @backend.expose(backend.get_frame)  # todo: would like to have some kind of 'deferred expose' decorator?
@@ -1145,9 +1148,12 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         roi = _history.get_roi(self.model, next=False)
         if roi is not None:
             self.transform.estimate(roi)
-            return roi
         else:
-            return self.transform.config.roi
+            roi = self.transform.config.roi
+
+        self.get_config()
+
+        return roi
 
     @backend.expose(backend.redo_roi)
     def redo_roi(self) -> dict:
@@ -1158,9 +1164,12 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         roi = _history.get_roi(self.model, next=True)
         if roi is not None:
             self.transform.estimate(roi)
-            return roi
         else:
-            return self.transform.config.roi
+            roi = self.transform.config.roi
+
+        self.get_config()
+
+        return roi
 
     @backend.expose(backend.set_filter_click)
     def set_filter_click(self, relative_x: float, relative_y: float) -> dict:
@@ -1203,6 +1212,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             message = f"Multiple valid options: {[hit.name for hit in hits]}. Select a point where masks don't overlap."
             response['message'] = message
             log.warning(message)
+
+        self.get_config()
         return response
 
 
@@ -1267,7 +1278,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
             self.results[k].loc[frame_number] = [t] + values
 
-        # todo: # todo: push get_state streamer
+        # todo: # todo: push _event streamer
         if update_callback is not None:
             update_callback(
                 t,
@@ -1279,7 +1290,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     def analyze(self) -> bool:
         assert isinstance(self._cancel, threading.Event)
         self._state = AnalyzerState.RUNNING
-        # todo: push get_state streamer
+        # todo: push _event streamer
 
         if self.model is None:
             log.warning(f"{self} has no database model; data may be lost")
@@ -1337,7 +1348,9 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             video.remove()
 
             self._config(**config)
-            self._config.resolve()
+            self._config.resolve()  # todo: is this still necessary now? is basically re-passing all attributes ~ the line above.
+
+            self.get_config()
 
             log.debug(f'loaded config: {config}')
         else:

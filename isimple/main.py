@@ -54,13 +54,14 @@ class ServerThread(Thread, metaclass=util.Singleton):
                 self._app,
                 host=self._host,
                 port=self._port,
+                threads=64,
             )
 
     def stop(self):
         self._stopevent.set()
 
 
-class Main(isimple.core.Lockable, ):
+class Main(isimple.core.Lockable):
     __metaclass__ = util.Singleton
     _app: Flask
 
@@ -85,6 +86,8 @@ class Main(isimple.core.Lockable, ):
     _stop_log: Event
     _latest: List[history.VideoAnalysisModel]
     _latest_configs: List[dict]
+
+    _eventstreamer = streaming.EventStreamer()
 
 
     def __init__(self):
@@ -238,13 +241,12 @@ class Main(isimple.core.Lockable, ):
         # API: working with Analyzer instances
         @app.route('/api/init', methods=['POST'])
         def init():  # todo: also add a model instance to self._models
-            with self.lock():
-                active()
-                if 'type' in request.args.to_dict():
-                    bt = request.args.to_dict()['type']
-                else:
-                    bt = None
-                return respond(self.add_instance(video.AnalyzerType(bt)))
+            active()
+            if 'type' in request.args.to_dict():
+                bt = request.args.to_dict()['type']
+            else:
+                bt = None
+            return respond(self.add_instance(video.AnalyzerType(bt)))
 
         @app.route('/api/<id>/call/get_schemas', methods=['GET'])
         def get_schemas(id: str):
@@ -287,14 +289,26 @@ class Main(isimple.core.Lockable, ):
             return respond(result)
 
         # Streaming
-        @app.route('/api/<id>/stream/<endpoint>', methods=['GET'])
+        @app.route('/api/<id>/stream/<endpoint>', methods=['GET'])  # todo: should be stopped when leaving page!
         def stream(id: str, endpoint: str):
-            """Stream JSON data
-            """
             stream = self.stream(id, endpoint)
-            return Response(
+            response = Response(
                 stream.stream(),
-                mimetype = stream.mime_type()
+                mimetype = stream.mime_type(),
+            )
+            # response.cache_control.no_cache = True
+            return response
+
+        @app.route('/api/<id>/stream/<endpoint>/stop', methods=['GET'])
+        def stop_stream(id: str, endpoint: str):
+            self.stop_stream(id, endpoint)
+            return respond(True)
+
+        @app.route('/api/stream/events', methods=['GET'])  # todo: naming state / app state -- used to denote 2 things ugh
+        def app_state():
+            return Response(
+                self.events.stream(),
+                mimetype = self.events.mime_type()
             )
 
         # Utility
@@ -305,7 +319,7 @@ class Main(isimple.core.Lockable, ):
             return respond([k for k in self._roots.keys()])
 
         @app.route('/api/get_log')
-        def get_log():
+        def get_log():  # todo: move to core.streaming?
             # cheated off of https://stackoverflow.com/questions/35540885/
             log.debug("streaming log file")
 
@@ -322,7 +336,8 @@ class Main(isimple.core.Lockable, ):
                         time.sleep(1)
 
             response = Response(generate(), mimetype='text/plain')
-            response.headers['Content-Disposition'] = 'attachment; filename=current.log'
+            response.headers['Content-Disposition'] = \
+                'attachment; filename=current.log'
             return response
 
         @app.route('/api/stop_log', methods=['PUT'])
@@ -387,15 +402,18 @@ class Main(isimple.core.Lockable, ):
         self._latest_configs = [json.loads(model['config']) for model in self._latest]
 
     def add_instance(self, type: video.AnalyzerType = None) -> str:
-        if type is None:
-            type = video.AnalyzerType()
+        with self.lock():
+            if type is None:
+                type = video.AnalyzerType()
 
-        analyzer = type.get()()
-        log.debug(f"Added root {{'{analyzer.id}': {analyzer}}}")
-        self._roots[analyzer.id] = analyzer
-        assert isinstance(analyzer, video.VideoAnalyzer)
-        self._history.add_analysis(analyzer)
-        return analyzer.id
+            analyzer = type.get()()
+            analyzer.set_eventstreamer(self._eventstreamer)
+
+            log.debug(f"Added root {{'{analyzer.id}': {analyzer}}}")
+            self._roots[analyzer.id] = analyzer
+            assert isinstance(analyzer, video.VideoAnalyzer)
+            self._history.add_analysis(analyzer)
+            return analyzer.id
 
     def remove_instance(self, id: str) -> bool:
         if id in self._roots:
@@ -447,22 +465,35 @@ class Main(isimple.core.Lockable, ):
         }
 
     def call(self, id: str, endpoint: str, data: dict) -> Any:
-        t0 = time.time()
-        log.debug(f"{self._roots[id]}: call '{endpoint}'")
-        # todo: sanity check this
-        method = self._roots[id].get(getattr(backend.backend, endpoint))
+        with self.lock():
+            t0 = time.time()
+            log.debug(f"{self._roots[id]}: call '{endpoint}'")
+            # todo: sanity check this
+            method = self._roots[id].get(getattr(backend.backend, endpoint))
 
-        result = method(**data)
-        log.debug(f"{self._roots[id]}: return '{endpoint}' "
-                  f"({time.time() - t0} s elapsed)")
-        return result
+            result = method(**data)
+            log.debug(f"{self._roots[id]}: return '{endpoint}' "
+                      f"({time.time() - t0} s elapsed)")
+            return result
 
-    def stream(self, id: str, endpoint: str) -> streaming.FrameStreamer:  # todo: extend to handle json streaming also
-        # todo: sanity check this also
-        method = self._roots[id].get(getattr(backend.backend, endpoint))  # todo: check whether endpoint.streaming is not _Streaming('off')
-        self._roots[id].cache_open()
+    def stream(self, id: str, endpoint: str) -> streaming.BaseStreamer:  # todo: extend to handle json streaming also
+        with self.lock():
+            # todo: sanity check this also
+            method = self._roots[id].get(getattr(backend.backend, endpoint))  # todo: check whether endpoint.streaming is not _Streaming('off')
+            self._roots[id].cache_open()
 
-        new_stream = streaming.streams.register(method.__self__, method)  # type: ignore  # todo: type / assert properly
+            new_stream = streaming.streams.register(method.__self__, method)  # todo: type / assert properly
 
-        log.debug(f"{self._roots[id]}: stream '{endpoint}'")
-        return new_stream
+            log.debug(f"{self._roots[id]}: stream '{endpoint}'")
+            return new_stream
+
+    def stop_stream(self, id: str, endpoint: str):
+        with self.lock():
+            method = self._roots[id].get(getattr(backend.backend, endpoint))
+
+            streaming.streams.unregister(method.__self__, method)  # todo: type / assert properly
+            log.debug(f"{self._roots[id]}: stopped streaming '{endpoint}'")
+
+    @property
+    def events(self) -> streaming.EventStreamer:
+        return self._eventstreamer

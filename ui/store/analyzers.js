@@ -8,22 +8,51 @@ import {
   init,
   list,
   launch,
-  stream,
+  events,
+  EVENT_CATEGORIES,
   get_status
 } from "../static/api";
 
 import assert from "assert";
+import _ from "lodash";
+
+const CATEGORY_COMMIT = {
+  status: "setAnalyzerStatus",
+  config: "setAnalyzerConfig"
+};
 
 export const state = () => {
   return {
     queue: [], // array of analyzer ids (uuid strings)
     status: {}, // id: analyzer status object
     config: {}, // id: analyzer config object
-    source: {} // id: analyzer data sources (EventSource for status & config)
+    source: {}
   };
 };
 
 export const mutations = {
+  setSource(state, { source }) {
+    try {
+      assert(!(source === undefined), "no source provided");
+      state.source = source;
+    } catch (err) {
+      console.warn(`setSource failed: '${id}'`);
+      console.warn(err);
+    }
+  },
+
+  closeSource(state) {
+    try {
+      if (!_.isEmpty(state.source)) {
+        state.source.close();
+        state.source = {};
+      }
+    } catch (err) {
+      console.warn(`closeSource failed`);
+      console.warn(err);
+    }
+  },
+
   addAnalyzer(state, { id }) {
     try {
       assert(!(id === undefined), "no id provided");
@@ -31,7 +60,6 @@ export const mutations = {
       if (!(id in state)) {
         state.status = { ...state.config, [id]: {} };
         state.config = { ...state.status, [id]: {} };
-        state.source = { ...state.source, [id]: {} };
       } else {
         console.warn(`addAnalyzerState: '${id}' already defined`);
       }
@@ -41,64 +69,47 @@ export const mutations = {
     }
   },
 
-  setAnalyzerSources(state, { id, src }) {
-    try {
-      assert(!(id === undefined), "no id provided");
-      assert(!(src === undefined), "no sources provided");
-      assert("status" in src, "status EventSource not provided");
-      assert("config" in src, "config EventSource not provided");
-
-      state.source[id] = {
-        ...state.source[id],
-        ...src
-      };
-    } catch (err) {
-      console.warn(`setAnalyzerSources failed: '${id}'`);
-      console.warn(err);
-    }
-  },
-
-  setAnalyzerStatus(state, { id, analyzer_status: analyzer_status }) {
+  setAnalyzerStatus(state, { id, status }) {
     // console.log("analyzers/setAnalyzerStatus");
     // console.log(id);
-    // console.log(analyzer_status);
+    // console.log(status);
     try {
       assert(!(id === undefined), "no id provided");
-      assert(!(analyzer_status === undefined), "no status");
+      assert(!(status === undefined), "no status");
 
       state.status[id] = {
         ...state.status[id],
-        ...analyzer_status
+        ...status
       };
     } catch (err) {
-      console.warn(`setAnalyzerStatus failed: '${id}', analyzer_status: `);
-      console.warn(analyzer_status);
+      console.warn(`setAnalyzerStatus failed: '${id}', status: `);
+      console.warn(status);
       console.warn(err);
     }
   },
 
-  setAnalyzerConfig(state, { id, analyzer_config }) {
-    // console.log("analyzers/setAnalyserConfig");
+  setAnalyzerConfig(state, { id, config }) {
+    // console.log("analyzers/setAnalyzerConfig");
     // console.log(id);
-    // console.log(analyzer_config);
+    // console.log(config);
     try {
       assert(!(id === undefined), "no id provided");
-      assert(!(analyzer_config === undefined), "no config");
+      assert(!(config === undefined), "no config");
 
       state.config[id] = {
         ...state.config[id],
-        ...analyzer_config
+        ...config
       };
 
-      if (!(analyzer_config.name === undefined)) {
-        state.config[id].name = analyzer_config.name;
+      if (!(config.name === undefined)) {
+        state.config[id].name = config.name;
       } else {
         state.config[id].name = "!! unnamed !!";
         console.warn(`setAnalyzerConfig: using default name for '${id}'`);
       }
     } catch (err) {
-      console.warn(`setAnalyzerConfig failed: '${id}', analyzer_config: `);
-      console.warn(analyzer_config);
+      console.warn(`setAnalyzerConfig failed: '${id}', config: `);
+      console.warn(config);
       console.warn(err);
     }
   },
@@ -183,92 +194,95 @@ export const getters = {
   getName: state => id => {
     return state.config[id].name;
   },
-  hasSources: state => id => {
-    if (id in state) {
-      if ("src" in state[id]) {
-        return (
-          state.source[id].status.readyState === 2 &&
-          state.source[id].config.readyState === 2
-        );
-      } else {
-        return false;
-      }
-    } else {
-      return false;
-    }
+  hasSource: state => {
+    return _.isEmpty(state.source) && state.source.readyState !== 2;
   }
 };
 
 export const actions = {
-  async sources({ commit, getters }, { id }) {
-    // todo: this doesn't need to be an action
-    try {
-      assert(!(id === undefined), "no id provided");
-      if (!getters["hasSources"](id)) {
-        commit("setAnalyzerSources", {
-          id: id,
-          src: {
-            status: stream(id, "stream/status", function(message) {
-              console.log(`${id} status:`);
-              let status = JSON.parse(message.data);
-              console.log(status);
-
-              commit("setAnalyzerStatus", {
-                id: id,
-                analyzer_status: status
-              });
-            }),
-            config: stream(id, "stream/get_config", function(message) {
-              console.log(`${id} config:`);
-              let config = JSON.parse(message.data);
-              console.log(config);
-
-              commit("setAnalyzerConfig", {
-                id: id,
-                analyzer_config: config
-              });
-            })
-          }
-        });
-      }
-    } catch (err) {
-      console.warn(err);
+  source({ commit, getters }) {
+    if (getters["hasSource"]) {
+      commit("closeSource");
     }
-  },
+    commit("setSource", {
+      source: events(function(message) {
+        try {
+          let event = JSON.parse(message.data);
 
-  async queue({ commit, dispatch }, { id }) {
-    commit("addAnalyzer", { id: id });
-    return dispatch("sources", { id: id }).then(() => {
-      commit("addToQueue", { id: id });
+          assert(event.hasOwnProperty("category"));
+          assert(_.includes(EVENT_CATEGORIES, event.category));
+          assert(event.hasOwnProperty("id"));
+          assert(event.hasOwnProperty("data"));
+
+          console.log("/api/stream/events callback");
+          console.log(`category: ${event.category}`);
+          console.log(`id: ${event.id}`);
+          console.log("data: ");
+          console.log(event.data);
+
+          commit(CATEGORY_COMMIT[event.category], {
+            id: event.id,
+            [event.category]: event.data
+          });
+        } catch (err) {
+          console.warn(`backend event callback failed`);
+          console.warn(err);
+        }
+      })
     });
   },
 
-  async unqueue({ commit }, { id }) {
+  async queue({ commit, dispatch }, { id }) {
+    console.log(`action: analyzers.queue (id=${id})`);
+    commit("addAnalyzer", { id: id });
+    commit("addToQueue", { id: id });
+  },
+
+  unqueue({ commit }, { id }) {
+    console.log(`action: analyzers.unqueue (id=${id})`);
     commit("dropFromQueue", { id: id });
     commit("dropAnalyzer", { id: id });
   },
 
   async init({ commit, dispatch }, { config = {} }) {
+    console.log(`action: analyzers.init`);
     return init().then(id => {
-      dispatch("queue", { id: id }).then(() => {
-        dispatch("set_config", { id: id, config: config }).then(() => {
-          launch(id).then(ok => {
-            if (ok) {
-              console.log(`Launched '${id}'`);
-            } else {
-              dispatch("unqueue", { id: id });
-              console.warn(`Could not launch '${id}'`);
-            }
-          });
-        });
+      console.log(`action: analyzers.init -- callback ~ api.init (id=${id})`);
+      return dispatch("queue", { id: id }).then(() => {
+        console.log(
+          `action: analyzers.init -- callback ~ analyzers.queue (id=${id})`
+        );
+        return dispatch("set_config", { id: id, config: config }).then(
+          config => {
+            console.log(
+              `action: analyzers.init -- callback ~ analyzers.set_config (id=${id})`
+            );
+            return launch(id).then(ok => {
+              console.log(
+                `action: analyzers.init -- callback ~ api.launch (id=${id})`
+              );
+              if (ok) {
+                console.log(`Launched '${id}'`);
+                return id;
+              } else {
+                dispatch("unqueue", { id: id });
+                console.warn(`Could not launch '${id}'`);
+              }
+            });
+          }
+        );
       });
-      return id;
     });
   },
 
-  async sync({ commit, dispatch, getters }) {
+  async sync({ dispatch, getters }) {
+    console.log(`action: analyzers.sync`);
     try {
+      if (!getters["hasSource"]) {
+        dispatch("source");
+      }
       return await list().then(ids => {
+        console.log(`action: analyzers.sync -- callback ~ api.list`);
         // unqueue dead ids
         let q = getters["getQueue"];
         if (q.length > 0) {
@@ -284,6 +298,9 @@ export const actions = {
           for (let i = 0; i < ids.length; i++) {
             if (!q.includes(ids[i])) {
               dispatch("queue", { id: ids[i] }).then(() => {
+                console.log(
+                  `action: analyzers.sync -- callback ~ analyzers.queue (id=${ids[i]})`
+                );
                 dispatch("get_status", { id: ids[i] });
                 dispatch("get_config", { id: ids[i] });
               });
@@ -299,13 +316,17 @@ export const actions = {
   },
 
   async get_config({ commit }, { id }) {
+    console.log(`action: analyzers.get_config (id=${id})`);
     try {
       assert(!(id === undefined), "no id provided");
 
       return get_config(id).then(config => {
+        console.log(
+          `action: analyzers.get_config -- callback ~ api.get_config (id=${id})`
+        );
         commit("setAnalyzerConfig", {
           id: id,
-          analyzer_config: config
+          config: config
         });
         return config;
       });
@@ -316,11 +337,15 @@ export const actions = {
   },
 
   async get_status({ commit }, { id }) {
+    console.log(`action: analyzers.get_status (id=${id})`);
     try {
       assert(!(id === undefined), "no id provided");
 
       return get_status(id).then(status => {
-        commit("setAnalyzerStatus", { id: id, analyzer_status: status });
+        console.log(
+          `action: analyzers.get_status -- callback ~ api.get_status (id=${id})`
+        );
+        commit("setAnalyzerStatus", { id: id, status: status });
       });
     } catch (e) {
       console.warn(`could not get status for ${id}`);
@@ -329,14 +354,18 @@ export const actions = {
   },
 
   async set_config({ commit }, { id, config }) {
+    console.log(`action: analyzers.set_config (id=${id})`);
     try {
       assert(!(id === undefined), "no id provided");
       assert(!(config === undefined), "no config");
 
-      return await set_config(id, config).then(config => {
+      return set_config(id, config).then(config => {
+        console.log(
+          `action: analyzers.set_config -- callback ~ api.set_config (id=${id})`
+        );
         commit("setAnalyzerConfig", {
           id: id,
-          analyzer_config: config
+          config: config
         });
         return config;
       });

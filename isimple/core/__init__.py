@@ -243,7 +243,9 @@ class Lockable(abc.ABC):
 
     @contextmanager  # todo: should be a Lockable mixin
     def lock(self):
+        log.debug(f"Acquiring lock {self}...")
         lock = self._lock.acquire()
+        log.debug(f"Acquired lock {self}")
         try:
             log.debug(f"Locking {self}")
             yield lock

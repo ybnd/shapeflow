@@ -78,7 +78,7 @@ class MaskConfig(Config):
 class DesignFileHandlerConfig(CachingBackendInstanceConfig):
     dpi: int = field(default=400)
 
-    overlay_alpha: float = field(default=0.1)
+    overlay_alpha: float = field(default=0.1)  # todo: more of a application setting
     smoothing: int = field(default=7)
 
 

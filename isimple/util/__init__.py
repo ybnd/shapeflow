@@ -73,14 +73,25 @@ Timing = namedtuple('Timing', ('t0', 't1', 'elapsed'))
 
 def timed(f):
     """Function decorator to measure elapsed time.
-    :param f: function
     """
     @wraps(f)
     def wrap(*args, **kwargs):
         ts = time.time()
         result = f(*args, **kwargs)
         te = time.time()
-        log.info(f"{f.__name__}() --> {te-ts} s elapsed.")
+        log.info(f"{f.__qualname__}() --> {te-ts} s elapsed.")
+        return result
+    return wrap
+
+
+def logged(f):
+    """Function decorator to log before & after call
+    """
+    @wraps(f)
+    def wrap(*args, **kwargs):
+        log.debug(f"{f.__qualname__}() --> call...")
+        result = f(*args, **kwargs)
+        log.debug(f"{f.__qualname__}() --> done")
         return result
     return wrap
 

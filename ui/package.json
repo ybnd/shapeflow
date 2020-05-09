@@ -50,7 +50,7 @@
     "eslint-friendly-formatter": "^3.0.0",
     "eslint-loader": "^2.0.0",
     "eslint-plugin-vue": "^4.0.0",
-    "node-sass": "^4.14.0",
+    "node-sass": "^4.14.1",
     "nodemon": "^1.11.0",
     "sass-loader": "^6.0.6",
     "vue-async-computed": "^3.8.2"

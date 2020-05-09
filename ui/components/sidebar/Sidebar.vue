@@ -50,10 +50,9 @@ export default {
     draggable
   },
   beforeMount() {
-    this.$store.dispatch("options/sync");
-    this.sync();
+    this.init();
     this.interval_update = setInterval(this.updateQueue, 100);
-    this.interval_sync = setInterval(this.sync, 5000);
+    // this.interval_sync = setInterval(this.sync, 5000);
   },
   methods: {
     handleClick(e) {
@@ -69,9 +68,14 @@ export default {
         this.$root.$emit(events.sidebar.status(id), this.status[id]);
       }
     },
+    init() {
+      this.$store.dispatch("analyzers/source");
+      this.sync();
+    },
     sync() {
       if (!this.waiting) {
         this.waiting = true;
+        this.$store.dispatch("options/sync");
         this.$store.dispatch("analyzers/sync").then(ok => {
           if (ok) {
             this.queue = this.$store.getters["analyzers/getQueue"];

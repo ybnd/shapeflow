@@ -33,7 +33,7 @@ export const mutations = {
     try {
       assert(!(options === undefined), "no options provided");
       state.analyzer = options;
-      console.log(state);
+      // console.log(state);
     } catch (err) {
       console.warn(`setAnalyzerOptions failed`);
       console.warn(err);
@@ -43,7 +43,7 @@ export const mutations = {
     try {
       assert(!(options === undefined), "no options provided");
       state.analyzer_state = options;
-      console.log(state);
+      // console.log(state);
     } catch (err) {
       console.warn(`setAnalyzerStateOptions failed`);
       console.warn(err);
@@ -53,7 +53,7 @@ export const mutations = {
     try {
       assert(!(options === undefined), "no options provided");
       state.frame_interval_setting = options;
-      console.log(state);
+      // console.log(state);
     } catch (err) {
       console.warn(`setFrameIntervalSettingOptions failed`);
       console.warn(err);
@@ -63,7 +63,7 @@ export const mutations = {
     try {
       assert(!(options === undefined), "no options provided");
       state.feature = options;
-      console.log(state);
+      // console.log(state);
     } catch (err) {
       console.warn(`setFeatureOptions failed`);
       console.warn(err);
@@ -73,7 +73,7 @@ export const mutations = {
     try {
       assert(!(options === undefined), "no options provided");
       state.transform = options;
-      console.log(state);
+      // console.log(state);
     } catch (err) {
       console.warn(`setTransformOptions failed`);
       console.warn(err);
@@ -83,7 +83,7 @@ export const mutations = {
     try {
       assert(!(options === undefined), "no options provided");
       state.filter = options;
-      console.log(state);
+      // console.log(state);
     } catch (err) {
       console.warn(`setFilterOptions failed`);
       console.warn(err);
@@ -94,11 +94,11 @@ export const mutations = {
 export const actions = {
   async sync({ commit }) {
     get_options("analyzer").then(options => {
-      console.log(options);
+      // console.log(options);
       commit("setAnalyzerOptions", { options: options });
     });
     get_options("state").then(options => {
-      console.log(options);
+      // console.log(options);
       commit("setAnalyzerStateOptions", { options: options });
       try {
         assert(
@@ -113,19 +113,19 @@ export const actions = {
       }
     });
     get_options("frame_interval_setting").then(options => {
-      console.log(options);
+      // console.log(options);
       commit("setFrameIntervalSettingOptions", { options: options });
     });
     get_options("feature").then(options => {
-      console.log(options);
+      // console.log(options);
       commit("setFeatureOptions", { options: options });
     });
     get_options("transform").then(options => {
-      console.log(options);
+      // console.log(options);
       commit("setTransformOptions", { options: options });
     });
     get_options("filter").then(options => {
-      console.log(options);
+      // console.log(options);
       commit("setFilterOptions", { options: options });
     });
   }

@@ -18,7 +18,7 @@ import time
 import numpy as np
 import cv2
 
-from isimple.util import timed, sizeof_fmt
+from isimple.util import timed, logged, sizeof_fmt
 
 
 # cheated off of https://www.pyimagesearch.com/2019/09/02/opencv-stream-video-to-web-browser-html-page/
@@ -29,6 +29,7 @@ log = get_logger(__name__)
 class BaseStreamer(abc.ABC):
     _queue: queue.Queue
     _stop: threading.Event
+    _paused: bool
 
     _empty_queue_timeout: float = 0.02
     _stop_timeout: float = 60
@@ -43,6 +44,7 @@ class BaseStreamer(abc.ABC):
     def __init__(self):
         self._queue = queue.Queue()
         self._stop = threading.Event()
+        self._paused = False
 
     def push(self, value: Any):
         if self._validate(value):
@@ -50,6 +52,7 @@ class BaseStreamer(abc.ABC):
         else:
             log.warning(f"{self.__class__.__name__}: skipping invalid value")
 
+    @logged
     def stream(self) -> Generator[Any, None, None]:
         self._stop.clear()
 
@@ -62,10 +65,11 @@ class BaseStreamer(abc.ABC):
                 output = self._decorate(self._encode(value))
 
                 if output is not None:
+                    log.debug(f"{self}: yielding...")
                     yield output
                     yield output   # todo: doesn't work properly if not yielded twice for some reason
                 else:
-                    log.warning(f"{self.__class__.__name__}: encoding failed")
+                    log.warning(f"{self.__class__.__name__}: encoding failed!")
                     continue
             else:
                 time.sleep(self._empty_queue_timeout)
@@ -110,8 +114,6 @@ class BaseStreamer(abc.ABC):
         raise NotImplementedError
 
 
-
-
 class JsonStreamer(BaseStreamer):
     _boundary = b"data"
     _mime_type = "text/event-stream"
@@ -132,7 +134,12 @@ class JsonStreamer(BaseStreamer):
             return None
 
 
-class FrameStreamer(BaseStreamer):  # todo: should be child of Streamer, along with JsonStreamer
+class EventStreamer(JsonStreamer):
+    def event(self, category: str, id: str, value: Any):
+        self.push({'category': category, 'id': id, 'data': value})
+
+
+class FrameStreamer(BaseStreamer):
     _boundary = b"frame"
 
     _empty_queue_timeout: float = 0.02
@@ -200,13 +207,14 @@ class StreamHandler(Lockable):
     """
     __metaclass__ = Singleton
 
-    _streams: Dict[object, Dict[Callable, FrameStreamer]]
+    _streams: Dict[object, Dict[Callable, BaseStreamer]]
 
     def __init__(self):
         super().__init__()
         self._streams = {}
 
-    def register(self, instance: object, method) -> FrameStreamer:
+    @logged
+    def register(self, instance: object, method, stream_type: Type[BaseStreamer] = None) -> BaseStreamer:
         """Register `method`, start a streamer.
             If `method` has been registered already, return its streamer.
         """
@@ -216,15 +224,20 @@ class StreamHandler(Lockable):
             if self.is_registered(instance, method):
                 stream = self._streams[instance][method]
             else:
-                stream = _stream_mapping[method._endpoint.streaming]()
+                if hasattr(method, '_endpoint'):
+                    stream_type = _stream_mapping[method._endpoint.streaming]
 
-                if instance not in self._streams:
-                    self._streams[instance] = {}
+                if stream_type is not None:
+                    stream = stream_type()
 
-                self._streams[instance][method] = stream
+                    if instance not in self._streams:
+                        self._streams[instance] = {}
 
-                log.debug(f'registering {instance}, {method} as {stream}')
+                    self._streams[instance][method] = stream
 
+                    log.debug(f'registering {instance}, {method} as {stream}')
+                else:
+                    raise ValueError('cannot resolve stream type')
             return stream
 
     def is_registered(self, instance: object, method = None) -> bool:
@@ -244,11 +257,11 @@ class StreamHandler(Lockable):
         if isinstance(method, list):
             for m in method:
                 if self.is_registered(instance, m):
-                    log.debug(f"pushing {m.__qualname__} to stream")
+                    log.debug(f"pushing {m.__qualname__} to {self._streams[instance][m]}")
                     self._streams[instance][m].push(data)
         else:
             if self.is_registered(instance, method):
-                log.debug(f"pushing {method.__qualname__} to stream")
+                log.debug(f"pushing {method.__qualname__} to {self._streams[instance][method]}")
                 self._streams[instance][method].push(data)
 
     def unregister(self, instance: object, method = None):
@@ -257,6 +270,7 @@ class StreamHandler(Lockable):
         with self.lock():
             method = unbind(method)
             if self.is_registered(instance, method):
+                log.debug(f'unregistering {instance}, {method}')
                 if method is not None:
                     self._streams[instance][method].stop()
                     del self._streams[instance][method]
@@ -265,12 +279,16 @@ class StreamHandler(Lockable):
                         stream.stop()
                     del self._streams[instance]
 
-
+    @logged
     def update(self):
         try:
             for instance in self._streams.keys():
                 for method in self._streams[instance].keys():
-                    self.push(instance, method, method(instance))
+                    try:
+                        log.debug(f'updating {instance}, {method}')
+                        self.push(instance, method, method(instance))
+                    except Exception as e:
+                        log.error(f"{e} occured @ {instance}, {method}")
         except RuntimeError:
             log.debug(f"new stream opened while updating")
             # Repeat the update. This doesn't happen too often,
@@ -278,6 +296,8 @@ class StreamHandler(Lockable):
             self.update()
             # Recursion could be problematic if too many streams are opened
             # within a short time span, but this shouldn't be an issue.
+        except Exception as e:
+            log.error(f"{e} occurred")
 
     def stop(self):
         for instance, method in self._streams:
@@ -294,18 +314,18 @@ def stream(method):  # todo: check method._endpoint._streaming & select Streamer
          in the global StreamHandler `streams`.
     """
 
-    # @timed
+    @timed
     @wraps(method)
     def wrapped_method(*args, **kwargs):
-        frame = method(*args, **kwargs)
+        data = method(*args, **kwargs)
 
-        # Push frame to streamer
+        # Push data to streamer
         streams.push(
             instance = args[0],
             method = unbind(method),
-            data= frame
+            data= data
         )
-        return frame
+        return data
 
     # Pass on attributes from `method` to `wrapped_method` todo: this is *very* wonky!
     for (attr, value) in method.__dict__.items():

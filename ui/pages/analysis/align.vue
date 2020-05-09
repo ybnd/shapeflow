@@ -71,7 +71,7 @@
     </PageHeader>
     <div class="align" ref="align">
       <img
-        :src="overlaid_url"
+        :src="`${overlaid_url}?${opened_at}`"
         alt=""
         class="streamed-image-a"
         :ref="ref_frame"
@@ -104,7 +104,9 @@ import {
   undo_roi,
   redo_roi,
   flip_transform,
-  set_config
+  set_config,
+  endpoints,
+  stop_stream
 } from "../../static/api";
 import Moveable from "vue-moveable";
 import {
@@ -126,18 +128,14 @@ import Vue from "vue";
 Vue.use(VueHotkey);
 
 export default {
-  name: "align",
+  name: "analyzer-align",
   beforeMount() {
     this.handleInit();
     window.onresize = this.updateFrame;
   },
   beforeDestroy() {
     this.handleSaveAlignment();
-
     this.handleCleanUp();
-
-    clearInterval(this.waitUntilHasRect);
-    clearInterval(this.updateCall);
   },
   components: {
     Moveable,
@@ -146,6 +144,65 @@ export default {
     PageHeaderSeek
   },
   methods: {
+    handleInit() {
+      console.log("align: handleInit()");
+      this.previous_id = this.id;
+
+      this.opened_at = Date.now();
+      this.getRefs();
+
+      // Check if this.id is queued. If not, navigate to /
+      if (this.$store.getters["analyzers/getIndex"](this.id) === -1) {
+        this.$router.push(`/`);
+      } else {
+        this.$root.$emit(events.sidebar.open(this.id));
+
+        this.align.flip = this.$store.getters["analyzers/getConfig"](
+          this.id
+        ).transform.flip;
+
+        this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
+
+        get_options("transform").then(options => {
+          this.transform_options = options; // todo: get from store.options.transform
+          this.transform = options[0]; // todo: get from store.analyzers.config
+        });
+        // this.$store.dispatch("align/init", { id: this.id }).then(() => {
+        get_relative_roi(this.id).then(roi => {
+          this.setRoi(roi);
+          this.$root.$emit(events.seek.reset(this.id)); // todo: this doesn't trigger the stream for some reason
+          // this.$store.dispatch("analyzers/get_config", { id: this.id }); // todo: why?
+        });
+        this.handleUpdate();
+      }
+    },
+    handleCleanUp() {
+      console.log("align: handleCleanUp()");
+
+      stop_stream(this.previous_id, endpoints.GET_INVERSE_OVERLAID_FRAME);
+
+      clearInterval(this.waitUntilHasRect);
+
+      // this.$store.commit("align/clearAlign", { id: this.previous_id });
+      this.align = {
+        frame: null,
+        roi: null,
+        transform: null,
+        overlay: {
+          // default moveable shape
+          width: 100,
+          height: 100,
+          top: -50,
+          left: -50,
+          bottom: 50,
+          right: 50
+        }
+      };
+      this.refs = {
+        frame: null,
+        moveable: null
+      };
+    },
     handleClearAlignment() {
       commit(this.id).then(ok => {
         if (ok) {
@@ -171,58 +228,9 @@ export default {
         this.setRoi(roi);
       });
     },
-    handleCleanUp() {
-      console.log("handleCleanUp");
-      // this.$store.commit("align/clearAlign", { id: this.previous_id });
-      this.align = {
-        frame: null,
-        roi: null,
-        transform: null,
-        overlay: {
-          // default moveable shape
-          width: 100,
-          height: 100,
-          top: -50,
-          left: -50,
-          bottom: 50,
-          right: 50
-        }
-      };
-      this.refs = {
-        frame: null,
-        moveable: null
-      };
-    },
     getRefs() {
       this.refs.frame = this.$refs[this.ref_frame];
       this.refs.moveable = this.$refs[this.ref_moveable];
-    },
-    handleInit() {
-      console.log("handleInit");
-      this.getRefs();
-      // Check if this.id is queued. If not, navigate to /
-      if (this.$store.getters["analyzers/getIndex"](this.id) === -1) {
-        this.$router.push(`/`);
-      } else {
-        this.previous_id = this.id;
-
-        this.align.flip = this.$store.getters["analyzers/getConfig"](
-          this.id
-        ).transform.flip;
-
-        this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
-        get_options("transform").then(options => {
-          this.transform_options = options; // todo: get from store.options.transform
-          this.transform = options[0]; // todo: get from store.analyzers.config
-        });
-        // this.$store.dispatch("align/init", { id: this.id }).then(() => {
-        get_relative_roi(this.id).then(roi => {
-          this.setRoi(roi);
-          this.$root.$emit(events.seek.reset(this.id)); // todo: this doesn't trigger the stream for some reason
-          // this.$store.dispatch("analyzers/get_config", { id: this.id }); // todo: why?
-        });
-        this.handleUpdate();
-      }
     },
     setRoi(roi) {
       console.log("roi");
@@ -382,22 +390,28 @@ export default {
       };
     },
     overlaid_url() {
-      return url(this.$route.query.id, "stream/get_inverse_overlaid_frame");
+      return url(
+        this.$route.query.id,
+        "stream",
+        endpoints.GET_INVERSE_OVERLAID_FRAME
+      );
     },
     ref_frame() {
-      return `frame-${this.$route.query.id}`;
+      return `align-frame-${this.$route.query.id}`;
     },
     ref_moveable() {
-      return `moveable-${this.$route.query.id}`;
+      return `align-moveable-${this.$route.query.id}`;
     }
   },
   data: () => ({
+    opened_at: 0,
     transform_options: {},
     transform: "",
     moveable: {
+      // request-level throttle & debounce to limit traffic, but keep pixel-level throttle at 0 for precision
       className: "hidden", //
       draggable: true,
-      throttleDrag: 0, // todo: should have a api request-level throttle & debounce to limit traffic, but keep this throttle 0 for precision
+      throttleDrag: 0,
       rotatable: true,
       throttleRotate: 0,
       warpable: true,
@@ -424,8 +438,8 @@ export default {
       moveable: null
     },
     updateCall: null,
-    moveableShow: "",
-    moveableHide: "hidden",
+    moveableShow: "", // todo: doesn't seem to work!
+    moveableHide: "hidden", // todo: doesn't seem to work!
     waitUntilHasRect: null,
     previous_id: ""
   })

@@ -79,7 +79,11 @@ export default {
       this.$refs.new_analyzer_form.hasValidFiles().then(ok => {
         if (ok) {
           this.show = false;
-          this.$store.dispatch("analyzers/init", { config: config });
+          this.$store
+            .dispatch("analyzers/init", { config: config })
+            .then(id => {
+              this.$router.push(`/analysis/align?id=${id}`);
+            });
         } else {
           // todo: some visual warning that it's incomplete...
           console.log("FORM IS NOT COMPLETE");
