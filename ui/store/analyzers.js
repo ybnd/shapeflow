@@ -27,6 +27,7 @@ export const state = () => {
     queue: [], // array of analyzer ids (uuid strings)
     status: {}, // id: analyzer status object
     config: {}, // id: analyzer config object
+    result: {},
     source: {}
   };
 };
@@ -122,7 +123,7 @@ export const mutations = {
 
       state.result[id] = {
         // todo: decide result format ~ plotting packages
-        ...state.result[id],
+        ...state.result[id], // todo: append result to state.result[id]
         ...result
       };
     } catch (err) {

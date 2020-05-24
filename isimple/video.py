@@ -1274,38 +1274,22 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         raw_frame = self.video.read_frame(frame_number)
         frame = self.transform(raw_frame)
 
-        V = []
-        S = []
+        result = {'t': t}
+
         for k,fs in self._featuresets.items():  # todo: for each feature set -- export data for a separate legend to add to the state plot
             values = []
-            state = np.zeros(frame.shape, dtype=np.uint8)  # BGR state image  # todo: should only generate state images when explicitly requested
-            # todo: may be faster / more memory-efficient to keep state[i] and set it to 0
 
             for feature in fs._features:  # todo: make featureset iterable maybe
                 value, state = feature.calculate(
                     frame.copy(),  # don't overwrite self.frame ~ cv2 dst parameter  # todo: better to let OpenCV handle copying, or not?
-                    state               # additive; each feature adds to state
                 )
                 values.append(value)
 
-            state[np.equal(state, 0)] = 255
-
-            # Add overlay on top of state
-            state = overlay(state, self.design._overlay, self.design.config.overlay_alpha)
-
-            V.append(values)   # todo: value values value ugh
-            S.append(state)
+            result.update({k: values})
 
             self.results[k].loc[frame_number] = [t] + values
 
-        # todo: # todo: push _event streamer
-        if update_callback is not None:
-            update_callback(
-                t,
-                V, # todo: this is per feature in each feature set; maybe better as dict instead of list of lists?
-                S,     # todo: keep values (in order to save them)
-                frame
-            )
+        self.event(AnalyzerEvent.RESULT, result)
 
     def analyze(self) -> bool:
         assert isinstance(self._cancel, threading.Event)
