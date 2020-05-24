@@ -483,7 +483,7 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
     def set_eventstreamer(self, eventstreamer: EventStreamer = None):
         self._eventstreamer = eventstreamer
 
-    def event(self, category: str, data: dict):
+    def event(self, category: AnalyzerEvent, data: dict):
         """Push an event
 
         :param category: event category
@@ -492,7 +492,7 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
         """
 
         if self.eventstreamer is not None:
-            self.eventstreamer.event(category, self.id, data)
+            self.eventstreamer.event(category.value, self.id, data)
 
     @backend.expose(backend.commit)
     def commit(self) -> bool:

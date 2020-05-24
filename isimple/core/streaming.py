@@ -69,7 +69,7 @@ class BaseStreamer(abc.ABC):
                     yield output
                     yield output   # todo: doesn't work properly if not yielded twice for some reason
                 else:
-                    log.warning(f"{self.__class__.__name__}: encoding failed!")
+                    log.warning(f"{self.__class__.__name__}: encoding failed for {value}")
                     continue
             else:
                 time.sleep(self._empty_queue_timeout)

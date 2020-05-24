@@ -27,7 +27,7 @@ import isimple.video as video
 
 log = isimple.get_logger('isimple')
 UI = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # todo: cleaner pls
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     , 'ui', 'dist'
 )
 
