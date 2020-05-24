@@ -18,7 +18,7 @@ from isimple.core import RootInstance, Lockable
 from isimple.core.backend import BackendInstance, CachingBackendInstance, \
     Handler, BaseVideoAnalyzer, BackendSetupError, AnalyzerType, Feature, \
     FeatureSet, \
-    FeatureType, backend, AnalyzerState
+    FeatureType, backend, AnalyzerState, AnalyzerEvent
 from isimple.core.config import extend, __meta_ext__
 from isimple.core.interface import TransformInterface, FilterConfig, \
     FilterInterface, FilterType, TransformType
@@ -1019,7 +1019,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     @backend.expose(backend.get_config)
     def get_config(self) -> dict:
         config = self.config.to_dict()
-        self.event('config', config)
+        self.event(AnalyzerEvent.CONFIG, config)
         return config
 
     @property
@@ -1095,7 +1095,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 streams.update()
 
                 config = self.config.to_dict()
-                self.event('config', config)
+                self.event(AnalyzerEvent.CONFIG, config)  # todo category should be ~ Enum
 
                 return config
 
@@ -1238,7 +1238,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                     )
 
             # Add overlay on top of state
-            # state = overlay(state, self.design._overlay.copy(), self.design.config.overlay_alpha)
+            state = overlay(state, self.design._overlay.copy(), self.design.config.overlay_alpha)
         else:
             log.debug('skipping state frame')
 

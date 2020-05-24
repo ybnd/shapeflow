@@ -99,7 +99,7 @@ class Main(isimple.core.Lockable):
 
         self.get_latest()  # todo: should update once in a while
 
-        # Serve webapp
+        # Serve webapp (bypassed when frontend runs in development mode)
         @app.route('/', methods=['GET'])
         def index_html():
             log.debug(f"Serving 'index.html'")
@@ -119,7 +119,7 @@ class Main(isimple.core.Lockable):
             self._ping.set()
 
         @app.route('/api/ping', methods=['GET'])
-        def ping():
+        def ping():  # todo: deprecated
             active()
             return respond(True)
 
@@ -288,9 +288,15 @@ class Main(isimple.core.Lockable):
                 result = True
             return respond(result)
 
-        # Streaming
-        @app.route('/api/<id>/stream/<endpoint>', methods=['GET'])  # todo: should be stopped when leaving page!
+        # API: streaming
+        @app.route('/api/<id>/stream/<endpoint>', methods=['GET'])
         def stream(id: str, endpoint: str):
+            """Start streaming data ~ id & endpoint
+
+            :param id: analyzer UUID
+            :param endpoint: string corresponding to an attribute of isimple.endpoints.BackendRegistry
+            """
+            # todo: sanity check if `endpoint' is streamable
             stream = self.stream(id, endpoint)
             response = Response(
                 stream.stream(),
@@ -301,25 +307,38 @@ class Main(isimple.core.Lockable):
 
         @app.route('/api/<id>/stream/<endpoint>/stop', methods=['GET'])
         def stop_stream(id: str, endpoint: str):
+            """Stop streaming data ~ id & endpoint
+
+            :param id: analyzer UUID
+            :param endpoint: string corresponding to an attribute of isimple.endpoints.BackendRegistry
+            """
+            # todo: sanity check if `endpoint' is streamable
             self.stop_stream(id, endpoint)
             return respond(True)
 
-        @app.route('/api/stream/events', methods=['GET'])  # todo: naming state / app state -- used to denote 2 things ugh
-        def app_state():
+        @app.route('/api/stream/events', methods=['GET'])
+        def stream_events():
+            """Stream application events (
+            """
             return Response(
                 self.events.stream(),
                 mimetype = self.events.mime_type()
             )
 
-        # Utility
+        # API: utility
         @app.route('/api/list', methods=['GET'])
         def get_list():
+            """List instances in self._roots
+            """
             active()
-            log.vdebug(f"Listing analyzers")
             return respond([k for k in self._roots.keys()])
 
         @app.route('/api/get_log')
-        def get_log():  # todo: move to core.streaming?
+        def get_log():
+            # todo: move to core.streaming
+            # todo: try to refactor ~ isimple.core.streaming
+            """Start streaming log file
+            """
             # cheated off of https://stackoverflow.com/questions/35540885/
             log.debug("streaming log file")
 
@@ -342,6 +361,8 @@ class Main(isimple.core.Lockable):
 
         @app.route('/api/stop_log', methods=['PUT'])
         def stop_log():
+            """Stop streaming log file
+            """
             log.debug("stopping log file stream")
             self._stop_log.set()
             return respond(True)
@@ -437,6 +458,7 @@ class Main(isimple.core.Lockable):
 
     def load_state(self):
         log.debug("loading application state...")
+        # todo: check if instances retain reference to self._eventstreamer!
 
         try:
             with open(os.path.join(isimple.ROOTDIR, 'state'), 'rb') as f:
@@ -446,7 +468,7 @@ class Main(isimple.core.Lockable):
                 analyzer = video.init(s['config'])
                 analyzer._set_id(k)
 
-                if video.AnalyzerState.do_launch(s['state']):
+                if video.AnalyzerState.can_launch(s['state']):
                     analyzer.launch()
 
                 self._roots[k] = analyzer

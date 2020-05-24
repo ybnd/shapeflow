@@ -135,8 +135,15 @@ class JsonStreamer(BaseStreamer):
 
 
 class EventStreamer(JsonStreamer):
-    def event(self, category: str, id: str, value: Any):
-        self.push({'category': category, 'id': id, 'data': value})
+    def event(self, category: str, id: str, data: Any):
+        """Push an event
+
+        :param category: event category
+        :param id: UUID of event source
+        :param data: event data
+        :return:
+        """
+        self.push({'category': category, 'id': id, 'data': data})
 
 
 class FrameStreamer(BaseStreamer):

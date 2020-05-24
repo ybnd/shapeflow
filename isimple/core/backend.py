@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from enum import IntEnum
+from enum import IntEnum, Enum
 
 import diskcache
 import sys
@@ -395,7 +395,12 @@ class BaseAnalyzerConfig(Config):
     description: Optional[str] = field(default=None)
 
 
-class AnalyzerState(IntEnum):  # todo: would be cool to compare this and analyzer_state in api.js on load
+class AnalyzerEvent(Enum):
+    STATUS = 'status'
+    CONFIG = 'config'
+
+
+class AnalyzerState(IntEnum):
     UNKNOWN = 0
     INCOMPLETE = 1
     CAN_LAUNCH = 2
@@ -407,12 +412,11 @@ class AnalyzerState(IntEnum):  # todo: would be cool to compare this and analyze
     ERROR = 8
 
     @classmethod
-    def do_launch(cls, state: int) -> bool:
+    def can_launch(cls, state: int) -> bool:
         return state in [
             cls.CAN_LAUNCH,
             cls.LAUNCHED,
             cls.CAN_RUN,
-            cls.RUNNING,
             cls.DONE,
             cls.CANCELED
         ]
@@ -480,8 +484,15 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
         self._eventstreamer = eventstreamer
 
     def event(self, category: str, data: dict):
+        """Push an event
+
+        :param category: event category
+        :param data: event data
+        :return:
+        """
+
         if self.eventstreamer is not None:
-            self.eventstreamer.event(category, self.id, data)  # todo: category is 'fragile!'
+            self.eventstreamer.event(category, self.id, data)
 
     @backend.expose(backend.commit)
     def commit(self) -> bool:
@@ -565,7 +576,7 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
             'progress': self.progress,
         }
 
-        self.event('status', status)
+        self.event(AnalyzerEvent.STATUS, status)
         return status
 
     @backend.expose(backend.launch)
