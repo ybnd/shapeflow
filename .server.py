@@ -6,5 +6,5 @@ if __name__ == '__main__':
     # todo: server-level configuration?
 
     main = Main()
-    main.serve(False)
+    main.serve(open_in_browser=False)
     main.cleanup()  # todo: doesn't clean up :(
