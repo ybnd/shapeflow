@@ -8,8 +8,8 @@ import cv2
 
 class Coo(object):
     """Image coordinate object.
-        x: horizontal;  left    -> right
-        y: vertical;    top     -> bottom
+        x: horizontal  left    -> right
+        y: vertical    top     -> bottom
     """
     x: float
     y: float
@@ -30,19 +30,19 @@ class Coo(object):
 
         return self.abs == other.abs and self.shape == other.shape
 
-    def transform(self, transform: np.ndarray, shape: Tuple[int, int]):
+    def transform(self, matrix: np.ndarray, shape: Tuple[int, int]):
         # Transformation matrix should be [M x N]
-        assert len(transform.shape) == 2
+        assert len(matrix.shape) == 2
         assert shape is not None
 
         # Transform coordinate vector
-        if transform.shape[0] == 2 and 1 < transform.shape[1] < 4:
+        if matrix.shape[0] == 2 and 1 < matrix.shape[1] < 4:
             trans_coo = cv2.transform(
-                src = np.array([[self.cv2]]), m = transform
+                src = np.array([[self.cv2]]), m = matrix
             )
-        elif transform.shape == (3,3) or transform.shape == (4,4):
+        elif matrix.shape == (3, 3) or matrix.shape == (4, 4):
             trans_coo = cv2.perspectiveTransform(
-                src = np.array([[self.cv2]]), m = transform
+                src = np.array([[self.cv2]]), m = matrix
             )
         else:
             raise NotImplementedError(

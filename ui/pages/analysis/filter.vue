@@ -57,7 +57,7 @@
 <script>
 import {
   get_options,
-  set_config,
+  set_filter,
   url,
   analyze,
   stop_stream,

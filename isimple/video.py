@@ -471,25 +471,29 @@ class FilterHandler(BackendInstance, Handler):
         super(FilterHandler, self).__init__(config)
         self.set_implementation(self.config.type.__str__())
         if self.config.data is None:
-            self.config(data=self._implementation._config_class())
+            self.config(data=self._implementation.config_class())
 
     @property
     def config(self) -> FilterHandlerConfig:
         return self._config
 
+    @property
+    def implementation(self):
+        return self._implementation
+
     @backend.expose(backend.get_filter_mean_color)
     def mean_color(self) -> HsvColor:
-        return self._implementation.mean_color(self.config.data)
+        return self.implementation.mean_color(self.config.data)
 
     def set(self, filter: FilterConfig = None, color: HsvColor = None) -> FilterConfig:
         if isinstance(self.config.data, dict):
-            self.config.data = FilterConfig(**self.config.data)
+            self.config.data = self.implementation.config_class(**self.config.data)
 
         if filter is None:
             if hasattr(self.config.data, 'filter'):
-                filter = self._implementation._config_class(**self.config.data.filter)
+                filter = self.implementation.config_class(**self.config.data.filter)
             else:
-                filter = self._implementation._config_class()
+                filter = self.implementation.config_class()
         if color is None:
             if hasattr(self.config.data, 'color'):
                 color = self.config.data.color
@@ -497,7 +501,7 @@ class FilterHandler(BackendInstance, Handler):
                 color = HsvColor(0,0,0)
 
         assert isinstance(color, HsvColor)
-        self.config(data=self._implementation.set_filter(filter,color))
+        self.config(data=self.implementation.set_filter(filter,color))
 
         log.debug(f"Filter config: {self.config}")
 
@@ -505,12 +509,15 @@ class FilterHandler(BackendInstance, Handler):
         return self.config.data
 
     def set_implementation(self, implementation: str) -> str:
-        return super(FilterHandler, self).set_implementation(implementation)
+        implementation = super(FilterHandler, self).set_implementation(implementation)
+        self.config.data = self.implementation.config_class(**self.config.data.to_dict())
+
+        return implementation
 
     @backend.expose(backend.filter)
     def __call__(self, frame: np.ndarray) -> np.ndarray:
-        assert isinstance(self.config.data, FilterConfig)
-        return self._implementation.filter(frame, self.config.data)
+        assert isinstance(self.config.data, self.implementation.config_class)
+        return self.implementation.filter(frame, self.config.data)
 
 
 
@@ -562,10 +569,8 @@ class Mask(BackendInstance):
     def config(self) -> MaskConfig:
         return self._config
 
-    def set_filter(self, color: HsvColor) -> FilterConfig:
-        filter_config = self.filter.set(color=color)
-        self._config.ready = True
-        return filter_config
+    def set_filter(self, color: HsvColor):
+        self.filter.set(color=color)
 
     @backend.expose(backend.mask)
     def __call__(self, img: np.ndarray) -> np.ndarray:
@@ -612,7 +617,7 @@ class Mask(BackendInstance):
         return self._part
 
     @property
-    def rect(self):
+    def rect(self) -> np.ndarray:
         return self._rect
 
 
@@ -795,12 +800,17 @@ class MaskFunction(Feature):
 
         self._feature_type = FeatureType(self.__class__.__name__)
 
-        self._skip = mask.config.skip
-        self._ready = mask.config.ready
-
     @property
     def feature_type(self) -> FeatureType:
         return self._feature_type
+
+    @property
+    def ready(self) -> bool:
+        return self.mask.config.ready
+
+    @property
+    def skip(self):
+        return self.mask.config.skip
 
     def unpack(self) -> tuple:
         """Resolve `self.mask.config.parameters` & `self.default_parameters()`
@@ -837,36 +847,35 @@ class MaskFunction(Feature):
     def value(self, frame) -> Any:
         return self._function(self.filter(self.mask(frame)))
 
-    def state(self, frame: np.ndarray, state: np.ndarray = None) -> np.ndarray:
+    def state(self, frame: np.ndarray, state: np.ndarray) -> np.ndarray:
         """Generate a state image (BGR)
         """
-        if state is not None:
-            if not self.skip:
-                if self.ready:
-                    # Masked & filtered pixels ~ frame
-                    binary = self.filter(self.mask(frame))
-                    substate = np.multiply(
-                        np.ones((binary.shape[0], binary.shape[1], 3),
-                                dtype=np.uint8),
-                        convert(self.color, BgrColor).np
-                        # todo: update to isimple.maths.color
-                    )
-                    state[self.mask.rows, self.mask.cols, :] \
-                        += cv2.bitwise_and(substate, substate, mask=binary)
-                else:
-                    # Not ready -> highlight feature with a rectangle
-                    substate = np.zeros((*self.mask.part.shape, 3), dtype=np.uint8)
+        if not self.skip:
+            if self.ready:
+                # Masked & filtered pixels ~ frame
+                binary = self.filter(self.mask(frame))
+                substate = np.multiply(
+                    np.ones((binary.shape[0], binary.shape[1], 3),
+                            dtype=np.uint8),
+                    convert(self.color, BgrColor).np
+                    # todo: update to isimple.maths.color
+                )
+                state[self.mask.rows, self.mask.cols, :] \
+                    += cv2.bitwise_and(substate, substate, mask=binary)
+            else:
+                # Not ready -> highlight feature with a rectangle
+                substate = np.zeros((*self.mask.part.shape, 3), dtype=np.uint8)
 
-                    for i,c in enumerate([0, 0, 255]):  # todo: numpy this
-                        substate[0:1, :, i] = c
-                        substate[-2:-1, :, i] = c
-                        substate[:, 0:1, i] = c
-                        substate[:, -2:-1, i] = c
+                for i,c in enumerate(convert(self.color, BgrColor).list):  # todo: numpy this
+                    substate[0:2, :, i] = c
+                    substate[-2:, :, i] = c
+                    substate[:, 0:2, i] = c
+                    substate[:, -2:, i] = c
 
-                    state[self.mask.rows, self.mask.cols, :] += substate
+                state[self.mask.rows, self.mask.cols, :] += substate
 
-                  # todo: overwrites rect with white
-                return state
+              # todo: overwrites rect with white
+        return state
 
     @property
     def name(self) -> str:
@@ -1238,12 +1247,17 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                     )
 
             # Add overlay on top of state
-            state = overlay(state, self.design._overlay.copy(), self.design.config.overlay_alpha)
+            # state = overlay(self.design._overlay.copy(), state, self.design.config.overlay_alpha)
         else:
             log.debug('skipping state frame')
 
         state[np.equal(state, 0)] = 255
         return cv2.cvtColor(state, cv2.COLOR_BGR2HSV)
+
+    @backend.expose(backend.get_mask_rects)
+    def get_mask_rects(self) -> Dict[str, np.ndarray]:
+        # todo: placeholder -- mask rect info to frontend (in relative coordinates)
+        return {mask.name: mask.rect for mask in self.masks}
 
     def calculate(self, frame_number: int, update_callback: Callable = None):
         """Return a state image for each FeatureSet

@@ -55,3 +55,4 @@ class BackendRegistry(ImmutableRegistry):
     get_fps = Endpoint(Callable[[], float])
     get_h = Endpoint(Callable[[], float])
     get_dpi = Endpoint(Callable[[], float])
+    get_mask_rects = Endpoint(Callable[[], Dict[str, np.ndarray]])

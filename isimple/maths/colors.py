@@ -1,6 +1,6 @@
 import re
 from collections import namedtuple
-from typing import Dict, Type
+from typing import Dict, Type, List
 
 import cv2
 import numpy as np
@@ -29,6 +29,10 @@ class Color(object):
     @property
     def np(self) -> np.ndarray:
         return np.uint8([[self]])
+
+    @property
+    def list(self) -> List[int]:
+        return list(np.uint8(self))
 
     def _convert(self, colorspace: str) -> tuple:
         if colorspace not in self._conversion_map:

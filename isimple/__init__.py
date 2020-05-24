@@ -15,7 +15,7 @@ from dataclasses import dataclass, field
 import diskcache
 
 # Library version
-__version__: str = '0.3.8'
+__version__: str = '0.3.9'
 
 VDEBUG = 9
 logging.addLevelName(VDEBUG, "VDEBUG")

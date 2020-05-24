@@ -216,9 +216,6 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
 
 
 class Handler(object):
-    """
-    """
-
     _implementation: object
     _implementation_factory = Factory
     _implementation_class = object  # actually, it's type, but that doesn't fly with MyPy for some reason
@@ -242,8 +239,6 @@ class Feature(abc.ABC):  # todo: should probably use Config for parameters after
     """
     _color: Optional[HsvColor]
     _state: Optional[np.ndarray]
-    _skip: bool
-    _ready: bool
 
     _description: str = ''
     _elements: Tuple[BackendInstance, ...] = ()
@@ -257,10 +252,10 @@ class Feature(abc.ABC):  # todo: should probably use Config for parameters after
         self._ready = False
 
         self._elements = elements
-        self._color = HsvColor(255,255,255)  # start out as white
+        self._color = HsvColor(0,200,255)  # start out as red
 
     def calculate(self, frame: np.ndarray, state: np.ndarray = None) \
-            -> Tuple[Any, np.ndarray]:
+            -> Tuple[Any, Optional[np.ndarray]]:
         """Calculate Feature for given frame
             and update state image (optional)
         """
@@ -270,11 +265,14 @@ class Feature(abc.ABC):  # todo: should probably use Config for parameters after
 
     @property
     def skip(self) -> bool:
-        return self._skip
+        raise NotImplementedError
 
     @property
     def ready(self) -> bool:
-        return self._ready
+        raise NotImplementedError
+
+    def set_color(self, color: HsvColor):
+        self._color = color
 
     @property
     def color(self) -> HsvColor:
@@ -297,7 +295,7 @@ class Feature(abc.ABC):  # todo: should probably use Config for parameters after
         raise NotImplementedError
 
     @abc.abstractmethod  # todo: we're dealing with frames explicitly, so maybe this should be an isimple.video thing...
-    def state(self, frame: np.ndarray, state: np.ndarray = None) -> np.ndarray:
+    def state(self, frame: np.ndarray, state: np.ndarray) -> np.ndarray:
         """Return the Feature instance's state image for a given frame
         """
         raise NotImplementedError
@@ -341,25 +339,29 @@ class FeatureSet(object):
     def get_colors(self) -> Tuple[HsvColor, ...]:  # todo: should be called each time a color is set
         guideline_colors = [f._guideline_color() for f in self._features]
         colors: list = []
+        dodge_colors: list = []
 
         # For all features in the FeatureSet
         for feature, color in zip(self._features, guideline_colors):
-            # Dodge the other colors by hue
-            tolerance = 15
-            increment = 60  # todo: should be set *after* the number of repititions is determined
-            repetition = 0
-            for registered_color in colors:
-                if abs(float(color[0]) - float(registered_color[0])) < tolerance:
-                    repetition += 1
+            if feature.ready:
+                # Dodge the other colors by hue
+                tolerance = 15
+                increment = 60  # todo: should be set *after* the number of repititions is determined, otherwise there may be too much black
+                repetition = 0
+                for registered_color in colors:
+                    if abs(float(color[0]) - float(registered_color[0])) < tolerance:
+                        repetition += 1
 
-            color = HsvColor(
-                float(color[0]),
-                float(220),
-                float(255 - repetition * increment)
-            )
+                feature.set_color(
+                    HsvColor(
+                        float(color[0]),
+                        float(220),
+                        float(255 - repetition * increment)
+                    )
+                )
+                dodge_colors.append(feature.color)
 
-            feature._color = color
-            colors.append(color)
+            colors.append(feature.color)
 
         self._colors = tuple(HsvColor(*c) for c in colors)
         return self.colors

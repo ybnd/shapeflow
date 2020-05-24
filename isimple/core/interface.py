@@ -39,6 +39,10 @@ class FilterConfig(Config):
     filter: dict
     color: HsvColor
 
+    @property
+    def ready(self):
+        return False
+
 
 class FilterInterface(abc.ABC):
     """Handles pixel filtering operations
@@ -56,6 +60,10 @@ class FilterInterface(abc.ABC):
     @abc.abstractmethod
     def filter(self, image: np.ndarray, filter) -> np.ndarray:  # todo: add custom np.ndarray type 'image'
         raise NotImplementedError
+
+    @property
+    def config_class(self):
+        return self._config_class
 
 
 class FilterType(Factory):

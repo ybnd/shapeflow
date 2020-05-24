@@ -54,23 +54,34 @@ class HsvRangeFilterConfig(FilterConfig):
     c0: HsvColor = field(default=HsvColor(0, 0, 0))
     c1: HsvColor = field(default=HsvColor(0, 0, 0))
 
+    @property
+    def ready(self) -> bool:
+        return self.c0 != self.c1
+
 
 @extend(ConfigType)
 @dataclass
 class FilterHandlerConfig(Config):
     type: FilterType = field(default_factory=FilterType)
-    data: Optional[FilterConfig] = field(default=None)
+    data: FilterConfig = field(default_factory=FilterConfig)
+
+    @property
+    def ready(self) -> bool:
+        return self.data.ready
 
 
 @extend(ConfigType)
 @dataclass
 class MaskConfig(Config):
     name: Optional[str] = field(default=None)
-    ready: bool = field(default=False)
     skip: bool = field(default=False)
     filter: FilterHandlerConfig = field(default_factory=FilterHandlerConfig)
 
     parameters: Dict[FeatureType, Dict[str, Tuple[bool, Any]]] = field(default_factory=dict)
+
+    @property
+    def ready(self):
+        return self.filter.ready
 
 
 @extend(ConfigType)
@@ -222,6 +233,13 @@ def normalize_config(d: dict) -> dict:
             if 'design' in d:
                 if 'cache_consumer' in d['design']:
                     d['design'].pop('cache_consumer')
+        if before_version(d[VERSION], '0.3.9'):
+            normalizing_to('0.3.9')
+            # remove mask.ready attribute
+            if 'masks' in d:
+                for mask in d['masks']:
+                    if 'ready' in mask:
+                        mask.pop('ready')
     else:
         raise NotImplementedError
 
