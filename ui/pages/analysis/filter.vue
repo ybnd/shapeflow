@@ -3,7 +3,32 @@
   <div class="fixed-page">
     <PageHeader>
       <PageHeaderItem>
-        <b-button @click="handleAnalyze">Analyze</b-button>
+        <b-button
+          class="header-button-icon"
+          @click="handleClearFilters"
+          data-toggle="tooltip"
+          title="Clear alignment"
+        >
+          <i class="fa fa-remove" />
+        </b-button>
+        <b-button
+          class="header-button-icon"
+          @click="handleUndoFilters"
+          data-toggle="tooltip"
+          title="Undo alignment"
+          v-hotkey="keymap"
+        >
+          <i class="fa fa-undo" />
+        </b-button>
+        <b-button
+          class="header-button-icon"
+          @click="handleRedoFilters"
+          data-toggle="tooltip"
+          title="Redo alignment"
+          v-hotkey="keymap"
+        >
+          <i class="fa fa-repeat" />
+        </b-button>
       </PageHeaderItem>
       <PageHeaderSeek :id="id" />
       <PageHeaderItem>
@@ -205,9 +230,6 @@ export default {
         }
       });
     },
-    handleAnalyze() {
-      analyze(this.id);
-    },
     handleSetFeature(feature) {
       this.$store
         .dispatch("analyzers/set_config", {
@@ -246,6 +268,21 @@ export default {
             this.id
           );
         });
+    },
+    handleClearFilters() {
+      console.warn("NOT IMPLEMENTED YET");
+    },
+    handleUndoFilters() {
+      console.warn("NOT IMPLEMENTED YET");
+    },
+    handleRedoFilters() {
+      console.warn("NOT IMPLEMENTED YET");
+    },
+    stepForward() {
+      this.$root.$emit(events.seek.step_fw(this.id));
+    },
+    stepBackward() {
+      this.$root.$emit(events.seek.step_bw(this.id));
     }
   },
   watch: {
@@ -270,6 +307,14 @@ export default {
     },
     ref_frame() {
       return `filter-frame-${this.$route.query.id}`;
+    },
+    keymap() {
+      return {
+        "ctrl+z": this.handleUndoFilters,
+        "ctrl+shift+z": this.handleRedoFilters,
+        right: this.stepForward,
+        left: this.stepBackward
+      };
     }
   },
   data: () => ({

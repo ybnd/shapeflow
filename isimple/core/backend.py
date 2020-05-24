@@ -400,6 +400,7 @@ class BaseAnalyzerConfig(Config):
 class AnalyzerEvent(Enum):
     STATUS = 'status'
     CONFIG = 'config'
+    RESULT = 'result'
 
 
 class AnalyzerState(IntEnum):
@@ -420,7 +421,17 @@ class AnalyzerState(IntEnum):
             cls.LAUNCHED,
             cls.CAN_RUN,
             cls.DONE,
-            cls.CANCELED
+            cls.CANCELED,
+        ]
+
+    @classmethod
+    def is_launched(cls, state: int) -> bool:
+        return state in [
+            cls.LAUNCHED,
+            cls.CAN_RUN,
+            cls.DONE,
+            cls.RUNNING,
+            cls.CANCELED,
         ]
 
 
@@ -445,9 +456,6 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
     _video_hash: Optional[str]
     _design_hash: Optional[str]
 
-    _launched: bool
-    _ok_to_run: bool
-
     _model: Optional[object]
     _eventstreamer: Optional[EventStreamer]
 
@@ -459,7 +467,6 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
         self._description = ''
         self._timer = Timer(self)
         self._launched = False
-        self._ok_to_run = False
 
         self._hash_video = None
         self._hash_design = None
@@ -510,21 +517,13 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
         raise NotImplementedError
 
     @abc.abstractmethod
-    @backend.expose(backend.can_run)
+    @backend.expose(backend.can_analyze)
     def can_run(self) -> bool:
         raise NotImplementedError
 
-    @backend.expose(backend.confirm_run)
-    def override(self) -> None:
-        self._do_run = True
-
-    @property
-    def ok_to_run(self):
-        return self._ok_to_run
-
     @property
     def launched(self):
-        return self._launched
+        return AnalyzerState.is_launched(self.state)
 
     def set_state(self, state: int):
         self._state = state
@@ -532,6 +531,18 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
     @property
     def state(self) -> int:
         return self._state
+
+    def state_transition(self):
+        """Handle state transitions
+        """
+
+        if self.state == AnalyzerState.INCOMPLETE and self.can_launch():
+            self.set_state(AnalyzerState.CAN_LAUNCH)
+        elif self.state == AnalyzerState.LAUNCHED:
+            if self.can_run():
+                self.set_state(AnalyzerState.CAN_RUN)
+
+        self.event(AnalyzerEvent.STATUS, self.status())
 
     def set_busy(self, busy: bool):
         self._busy = busy
@@ -566,9 +577,8 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
 
     @property
     def position(self) -> float:
-        return -1.0
+        raise NotImplementedError
 
-    @stream
     @backend.expose(backend.status)
     def status(self) -> dict:
         status = {
@@ -578,7 +588,6 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
             'progress': self.progress,
         }
 
-        self.event(AnalyzerEvent.STATUS, status)
         return status
 
     @backend.expose(backend.launch)
@@ -588,8 +597,12 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
                 self._launch()
                 self._gather_instances()
                 self.set_state(AnalyzerState.LAUNCHED)
-                self.status()
-                return True
+
+                # Push events
+                self.event(AnalyzerEvent.STATUS, self.status())
+                self.event(AnalyzerEvent.CONFIG, self.config.to_dict())
+
+                return self.launched
             else:
                 log.warning(f"{self.__class__.__qualname__} can not be launched.")  # todo: try to be more verbose
                 return False

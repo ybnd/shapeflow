@@ -33,6 +33,7 @@
           <i class="fa fa-repeat" />
         </b-button>
       </PageHeaderItem>
+      <PageHeaderSeek :id="id" />
       <PageHeaderItem>
         <b-button
           class="header-button-icon"
@@ -51,7 +52,6 @@
           <i class="fa fa-arrows-v" />
         </b-button>
       </PageHeaderItem>
-      <PageHeaderSeek :id="id" />
       <PageHeaderItem>
         <b-button-group>
           <b-dropdown

@@ -7,11 +7,9 @@ from isimple.maths.colors import HsvColor
 
 
 class BackendRegistry(ImmutableRegistry):
-    app_status = Endpoint(Callable[[], dict], stream_json)
     status = Endpoint(Callable[[], dict], stream_json)
     can_launch = Endpoint(Callable[[], bool])
-    can_run = Endpoint(Callable[[], bool])
-    confirm_run = Endpoint(Callable[[], None])
+    can_analyze = Endpoint(Callable[[], bool])
     launch = Endpoint(Callable[[], bool])
     commit = Endpoint(Callable[[], bool])
     analyze = Endpoint(Callable[[], bool])

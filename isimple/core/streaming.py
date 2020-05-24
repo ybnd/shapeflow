@@ -136,7 +136,7 @@ class JsonStreamer(BaseStreamer):
 
 class EventStreamer(JsonStreamer):
     def event(self, category: str, id: str, data: Any):
-        """Push an event
+        """Push a JSON event
 
         :param category: event category
         :param id: UUID of event source

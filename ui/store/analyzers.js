@@ -18,7 +18,8 @@ import _ from "lodash";
 
 const CATEGORY_COMMIT = {
   status: "setAnalyzerStatus",
-  config: "setAnalyzerConfig"
+  config: "setAnalyzerConfig",
+  result: "updateAnalyzerResult"
 };
 
 export const state = () => {
@@ -113,6 +114,24 @@ export const mutations = {
       console.warn(err);
     }
   },
+
+  updateAnalyzerResult(state, { id, result }) {
+    try {
+      assert(!(id === undefined), "no id provided");
+      assert(!(result === undefined), "no result");
+
+      state.result[id] = {
+        // todo: decide result format ~ plotting packages
+        ...state.result[id],
+        ...result
+      };
+    } catch (err) {
+      console.warn(`updateAnalyzerResult failed: '${id}', result: `);
+      console.warn(result);
+      console.warn(err);
+    }
+  },
+
   dropAnalyzer(state, { id }) {
     try {
       assert(!(id === undefined), "no id provided");

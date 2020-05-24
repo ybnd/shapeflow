@@ -620,6 +620,14 @@ class Mask(BackendInstance):
     def rect(self) -> np.ndarray:
         return self._rect
 
+    @property
+    def ready(self):
+        return self.config.ready
+
+    @property
+    def skip(self):
+        return self.config.skip
+
 
 class DesignFileHandler(CachingBackendInstance):
     _overlay: np.ndarray
@@ -949,11 +957,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             return False
 
     def can_run(self) -> bool:  # todo: endpoint?
-        if self.can_launch():
-            # todo: push get_state streamer
-            return self.ok_to_run
-        else:
-            return False
+        return self.launched and all([mask.ready or mask.skip for mask in self.masks])
 
     def _launch(self):
         self.load_config()
@@ -992,7 +996,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         self.commit()
 
         # Push config event
-        self.get_config()
+
 
     @property
     def busy(self):
@@ -1016,6 +1020,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 tuple(feature.get()(mask) for mask in self.design.masks),
             ) for feature in self.config.features
         }
+        self.get_colors()
         self._new_results()
 
     def _new_results(self):
@@ -1028,7 +1033,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     @backend.expose(backend.get_config)
     def get_config(self) -> dict:
         config = self.config.to_dict()
-        self.event(AnalyzerEvent.CONFIG, config)
         return config
 
     @property
@@ -1045,7 +1049,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 do_commit = False
                 log.debug(f"Setting VideoAnalyzerConfig to {config}")
 
-                previous_features = copy.copy(self.config.features)
+                previous_features = copy.copy(self.config.features)  # todo: clean up
                 previous_video_path = copy.copy(self.config.video_path)
                 previous_design_path = copy.copy(self.config.design_path)
                 previous_flip = copy.copy((self.config.transform.flip))
@@ -1073,19 +1077,21 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                                     feature: self.config.parameters[feature]
                                 })
 
-                    do_commit = True
-                    try:
-                        log.debug('updating featuresets')
+                    if self.launched:
                         self._get_featuresets()
-                    except AttributeError:
-                        pass
+
+                    do_commit = True
+
+                # Get featureset instances
+                if self.launched and not self._featuresets:
+                    self._get_featuresets()
 
                 # Check for flip
                 if previous_flip != self.config.transform.flip:
                     self.transform.estimate(self.transform.config.roi)  # todo: self.config.bla.thing should be exactly self.bla.config.thing always
                     do_commit = True
 
-                # Commit to history if files were changed
+                # Check for file changes
                 if previous_video_path != self.config.video_path or previous_design_path != self.config.design_path:
                     do_commit = True
 
@@ -1093,18 +1099,16 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                     self.commit()  # todo: isimple.video doesn't know about isimple.history!
 
                 # Check for state transitions
-                if self._state == AnalyzerState.INCOMPLETE:
-                    if self.can_launch():
-                        self._state = AnalyzerState.CAN_LAUNCH
-                if self._state == AnalyzerState.LAUNCHED:
-                    if self.can_run():
-                        self._state = AnalyzerState.CAN_RUN
-
-                # Push to streams
-                streams.update()
+                self.state_transition()
 
                 config = self.config.to_dict()
+
+                # Push events
+                self.event(AnalyzerEvent.STATUS, self.status())
                 self.event(AnalyzerEvent.CONFIG, config)  # todo category should be ~ Enum
+
+                # Push streams
+                streams.update()
 
                 return config
 
@@ -1213,6 +1217,10 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
             self.get_colors()
 
+            self.state_transition()
+            self.event(AnalyzerEvent.CONFIG, self.config.to_dict())
+            self.commit()
+
             streams.update()
             self.commit()
         elif len(hits) == 0:
@@ -1221,8 +1229,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             message = f"Multiple valid options: {[hit.name for hit in hits]}. Select a point where masks don't overlap."
             response['message'] = message
             log.warning(message)
-
-        self.get_config()
         return response
 
 

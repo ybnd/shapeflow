@@ -284,6 +284,7 @@ export default {
     handleUpdateStatus(status) {
       this.status = status;
     },
+    handleAnalyze() {},
     handleRemove() {
       console.log(`sidebar: handling remove event (${this.id})`);
       remove(this.id).then(() => {
@@ -312,7 +313,7 @@ export default {
         configure: `/analysis/configure?id=${this.id}`,
         align: `/analysis/align?id=${this.id}`,
         filter: `/analysis/filter?id=${this.id}`,
-        analyze: `/api/analyzer/${this.id}/analyze`
+        analyze: `/api/${this.id}/call/analyze`
       };
     },
     event() {

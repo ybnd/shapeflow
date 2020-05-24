@@ -18,7 +18,7 @@ export const AnalyzerState = {
   ERROR: 8
 };
 
-export const EVENT_CATEGORIES = ["status", "config"];
+export const EVENT_CATEGORIES = ["status", "config", "result"];
 
 export const endpoints = {
   GET_INVERSE_OVERLAID_FRAME: "get_inverse_overlaid_frame",
