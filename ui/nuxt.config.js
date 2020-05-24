@@ -4,9 +4,7 @@ const webpack = require("webpack");
 const markdown = {
   // Can't be loaded ~ webapp if decoded here!
   about: fs.readFileSync("../ABOUT.md"), // todo: better performance if converted to html here?
-  tutorial: fs.readFileSync("../TUTORIAL.md"),
-  readme: fs.readFileSync("../README.md"),
-  readme_ui: fs.readFileSync("README.md")
+  tutorial: fs.readFileSync("../TUTORIAL.md")
 };
 
 const changeLoaderOptions = loaders => {
