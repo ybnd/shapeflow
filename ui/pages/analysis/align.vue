@@ -149,7 +149,6 @@ export default {
       this.previous_id = this.id;
 
       this.opened_at = Date.now();
-      this.getRefs();
 
       // Check if this.id is queued. If not, navigate to /
       if (this.$store.getters["analyzers/getIndex"](this.id) === -1) {
@@ -229,6 +228,23 @@ export default {
       });
     },
     getRefs() {
+      console.log("filter: getRefs()");
+
+      console.log("this.ref_frame = ");
+      console.log(this.ref_frame);
+
+      console.log("this.ref_moveable = ");
+      console.log(this.ref_moveable);
+
+      console.log("this.$refs attrs = ");
+      console.log(Object.keys(this.$refs));
+
+      console.log("this.$refs[this.ref_frame] = ");
+      console.log(this.$refs[this.ref_frame]);
+
+      console.log("this.$refs[this.ref_moveable] = ");
+      console.log(this.$refs[this.ref_moveable]);
+
       this.refs.frame = this.$refs[this.ref_frame];
       this.refs.moveable = this.$refs[this.ref_moveable];
     },

@@ -37,12 +37,16 @@
       </PageHeaderItem>
     </PageHeader>
     <div class="filter">
-      <img :src="`${frame_url}?${opened_at}`" alt="" class="streamed-image-f" />
+      <img
+        :src="`${frame_url}?${opened_at}`"
+        alt=""
+        class="streamed-image-f"
+        :ref="ref_frame"
+      />
       <img
         :src="`${state_url}?${opened_at}`"
         alt=""
         class="streamed-image-f overlay"
-        :ref="ref_frame"
         @click="handleClick"
       />
     </div>
@@ -87,7 +91,6 @@ export default {
       this.previous_id = this.id;
 
       this.opened_at = Date.now();
-      this.getRefs();
 
       // Check if this.id is queued. If not, navigate to /
       if (this.$store.getters["analyzers/getIndex"](this.id) === -1) {
@@ -105,9 +108,11 @@ export default {
 
         console.log(`setting this.feature to ${this.feature}`);
 
-        this.$store.dispatch("analyzers/get_config").then(() => {
-          this.$root.$emit(events.seek.reset(this.id));
-        });
+        this.$store
+          .dispatch("analyzers/get_config", { id: this.id })
+          .then(() => {
+            this.$root.$emit(events.seek.reset(this.id));
+          });
       }
     },
     handleCleanUp() {
@@ -145,7 +150,7 @@ export default {
       console.log("filter: getMasks()");
       this.masks = this.$store.getters["analyzers/getMasks"](this.id);
       this.mask = this.masks[0];
-      this.filter_type = this.$store.getters["analyzers/getFilterType"](
+      this.filter_type = this.$store.getters["analyzers/getMaskFilterType"](
         this.id,
         0
       );
@@ -177,6 +182,8 @@ export default {
       // todo: clean up
       let frame_ok = false;
       let overlay_ok = false;
+      this.getRefs();
+
       if (!(this.waitUntilHasRect === undefined)) {
         if (this.refs.frame.getBoundingClientRect()["width"] > 50) {
           console.log("HAS FRAME");
@@ -216,11 +223,11 @@ export default {
     handleSetMask(mask, index) {
       this.mask = mask;
 
-      this.filter_type = this.$store.getters["analyzers/getFilterType"](
+      this.filter_type = this.$store.getters["analyzers/getMaskFilterType"](
         this.id,
         index
       );
-      this.filter_data = this.$store.getters["analyzers/getFilterData"](
+      this.filter_data = this.$store.getters["analyzers/getMaskFilterData"](
         this.id,
         index
       );
@@ -235,7 +242,7 @@ export default {
           config: config
         })
         .then(() => {
-          this.filter_type = this.$store.getters["analyzers/getFilterType"](
+          this.filter_type = this.$store.getters["analyzers/getMaskFilterType"](
             this.id
           );
         });

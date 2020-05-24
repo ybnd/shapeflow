@@ -182,11 +182,29 @@ export const getters = {
   getMasks: state => id => {
     return state.config[id].masks.map(({ name }) => name);
   },
-  getFilterType: state => (id, mask_index) => {
+  getMaskFilterType: state => (id, mask_index) => {
+    console.log(`getMaskFilterType: id=${id} mask_index=${mask_index}`);
+
+    console.log("state.config[id].masks[mask_index] = ");
+    console.log(state.config[id].masks[mask_index]);
+
     return state.config[id].masks[mask_index].filter.type;
   },
-  getFilterData: state => (id, mask_index) => {
+  getMaskFilterData: state => (id, mask_index) => {
+    console.log(`getMaskFilterData: id=${id} mask_index=${mask_index}`);
+
+    console.log("state.config[id].masks[mask_index] = ");
+    console.log(state.config[id].masks[mask_index]);
+
     return state.config[id].masks[mask_index].filter.data;
+  },
+  getMaskFilterParameters: state => (id, mask_index) => {
+    console.log(`getMaskFilterParameters: id=${id} mask_index=${mask_index}`);
+
+    console.log("state.config[id].masks[mask_index] = ");
+    console.log(state.config[id].masks[mask_index]);
+
+    return state.config[id].masks[mask_index].filter.parameters;
   },
   getRoi: state => id => {
     return state.config[id].transform.roi;
