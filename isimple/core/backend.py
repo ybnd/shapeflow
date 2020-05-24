@@ -408,8 +408,8 @@ class AnalyzerState(IntEnum):
     INCOMPLETE = 1
     CAN_LAUNCH = 2
     LAUNCHED = 3
-    CAN_RUN = 4
-    RUNNING = 5
+    CAN_ANALYZE = 4
+    ANALYZING = 5
     DONE = 6
     CANCELED = 7
     ERROR = 8
@@ -419,7 +419,7 @@ class AnalyzerState(IntEnum):
         return state in [
             cls.CAN_LAUNCH,
             cls.LAUNCHED,
-            cls.CAN_RUN,
+            cls.CAN_ANALYZE,
             cls.DONE,
             cls.CANCELED,
         ]
@@ -428,9 +428,9 @@ class AnalyzerState(IntEnum):
     def is_launched(cls, state: int) -> bool:
         return state in [
             cls.LAUNCHED,
-            cls.CAN_RUN,
+            cls.CAN_ANALYZE,
             cls.DONE,
-            cls.RUNNING,
+            cls.ANALYZING,
             cls.CANCELED,
         ]
 
@@ -518,7 +518,7 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
 
     @abc.abstractmethod
     @backend.expose(backend.can_analyze)
-    def can_run(self) -> bool:
+    def can_analyze(self) -> bool:
         raise NotImplementedError
 
     @property
@@ -539,8 +539,8 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
         if self.state == AnalyzerState.INCOMPLETE and self.can_launch():
             self.set_state(AnalyzerState.CAN_LAUNCH)
         elif self.state == AnalyzerState.LAUNCHED:
-            if self.can_run():
-                self.set_state(AnalyzerState.CAN_RUN)
+            if self.can_analyze():
+                self.set_state(AnalyzerState.CAN_ANALYZE)
 
         self.event(AnalyzerEvent.STATUS, self.status())
 

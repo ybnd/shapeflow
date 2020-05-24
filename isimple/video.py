@@ -956,7 +956,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         else:
             return False
 
-    def can_run(self) -> bool:  # todo: endpoint?
+    def can_analyze(self) -> bool:  # todo: endpoint?
         return self.launched and all([mask.ready or mask.skip for mask in self.masks])
 
     def _launch(self):
@@ -1309,7 +1309,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
     def analyze(self) -> bool:
         assert isinstance(self._cancel, threading.Event)
-        self._state = AnalyzerState.RUNNING
+        self._state = AnalyzerState.ANALYZING
         # todo: push _event streamer
 
         if self.model is None:

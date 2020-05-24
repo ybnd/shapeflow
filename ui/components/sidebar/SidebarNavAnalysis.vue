@@ -92,7 +92,7 @@
         />
       </ul>
     </template>
-    <template v-if="status.state === ast.CAN_RUN">
+    <template v-if="status.state === ast.CAN_ANALYZE">
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
           name="Configure"
@@ -122,7 +122,7 @@
         />
       </ul>
     </template>
-    <template v-else-if="status.state === ast.RUNNING">
+    <template v-else-if="status.state === ast.ANALYZING">
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
           name="Cancel"

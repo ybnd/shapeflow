@@ -11,8 +11,8 @@ export const AnalyzerState = {
   INCOMPLETE: 1,
   CAN_LAUNCH: 2,
   LAUNCHED: 3,
-  CAN_RUN: 4,
-  RUNNING: 5,
+  CAN_ANALYZE: 4,
+  ANALYZING: 5,
   DONE: 6,
   CANCELED: 7,
   ERROR: 8
