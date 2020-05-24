@@ -6,6 +6,7 @@
       <!--       <SidebarNavLink name="Search" icon="icon-magnifier"/>-->
       <!--       <SidebarNavLink name="Export" icon="fa fa-download"/>-->
       <!--       <SidebarNavLink name="Import" icon="fa fa-upload"/>-->
+      <SidebarNavLink name="Tutorial" icon="fa fa-question" url="/tutorial" />
       <SidebarNavLink name="About" icon="fa fa-info" url="/about" />
     </SidebarNavDropdown>
   </footer>

@@ -8,11 +8,11 @@
 import WebpackMarkdown from "../components/WebpackMarkdown";
 
 export default {
-  name: "about",
+  name: "tutorial",
   components: { WebpackMarkdown },
   data() {
     return {
-      raw_content: markdown.about
+      raw_content: markdown.tutorial
     };
   }
 };

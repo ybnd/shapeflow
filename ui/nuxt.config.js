@@ -1,3 +1,14 @@
+const fs = require("fs");
+const webpack = require("webpack");
+
+const markdown = {
+  // Can't be loaded ~ webapp if decoded here!
+  about: fs.readFileSync("../ABOUT.md"), // todo: better performance if converted to html here?
+  tutorial: fs.readFileSync("../TUTORIAL.md"),
+  readme: fs.readFileSync("../README.md"),
+  readme_ui: fs.readFileSync("README.md")
+};
+
 const changeLoaderOptions = loaders => {
   if (loaders) {
     for (const loader of loaders) {
@@ -23,8 +34,7 @@ module.exports = {
       {
         hid: "description",
         name: "description",
-        content:
-          "Unofficial Nuxt + CoreUI project, free to use boilerplate for every need."
+        content: ""
       }
     ],
     link: [{ rel: "icon", type: "image/x-icon", href: "/favicon.ico" }]
@@ -91,6 +101,16 @@ module.exports = {
       }
       if (isClient) {
       }
-    }
-  }
+    },
+    // Markdown data
+    // https://stackoverflow.com/a/53502487/12259362
+    plugins: [
+      // todo: loop over `contents`?
+      new webpack.DefinePlugin({
+        markdown: markdown
+      })
+    ]
+  },
+
+  lintOnSave: true
 };
