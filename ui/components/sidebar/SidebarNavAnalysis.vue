@@ -108,11 +108,11 @@
           icon="icon-layers"
           :id="link.filter"
         />
-        <SidebarNavAnalysisLink
-          name="Analyze"
-          icon="icon-control-play"
-          :id="link.analyze"
-        />
+        <div>
+          <div @click="handleAnalyze" class="sidebar-analysis-link nav-link">
+            <i class="icon-control-play"></i>Analyze
+          </div>
+        </div>
         <SidebarNavAnalysisLink
           name="Remove"
           icon="icon-trash"
@@ -122,6 +122,13 @@
       </ul>
     </template>
     <template v-else-if="status.state === ast.ANALYZING">
+      <template v-if="status.results">
+        <SidebarNavAnalysisLink
+          name="Results"
+          icon="icon-graph"
+          :id="link.result"
+        />
+      </template>
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
           name="Cancel"
@@ -148,11 +155,18 @@
           icon="icon-layers"
           :id="link.filter"
         />
-        <SidebarNavAnalysisLink
-          name="Analyze"
-          icon="icon-control-play"
-          :id="link.analyze"
-        />
+        <div>
+          <div @click="handleAnalyze" class="sidebar-analysis-link nav-link">
+            <i class="icon-control-play"></i>Analyze
+          </div>
+        </div>
+        <template v-if="status.results">
+          <SidebarNavAnalysisLink
+            name="Results"
+            icon="icon-graph"
+            :id="link.result"
+          />
+        </template>
         <SidebarNavAnalysisLink
           name="Remove"
           icon="icon-trash"
@@ -178,11 +192,18 @@
           icon="icon-layers"
           :id="filter"
         />
-        <SidebarNavAnalysisLink
-          name="Analyze"
-          icon="icon-control-play"
-          :id="link.analyze"
-        />
+        <div>
+          <div @click="handleAnalyze" class="sidebar-analysis-link nav-link">
+            <i class="icon-control-play"></i>Analyze
+          </div>
+        </div>
+        <template v-if="status.results">
+          <SidebarNavAnalysisLink
+            name="Results"
+            icon="icon-graph"
+            :id="link.result"
+          />
+        </template>
         <SidebarNavAnalysisLink
           name="Remove"
           icon="icon-trash"
@@ -208,11 +229,18 @@
           icon="icon-layers"
           :id="link.filter"
         />
-        <SidebarNavAnalysisLink
-          name="Analyze"
-          icon="icon-control-play"
-          :id="link.analyze"
-        />
+        <div>
+          <div @click="handleAnalyze" class="sidebar-analysis-link nav-link">
+            <i class="icon-control-play"></i>Analyze
+          </div>
+        </div>
+        <template v-if="status.results">
+          <SidebarNavAnalysisLink
+            name="Results"
+            icon="icon-graph"
+            :id="link.result"
+          />
+        </template>
         <SidebarNavAnalysisLink
           name="Remove"
           icon="icon-trash"
@@ -232,8 +260,6 @@ import {
   remove,
   cancel
 } from "../../static/api";
-
-import { mapGetters } from "vuex";
 
 import { events } from "../../static/events";
 
@@ -272,7 +298,9 @@ export default {
     handleUpdateStatus(status) {
       this.status = status;
     },
-    handleAnalyze() {},
+    handleAnalyze() {
+      this.$store.dispatch("analyzers/analyze", { id: this.id });
+    },
     handleRemove() {
       console.log(`sidebar: handling remove event (${this.id})`);
       remove(this.id).then(() => {
@@ -301,7 +329,7 @@ export default {
         configure: `/analysis/configure?id=${this.id}`,
         align: `/analysis/align?id=${this.id}`,
         filter: `/analysis/filter?id=${this.id}`,
-        analyze: `/api/${this.id}/call/analyze`
+        result: `/analysis/result?id=${this.id}`
       };
     },
     event() {

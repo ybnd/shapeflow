@@ -24,7 +24,7 @@ from isimple.core.interface import TransformInterface, FilterConfig, \
     FilterInterface, FilterType, TransformType
 from isimple.core.streaming import stream, streams
 from isimple.endpoints import BackendRegistry
-from isimple.maths.colors import HsvColor, BgrColor, convert
+from isimple.maths.colors import HsvColor, BgrColor, convert, css_hex
 from isimple.maths.images import to_mask, crop_mask, area_pixelsum, ckernel, \
     overlay, rect_contains
 from isimple.maths.coordinates import Coo
@@ -830,6 +830,10 @@ class MaskFunction(Feature):
         self._feature_type = FeatureType(self.__class__.__name__)
 
     @property
+    def name(self):
+        return self.mask.name
+
+    @property
     def feature_type(self) -> FeatureType:
         return self._feature_type
 
@@ -906,16 +910,14 @@ class MaskFunction(Feature):
               # todo: overwrites rect with white
         return state
 
-    @property
-    def name(self) -> str:
-        return self.mask.name
-
     def _function(self, frame: np.ndarray) -> Any:
         raise NotImplementedError
 
 
 @extend(FeatureType)
 class PixelSum(MaskFunction):
+    _label = "Pixels"
+    _unit = "#"
     _description = "Masked & filtered area as number of pixels"
 
     def _function(self, frame: np.ndarray) -> Any:
@@ -924,6 +926,8 @@ class PixelSum(MaskFunction):
 
 @extend(FeatureType)
 class Volume_uL(MaskFunction):
+    _label = "Volume"
+    _unit = "µL"
     _description = "Volume ~ masked & filtered area multiplied by channel height"
 
     _parameters = ('h',)
@@ -954,14 +958,14 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     design: DesignFileHandler
     transform: TransformHandler
     features: Tuple[Feature,...]
-    results: dict
+    results: Dict[str, pd.DataFrame]
 
-    _featuresets: Dict[str, FeatureSet]
+    _featuresets: Dict[FeatureType, FeatureSet]
 
     def __init__(self, config: VideoAnalyzerConfig = None, multi: bool = False):
         super().__init__(config)
         self._multi = multi
-        self.results: dict = {}
+        self.results: Dict[FeatureType, pd.DataFrame] = {}
         self._gather_instances()
 
     @property
@@ -974,6 +978,10 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             return self.video.cached
         else:
             return False
+
+    @property
+    def has_results(self) -> bool:
+        return hasattr(self, 'results')
 
     def can_launch(self) -> bool:  # todo: endpoint?
         if self.config.video_path is not None \
@@ -1033,7 +1041,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         self._config.features = tuple(features)
 
         self._featuresets = {
-            str(feature): FeatureSet(
+            feature: FeatureSet(
                 tuple(feature.get()(mask) for mask in self.design.masks),
             ) for feature in self.config.features
         }
@@ -1143,8 +1151,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             self.get_transformed_frame(frame_number))
 
     @backend.expose(backend.get_colors)  # todo: per feature in each feature set; maybe better as a dict instead of a list of tuples?
-    def get_colors(self) -> List[Tuple[HsvColor, ...]]:
-        return [featureset.get_colors() for featureset in self._featuresets.values()]
+    def get_colors(self) -> Dict[FeatureType, Tuple[HsvColor, ...]]:
+        return {str(k):[css_hex(c) for c in featureset.get_colors()] for k, featureset in self._featuresets.items()}
 
     def frame_numbers(self) -> Generator[int, None, None]:
         if self.config.frame_interval_setting == FrameIntervalSetting('Nf'):
@@ -1297,9 +1305,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 )
                 values.append(value)
 
-            result.update({k: values})
-
-            self.results[k].loc[frame_number] = [t] + values
+            result.update({str(k): values})
+            self.results[str(k)].loc[frame_number] = [t] + values
 
         self.set_progress(frame_number / self.video.frame_count)
         self.event(AnalyzerEvent.RESULT, result)

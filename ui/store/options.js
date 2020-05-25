@@ -9,6 +9,8 @@ export const state = () => ({
   analyzer_state: AnalyzerState,
   feature: {
     options: [],
+    labels: {},
+    units: {},
     descriptions: {},
     parameters: {},
     parameter_defaults: {},

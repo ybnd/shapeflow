@@ -7,7 +7,7 @@
         :class="classList"
         class="sidebar-analysis-link"
       >
-        <i :class="icon"></i> {{ name }}
+        <i :class="icon"></i>{{ name }}
         <template v-if="show_popup">
           <b-popover
             :target="id"
@@ -19,7 +19,7 @@
             boundary="viewport"
           >
             <b-button variant="primary" @click="handleClickStageTwo">
-              <i class="fa fa-check" /> {{ name }}
+              <i class="fa fa-check" />{{ name }}
             </b-button>
             <b-button variant="danger" @click="handleHideStageTwo">
               <i class="fa fa-times" />
@@ -35,7 +35,7 @@
         :class="classList"
         class="sidebar-analysis-link"
       >
-        <i :class="icon"></i> {{ name }}
+        <i :class="icon"></i>{{ name }}
       </div>
     </template>
     <template v-else>
@@ -45,7 +45,7 @@
         :class="classList"
         class="sidebar-analysis-link"
       >
-        <i :class="icon"></i> {{ name }}
+        <i :class="icon"></i>{{ name }}
       </div>
     </template>
   </div>

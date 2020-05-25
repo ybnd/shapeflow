@@ -241,6 +241,8 @@ class Feature(abc.ABC):  # todo: should probably use Config for parameters after
     _color: Optional[HsvColor]
     _state: Optional[np.ndarray]
 
+    _label: str = ''
+    _unit: str = ''
     _description: str = ''
     _elements: Tuple[BackendInstance, ...] = ()
 
@@ -249,6 +251,7 @@ class Feature(abc.ABC):  # todo: should probably use Config for parameters after
     _parameter_descriptions: Dict[str, str] = {}
 
     def __init__(self, elements: Tuple[BackendInstance, ...]):
+        self._name = '<unnamed feature>'
         self._skip = False
         self._ready = False
 
@@ -263,6 +266,19 @@ class Feature(abc.ABC):  # todo: should probably use Config for parameters after
         if state is not None:
             state = self.state(frame, state)
         return self.value(frame), state
+
+    @property
+    @abc.abstractmethod
+    def name(self) -> str:
+        raise NotImplementedError
+
+    @classmethod
+    def label(cls) -> str:
+        return cls._label
+
+    @classmethod
+    def unit(cls) -> str:
+        return cls._unit
 
     @property
     def skip(self) -> bool:
@@ -307,12 +323,6 @@ class Feature(abc.ABC):  # todo: should probably use Config for parameters after
         """
         raise NotImplementedError
 
-    @abc.abstractmethod
-    def name(self) -> str:
-        """Return the name of the feature
-        """
-        raise NotImplementedError
-
     @classmethod
     def parameters(cls) -> Tuple[str,...]:
         return cls._parameters
@@ -331,7 +341,7 @@ class Feature(abc.ABC):  # todo: should probably use Config for parameters after
 
 
 class FeatureSet(object):
-    _features: Tuple[Feature, ...]
+    _feature: Tuple[Feature, ...]
     _colors: Tuple[HsvColor, ...]
 
     def __init__(self, features: Tuple[Feature, ...]):
@@ -619,12 +629,18 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
     def cached(self) -> bool:
         raise NotImplementedError
 
+    @property
+    @abc.abstractmethod
+    def has_results(self) -> bool:
+        raise NotImplementedError
+
     @backend.expose(backend.status)
     def status(self) -> dict:
         status = {
             'state': self.state,
             'busy': self.busy,
             'cached': self.cached,
+            'results': self.has_results,
             'position': self.position,
             'progress': self.progress,
         }

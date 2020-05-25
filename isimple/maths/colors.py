@@ -89,3 +89,12 @@ def complementary(color: Color) -> Color:
     hsv0 = convert(color, HsvColor)
     hsv1 = HsvColor(int(round((hsv0.h + 90) % 180)), hsv0.s, hsv0.v)  # type: ignore
     return convert(hsv1, type(color))
+
+def css_hex(color: Color) -> str:
+    rgb = convert(color, RgbColor)
+    assert isinstance(rgb, RgbColor)
+
+    def _hex(num: int) -> str:
+        return "{0:0{1}x}".format(num,2)
+
+    return f"#{_hex(rgb.r)}{_hex(rgb.g)}{_hex(rgb.b)}"

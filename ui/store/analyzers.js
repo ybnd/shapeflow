@@ -10,7 +10,9 @@ import {
   launch,
   events,
   EVENT_CATEGORIES,
-  get_status
+  get_status,
+  get_colors,
+  analyze
 } from "../static/api";
 
 import assert from "assert";
@@ -116,16 +118,49 @@ export const mutations = {
     }
   },
 
+  initAnalyzerResult(state, { id, colors }) {
+    try {
+      assert(!(id === undefined), "no id provided");
+      assert(!(colors === undefined), "no colors provided");
+
+      state.result[id] = {};
+
+      for (const feature of state.config[id].features) {
+        state.result[id] = { ...state.result[id], [feature]: [] };
+        for (let m = 0; m < state.config[id].masks.length; m++) {
+          state.result[id][feature] = [
+            ...state.result[id][feature],
+            {
+              label: state.config[id].masks[m].name,
+              backgroundColor: colors[feature][m],
+              borderColor: colors[feature][m],
+              showLine: true,
+              data: []
+            }
+          ];
+        }
+      }
+    } catch (err) {
+      console.warn(`initAnalyzerResult failed: '${id}'`);
+      console.warn(err);
+    }
+  },
+
   updateAnalyzerResult(state, { id, result }) {
     try {
       assert(!(id === undefined), "no id provided");
       assert(!(result === undefined), "no result");
 
-      state.result[id] = {
-        // todo: decide result format ~ plotting packages
-        ...state.result[id], // todo: append result to state.result[id]
-        ...result
-      };
+      for (const feature of state.config[id].features) {
+        for (let m = 0; m < state.config[id].masks.length; m++) {
+          state.result[id][feature][m].data = [
+            ...state.result[id][feature][m].data,
+            { x: result.t, y: result[feature][m] }
+          ];
+        }
+      }
+      console.log(`result[${id}] = `);
+      console.log(state.result[id]);
     } catch (err) {
       console.warn(`updateAnalyzerResult failed: '${id}', result: `);
       console.warn(result);
@@ -189,6 +224,11 @@ export const getters = {
   getStatus: state => id => {
     if (id in state.status) {
       return state.status[id];
+    }
+  },
+  getResult: state => id => {
+    if (id in state.result) {
+      return state.result[id];
     }
   },
   getConfig: state => id => {
@@ -312,8 +352,9 @@ export const actions = {
   },
 
   async sync({ dispatch, getters }) {
-    console.log(`action: analyzers.sync`);
     try {
+      console.log(`action: analyzers.sync`);
+
       if (!getters["hasSource"]) {
         dispatch("source");
       }
@@ -352,9 +393,9 @@ export const actions = {
   },
 
   async get_config({ commit }, { id }) {
-    console.log(`action: analyzers.get_config (id=${id})`);
     try {
       assert(!(id === undefined), "no id provided");
+      console.log(`action: analyzers.get_config (id=${id})`);
 
       return get_config(id).then(config => {
         console.log(
@@ -373,9 +414,9 @@ export const actions = {
   },
 
   async get_status({ commit }, { id }) {
-    console.log(`action: analyzers.get_status (id=${id})`);
     try {
       assert(!(id === undefined), "no id provided");
+      console.log(`action: analyzers.get_status (id=${id})`);
 
       return get_status(id).then(status => {
         console.log(
@@ -390,10 +431,10 @@ export const actions = {
   },
 
   async set_config({ commit }, { id, config }) {
-    console.log(`action: analyzers.set_config (id=${id})`);
     try {
       assert(!(id === undefined), "no id provided");
       assert(!(config === undefined), "no config");
+      console.log(`action: analyzers.set_config (id=${id})`);
 
       return set_config(id, config).then(config => {
         console.log(
@@ -407,6 +448,21 @@ export const actions = {
       });
     } catch (e) {
       console.warn(`could not set config for ${id}`);
+      return undefined;
+    }
+  },
+
+  async analyze({ commit }, { id }) {
+    try {
+      assert(!(id === undefined), "no id provided");
+      console.log(`action: analyzers.analyze (id=${id})`);
+
+      get_colors(id).then(colors => {
+        commit("initAnalyzerResult", { id: id, colors: colors });
+        analyze(id);
+      });
+    } catch (e) {
+      console.warn(`could not analyze for ${id}`);
       return undefined;
     }
   }

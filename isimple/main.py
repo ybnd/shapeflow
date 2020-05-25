@@ -162,13 +162,21 @@ class Main(isimple.core.Lockable):
                 features = [video.FeatureType(k).get() for k in ft.options]
                 return respond({
                     'options': ft.options,
+                    'labels': {
+                        k: feature.label() for k, feature
+                        in zip(ft.options, features)
+                    },
+                    'units': {
+                        k: feature.unit() for k, feature
+                        in zip(ft.options, features)
+                    },
                     'descriptions': {
                         k: feature.description() for k, feature
-                                    in zip(ft.options, features)
+                        in zip(ft.options, features)
                     },
                     'parameters': {
                         k: feature.parameters() for k, feature
-                                    in zip(ft.options, features)
+                        in zip(ft.options, features)
                     },
                     'parameter_defaults': {
                         k: feature.parameter_defaults() for k, feature
@@ -176,7 +184,7 @@ class Main(isimple.core.Lockable):
                     },
                     'parameter_descriptions': {
                         k: feature.parameter_descriptions() for k, feature
-                                    in zip(ft.options, features)
+                        in zip(ft.options, features)
                     },
                 })
             elif for_type == "frame_interval_setting":

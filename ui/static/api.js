@@ -1,4 +1,5 @@
 import axios from "axios";
+import { hsv2hex } from "./util";
 
 let API = "/api/";
 
@@ -150,6 +151,14 @@ export async function check_design_path(design_path) {
 
 export async function get_config(id) {
   return axios.get(api(id, "call/get_config")).then(response => {
+    if (response.status === 200) {
+      return response.data;
+    }
+  });
+}
+
+export async function get_colors(id) {
+  return axios.get(api(id, "call/get_colors")).then(response => {
     if (response.status === 200) {
       return response.data;
     }

@@ -36,7 +36,7 @@
     "underscore": "^1.10.2",
     "uuid": "^7.0.3",
     "v-hotkey": "^0.8.0",
-    "vue-chartjs": "^3.1.1",
+    "vue-chartjs": "^3.5.0",
     "vue-form-json-schema": "^2.5.3",
     "vue-markdown": "^2.2.4",
     "vue-moveable": "^1.7.1",

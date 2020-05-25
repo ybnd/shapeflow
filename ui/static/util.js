@@ -15,3 +15,5 @@ export function decodeWebpackString(webpack_string, encoding = "utf-8") {
     Buffer.from(Object.values(webpack_string))
   );
 }
+
+export function hsv2hex(color) {}
