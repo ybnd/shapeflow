@@ -241,7 +241,7 @@ class Lockable(abc.ABC):
         self._lock = threading.Lock()
         self._cancel = threading.Event()
 
-    @contextmanager  # todo: should be a Lockable mixin
+    @contextmanager
     def lock(self):
         log.debug(f"Acquiring lock {self}...")
         lock = self._lock.acquire()
@@ -253,9 +253,11 @@ class Lockable(abc.ABC):
             log.debug(f"Unlocking {self}")
             self._lock.release()
 
-    def cancel(self) -> bool:
+    def cancel(self):
         self._cancel.set()
-        return True
+
+    def clear(self):  # todo: wording
+        self._cancel.clear()
 
 
 class RootInstance(Lockable):

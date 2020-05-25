@@ -23,20 +23,19 @@
       <!--      </b-popover>-->
       {{ name }}
     </div>
-    <template v-if="status.progress > 0">
-      <b-progress
-        height="2px"
-        :class="{
-          'sidebar-progress': true,
-          busy: status.busy,
-          error: status.state === ast.ERROR,
-          canceled: status.state === ast.CANCELED,
-          done: status.state === ast.DONE
-        }"
-        v-bind:value="status.progress"
-        max="1"
-      ></b-progress>
-    </template>
+    <b-progress
+      height="2px"
+      :class="{
+        'sidebar-progress': true,
+        busy: status.busy,
+        caching: status.state === ast.CACHING,
+        error: status.state === ast.ERROR,
+        canceled: status.state === ast.CANCELED,
+        done: status.state === ast.DONE
+      }"
+      v-bind:value="status.progress"
+      max="1"
+    ></b-progress>
     <template v-if="status.state === ast.INCOMPLETE">
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
@@ -133,12 +132,6 @@
       </ul>
     </template>
     <template v-else-if="status.state === ast.DONE">
-      <b-progress
-        class="progress"
-        height="2px"
-        :value="progress"
-        variant="success"
-      ></b-progress>
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
           name="Configure"
@@ -153,7 +146,12 @@
         <SidebarNavAnalysisLink
           name="Set filters"
           icon="icon-layers"
-          :id="filter"
+          :id="link.filter"
+        />
+        <SidebarNavAnalysisLink
+          name="Analyze"
+          icon="icon-control-play"
+          :id="link.analyze"
         />
         <SidebarNavAnalysisLink
           name="Remove"
@@ -164,12 +162,6 @@
       </ul>
     </template>
     <template v-else-if="status.state === ast.CANCELED">
-      <b-progress
-        class="progress"
-        height="2px"
-        :value="progress"
-        variant="warning"
-      ></b-progress>
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
           name="Configure"
@@ -200,12 +192,6 @@
       </ul>
     </template>
     <template v-else-if="status.state === ast.ERROR">
-      <b-progress
-        class="progress"
-        height="2px"
-        :value="progress"
-        variant="danger"
-      ></b-progress>
       <ul class="nav-dropdown-items">
         <SidebarNavAnalysisLink
           name="Configure"
@@ -220,7 +206,7 @@
         <SidebarNavAnalysisLink
           name="Set filters"
           icon="icon-layers"
-          :id="filter"
+          :id="link.filter"
         />
         <SidebarNavAnalysisLink
           name="Analyze"
@@ -247,6 +233,8 @@ import {
   cancel
 } from "../../static/api";
 
+import { mapGetters } from "vuex";
+
 import { events } from "../../static/events";
 
 // todo: should do color/icon resolution in a separate .js module, should be shared with e.g. dashboard
@@ -261,13 +249,13 @@ export default {
     SidebarNavAnalysisLink
   },
   mounted() {
-    this.$root.$on(this.event.status, this.handleUpdateStatus);
+    // this.$root.$on(this.event.status, this.handleUpdateStatus);
     this.$root.$on(this.event.remove, this.handleRemove);
     this.$root.$on(this.event.cancel, this.handleCancel);
     this.$root.$on(this.event.open, this.handleOpen);
   },
   destroyed() {
-    this.$root.$off(this.event.status, this.handleUpdateStatus);
+    // this.$root.$off(this.event.status, this.handleUpdateStatus);
     this.$root.$off(this.event.remove, this.handleRemove);
     this.$root.$off(this.event.cancel, this.handleCancel);
     this.$root.$off(this.event.open, this.handleOpen);
@@ -323,17 +311,20 @@ export default {
         remove: events.sidebar.remove(this.id),
         open: events.sidebar.open(this.id)
       };
+    },
+    status() {
+      return this.$store.getters["analyzers/getStatus"](this.id);
     }
   },
   data() {
     return {
-      ast: ast,
-      status: {
-        state: ast.UNKNOWN,
-        busy: false,
-        progress: 0,
-        position: 0
-      }
+      ast: ast
+      // status: {
+      //   state: ast.UNKNOWN,
+      //   busy: false,
+      //   progress: 0,
+      //   position: 0
+      // }
     };
   }
 };
@@ -344,10 +335,17 @@ export default {
 @import "../../assets/scss/_core-variables";
 @import "node_modules/bootstrap/scss/functions";
 
-.sidebar-progress * {
-  background-color: theme-color("primary") !important;
+.sidebar-progress.cached {
+  /* progress bar background should match caching fill color */
+  background-color: theme-color("secondary") !important;
 }
-.sidebar-progress.busy * {
+
+.sidebar-progress * {
+  /*transition-duration: 0.25s !important;*/
+  transition: none !important;
+}
+
+.sidebar-progress.caching * {
   background-color: theme-color("secondary") !important;
 }
 

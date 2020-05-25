@@ -32,7 +32,6 @@ import SidebarNavLink from "./SidebarNavLink";
 import SidebarNavItem from "./SidebarNavItem";
 
 import draggable from "vuedraggable";
-import { mapState } from "vuex";
 
 import { events } from "../../static/events";
 
@@ -59,18 +58,12 @@ export default {
       e.preventDefault();
       e.target.parentElement.classList.toggle("open");
     },
-    updateQueue() {
-      this.queue = this.$store.getters["analyzers/getQueue"];
-      this.status = this.$store.getters["analyzers/getFullStatus"];
-
-      for (let i = 0; i < this.queue.length; i++) {
-        let id = this.queue[i];
-        this.$root.$emit(events.sidebar.status(id), this.status[id]);
-      }
-    },
     init() {
       this.$store.dispatch("analyzers/source");
       this.sync();
+    },
+    updateQueue() {
+      this.queue = this.$store.getters["analyzers/getQueue"];
     },
     sync() {
       if (!this.waiting) {
@@ -99,7 +92,6 @@ export default {
   data: () => {
     return {
       queue: [], // local copy of queue
-      status: {},
       interval_update: null,
       interval_sync: null,
       waiting: false

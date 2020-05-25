@@ -83,7 +83,7 @@
 import {
   get_options,
   set_filter,
-  url,
+  api,
   analyze,
   stop_stream,
   endpoints
@@ -300,10 +300,10 @@ export default {
       return this.$route.query.id;
     },
     state_url() {
-      return url(this.$route.query.id, "stream", endpoints.GET_STATE_FRAME);
+      return api(this.$route.query.id, "stream", endpoints.GET_STATE_FRAME);
     },
     frame_url() {
-      return url(this.$route.query.id, "stream", endpoints.GET_FRAME);
+      return api(this.$route.query.id, "stream", endpoints.GET_FRAME);
     },
     ref_frame() {
       return `filter-frame-${this.$route.query.id}`;

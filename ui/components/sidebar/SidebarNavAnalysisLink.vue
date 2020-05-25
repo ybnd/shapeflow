@@ -81,11 +81,11 @@ export default {
   },
   methods: {
     doNavigate() {
-      // id should be set to the url
+      // id should be set to the api
       this.$router.push(this.id);
     },
     doRequest(rl) {
-      // id should be set to the url
+      // id should be set to the api
       axios.post(this.id);
     },
     handleShowStageTwo() {

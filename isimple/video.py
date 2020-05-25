@@ -28,7 +28,7 @@ from isimple.maths.colors import HsvColor, BgrColor, convert
 from isimple.maths.images import to_mask, crop_mask, area_pixelsum, ckernel, \
     overlay, rect_contains
 from isimple.maths.coordinates import Coo
-from isimple.util import frame_number_iterator
+from isimple.util import frame_number_iterator, timed
 
 log = get_logger(__name__)
 
@@ -67,6 +67,7 @@ class VideoFileHandler(CachingBackendInstance, Lockable):
 
         self.path = video_path
         self._cache = None
+        self._cached = False
 
         self._capture = cv2.VideoCapture(
             os.path.join(os.getcwd(), self.path)
@@ -91,6 +92,22 @@ class VideoFileHandler(CachingBackendInstance, Lockable):
     @property
     def shape(self):
         return self._shape
+    
+    @property
+    def cached(self):
+        return self._cached
+
+    def check_cached(self) -> Optional[bool]:
+        if self._cache is not None:
+            self._cached = all([
+                self._is_cached(self._read_frame, self.path, fn)
+                for fn in self._requested_frames
+            ])
+            log.info(f"cached keys: {self._cached}")
+            return self._cached
+        else:
+            with self.caching():
+                return self.check_cached()
 
     def set_requested_frames(self, requested_frames: List[int]) -> None:
         """Add a list of requested frames.
@@ -100,11 +117,12 @@ class VideoFileHandler(CachingBackendInstance, Lockable):
         log.debug(f"Requested frames: {requested_frames}")
         self._requested_frames = requested_frames
 
+        self.check_cached()
         self._touch_keys(
             [self._get_key(self._read_frame, self.path, fn)
              for fn in requested_frames]
         )
-    # todo: state callback object
+
     def _cache_frames(self, progress_callback: Callable[[float], None], state_callback: Callable[[int], None]):
         try:
             with self.caching():
@@ -116,16 +134,19 @@ class VideoFileHandler(CachingBackendInstance, Lockable):
                     if not self._is_cached(*args):
                         self._cached_call(*args)
                         progress_callback(frame_number / float(self.frame_count))
-                        streams.update()
                 progress_callback(0.0)
-                streams.update()
             self.seek(0.5)
             self._is_caching = False
+
+            if not self._cancel_caching.is_set():
+                self._cached = True
+            else:
+                self._cancel_caching.clear()
         except Exception:
             state_callback(AnalyzerState.ERROR)
 
     def cache_frames(self, progress_callback: Callable[[float], None], state_callback: Callable[[int], None]):
-        if self.config.do_cache and self.config.do_background:
+        if self.config.do_cache and self.config.do_background and not self.cached:
             self._background = threading.Thread(
                 target=self._cache_frames, args=(progress_callback, state_callback,), daemon=True
             )
@@ -947,6 +968,13 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     def config(self) -> VideoAnalyzerConfig:
         return self._config
 
+    @property
+    def cached(self) -> bool:
+        if hasattr(self, 'video'):
+            return self.video.cached
+        else:
+            return False
+
     def can_launch(self) -> bool:  # todo: endpoint?
         if self.config.video_path is not None \
                 and self.config.design_path is not None:
@@ -967,7 +995,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         self.video.set_requested_frames(list(self.frame_numbers()))
 
         # Start caching frames in the background
-        self.video.cache_frames(self.set_progress, self.set_state)
+        with self.busy_context(AnalyzerState.CACHING):
+            self.video.cache_frames(self.set_progress, self.set_state)
 
         self.design = DesignFileHandler(self.config.design_path, self.config.design, self.config.masks)
         self.transform = TransformHandler(self.video.shape, self.design.shape, self.config.transform)
@@ -992,18 +1021,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         backend.expose(backend.get_state_frame)(self.get_state_frame)
         backend.expose(backend.get_colors)(self.get_colors)
 
-        # Commit to history
-        self.commit()
-
-        # Push config event
-
-
-    @property
-    def busy(self):
-        if hasattr(self, 'video'):
-            return self._busy or self.video.is_caching()
-        else:
-            return self._busy
 
     def _get_featuresets(self):
         features = []
@@ -1029,7 +1046,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 [], columns=['time'] + [f.name for f in fs.features], index=list(self.frame_numbers())
             )
 
-    @stream
     @backend.expose(backend.get_config)
     def get_config(self) -> dict:
         config = self.config.to_dict()
@@ -1101,7 +1117,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 # Check for state transitions
                 self.state_transition()
 
-                config = self.config.to_dict()
+                config = self.get_config()
 
                 # Push events
                 self.event(AnalyzerEvent.STATUS, self.status())
@@ -1164,8 +1180,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         else:
             roi = self.transform.config.roi
 
-        self.get_config()
-
         return roi
 
     @backend.expose(backend.redo_roi)
@@ -1179,8 +1193,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             self.transform.estimate(roi)
         else:
             roi = self.transform.config.roi
-
-        self.get_config()
 
         return roi
 
@@ -1218,7 +1230,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             self.get_colors()
 
             self.state_transition()
-            self.event(AnalyzerEvent.CONFIG, self.config.to_dict())
+            self.event(AnalyzerEvent.CONFIG, self.get_config())
             self.commit()
 
             streams.update()
@@ -1265,7 +1277,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         # todo: placeholder -- mask rect info to frontend (in relative coordinates)
         return {mask.name: mask.rect for mask in self.masks}
 
-    def calculate(self, frame_number: int, update_callback: Callable = None):
+    def calculate(self, frame_number: int):
         """Return a state image for each FeatureSet
         """
         log.debug(f"Calculating for frame {frame_number}")
@@ -1276,10 +1288,10 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
         result = {'t': t}
 
-        for k,fs in self._featuresets.items():  # todo: for each feature set -- export data for a separate legend to add to the state plot
+        for k,fs in self._featuresets.items():
             values = []
 
-            for feature in fs._features:  # todo: make featureset iterable maybe
+            for feature in fs._features:  # todo: make featureset iterable maybe?
                 value, state = feature.calculate(
                     frame.copy(),  # don't overwrite self.frame ~ cv2 dst parameter  # todo: better to let OpenCV handle copying, or not?
                 )
@@ -1289,39 +1301,32 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
             self.results[k].loc[frame_number] = [t] + values
 
+        self.set_progress(frame_number / self.video.frame_count)
         self.event(AnalyzerEvent.RESULT, result)
 
-    def analyze(self) -> bool:
-        assert isinstance(self._cancel, threading.Event)
-        self._state = AnalyzerState.ANALYZING
-        # todo: push _event streamer
+    def analyze(self):
+        with self.busy_context(AnalyzerState.ANALYZING, AnalyzerState.DONE):  # todo: what happens if error occurs within this context?
+            assert isinstance(self._cancel, threading.Event)
 
-        if self.model is None:
-            log.warning(f"{self} has no database model; data may be lost")
+            if self.model is None:
+                log.warning(f"{self} has no database model; result data will be lost")
 
-        with self.lock(), self.time():
-            self._get_featuresets()
-            self.save_config()
+            with self.lock(), self.time():
+                self._get_featuresets()
+                self.save_config()
 
-            log.debug(f"Analyzing with features: {[f for f in self._featuresets]}.")
+                log.debug(f"Analyzing with features: {[f for f in self._featuresets]}.")
 
-            for fn in self.frame_numbers():
-                if self._cancel.is_set():
-                    break
-                self.calculate(fn) #, update_callback)
-                self._progress = fn / self.video.frame_count
+                for fn in self.frame_numbers():
+                    if not self._cancel.is_set():
+                        self.calculate(fn)
+                    else:
+                        break
 
-            # Save results & configuration to database
-            # todo: push get_state streamer
-            self.commit()
-        if not self._cancel.is_set():
-            self._state = AnalyzerState.DONE
-            # todo: push get_state streamer
-            return True
-        else:
-            self._cancel.clear()
-            # todo: push get_state streamer
-            return False
+                self.commit()
+
+            if self._cancel.is_set():
+                self.clear()
 
     def load_config(self):  # todo: look in history instead of file next to video
         """Load video analysis configuration from history database
@@ -1353,8 +1358,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
             self._config(**config)
             self._config.resolve()  # todo: is this still necessary now? is basically re-passing all attributes ~ the line above.
-
-            self.get_config()
 
             log.debug(f'loaded config: {config}')
         else:

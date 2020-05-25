@@ -367,7 +367,7 @@ class Main(isimple.core.Lockable):
             self._stop_log.set()
             return respond(True)
 
-        # Application state
+        # API: application
         @app.route('/api/app-state/save')
         def save_state():
             with self.lock():

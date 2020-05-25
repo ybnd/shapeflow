@@ -2,7 +2,7 @@ import axios from "axios";
 
 let API = "/api/";
 
-export function url() {
+export function api() {
   return API + Array.from(arguments).join("/");
 }
 
@@ -11,11 +11,12 @@ export const AnalyzerState = {
   INCOMPLETE: 1,
   CAN_LAUNCH: 2,
   LAUNCHED: 3,
-  CAN_ANALYZE: 4,
-  ANALYZING: 5,
-  DONE: 6,
-  CANCELED: 7,
-  ERROR: 8
+  CACHING: 4,
+  CAN_ANALYZE: 5,
+  ANALYZING: 6,
+  DONE: 7,
+  CANCELED: 8,
+  ERROR: 9
 };
 
 export const EVENT_CATEGORIES = ["status", "config", "result"];
@@ -28,16 +29,16 @@ export const endpoints = {
 
 export function ping() {
   // todo: deprecated, just ping with list()
-  axios.get(url("ping"));
+  axios.get(api("ping"));
 }
 
 export function unload() {
   // axios can't be called on page unload, use sendBeacon instead
-  return navigator.sendBeacon(url("unload"));
+  return navigator.sendBeacon(api("unload"));
 }
 
 export async function settings_schema() {
-  return axios.get(url("settings_schema")).then(response => {
+  return axios.get(api("settings_schema")).then(response => {
     if (response.status === 200) {
       return response.data; // todo: this pattern is QUITE common
     }
@@ -45,7 +46,7 @@ export async function settings_schema() {
 }
 
 export async function get_settings() {
-  return axios.get(url("get_settings")).then(response => {
+  return axios.get(api("get_settings")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -54,7 +55,7 @@ export async function get_settings() {
 
 export async function set_settings(settings) {
   return axios
-    .post(url("set_settings"), { settings: settings })
+    .post(api("set_settings"), { settings: settings })
     .then(response => {
       if (response.status === 200) {
         return response.data;
@@ -63,7 +64,7 @@ export async function set_settings(settings) {
 }
 
 export async function list() {
-  return axios.get(url("list")).then(response => {
+  return axios.get(api("list")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -72,7 +73,7 @@ export async function list() {
 
 export async function init() {
   // initialize an Analyzer in the backend & return its id
-  return axios.post(url("init")).then(response => {
+  return axios.post(api("init")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -80,7 +81,7 @@ export async function init() {
 }
 
 export async function remove(id) {
-  return axios.post(url(id, "remove")).then(response => {
+  return axios.post(api(id, "remove")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -88,7 +89,7 @@ export async function remove(id) {
 }
 
 export async function cancel(id) {
-  return axios.post(url(id, "cancel")).then(response => {
+  return axios.post(api(id, "cancel")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -96,7 +97,7 @@ export async function cancel(id) {
 }
 
 export async function get_schemas(id) {
-  return axios.get(url(id, "call/get_schemas")).then(response => {
+  return axios.get(api(id, "call/get_schemas")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -104,7 +105,7 @@ export async function get_schemas(id) {
 }
 
 export async function get_options(for_type) {
-  return axios.get(url("options", for_type)).then(response => {
+  return axios.get(api("options", for_type)).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -112,7 +113,7 @@ export async function get_options(for_type) {
 }
 
 export async function select_video_path() {
-  return axios.get(url("select_video_path")).then(response => {
+  return axios.get(api("select_video_path")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -120,7 +121,7 @@ export async function select_video_path() {
 }
 
 export async function select_design_path() {
-  return axios.get(url("select_design_path")).then(response => {
+  return axios.get(api("select_design_path")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -129,7 +130,7 @@ export async function select_design_path() {
 
 export async function check_video_path(video_path) {
   return axios
-    .put(url("check_video_path"), { video_path: video_path })
+    .put(api("check_video_path"), { video_path: video_path })
     .then(response => {
       if (response.status === 200) {
         return response.data;
@@ -139,7 +140,7 @@ export async function check_video_path(video_path) {
 
 export async function check_design_path(design_path) {
   return axios
-    .put(url("check_design_path"), { design_path: design_path })
+    .put(api("check_design_path"), { design_path: design_path })
     .then(response => {
       if (response.status === 200) {
         return response.data;
@@ -148,7 +149,7 @@ export async function check_design_path(design_path) {
 }
 
 export async function get_config(id) {
-  return axios.get(url(id, "call/get_config")).then(response => {
+  return axios.get(api(id, "call/get_config")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -156,7 +157,7 @@ export async function get_config(id) {
 }
 
 export async function get_state(id) {
-  return axios.get(url(id, "get_state")).then(response => {
+  return axios.get(api(id, "get_state")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -164,7 +165,7 @@ export async function get_state(id) {
 }
 
 export async function get_status(id) {
-  return axios.get(url(id, "call/status")).then(response => {
+  return axios.get(api(id, "call/status")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -172,7 +173,7 @@ export async function get_status(id) {
 }
 
 export async function get_relative_roi(id) {
-  return axios.get(url(id, "call/get_relative_roi")).then(response => {
+  return axios.get(api(id, "call/get_relative_roi")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -181,7 +182,7 @@ export async function get_relative_roi(id) {
 
 export async function set_config(id, config) {
   return axios
-    .post(url(id, "call/set_config"), { config: config })
+    .post(api(id, "call/set_config"), { config: config })
     .then(response => {
       if (response.status === 200) {
         return response.data;
@@ -189,10 +190,18 @@ export async function set_config(id, config) {
     });
 }
 
-export async function launch(id) {
-  return axios.get(url(id, "call/can_launch")).then(response => {
+export async function state_transition(id) {
+  return axios.post(api(id, "call/state_transition")).then(response => {
     if (response.status === 200) {
-      return axios.post(url(id, "launch")).then(response => {
+      return true;
+    }
+  });
+}
+
+export async function launch(id) {
+  return axios.get(api(id, "call/can_launch")).then(response => {
+    if (response.status === 200) {
+      return axios.post(api(id, "launch")).then(response => {
         if (response.status === 200) {
           return response.data;
         } else {
@@ -207,7 +216,7 @@ export async function launch(id) {
 
 export async function seek(id, position) {
   return axios
-    .post(url(id, "call/seek"), { position: position })
+    .post(api(id, "call/seek"), { position: position })
     .then(response => {
       if (response.status === 200) {
         return response.data;
@@ -218,7 +227,7 @@ export async function seek(id, position) {
 }
 
 export async function get_seek_position(id) {
-  return axios.get(url(id, "call/get_seek_position")).then(response => {
+  return axios.get(api(id, "call/get_seek_position")).then(response => {
     if (response.status === 200) {
       return response.data;
     } else {
@@ -229,7 +238,7 @@ export async function get_seek_position(id) {
 
 export async function estimate_transform(id, roi) {
   return axios
-    .post(url(id, "call/estimate_transform"), { roi: roi })
+    .post(api(id, "call/estimate_transform"), { roi: roi })
     .then(response => {
       if (response.status === 200) {
         return true;
@@ -238,7 +247,7 @@ export async function estimate_transform(id, roi) {
 }
 
 export async function clear_roi(id) {
-  return axios.post(url(id, "call/clear_roi")).then(response => {
+  return axios.post(api(id, "call/clear_roi")).then(response => {
     if (response.status === 200) {
       return true;
     }
@@ -246,7 +255,7 @@ export async function clear_roi(id) {
 }
 
 export async function undo_roi(id) {
-  return axios.put(url(id, "call/undo_roi")).then(response => {
+  return axios.put(api(id, "call/undo_roi")).then(response => {
     if (response.status === 200) {
       return response.data;
     } else {
@@ -256,7 +265,7 @@ export async function undo_roi(id) {
 }
 
 export async function redo_roi(id) {
-  return axios.put(url(id, "call/redo_roi")).then(response => {
+  return axios.put(api(id, "call/redo_roi")).then(response => {
     if (response.status === 200) {
       return response.data;
     } else {
@@ -267,7 +276,7 @@ export async function redo_roi(id) {
 
 export async function set_filter(id, relative_coordinate) {
   return axios
-    .post(url(id, "call/set_filter_click"), {
+    .post(api(id, "call/set_filter_click"), {
       relative_x: relative_coordinate.x,
       relative_y: relative_coordinate.y
     })
@@ -281,7 +290,7 @@ export async function set_filter(id, relative_coordinate) {
 }
 
 export async function commit(id) {
-  return axios.post(url(id, "call/commit")).then(response => {
+  return axios.post(api(id, "call/commit")).then(response => {
     if (response.status === 200) {
       return true;
     }
@@ -289,7 +298,7 @@ export async function commit(id) {
 }
 
 export async function analyze(id) {
-  return axios.put(url(id, "call/analyze")).then(response => {
+  return axios.put(api(id, "call/analyze")).then(response => {
     if (response.status === 200) {
       return true;
     }
@@ -306,7 +315,7 @@ export function get_log() {
 }
 
 export async function stop_log() {
-  return axios.put(url("stop_log")).then(response => {
+  return axios.put(api("stop_log")).then(response => {
     if (response.status === 200) {
       return true;
     }
@@ -314,7 +323,7 @@ export async function stop_log() {
 }
 
 export async function stop_stream(id, endpoint) {
-  return axios.get(url(id, "stream", endpoint, "stop")).then(response => {
+  return axios.get(api(id, "stream", endpoint, "stop")).then(response => {
     if (response.status === 200) {
       return true;
     }
@@ -324,9 +333,17 @@ export async function stop_stream(id, endpoint) {
 export function events(callback) {
   console.log(`registering EventSource for /api/stream/events`);
 
-  let evl = new EventSource(url("stream", "events"));
+  let evl = new EventSource(api("stream", "events"));
   evl.onmessage = callback;
 
   console.log(evl);
   return evl;
+}
+
+export async function clear_cache() {
+  return axios.get(api("clear-cache")).then(response => {
+    if (response.status === 200) {
+      return true;
+    }
+  });
 }

@@ -13,13 +13,13 @@ from typing import Any, Callable, List, Optional, Union, Tuple, Dict, Type
 import numpy as np
 import pandas as pd
 
-from isimple import settings, get_logger
+from isimple import settings, get_logger, get_cache
 from isimple.endpoints import BackendRegistry
 
 from isimple.core import RootException, SetupError, RootInstance
 from isimple.maths.colors import HsvColor
 from isimple.util.meta import describe_function
-from isimple.util import Timer, Timing, hash_file
+from isimple.util import Timer, Timing, hash_file, timed
 from isimple.core.config import Factory, untag, Config
 from isimple.core.streaming import stream, streams, EventStreamer
 
@@ -136,7 +136,8 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
     def _touch_keys(self, keys: List[str]):
         if self._cache is not None:
             for key in keys:
-                self._cache.touch(key)
+                if key in self._cache:
+                    self._cache.touch(key)
         else:
             with self.caching():
                 self._touch_keys(keys)
@@ -408,11 +409,12 @@ class AnalyzerState(IntEnum):
     INCOMPLETE = 1
     CAN_LAUNCH = 2
     LAUNCHED = 3
-    CAN_ANALYZE = 4
-    ANALYZING = 5
-    DONE = 6
-    CANCELED = 7
-    ERROR = 8
+    CACHING = 4
+    CAN_ANALYZE = 5
+    ANALYZING = 6
+    DONE = 7
+    CANCELED = 8
+    ERROR = 9
 
     @classmethod
     def can_launch(cls, state: int) -> bool:
@@ -471,7 +473,7 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
         self._hash_video = None
         self._hash_design = None
 
-        self._state = AnalyzerState.INCOMPLETE
+        self._state: AnalyzerState = AnalyzerState.INCOMPLETE
         self._busy = False
         self._progress = 0.0
         self._model = None
@@ -527,12 +529,14 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
 
     def set_state(self, state: int):
         self._state = state
+        self.event(AnalyzerEvent.STATUS, self.status())
 
     @property
-    def state(self) -> int:
+    def state(self) -> AnalyzerState:
         return self._state
 
-    def state_transition(self):
+    @backend.expose(backend.state_transition)
+    def state_transition(self) -> AnalyzerState:
         """Handle state transitions
         """
 
@@ -541,18 +545,48 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
         elif self.state == AnalyzerState.LAUNCHED:
             if self.can_analyze():
                 self.set_state(AnalyzerState.CAN_ANALYZE)
+        elif self.state == AnalyzerState.DONE or self.state == AnalyzerState.CANCELED:
+            self.set_progress(0.0)
+            if self.can_analyze:
+                self.set_state(AnalyzerState.CAN_ANALYZE)
+            elif self.launched:
+                self.set_state(AnalyzerState.LAUNCHED)
+            elif self.can_launch:
+                self.set_state(AnalyzerState.CAN_LAUNCH)
+
 
         self.event(AnalyzerEvent.STATUS, self.status())
+        return self.state
 
     def set_busy(self, busy: bool):
         self._busy = busy
+        self.event(AnalyzerEvent.STATUS, self.status())
 
     @property
     def busy(self) -> bool:
         return self._busy
 
+    @contextmanager
+    def busy_context(self, busy_state: AnalyzerState = None, done_state: AnalyzerState = None):
+        if done_state is None:
+            done_state = self.state
+        try:
+            if busy_state is not None:
+                self.set_state(busy_state)
+            self.set_busy(True)
+            yield
+        finally:
+            self.set_busy(False)
+            self.set_state(done_state)
+
+
+    def cancel(self):
+        super().cancel()
+        self.set_state(AnalyzerState.CANCELED)
+
     def set_progress(self, progress: float):
         self._progress = progress
+        self.event(AnalyzerEvent.STATUS, self.status())
 
     @property
     def progress(self) -> float:
@@ -572,11 +606,17 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
 
     @abc.abstractmethod
     @backend.expose(backend.analyze)
-    def analyze(self) -> bool:
+    def analyze(self):
         raise NotImplementedError
 
     @property
+    @abc.abstractmethod
     def position(self) -> float:
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def cached(self) -> bool:
         raise NotImplementedError
 
     @backend.expose(backend.status)
@@ -584,6 +624,7 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
         status = {
             'state': self.state,
             'busy': self.busy,
+            'cached': self.cached,
             'position': self.position,
             'progress': self.progress,
         }
@@ -596,10 +637,12 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
             if self.can_launch():
                 self._launch()
                 self._gather_instances()
-                self.set_state(AnalyzerState.LAUNCHED)
+
+                # Commit to history
+                self.commit()
 
                 # Push events
-                self.event(AnalyzerEvent.STATUS, self.status())
+                self.set_state(AnalyzerState.LAUNCHED)
                 self.event(AnalyzerEvent.CONFIG, self.config.to_dict())
 
                 return self.launched

@@ -41,6 +41,8 @@ class BaseStreamer(abc.ABC):
     _opener: Optional[bytes] = None
     _closer: Optional[bytes] = None
 
+    _double_yield: bool = False
+
     def __init__(self):
         self._queue = queue.Queue()
         self._stop = threading.Event()
@@ -67,7 +69,8 @@ class BaseStreamer(abc.ABC):
                 if output is not None:
                     log.debug(f"{self}: yielding...")
                     yield output
-                    yield output   # todo: doesn't work properly if not yielded twice for some reason
+                    if self._double_yield:
+                        yield output   # todo: image streaming doesn't work properly if not yielded twice for some reason
                 else:
                     log.warning(f"{self.__class__.__name__}: encoding failed for {value}")
                     continue
@@ -152,6 +155,8 @@ class FrameStreamer(BaseStreamer):
     _empty_queue_timeout: float = 0.02
     _stop_timeout: float = 60
 
+    _double_yield = True
+
     def _validate(self, value: Any) -> bool:
         return isinstance(value, np.ndarray)
 
@@ -172,7 +177,7 @@ class FrameStreamer(BaseStreamer):
             return None
 
 
-class JpegStreamer(FrameStreamer):
+class JpegStreamer(FrameStreamer):  # todo: configure quality in settings
     _content_type = b"image/jpeg"
 
     def _encode(self, frame: np.ndarray) -> Optional[bytes]:
@@ -188,7 +193,7 @@ class JpegStreamer(FrameStreamer):
             return None
 
 
-class PngStreamer(FrameStreamer):
+class PngStreamer(FrameStreamer):   # todo: configure quality in settings
     _content_type = b"image/png"
 
     def _encode(self, frame: np.ndarray) -> Optional[bytes]:
@@ -315,7 +320,7 @@ class StreamHandler(Lockable):
 streams = StreamHandler()
 
 
-def stream(method):  # todo: check method._endpoint._streaming & select Streamer implementation
+def stream(method):  # todo: check method._endpoint._streaming & select Streamer implementation?
     """Decorator for streaming methods.
         To stream frames, the wrapped method should be registered
          in the global StreamHandler `streams`.

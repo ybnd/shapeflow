@@ -187,10 +187,8 @@ export const getters = {
     return state.status;
   },
   getStatus: state => id => {
-    if (id in state) {
-      if ("status" in state[id]) {
-        return state[id].status;
-      }
+    if (id in state.status) {
+      return state.status[id];
     }
   },
   getConfig: state => id => {
@@ -203,26 +201,26 @@ export const getters = {
     return state.config[id].masks.map(({ name }) => name);
   },
   getMaskFilterType: state => (id, mask_index) => {
-    console.log(`getMaskFilterType: id=${id} mask_index=${mask_index}`);
-
-    console.log("state.config[id].masks[mask_index] = ");
-    console.log(state.config[id].masks[mask_index]);
+    // console.log(`getMaskFilterType: id=${id} mask_index=${mask_index}`);
+    //
+    // console.log("state.config[id].masks[mask_index] = ");
+    // console.log(state.config[id].masks[mask_index]);
 
     return state.config[id].masks[mask_index].filter.type;
   },
   getMaskFilterData: state => (id, mask_index) => {
-    console.log(`getMaskFilterData: id=${id} mask_index=${mask_index}`);
-
-    console.log("state.config[id].masks[mask_index] = ");
-    console.log(state.config[id].masks[mask_index]);
+    // console.log(`getMaskFilterData: id=${id} mask_index=${mask_index}`);
+    //
+    // console.log("state.config[id].masks[mask_index] = ");
+    // console.log(state.config[id].masks[mask_index]);
 
     return state.config[id].masks[mask_index].filter.data;
   },
   getMaskFilterParameters: state => (id, mask_index) => {
-    console.log(`getMaskFilterParameters: id=${id} mask_index=${mask_index}`);
-
-    console.log("state.config[id].masks[mask_index] = ");
-    console.log(state.config[id].masks[mask_index]);
+    // console.log(`getMaskFilterParameters: id=${id} mask_index=${mask_index}`);
+    //
+    // console.log("state.config[id].masks[mask_index] = ");
+    // console.log(state.config[id].masks[mask_index]);
 
     return state.config[id].masks[mask_index].filter.parameters;
   },
@@ -252,11 +250,11 @@ export const actions = {
           assert(event.hasOwnProperty("id"));
           assert(event.hasOwnProperty("data"));
 
-          console.log("/api/stream/events callback");
-          console.log(`category: ${event.category}`);
-          console.log(`id: ${event.id}`);
-          console.log("data: ");
-          console.log(event.data);
+          // console.log("/api/stream/events callback");
+          // console.log(`category: ${event.category}`);
+          // console.log(`id: ${event.id}`);
+          // console.log("data: ");
+          // console.log(event.data);
 
           commit(CATEGORY_COMMIT[event.category], {
             id: event.id,

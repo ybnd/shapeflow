@@ -2,7 +2,7 @@
   <footer class="sidebar-footer">
     <SidebarNavDropdown icon="" name="Application">
       <SidebarNavLink name="Settings" icon="fa fa-cogs" url="/settings" />
-      <!--      <SidebarNavLink name="Log" icon="fa fa-file-text-o" url="/log" />-->
+      <!--      <SidebarNavLink name="Log" icon="fa fa-file-text-o" api="/log" />-->
       <!--       <SidebarNavLink name="Search" icon="icon-magnifier"/>-->
       <!--       <SidebarNavLink name="Export" icon="fa fa-download"/>-->
       <!--       <SidebarNavLink name="Import" icon="fa fa-upload"/>-->

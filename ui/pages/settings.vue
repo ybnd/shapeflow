@@ -7,6 +7,9 @@
       <PageHeaderItem>
         <b-button>Restart backend</b-button>
       </PageHeaderItem>
+      <PageHeaderItem>
+        <b-button @click="clearCache">Clear cache</b-button>
+      </PageHeaderItem>
     </PageHeader>
     <b-container class="settings-form-container">
       <b-card>
@@ -44,7 +47,12 @@
 </template>
 
 <script>
-import { settings_schema, get_settings, set_settings } from "../static/api";
+import {
+  settings_schema,
+  get_settings,
+  set_settings,
+  clear_cache
+} from "../static/api";
 
 import FormSchema from "@formschema/native";
 
@@ -98,6 +106,11 @@ export default {
       set_settings(this.settings).then(settings => {
         this.settings = settings;
       });
+      console.log("got back settings");
+      console.log(this.settings);
+    },
+    clearCache() {
+      clear_cache();
     }
   },
   data() {

@@ -159,7 +159,7 @@ else:
     settings = _load_settings(_SETTINGS_FILE)
 save_settings(settings)
 
-cache = diskcache.Cache(settings.cache.dir, 2**32) # todo: size limit should be in settings.cache
+cache = diskcache.Cache(settings.cache.dir, settings.cache.size_limit_gb * 1e9) # todo: size limit should be in settings.cache
 
 
 class CustomLogger(logging.Logger):
@@ -207,6 +207,16 @@ waitress = logging.getLogger("waitress")
 waitress.addHandler(_console_handler)
 waitress.addHandler(_file_handler)
 waitress.propagate = False
+
+
+def get_cache(settings: Settings = settings) -> diskcache.Cache:
+    return diskcache.Cache(
+        directory=settings.cache.dir,
+        size_limit=settings.cache.size_limit_gb * 1e9
+    )
+
+
+cache = get_cache()  # todo: why is this required?
 
 
 def get_logger(name: str = __name__, settings: LogSettings = settings.log) -> CustomLogger:

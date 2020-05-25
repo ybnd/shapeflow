@@ -99,14 +99,16 @@ import {
   clear_roi,
   get_options,
   commit,
-  url,
+  api,
   get_relative_roi,
   undo_roi,
   redo_roi,
   flip_transform,
   set_config,
   endpoints,
-  stop_stream
+  stop_stream,
+  AnalyzerState as ast,
+  state_transition
 } from "../../static/api";
 import Moveable from "vue-moveable";
 import {
@@ -263,7 +265,8 @@ export default {
       }
     },
     resolveTransform() {
-      console.log("handleResolveTransform");
+      console.log("resolveTransform");
+
       if (this.align.roi && this.align.frame && this.align.overlay) {
         console.log(
           `roi.BL = (x: ${this.align.roi.BL.x}, y: ${this.align.roi.BL.y})`
@@ -331,7 +334,13 @@ export default {
         );
 
         if (this.align.roi !== undefined) {
-          estimate_transform(this.id, this.align.roi);
+          if (this.report_change) {
+            state_transition(this.id).then(() => {
+              estimate_transform(this.id, this.align.roi);
+            });
+          } else {
+            estimate_transform(this.id, this.align.roi);
+          }
         }
       }
     },
@@ -406,7 +415,7 @@ export default {
       };
     },
     overlaid_url() {
-      return url(
+      return api(
         this.$route.query.id,
         "stream",
         endpoints.GET_INVERSE_OVERLAID_FRAME
@@ -417,6 +426,12 @@ export default {
     },
     ref_moveable() {
       return `align-moveable-${this.$route.query.id}`;
+    },
+    report_change() {
+      const state = this.$store.getters["analyzers/getStatus"](this.id).state;
+      return (
+        state === ast.DONE || state === ast.ERROR || state === ast.CANCELED
+      ); // todo: cleaner
     }
   },
   data: () => ({

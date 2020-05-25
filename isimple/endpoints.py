@@ -8,6 +8,7 @@ from isimple.maths.colors import HsvColor
 
 class BackendRegistry(ImmutableRegistry):
     status = Endpoint(Callable[[], dict], stream_json)
+    state_transition = Endpoint(Callable[[], None])
     can_launch = Endpoint(Callable[[], bool])
     can_analyze = Endpoint(Callable[[], bool])
     launch = Endpoint(Callable[[], bool])
