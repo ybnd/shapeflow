@@ -96,6 +96,7 @@ class BaseStreamer(abc.ABC):
     @classmethod
     def mime_type(cls) -> str:
         if cls._mime_type is None:
+            assert cls._boundary is not None
             return f"multipart/x-mixed-replace; boundary={cls._boundary.decode('utf-8')}"
         else:
             return cls._mime_type

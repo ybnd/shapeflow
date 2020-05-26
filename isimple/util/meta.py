@@ -1,5 +1,5 @@
 import inspect
-from typing import List, Union, Dict, Any, Collection, _GenericAlias
+from typing import List, Union, Dict, Any, Collection, _GenericAlias  # type: ignore
 
 
 def describe_function(f):
