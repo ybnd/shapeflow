@@ -122,14 +122,14 @@
       </ul>
     </template>
     <template v-else-if="status.state === ast.ANALYZING">
-      <template v-if="status.results">
-        <SidebarNavAnalysisLink
-          name="Results"
-          icon="icon-graph"
-          :id="link.result"
-        />
-      </template>
       <ul class="nav-dropdown-items">
+        <template v-if="status.results">
+          <SidebarNavAnalysisLink
+            name="Results"
+            icon="icon-graph"
+            :id="link.result"
+          />
+        </template>
         <SidebarNavAnalysisLink
           name="Cancel"
           icon="icon-ban"
