@@ -103,10 +103,9 @@ class VideoFileHandler(CachingBackendInstance, Lockable):
                 self._is_cached(self._read_frame, self.path, fn)
                 for fn in self._requested_frames
             ])
-            log.info(f"cached keys: {self._cached}")
             return self._cached
         else:
-            with self.caching():
+            with self.caching(True):
                 return self.check_cached()
 
     def set_requested_frames(self, requested_frames: List[int]) -> None:
@@ -118,10 +117,10 @@ class VideoFileHandler(CachingBackendInstance, Lockable):
         self._requested_frames = requested_frames
 
         self.check_cached()
-        self._touch_keys(
-            [self._get_key(self._read_frame, self.path, fn)
-             for fn in requested_frames]
-        )
+        # self._touch_keys(
+        #     [self._get_key(self._read_frame, self.path, fn)
+        #      for fn in requested_frames]
+        # )
 
     def _cache_frames(self, progress_callback: Callable[[float], None], state_callback: Callable[[int], None]):
         try:
@@ -946,9 +945,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
     _featuresets: Dict[FeatureType, FeatureSet]
 
-    def __init__(self, config: VideoAnalyzerConfig = None, multi: bool = False):
+    def __init__(self, config: VideoAnalyzerConfig = None):
         super().__init__(config)
-        self._multi = multi
         self.results: Dict[FeatureType, pd.DataFrame] = {}
         self._gather_instances()
 
@@ -1322,38 +1320,38 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     def load_config(self):  # todo: look in history instead of file next to video
         """Load video analysis configuration from history database
         """
-        log.info('loading config from database...')
-        include = ['video', 'design', 'transform', 'masks']
+        if self._model is not None:
+            log.info('loading config from database...')
+            include = ['video', 'design', 'transform', 'masks']
 
-        from isimple.history import History, VideoFileModel, DesignFileModel  # todo: fix history / video circular dependency
-        _history = History()
+            from isimple.history import History, VideoFileModel, DesignFileModel  # todo: fix history / video circular dependency
+            _history = History()
 
-        if self.config.video_path is not None and os.path.isfile(self.config.video_path):
-            video = _history.add_file(self.config.video_path, VideoFileModel)
-            if self.config.design_path is not None and os.path.isfile(self.config.design_path):
-                design = _history.add_file(self.config.design_path, DesignFileModel)
-                config = _history.get_config(
-                    self.model,
-                    video,
-                    design,
-                    include = include
-                )
-                design.remove()
+            if self.config.video_path is not None and os.path.isfile(self.config.video_path):
+                video = _history.add_file(self.config.video_path, VideoFileModel)
+                if self.config.design_path is not None and os.path.isfile(self.config.design_path):
+                    design = _history.add_file(self.config.design_path, DesignFileModel)
+                    config = _history.get_config(
+                        self.model,
+                        video,
+                        design,
+                        include = include
+                    )
+                    design.remove()
+                else:
+                    config = _history.get_config(
+                        self.model,
+                        video,
+                        include=include
+                    )
+                video.remove()
+
+                self._config(**config)
+                self._config.resolve()  # todo: is this still necessary now? is basically re-passing all attributes ~ the line above.
+
+                log.debug(f'loaded config: {config}')
             else:
-                config = _history.get_config(
-                    self.model,
-                    video,
-                    include=include
-                )
-            video.remove()
-
-            self._config(**config)
-            self._config.resolve()  # todo: is this still necessary now? is basically re-passing all attributes ~ the line above.
-
-            log.debug(f'loaded config: {config}')
-        else:
-            log.debug('could not load config - no video path!')
-        # todo: push get_state streamer
+                log.debug('could not load config - no video path!')
 
     def save_config(self, path: str = None):  # todo: in isimple.og, make LegacyVideoAnalyzer(VideoAnalyzer) that implements these
         """Save video analysis configuration

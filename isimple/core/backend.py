@@ -184,8 +184,8 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
         log.vdebug(f"Execute {key}.")
         return method(*args, **kwargs)
 
-    def __enter__(self):
-        if self._config.do_cache:
+    def __enter__(self, override: bool = False):
+        if self._config.do_cache or override:
             if self._cache is None:
                 log.debug(f'{self.__class__.__qualname__}: opening cache.')
                 self._cache = diskcache.Cache(
@@ -196,21 +196,20 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
         return self
 
     def __exit__(self, exc_type, exc_value, tb):
-        if self._config.do_cache:
-            if self._cache is not None:
-                log.debug(f'{self.__class__.__qualname__}: closing cache.')
-                self._cache.close()
-                self._cache = None
+        if self._cache is not None:
+            log.debug(f'{self.__class__.__qualname__}: closing cache.')
+            self._cache.close()
+            self._cache = None
 
-            if exc_type != None:  # `is not` doesn't work here
-                raise(exc_type, exc_value, tb)
-            else:
-                return True
+        if exc_type != None:  # `is not` doesn't work here
+            raise(exc_type, exc_value, tb)
+        else:
+            return True
 
     @contextmanager
-    def caching(self):
+    def caching(self, override: bool = False):
         try:
-            self.__enter__()
+            self.__enter__(override)
             yield self
         finally:
             self.__exit__(*sys.exc_info())
@@ -519,9 +518,10 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
     def commit(self) -> bool:
         """Save video analysis configuration to history database
         """
-        log.debug("committing")
-        self._model.store()  # todo: solve circular dependency
-        return True
+        if self._model is not None:
+            log.debug("committing")
+            self._model.store()  # todo: solve circular dependency
+            return True
 
     @abc.abstractmethod
     @backend.expose(backend.can_launch)
