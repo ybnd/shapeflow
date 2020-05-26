@@ -512,7 +512,8 @@ class Main(isimple.core.Lockable):
             method = self._roots[id].get(getattr(backend.backend, endpoint))  # todo: check whether endpoint.streaming is not _Streaming('off')
             self._roots[id].cache_open()
 
-            new_stream = streaming.streams.register(method.__self__, method)  # todo: type / assert properly
+            # todo: type / assert properly
+            new_stream = streaming.streams.register(method.__self__, method)  # type: ignore
 
             log.debug(f"{self._roots[id]}: stream '{endpoint}'")
             return new_stream
@@ -521,7 +522,8 @@ class Main(isimple.core.Lockable):
         with self.lock():
             method = self._roots[id].get(getattr(backend.backend, endpoint))
 
-            streaming.streams.unregister(method.__self__, method)  # todo: type / assert properly
+            # todo: type / assert properly
+            streaming.streams.unregister(method.__self__, method)  # type: ignore
             log.debug(f"{self._roots[id]}: stopped streaming '{endpoint}'")
 
     @property

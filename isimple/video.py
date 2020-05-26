@@ -1133,8 +1133,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             self.get_transformed_frame(frame_number))
 
     @backend.expose(backend.get_colors)  # todo: per feature in each feature set; maybe better as a dict instead of a list of tuples?
-    def get_colors(self) -> Dict[FeatureType, Tuple[HsvColor, ...]]:
-        return {str(k):[css_hex(c) for c in featureset.get_colors()] for k, featureset in self._featuresets.items()}
+    def get_colors(self) -> Dict[str, Tuple[str, ...]]:
+        return {str(k):tuple([css_hex(c) for c in featureset.get_colors()]) for k, featureset in self._featuresets.items()}
 
     def frame_numbers(self) -> Generator[int, None, None]:
         if self.config.frame_interval_setting == FrameIntervalSetting('Nf'):

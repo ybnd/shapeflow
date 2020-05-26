@@ -520,8 +520,11 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
         """
         if self._model is not None:
             log.debug("committing")
-            self._model.store()  # todo: solve circular dependency
+            self._model.store()  # type: ignore
+            # todo: solve circular dependency
             return True
+        else:
+            return False
 
     @abc.abstractmethod
     @backend.expose(backend.can_launch)
@@ -543,6 +546,7 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
 
     @property
     def state(self) -> AnalyzerState:
+        assert isinstance(self._state, AnalyzerState)  # todo: fix int / AnalyzerState typing
         return self._state
 
     @backend.expose(backend.state_transition)
