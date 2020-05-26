@@ -34,6 +34,8 @@ class HandlerConfig(Config, abc.ABC):
     data: Config
 
     def _get_field_type(self, attr):
+        """Resolve type of self.data ~ implementation (self.type)
+        """
         if attr == 'data':
             return self.type.get().config_class()
         else:
