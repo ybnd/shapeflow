@@ -13,7 +13,7 @@ from isimple import get_logger, settings
 from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     HsvRangeFilterConfig, FilterHandlerConfig, MaskConfig, \
     DesignFileHandlerConfig, VideoAnalyzerConfig, load, dump, \
-    FrameIntervalSetting, BaseAnalyzerConfig
+    FrameIntervalSetting, BaseAnalyzerConfig, PerspectiveTransformConfig
 from isimple.core import RootInstance, Lockable
 from isimple.core.backend import BackendInstance, CachingBackendInstance, \
     Handler, BaseVideoAnalyzer, BackendSetupError, AnalyzerType, Feature, \
@@ -252,8 +252,13 @@ class VideoFileHandler(CachingBackendInstance, Lockable):
 
 @extend(TransformType)
 class PerspectiveTransform(TransformInterface):
-    def validate(self, transform: np.ndarray) -> bool:
-        return transform.shape == (3, 3)
+    _config_class = PerspectiveTransformConfig
+
+    def validate(self, matrix: Optional[np.ndarray]) -> bool:
+        if matrix is not None:
+            return matrix.shape == (3, 3)
+        else:
+            return False
 
     def from_coordinates(self, roi: dict) -> np.ndarray:
         return np.float32(
@@ -273,7 +278,7 @@ class PerspectiveTransform(TransformInterface):
                 )
             )
 
-    def estimate(self, roi: dict, shape: tuple) -> dict:
+    def estimate(self, roi: dict, shape: tuple) -> np.ndarray:
         log.vdebug(f'Estimating transform ~ coordinates {roi} & shape {shape}')
 
         return cv2.getPerspectiveTransform(
@@ -281,25 +286,28 @@ class PerspectiveTransform(TransformInterface):
             self.to_coordinates(shape)
         )
 
-    def transform(self, img: np.ndarray, transform: np.ndarray, shape: tuple) -> np.ndarray:
+    def transform(self, transform: PerspectiveTransformConfig, img: np.ndarray, shape: tuple) -> np.ndarray:
         return cv2.warpPerspective(
-            img, transform, shape,   # can't set destination image here! it's the wrong shape!
+            img, transform.matrix, shape,   # can't set destination image here! it's the wrong shape!
             borderValue=(255,255,255),  # makes the border white instead of black ~https://stackoverflow.com/questions/30227979/
         )
 
-    def coordinate(self, coordinate: Coo, transform: np.ndarray, shape: Tuple[int, int]) -> Coo:
-        coordinate.transform(transform, shape)
+    def inverse(self, transform: PerspectiveTransformConfig, img: np.ndarray, shape: tuple) -> np.ndarray:
+        return cv2.warpPerspective(
+            img, transform.inverse, shape,   # can't set destination image here! it's the wrong shape!
+            borderValue=(255,255,255),  # makes the border white instead of black ~https://stackoverflow.com/questions/30227979/
+        )
+
+    def coordinate(self, transform: PerspectiveTransformConfig, coordinate: Coo, shape: Tuple[int, int]) -> Coo:
+        coordinate.transform(transform.inverse, shape)
         return coordinate
 
 
-class TransformHandler(BackendInstance, Handler):
+class TransformHandler(BackendInstance, Handler):  # todo: clean up config / config.data -> Handler should not care what goes on in config.data!
     """Handles coordinate transforms.
     """
     _video_shape: Tuple[int, int]
     _design_shape: Tuple[int, int]
-    _inverse: Optional[np.ndarray]
-
-    _stream_methods: list
 
     _implementation: TransformInterface
     _implementation_factory = TransformType
@@ -314,7 +322,7 @@ class TransformHandler(BackendInstance, Handler):
         self._video_shape = (video_shape[0], video_shape[1])  # Don't include color dimension
         self._design_shape = (design_shape[0], design_shape[1])
 
-        self.set(self.config.matrix)
+        self.set(self.config.data.matrix)
 
     @property
     def config(self) -> TransformHandlerConfig:
@@ -325,19 +333,17 @@ class TransformHandler(BackendInstance, Handler):
         # If there's ever any method to set additional transform options, this method/endpoint can be merged into that
         return super(TransformHandler, self).set_implementation(implementation)
 
-    def set(self, transform: Optional[np.ndarray]):
+    def set(self, matrix: Optional[np.ndarray]):
         """Set the transform matrix
         """
-        if transform is not None:
-            if self._implementation.validate(transform):
-                self.config(matrix=transform)
-                self._inverse = np.linalg.inv(transform)
+        if matrix is not None:
+            if self._implementation.validate(matrix):
+                self.config.data(matrix=matrix, inverse=np.linalg.inv(matrix))
             else:
-                raise ValueError(f"Invalid transform {transform} for "
+                raise ValueError(f"Invalid transform {matrix} for "
                                  f"'{self._implementation.__class__.__name__}'")
         else:
-            self.config(matrix=None)
-            self._inverse = None
+            self.config.data(matrix=None, inverse=None)
 
     @backend.expose(backend.get_relative_roi)
     def get_relative_roi(self) -> dict:
@@ -406,9 +412,8 @@ class TransformHandler(BackendInstance, Handler):
 
     @backend.expose(backend.clear_roi)
     def clear(self) -> None:
-        self.config(roi=None)
-        self.config(matrix=None)
-        self._inverse = None
+        self.config(roi=None, flip=(False, False))
+        self.set(None)
 
         streams.update()
 
@@ -425,29 +430,17 @@ class TransformHandler(BackendInstance, Handler):
             Writes to the provided variable!
             If caller needs the original value, they should copy explicitly
         """
-        if self.config.matrix is not None:
-            return self._implementation.transform(img, self.config.matrix, self._design_shape)
-        else:
-            raise ValueError('transform matrix is not set')
+        return self._implementation.transform(self.config.data, img, self._design_shape)
+
     def coordinate(self, coordinate: Coo) -> Coo:
         """Transform a design coordinate to a video coordinate
         """
-        if self._inverse is not None:
-            og_co = coordinate.copy()
-            co = self._implementation.coordinate(coordinate, self._inverse, self._video_shape[::-1])  # todo: ugh
-            return co
-        else:
-            raise ValueError('inverse transform matrix is not set')
+        og_co = coordinate.copy()
+        co = self._implementation.coordinate(self.config.data, coordinate, self._video_shape[::-1])  # todo: ugh
+        return co
 
     def inverse(self, img: np.ndarray) -> np.ndarray:
-        if self._inverse is not None:
-            return self._implementation.transform(img, self._inverse, self._video_shape)
-        else:
-            raise ValueError('inverse transform matrix is not set')
-
-    @property
-    def matrix(self):
-        return self.config.matrix
+        return self._implementation.inverse(self.config.data, img, self._video_shape)
 
 
 @extend(FilterType)
@@ -473,7 +466,7 @@ class HsvRangeFilter(FilterInterface):
         c1 = np.array(filter.c1)
         return HsvColor(float(np.mean([c0[0], c1[0]])), 255.0, 200.0)
 
-    def filter(self, img: np.ndarray, filter: HsvRangeFilterConfig) -> np.ndarray:
+    def filter(self, filter: HsvRangeFilterConfig, img: np.ndarray) -> np.ndarray:
         c0 = np.array(filter.c0)
         c1 = np.array(filter.c1)
         return cv2.inRange(
@@ -506,39 +499,30 @@ class FilterHandler(BackendInstance, Handler):
     def mean_color(self) -> HsvColor:
         return self.implementation.mean_color(self.config.data)
 
-    def set(self, filter: FilterConfig = None, color: HsvColor = None) -> FilterConfig:
-        if isinstance(self.config.data, dict):
-            self.config.data = self.implementation.config_class(**self.config.data)
+    def set(self, color: HsvColor = None) -> FilterConfig:
+        # if isinstance(self.config.data, dict):  todo: should be ok
+        #     self.config.data = self.implementation.config_class()(**self.config.data)
 
-        if filter is None:
-            if hasattr(self.config.data, 'filter'):
-                filter = self.implementation.config_class(**self.config.data.filter)
-            else:
-                filter = self.implementation.config_class()
         if color is None:
-            if hasattr(self.config.data, 'color'):
-                color = self.config.data.color
-            else:
-                color = HsvColor(0,0,0)
+            color = HsvColor(0,0,0)
 
-        assert isinstance(color, HsvColor)
-        self.config(data=self.implementation.set_filter(filter,color))
+        self.config(data=self.implementation.set_filter(self.config.data, color))
 
         log.debug(f"Filter config: {self.config}")
 
-        assert isinstance(self.config.data, FilterConfig)
         return self.config.data
 
     def set_implementation(self, implementation: str) -> str:
         implementation = super(FilterHandler, self).set_implementation(implementation)
-        self.config.data = self.implementation.config_class(**self.config.data.to_dict())
+
+        # Keep matching config fields accross implementations
+        self.config.data = self.implementation.config_class()(**self.config.data.to_dict())
 
         return implementation
 
     @backend.expose(backend.filter)
     def __call__(self, frame: np.ndarray) -> np.ndarray:
-        assert isinstance(self.config.data, self.implementation.config_class)
-        return self.implementation.filter(frame, self.config.data)
+        return self.implementation.filter(self.config.data, frame)
 
 
 
@@ -1267,7 +1251,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
             for feature in fs._features:
                 if not feature.skip:
-                    value, state = feature.calculate(
+                    state = feature.state(
                         frame.copy(),       # don't overwrite self.frame ~ cv2 dst parameter
                         state               # additive; each feature adds to state
                     )

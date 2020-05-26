@@ -184,7 +184,7 @@ class Config(abc.ABC):
 
         for kw, value in kwargs.items():
             if kw in self.fields():
-                field_type = resolve_type_to_most_specific(self.fields()[kw].type)
+                field_type = self._get_field_type(kw)
 
                 if value is None:
                     if is_optional(self.fields()[kw].type):
@@ -239,8 +239,11 @@ class Config(abc.ABC):
                 log.warning(f"{self.__class__.__name__}: "
                             f"unexpected field {{'{kw}': {value}}}.")
 
+    def _get_field_type(self, attr):
+        return resolve_type_to_most_specific(self.fields()[attr].type)
+
     @staticmethod
-    def _resolve_value(val, type, iter: bool = False):  # todo: should be private
+    def _resolve_value(val, type, iter: bool = False):
         """Resolve the value of an attribute to match a specific type
 
         :param val: current value

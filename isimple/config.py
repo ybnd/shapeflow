@@ -14,7 +14,7 @@ from isimple.core.config import extend, ConfigType, \
     log, VERSION, CLASS, untag, Config
 from isimple.core import EnforcedStr
 from isimple.core.interface import FilterConfig, \
-    FilterType, TransformType
+    FilterType, TransformType, TransformConfig, FilterConfig, HandlerConfig
 from isimple.maths.colors import HsvColor
 from isimple.util import before_version
 
@@ -39,9 +39,16 @@ class VideoFileHandlerConfig(CachingBackendInstanceConfig):
 
 @extend(ConfigType)
 @dataclass
+class PerspectiveTransformConfig(TransformConfig):
+    pass
+
+
+@extend(ConfigType)
+@dataclass
 class TransformHandlerConfig(Config):
-    type: TransformType = field(default=TransformType())
-    matrix: Optional[np.ndarray] = field(default=None)
+    type: TransformType = field(default_factory=TransformType)
+    data: TransformConfig = field(default_factory=TransformConfig)
+
     roi: Optional[dict] = field(default=None)  # todo: maybe make this a config?
     flip: Tuple[bool, bool] = field(default=(False, False))  # (vertical, horizontal)
 
@@ -61,7 +68,7 @@ class HsvRangeFilterConfig(FilterConfig):
 
 @extend(ConfigType)
 @dataclass
-class FilterHandlerConfig(Config):
+class FilterHandlerConfig(HandlerConfig):
     type: FilterType = field(default_factory=FilterType)
     data: FilterConfig = field(default_factory=FilterConfig)
 
@@ -240,6 +247,15 @@ def normalize_config(d: dict) -> dict:
                 for mask in d['masks']:
                     if 'ready' in mask:
                         mask.pop('ready')
+        if before_version(d[VERSION], '0.3.10'):
+            normalizing_to('0.3.10')
+            # move TransformConfig fields into TransformConfig.data
+            if 'transform' in d:
+                if not 'data' in d['transform']:
+                    d['transform']['data'] = {}
+                d['transform']['data']['matrix'] = d['transform'].pop('matrix')
+
+
     else:
         raise NotImplementedError
 
