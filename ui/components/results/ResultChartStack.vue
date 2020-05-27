@@ -53,6 +53,7 @@
 
 <script>
 import ResultChart from "../../components/results/ResultChart";
+import { events } from "../../static/events";
 
 export default {
   name: "ResultChartStack",
@@ -74,7 +75,9 @@ export default {
   beforeMount() {
     this.updateChartsKey();
     window.onresize = this.updateChartsKey;
+    this.$root.$on(events.data.update(this.id), this.updateChartsKey);
   },
+  beforeDestroy() {},
   methods: {
     is_last(index) {
       return index === Object.keys(this.result).length - 1;

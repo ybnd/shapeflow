@@ -159,8 +159,11 @@ export const mutations = {
           ];
         }
       }
-      console.log(`result[${id}] = `);
-      console.log(state.result[id]);
+      console.log(`${id} data: `);
+      console.log(result);
+      console.log(
+        `result[${id}] has ${state.result[id].Volume_uL[0].data.length} data points.`
+      );
     } catch (err) {
       console.warn(`updateAnalyzerResult failed: '${id}', result: `);
       console.warn(result);

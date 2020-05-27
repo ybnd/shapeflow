@@ -13,6 +13,7 @@ class BackendRegistry(ImmutableRegistry):
     can_analyze = Endpoint(Callable[[], bool])
     launch = Endpoint(Callable[[], bool])
     commit = Endpoint(Callable[[], bool])
+    cache = Endpoint(Callable[[], bool])
     analyze = Endpoint(Callable[[], bool])
     is_caching = Endpoint(Callable[[], bool])
     cancel_caching = Endpoint(Callable[[], bool])

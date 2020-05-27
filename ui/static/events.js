@@ -35,5 +35,10 @@ export let events = {
     unhighlight(link_id) {
       return `sidebar-unhighlight-${link_id}`;
     }
+  },
+  data: {
+    update(analyzer_id) {
+      return `data-update-${analyzer_id}`;
+    }
   }
 };

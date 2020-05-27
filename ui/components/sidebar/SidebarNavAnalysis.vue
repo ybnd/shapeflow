@@ -329,7 +329,8 @@ export default {
         configure: `/analysis/configure?id=${this.id}`,
         align: `/analysis/align?id=${this.id}`,
         filter: `/analysis/filter?id=${this.id}`,
-        result: `/analysis/result?id=${this.id}`
+        result: `/analysis/result?id=${this.id}`,
+        cache: `/api/${this.id}/call/cache`
       };
     },
     event() {

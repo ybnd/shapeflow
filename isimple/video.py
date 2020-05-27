@@ -229,18 +229,19 @@ class VideoFileHandler(CachingBackendInstance, Lockable):
     def seek(self, position: float = None) -> float:
         """Seek to the relative position ~ [0,1]
         """
-        with self.lock():
-            if position is not None:
-                frame_number = int(position * self.frame_count)
-                if settings.cache.resolve_frame_number:
-                    self.frame_number = self._resolve_frame(frame_number)
-                else:
-                    self.frame_number = frame_number
+        # todo: had to remove lock to enable reading frames :/
+        #       (otherwise streams.update() can get deadocked @ VideoFileHandler if not reading frames from cache)
+        if position is not None:
+            frame_number = int(position * self.frame_count)
+            if settings.cache.resolve_frame_number:
+                self.frame_number = self._resolve_frame(frame_number)
+            else:
+                self.frame_number = frame_number
 
-            log.debug(f"seeking  {self.path} {self.frame_number}/{self.frame_count}")
-            streams.update()
+        log.debug(f"seeking  {self.path} {self.frame_number}/{self.frame_count}")
+        streams.update()
 
-            return self.frame_number / self.frame_count
+        return self.frame_number / self.frame_count
 
     @backend.expose(backend.get_seek_position)
     def get_seek_position(self) -> float:
@@ -984,10 +985,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         self.video = VideoFileHandler(self.config.video_path, self.config.video)
         self.video.set_requested_frames(list(self.frame_numbers()))
 
-        # Start caching frames in the background
-        with self.busy_context(AnalyzerState.CACHING):
-            self.video.cache_frames(self.set_progress, self.set_state)
-
         self.design = DesignFileHandler(self.config.design_path, self.config.design, self.config.masks)
         self.transform = TransformHandler(self.video.shape, self.design.shape, self.config.transform)
         self.masks = self.design.masks
@@ -1010,6 +1007,12 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         backend.expose(backend.get_overlaid_frame)(self.get_frame_overlay)
         backend.expose(backend.get_state_frame)(self.get_state_frame)
         backend.expose(backend.get_colors)(self.get_colors)
+
+
+    @backend.expose(backend.cache)
+    def cache(self):
+        with self.busy_context(AnalyzerState.CACHING):
+            self.video.cache_frames(self.set_progress, self.set_state)
 
 
     def _get_featuresets(self):
