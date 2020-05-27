@@ -1,36 +1,63 @@
 <template>
   <header class="sidebar-header">
-    <div>
-      <SidebarNavLink
-        url="/"
-        name="isimple"
-        class="sidebar-header-link"
-        icon="fa fa-home"
+    <ul class="sidebar-header-items">
+      <SidebarHeaderButton
+        :link="api('start')"
+        :link_payload="{ queue: $store.getters['analyzers/getQueue'] }"
+        :enable="
+          $store.getters['analyzers/getQueueState'] === QueueState.STOPPED
+        "
+        icon="fa fa-play"
       />
-    </div>
+      <!-- todo: essentially polling _q_state 3 times, better to keep it in sync ~ store.analyzers -->
+      <SidebarHeaderButton
+        :link="api('pause')"
+        :enable="
+          $store.getters['analyzers/getQueueState'] !== QueueState.STOPPED
+        "
+        icon="fa fa-pause"
+      />
+      <SidebarHeaderButton
+        :link="api('stop')"
+        :enable="
+          $store.getters['analyzers/getQueueState'] !== QueueState.STOPPED
+        "
+        icon="fa fa-stop"
+      />
+    </ul>
   </header>
 </template>
 
 <script>
-import SidebarNavDropdown from "./SidebarNavDropdown";
-import SidebarNavLink from "./SidebarNavLink";
-import SidebarNavItem from "./SidebarNavItem";
+import { api, QueueState } from "../../static/api";
+import SidebarHeaderButton from "./SidebarHeaderButton";
 
 export default {
-  name: "sidebar-footer",
-  class: "sidebar",
+  name: "sidebar-header",
   components: {
-    SidebarNavDropdown,
-    SidebarNavItem,
-    SidebarNavLink
+    SidebarHeaderButton
+  },
+  data() {
+    return {
+      api,
+      QueueState
+    };
   }
 };
 </script>
 
 <style scoped>
-.sidebar-header-link {
-  font-size: 110%;
-  font-weight: bold;
-  text-align: left;
+.sidebar-header {
+  height: 36px;
+  padding: 0;
+  margin: 0;
+}
+.sidebar-header-items {
+  margin: 0;
+  padding: 0;
+  height: 36px;
+  display: flex;
+  flex-direction: row;
+  overflow: hidden;
 }
 </style>

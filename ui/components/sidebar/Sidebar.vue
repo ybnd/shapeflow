@@ -51,7 +51,7 @@ export default {
   beforeMount() {
     this.init();
     this.interval_update = setInterval(this.updateQueue, 100);
-    // this.interval_sync = setInterval(this.sync, 5000);
+    this.interval_sync = setInterval(this.sync, 1000);
   },
   methods: {
     handleClick(e) {
@@ -60,12 +60,28 @@ export default {
     },
     init() {
       this.$store.dispatch("analyzers/source");
-      this.sync();
+      this.full_sync();
     },
     updateQueue() {
       this.queue = this.$store.getters["analyzers/getQueue"];
     },
     sync() {
+      if (!this.waiting) {
+        this.waiting = true;
+        this.$store.dispatch("analyzers/sync").then(ok => {
+          if (ok) {
+            this.queue = this.$store.getters["analyzers/getQueue"];
+          } else {
+            console.warn("backend may be down");
+          }
+          this.waiting = false;
+        });
+      } else {
+        console.warn("backend may be down");
+      }
+    },
+
+    full_sync() {
       if (!this.waiting) {
         this.waiting = true;
         this.$store.dispatch("options/sync");

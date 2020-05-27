@@ -12,7 +12,8 @@ import {
   EVENT_CATEGORIES,
   get_status,
   get_colors,
-  analyze
+  analyze,
+  get_q_state
 } from "../static/api";
 
 import assert from "assert";
@@ -27,6 +28,7 @@ const CATEGORY_COMMIT = {
 export const state = () => {
   return {
     queue: [], // array of analyzer ids (uuid strings)
+    queue_state: 0,
     status: {}, // id: analyzer status object
     config: {}, // id: analyzer config object
     result: {},
@@ -53,6 +55,17 @@ export const mutations = {
       }
     } catch (err) {
       console.warn(`closeSource failed`);
+      console.warn(err);
+    }
+  },
+
+  setQueueState(state, { queue_state }) {
+    try {
+      assert(!(queue_state === undefined), "no queue_state provided");
+
+      state.queue_state = queue_state;
+    } catch (err) {
+      console.warn(`setQueueState failed: '${queue_state}'`);
       console.warn(err);
     }
   },
@@ -354,13 +367,18 @@ export const actions = {
     });
   },
 
-  async sync({ dispatch, getters }) {
+  async sync({ commit, dispatch, getters }) {
     try {
       console.log(`action: analyzers.sync`);
 
       if (!getters["hasSource"]) {
         dispatch("source");
       }
+
+      get_q_state().then(queue_state => {
+        commit("setQueueState", { queue_state: queue_state });
+      });
+
       return await list().then(ids => {
         console.log(`action: analyzers.sync -- callback ~ api.list`);
         // unqueue dead ids

@@ -9,6 +9,7 @@ import time
 import webbrowser
 from threading import Thread, Event, Lock
 from typing import Dict, Any, List
+from enum import IntEnum
 
 import cv2
 from flask import Flask, send_from_directory, jsonify, request, Response, make_response
@@ -61,6 +62,12 @@ class ServerThread(Thread, metaclass=util.Singleton):
         self._stopevent.set()
 
 
+class QueueState(IntEnum):
+    STOPPED = 0
+    RUNNING = 1
+    PAUSED = 2
+
+
 class Main(isimple.core.Lockable):
     __metaclass__ = util.Singleton
     _app: Flask
@@ -89,13 +96,20 @@ class Main(isimple.core.Lockable):
 
     _eventstreamer = streaming.EventStreamer()
 
+    _q_state: int
+    _pause_q: Event
+    _stop_q: Event
+
 
     def __init__(self):
         super().__init__()
         app = Flask(__name__, static_url_path='')
         app.config.from_object(__name__)
 
-        self._stop_log = Event()
+        self._stop_log = Event()  # todo: these could be class attributes instead
+        self._pause_q = Event()
+        self._stop_q = Event()
+        self._q_state = QueueState.STOPPED
 
         self.get_latest()  # todo: should update once in a while
 
@@ -245,6 +259,27 @@ class Main(isimple.core.Lockable):
             except KeyError:
                 pass
             return respond(False)
+
+        @app.route('/api/start', methods=['POST'])
+        def start():
+            data = json.loads(request.data)
+            if 'queue' in data:
+                queue = data['queue']
+            else:
+                queue = list(self._roots.keys())
+            return respond(self.q_start(queue))
+
+        @app.route('/api/pause', methods=['POST'])
+        def pause():
+            return respond(self.q_pause())
+
+        @app.route('/api/stop', methods=['POST'])
+        def stop():
+            return respond(self.q_stop())
+
+        @app.route('/api/q_state', methods=['GET'])
+        def get_q_state():
+            return respond(self._q_state)
 
         # API: working with Analyzer instances
         @app.route('/api/init', methods=['POST'])
@@ -453,6 +488,37 @@ class Main(isimple.core.Lockable):
                 return True
         else:
             return False
+
+    def q_start(self, q: List[str]) -> bool:
+        if self._q_state == QueueState.STOPPED:
+            done = False
+            for id in q:
+                while self._pause_q.is_set():
+                    self._q_state = QueueState.PAUSED
+                    time.sleep(0.5)
+                self._q_state = QueueState.RUNNING
+                if self._stop_q.is_set():
+                    done = False
+                    break
+                self._roots[id].analyze()
+                done = True
+            self._pause_q.clear()
+            self._stop_q.clear()
+            self._q_state = QueueState.STOPPED
+            return done
+        else:
+            return False
+
+    def q_pause(self):
+        if not self._pause_q.is_set():
+            self._pause_q.set()
+        else:
+            self._pause_q.clear()
+
+    def q_stop(self):
+        if self._pause_q.is_set():
+            self._pause_q.clear()
+        self._stop_q.set()
 
     def save_state(self):
         log.debug("saving application state...")
