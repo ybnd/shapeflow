@@ -345,6 +345,10 @@ class TransformHandler(BackendInstance, Handler):  # todo: clean up config / con
         else:
             self.config.data(matrix=None, inverse=None)
 
+    @property
+    def is_set(self):
+        return self.config.data.matrix is not None
+
     @backend.expose(backend.get_relative_roi)
     def get_relative_roi(self) -> dict:
         if self.config.roi is not None:
@@ -1150,14 +1154,14 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     @stream
     @backend.expose(backend.get_inverse_overlaid_frame)
     def get_inverse_overlaid_frame(self, frame_number: Optional[int] = None) -> np.ndarray:
-        try:
+        if self.transform.is_set:
             return cv2.cvtColor(  # todo: loads of unnecessary color conversion here
                 overlay(
                     cv2.cvtColor(self.video.read_frame(frame_number), cv2.COLOR_HSV2BGR),
                     self.transform.inverse(self.design._overlay),
                     alpha=self.design.config.overlay_alpha
                 ), cv2.COLOR_BGR2HSV)
-        except ValueError:
+        else:
             log.debug('transform not set, showing raw frame')
             return self.video.read_frame(frame_number)
 
@@ -1307,7 +1311,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 self._get_featuresets()
                 self.save_config()
 
-                log.debug(f"Analyzing with features: {[f for f in self._featuresets]}.")
+                log.info(f"Analyzing {self.id}")
 
                 for fn in self.frame_numbers():
                     if not self._cancel.is_set():
@@ -1324,7 +1328,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         """Load video analysis configuration from history database
         """
         if self._model is not None:
-            log.info('loading config from database...')
+            log.debug('loading config from database...')
             include = ['video', 'design', 'transform', 'masks']
 
             from isimple.history import History, VideoFileModel, DesignFileModel  # todo: fix history / video circular dependency
@@ -1352,9 +1356,9 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 self._config(**config)
                 self._config.resolve()  # todo: is this still necessary now? is basically re-passing all attributes ~ the line above.
 
-                log.debug(f'loaded config: {config}')
+                log.info(f'config ~ database: {config}')
             else:
-                log.debug('could not load config - no video path!')
+                log.warning('could not load config - no video path!')
 
     def save_config(self, path: str = None):  # todo: in isimple.og, make LegacyVideoAnalyzer(VideoAnalyzer) that implements these
         """Save video analysis configuration
