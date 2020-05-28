@@ -327,7 +327,6 @@ def stream(method):  # todo: check method._endpoint._streaming & select Streamer
          in the global StreamHandler `streams`.
     """
 
-    @timed
     @wraps(method)
     def wrapped_method(*args, **kwargs):
         data = method(*args, **kwargs)

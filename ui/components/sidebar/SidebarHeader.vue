@@ -9,14 +9,6 @@
         "
         icon="fa fa-play"
       />
-      <!-- todo: essentially polling _q_state 3 times, better to keep it in sync ~ store.analyzers -->
-      <SidebarHeaderButton
-        :link="api('pause')"
-        :enable="
-          $store.getters['analyzers/getQueueState'] !== QueueState.STOPPED
-        "
-        icon="fa fa-pause"
-      />
       <SidebarHeaderButton
         :link="api('stop')"
         :enable="

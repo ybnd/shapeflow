@@ -114,52 +114,66 @@ class Settings(_Settings):
 
 def _load_settings(path: str = _SETTINGS_FILE) -> Settings:  # todo: if there are unexpected fields: warn, don't crash
     with open(path, 'r') as f:
-        settings = yaml.safe_load(f)
+        settings_yaml = yaml.safe_load(f)
 
         # Get settings
-        if settings is not None:
-            ini = Settings.from_dict(settings)
+        if settings_yaml is not None:
+            settings = Settings.from_dict(settings_yaml)
         else:
-            ini = Settings()
+            settings = Settings()
 
         # Create directories if needed
-        for dir in (ini.log.dir, ini.render.dir, ini.cache.dir):
+        for dir in (settings.log.dir, settings.render.dir, settings.cache.dir):
             if not os.path.isdir(dir):
                 os.mkdir(dir)
 
         # Move the previous log file to ROOTDIR/log
-        if os.path.isfile(ini.log.path):
+        if os.path.isfile(settings.log.path):
             shutil.move(
-                ini.log.path,
+                settings.log.path,
                 os.path.join(
-                    ini.log.dir,
+                    settings.log.dir,
                     datetime.datetime.fromtimestamp(
-                        os.path.getmtime(ini.log.path)
-                    ).strftime(ini.format.datetime_format_fs) + '.log'
+                        os.path.getmtime(settings.log.path)
+                    ).strftime(settings.format.datetime_format_fs) + '.log'
                 )
             )
 
         # If more files than specified in ini.log.keep, remove the oldest
-        files = glob.glob(os.path.join(ini.log.dir, '*.log'))
+        files = glob.glob(os.path.join(settings.log.dir, '*.log'))
         files.sort(key=lambda f: os.path.getmtime(f), reverse=True)
-        while len(files) > ini.log.keep:
+        while len(files) > settings.log.keep:
             os.remove(files.pop())
 
-        return ini
-
-
-def save_settings(settings: _Settings, path: str = _SETTINGS_FILE):
-    with open(path, 'w+') as f:
-        yaml.safe_dump(settings.to_dict(),f)
+        return settings
 
 
 if not os.path.isfile(_SETTINGS_FILE):
     settings = Settings()
 else:
     settings = _load_settings(_SETTINGS_FILE)
-save_settings(settings)
 
-cache = diskcache.Cache(settings.cache.dir, settings.cache.size_limit_gb * 1e9) # todo: size limit should be in settings.cache
+
+def save_settings(settings: Settings, path: str = _SETTINGS_FILE):
+    with open(path, 'w+') as f:
+        yaml.safe_dump(settings.to_dict(),f)
+
+
+save_settings(settings)
+# cache = diskcache.Cache(settings.cache.dir, settings.cache.size_limit_gb * 1e9) # todo: size limit should be in settings.cache
+
+
+def update_settings(new_settings: dict):
+    """Update global settings ~ dict
+        Note: doing `settings = Settings(**new_settings)` would prevent
+        importing modules from accessing the updated settings!
+    """
+    for cat, cat_new in new_settings.items():
+        sub = getattr(settings, cat)
+        for kw, val in cat_new.items():
+            setattr(sub, kw, val)
+
+    save_settings(settings)
 
 
 class CustomLogger(logging.Logger):

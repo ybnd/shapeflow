@@ -187,7 +187,7 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
     def __enter__(self, override: bool = False):
         if self._config.do_cache or override:
             if self._cache is None:
-                log.debug(f'{self.__class__.__qualname__}: opening cache.')
+                log.debug(f'{self.__class__.__qualname__}: opening cache @ {settings.cache.dir}')
                 self._cache = diskcache.Cache(
                     directory=settings.cache.dir,
                     size_limit=settings.cache.size_limit_gb * 1e9,
@@ -197,7 +197,7 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
 
     def __exit__(self, exc_type, exc_value, tb):
         if self._cache is not None:
-            log.debug(f'{self.__class__.__qualname__}: closing cache.')
+            log.debug(f'{self.__class__.__qualname__}: closing cache @ {settings.cache.dir}')
             self._cache.close()
             self._cache = None
 
@@ -549,6 +549,10 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
         assert isinstance(self._state, AnalyzerState)  # todo: fix int / AnalyzerState typing
         return self._state
 
+    @property
+    def done(self) -> bool:
+        return self.state == AnalyzerState.DONE
+
     @backend.expose(backend.state_transition)
     def state_transition(self) -> AnalyzerState:
         """Handle state transitions
@@ -557,7 +561,7 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
         if self.state == AnalyzerState.INCOMPLETE and self.can_launch():
             self.set_state(AnalyzerState.CAN_LAUNCH)
         elif self.state == AnalyzerState.LAUNCHED:
-            if self.can_analyze():
+            if self.can_analyze:
                 self.set_state(AnalyzerState.CAN_ANALYZE)
         elif self.state == AnalyzerState.DONE or self.state == AnalyzerState.CANCELED:
             self.set_progress(0.0)

@@ -155,10 +155,9 @@ class Main(isimple.core.Lockable):
             # todo: check if anything's changed, don't reload if not!
 
             new_settings = json.loads(request.data)['settings']
-
             log.info(f'setting settings: {new_settings}')
 
-            isimple.save_settings(isimple.Settings(**new_settings))
+            isimple.update_settings(new_settings)
 
             # todo: restart the server with original
 
@@ -473,7 +472,7 @@ class Main(isimple.core.Lockable):
             analyzer = type.get()()
             analyzer.set_eventstreamer(self._eventstreamer)
 
-            log.debug(f"Added root {{'{analyzer.id}': {analyzer}}}")
+            log.info(f"Adding {{'{analyzer.id}': {analyzer}}}")
             self._roots[analyzer.id] = analyzer
             assert isinstance(analyzer, video.VideoAnalyzer)
             self._history.add_analysis(analyzer)
@@ -492,30 +491,38 @@ class Main(isimple.core.Lockable):
     def q_start(self, q: List[str]) -> bool:
         if self._q_state == QueueState.STOPPED:
             done = False
-            for id in q:
-                while self._pause_q.is_set():
-                    self._q_state = QueueState.PAUSED
-                    time.sleep(0.5)
-                self._q_state = QueueState.RUNNING
-                if self._stop_q.is_set():
-                    done = False
-                    break
-                self._roots[id].analyze()
-                done = True
-            self._pause_q.clear()
-            self._stop_q.clear()
-            self._q_state = QueueState.STOPPED
-            return done
+
+            if all(self._roots[id].can_analyze for id in q):
+                log.info(f"analyzing queue: {q}")
+                for id in q:
+                    while self._pause_q.is_set():
+                        self._q_state = QueueState.PAUSED
+                        time.sleep(0.5)
+                    self._q_state = QueueState.RUNNING
+
+                    if self._stop_q.is_set():
+                        done = False
+                        break
+
+                    if not self._roots[id].done:
+                        self._roots[id].analyze()
+                    else:
+                        log.info(f"skipping {id}")
+                    done = True
+
+                self._pause_q.clear()
+                self._stop_q.clear()
+                self._q_state = QueueState.STOPPED
+                return done
+            else:
+                log.info(f"CAN'T ANALYZE FOR ALL ANALYZERS")
+                return False
         else:
+            log.info(f"already started analyzing queue!")
             return False
 
-    def q_pause(self):
-        if not self._pause_q.is_set():
-            self._pause_q.set()
-        else:
-            self._pause_q.clear()
-
     def q_stop(self):
+        log.info('stopping analysis queue')
         if self._pause_q.is_set():
             self._pause_q.clear()
         self._stop_q.set()
