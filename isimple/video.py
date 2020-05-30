@@ -1339,8 +1339,9 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
                 self.commit()
 
-            if self._cancel.is_set():
-                self.clear()
+        if self._cancel.is_set():
+            self.clear()
+            self.set_state(AnalyzerState.CANCELED)
 
     def load_config(self):  # todo: look in history instead of file next to video
         """Load video analysis configuration from history database

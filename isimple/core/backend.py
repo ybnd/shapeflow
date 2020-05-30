@@ -567,7 +567,7 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
             if self.can_analyze:
                 self.set_state(AnalyzerState.CAN_ANALYZE, send_event)
         elif self.state == AnalyzerState.DONE or self.state == AnalyzerState.CANCELED:
-            self.set_progress(0.0)
+            self.set_progress(0.0, send_event=False)
             if self.can_analyze:
                 self.set_state(AnalyzerState.CAN_ANALYZE, send_event)
             elif self.launched:
@@ -600,7 +600,7 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
             self.set_busy(False)
             self.set_state(done_state)
 
-
+    @backend.expose(backend.cancel)
     def cancel(self):
         super().cancel()
         self.set_state(AnalyzerState.CANCELED)
@@ -677,6 +677,9 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
                 # Push events
                 self.set_state(AnalyzerState.LAUNCHED)
                 self.event(AnalyzerEvent.CONFIG, self.get_config())
+
+                # State transition (may change from LAUNCHED ~ config)
+                self.state_transition()
 
                 return self.launched
             else:

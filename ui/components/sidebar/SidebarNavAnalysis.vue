@@ -36,219 +36,85 @@
       v-bind:value="status.progress"
       max="1"
     ></b-progress>
-    <template v-if="status.state === ast.INCOMPLETE">
-      <ul class="nav-dropdown-items">
-        <SidebarNavAnalysisLink
-          name="Configure"
-          icon="icon-equalizer"
-          :id="link.configure"
-        />
-        <SidebarNavAnalysisLink
-          name="Remove"
-          icon="icon-trash"
-          :two_stage="true"
-          :id="event.remove"
-        />
-      </ul>
-    </template>
-    <template v-if="status.state === ast.LAUNCHED">
-      <ul class="nav-dropdown-items">
-        <SidebarNavAnalysisLink
-          name="Configure"
-          icon="icon-equalizer"
-          :id="link.configure"
-        />
-        <SidebarNavAnalysisLink
-          name="Set alignment"
-          icon="icon-frame"
-          :id="link.align"
-        />
-        <SidebarNavAnalysisLink
-          name="Set filters"
-          icon="icon-layers"
-          :id="link.filter"
-        />
-        <SidebarNavAnalysisLink
-          name="Remove"
-          icon="icon-trash"
-          :two_stage="true"
-          :id="event.remove"
-        />
-      </ul>
-    </template>
-    <template v-else-if="status.state === ast.CAN_LAUNCH">
-      <ul class="nav-dropdown-items">
-        <SidebarNavAnalysisLink
-          name="Configure"
-          icon="icon-equalizer"
-          :id="link.configure"
-        />
-        <SidebarNavAnalysisLink
-          name="Remove"
-          icon="icon-trash"
-          :two_stage="true"
-          :id="event.remove"
-        />
-      </ul>
-    </template>
-    <template v-if="status.state === ast.CAN_ANALYZE">
-      <ul class="nav-dropdown-items">
-        <SidebarNavAnalysisLink
-          name="Configure"
-          icon="icon-equalizer"
-          :id="link.configure"
-        />
-        <SidebarNavAnalysisLink
-          name="Set alignment"
-          icon="icon-frame"
-          :id="link.align"
-        />
-        <SidebarNavAnalysisLink
-          name="Set filters"
-          icon="icon-layers"
-          :id="link.filter"
-        />
-        <SidebarNavAnalysisLink
-          name="Analyze"
-          icon="icon-control-play"
-          :id="link.analyze"
-        />
-        <SidebarNavAnalysisLink
-          name="Remove"
-          icon="icon-trash"
-          :two_stage="true"
-          :id="event.remove"
-        />
-      </ul>
-    </template>
-    <template v-else-if="status.state === ast.ANALYZING">
-      <ul class="nav-dropdown-items">
-        <template v-if="status.results">
-          <SidebarNavAnalysisLink
-            name="Results"
-            icon="icon-graph"
-            :id="link.result"
-          />
-        </template>
+    <ul class="nav-dropdown-items">
+      <SidebarNavAnalysisLink
+        name="Configure"
+        icon="icon-equalizer"
+        :id="link.configure"
+        :disabled="[undefined, ast.ANALYZING].includes(status.state)"
+      />
+      <SidebarNavAnalysisLink
+        name="Set alignment"
+        icon="icon-frame"
+        :id="link.align"
+        :disabled="
+          [
+            undefined,
+            ast.UNKNOWN,
+            ast.INCOMPLETE,
+            ast.CAN_LAUNCH,
+            ast.ANALYZING
+          ].includes(status.state)
+        "
+      />
+      <SidebarNavAnalysisLink
+        name="Set filters"
+        icon="icon-layers"
+        :id="link.filter"
+        :disabled="
+          [
+            undefined,
+            ast.UNKNOWN,
+            ast.INCOMPLETE,
+            ast.CAN_LAUNCH,
+            ast.ANALYZING
+          ].includes(status.state)
+        "
+      />
+      <template v-if="status.state === ast.ANALYZING">
         <SidebarNavAnalysisLink
           name="Cancel"
           icon="icon-ban"
-          :two_stage="true"
-          :id="event.cancel"
+          :id="link.cancel"
         />
-      </ul>
-    </template>
-    <template v-else-if="status.state === ast.DONE">
-      <ul class="nav-dropdown-items">
-        <SidebarNavAnalysisLink
-          name="Configure"
-          icon="icon-equalizer"
-          :id="link.configure"
-        />
-        <SidebarNavAnalysisLink
-          name="Set alignment"
-          icon="icon-frame"
-          :id="link.align"
-        />
-        <SidebarNavAnalysisLink
-          name="Set filters"
-          icon="icon-layers"
-          :id="link.filter"
-        />
+      </template>
+      <template v-else>
         <SidebarNavAnalysisLink
           name="Analyze"
           icon="icon-control-play"
           :id="link.analyze"
+          :disabled="
+            [
+              undefined,
+              ast.UNKNOWN,
+              ast.INCOMPLETE,
+              ast.LAUNCHED,
+              ast.CAN_LAUNCH,
+              ast.CACHING
+            ].includes(status.state)
+          "
         />
-        <template v-if="status.results">
-          <SidebarNavAnalysisLink
-            name="Results"
-            icon="icon-graph"
-            :id="link.result"
-          />
-        </template>
-        <SidebarNavAnalysisLink
-          name="Remove"
-          icon="icon-trash"
-          :two_stage="true"
-          :id="event.remove"
-        />
-      </ul>
-    </template>
-    <template v-else-if="status.state === ast.CANCELED">
-      <ul class="nav-dropdown-items">
-        <SidebarNavAnalysisLink
-          name="Configure"
-          icon="icon-equalizer"
-          :id="link.configure"
-        />
-        <SidebarNavAnalysisLink
-          name="Set alignment"
-          icon="icon-frame"
-          :id="link.align"
-        />
-        <SidebarNavAnalysisLink
-          name="Set filters"
-          icon="icon-layers"
-          :id="filter"
-        />
-        <SidebarNavAnalysisLink
-          name="Analyze"
-          icon="icon-control-play"
-          :id="link.analyze"
-        />
-        <template v-if="status.results">
-          <SidebarNavAnalysisLink
-            name="Results"
-            icon="icon-graph"
-            :id="link.result"
-          />
-        </template>
-        <SidebarNavAnalysisLink
-          name="Remove"
-          icon="icon-trash"
-          :two_stage="true"
-          :id="event.remove"
-        />
-      </ul>
-    </template>
-    <template v-else-if="status.state === ast.ERROR">
-      <ul class="nav-dropdown-items">
-        <SidebarNavAnalysisLink
-          name="Configure"
-          icon="icon-equalizer"
-          :id="link.configure"
-        />
-        <SidebarNavAnalysisLink
-          name="Set alignment"
-          icon="icon-frame"
-          :id="link.align"
-        />
-        <SidebarNavAnalysisLink
-          name="Set filters"
-          icon="icon-layers"
-          :id="link.filter"
-        />
-        <SidebarNavAnalysisLink
-          name="Analyze"
-          icon="icon-control-play"
-          :id="link.analyze"
-        />
-        <template v-if="status.results">
-          <SidebarNavAnalysisLink
-            name="Results"
-            icon="icon-graph"
-            :id="link.result"
-          />
-        </template>
-        <SidebarNavAnalysisLink
-          name="Remove"
-          icon="icon-trash"
-          :two_stage="true"
-          :id="event.remove"
-        />
-      </ul>
-    </template>
+      </template>
+      <SidebarNavAnalysisLink
+        name="Results"
+        icon="icon-graph"
+        :id="link.result"
+        :disabled="
+          [undefined, ast.UNKNOWN, ast.INCOMPLETE, ast.CAN_LAUNCH].includes(
+            status.state
+          )
+        "
+      />
+      <SidebarNavAnalysisLink
+        name="Remove"
+        icon="icon-trash"
+        :two_stage="true"
+        :id="event.remove"
+        :disabled="
+          [undefined, ast.CACHING, ast.ANALYZING].includes(status.state)
+        "
+      />
+    </ul>
   </div>
 </template>
 
@@ -295,9 +161,6 @@ export default {
       console.log(`${this.id} got open event`); // todo: doesn't seem to work
       this.$refs[`dropdown-${this.id}`].classList.add("open");
     },
-    handleUpdateStatus(status) {
-      this.status = status;
-    },
     handleAnalyze() {
       this.$store.dispatch("analyzers/analyze", { id: this.id });
     },
@@ -331,7 +194,8 @@ export default {
         filter: `/analysis/filter?id=${this.id}`,
         result: `/analysis/result?id=${this.id}`,
         cache: `/api/${this.id}/call/cache`,
-        analyze: `/api/${this.id}/call/analyze`
+        analyze: `/api/${this.id}/call/analyze`,
+        cancel: `/api/${this.id}/call/cancel`
       };
     },
     event() {
@@ -343,7 +207,24 @@ export default {
       };
     },
     status() {
-      return this.$store.getters["analyzers/getStatus"](this.id);
+      let status = this.$store.getters["analyzers/getStatus"](this.id);
+
+      console.log(`${this.id} state = ${status.state}`);
+      console.log(status);
+
+      console.log("'Analyze' button disabled: ");
+      console.log(
+        [
+          undefined,
+          ast.UNKNOWN,
+          ast.INCOMPLETE,
+          ast.LAUNCHED,
+          ast.CAN_LAUNCH,
+          ast.CACHING
+        ].includes(status.state)
+      );
+
+      return status;
     }
   },
   data() {

@@ -564,16 +564,15 @@ class Main(isimple.core.Lockable):
         }
 
     def call(self, id: str, endpoint: str, data: dict) -> Any:
-        with self.lock():
-            t0 = time.time()
-            log.debug(f"{self._roots[id]}: call '{endpoint}'")
-            # todo: sanity check this
-            method = self._roots[id].get(getattr(backend.backend, endpoint))
+        t0 = time.time()
+        log.debug(f"{self._roots[id]}: call '{endpoint}'")
+        # todo: sanity check this
+        method = self._roots[id].get(getattr(backend.backend, endpoint))
 
-            result = method(**data)
-            log.debug(f"{self._roots[id]}: return '{endpoint}' "
-                      f"({time.time() - t0} s elapsed)")
-            return result
+        result = method(**data)
+        log.debug(f"{self._roots[id]}: return '{endpoint}' "
+                  f"({time.time() - t0} s elapsed)")
+        return result
 
     def stream(self, id: str, endpoint: str) -> streaming.BaseStreamer:  # todo: extend to handle json streaming also
         with self.lock():

@@ -99,10 +99,6 @@ export default {
     },
     handleReorderQueue() {
       this.$store.commit("analyzers/setQueue", { queue: this.queue });
-    },
-    setCurrent(page, id) {
-      // todo: open id's dropdown ~ event
-      // todo: set id's page link to current ~ event
     }
   },
   data: () => {
@@ -112,6 +108,12 @@ export default {
       interval_sync: null,
       waiting: false
     };
+  },
+  watch: {
+    $route(to, from) {
+      this.$root.$emit(events.sidebar.unhighlight(from.fullPath));
+      this.$root.$emit(events.sidebar.highlight(to.fullPath));
+    }
   }
 };
 </script>

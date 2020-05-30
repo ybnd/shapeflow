@@ -15,6 +15,7 @@ class BackendRegistry(ImmutableRegistry):
     commit = Endpoint(Callable[[], bool])
     cache = Endpoint(Callable[[], bool])
     analyze = Endpoint(Callable[[], bool])
+    cancel = Endpoint(Callable[[], None])
     is_caching = Endpoint(Callable[[], bool])
     cancel_caching = Endpoint(Callable[[], bool])
     get_value = Endpoint(Callable[[], dict], stream_json)

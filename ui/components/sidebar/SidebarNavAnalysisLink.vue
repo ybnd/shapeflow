@@ -77,6 +77,10 @@ export default {
     variant: {
       type: String,
       default: ""
+    },
+    disabled: {
+      type: Boolean,
+      default: false
     }
   },
   methods: {
@@ -112,9 +116,12 @@ export default {
   },
   computed: {
     classList() {
+      console.log(`${this.id} - ${this.name} -> disabled = ${this.disabled}`);
+
       return [
         "nav-link",
-        this.highlight ? "highlighted" : "",
+        this.highlight ? "highlight" : "",
+        this.disabled ? "disabled" : "",
         this.linkVariant
       ];
     },
@@ -142,10 +149,20 @@ export default {
 @import "../../assets/scss/_core-variables";
 @import "node_modules/bootstrap/scss/functions";
 
+.highlight {
+  background: theme-color("secondary") !important;
+  color: $gray-800;
+  pointer-events: none;
+  :hover {
+    background: $blue;
+  }
+}
+
+.disabled {
+  color: #6c757d !important; /* todo: copied from CSS output; find theme equivalent! */
+}
+
 .sidebar-analysis-link {
   font-size: 85%;
-}
-.highlighted {
-  background: $gray-500 !important;
 }
 </style>

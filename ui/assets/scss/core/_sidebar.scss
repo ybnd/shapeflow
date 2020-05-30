@@ -133,7 +133,7 @@
   .nav-link {
     display: block;
     padding: $sidebar-nav-link-padding-y $sidebar-nav-link-padding-x;
-    color: $sidebar-nav-link-color;
+    //color: $sidebar-nav-link-color;
     text-decoration: none;
     user-select: none;         /* https://stackoverflow.com/questions/924916/ */
     -moz-user-select: none;
@@ -232,7 +232,7 @@
     }
 
     .nav-link {
-      color: $sidebar-nav-dropdown-color;
+      //color: $sidebar-nav-dropdown-color;
       border-left: 0 !important;
     }
 

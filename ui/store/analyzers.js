@@ -297,9 +297,9 @@ export const actions = {
         try {
           let event = JSON.parse(message.data);
 
-          if (event.category === "reset_result") {
-            console.log("caught");
-          }
+          // if (event.category === "reset_result") {
+          //   console.log("caught");
+          // }
 
           assert(event.hasOwnProperty("category"));
           assert(_.includes(EVENT_CATEGORIES, event.category));
@@ -331,22 +331,22 @@ export const actions = {
   },
 
   async init({ commit, dispatch }, { config = {} }) {
-    console.log(`action: analyzers.init`);
+    // console.log(`action: analyzers.init`);
     return init().then(id => {
-      console.log(`action: analyzers.init -- callback ~ api.init (id=${id})`);
+      // console.log(`action: analyzers.init -- callback ~ api.init (id=${id})`);
       return dispatch("queue", { id: id }).then(() => {
-        console.log(
-          `action: analyzers.init -- callback ~ analyzers.queue (id=${id})`
-        );
+        // console.log(
+        //   `action: analyzers.init -- callback ~ analyzers.queue (id=${id})`
+        // );
         return dispatch("set_config", { id: id, config: config }).then(
           config => {
-            console.log(
-              `action: analyzers.init -- callback ~ analyzers.set_config (id=${id})`
-            );
+            // console.log(
+            //   `action: analyzers.init -- callback ~ analyzers.set_config (id=${id})`
+            // );
             return launch(id).then(ok => {
-              console.log(
-                `action: analyzers.init -- callback ~ api.launch (id=${id})`
-              );
+              // console.log(
+              //   `action: analyzers.init -- callback ~ api.launch (id=${id})`
+              // );
               if (ok) {
                 console.log(`Launched '${id}'`);
                 return id;
@@ -363,7 +363,7 @@ export const actions = {
 
   async sync({ commit, dispatch, getters }) {
     try {
-      console.log(`action: analyzers.sync`);
+      // console.log(`action: analyzers.sync`);
 
       if (!getters["hasSource"]) {
         dispatch("source");
@@ -374,7 +374,7 @@ export const actions = {
       });
 
       return await list().then(ids => {
-        console.log(`action: analyzers.sync -- callback ~ api.list`);
+        // console.log(`action: analyzers.sync -- callback ~ api.list`);
         // unqueue dead ids
         let q = getters["getQueue"];
         if (q.length > 0) {
@@ -390,9 +390,9 @@ export const actions = {
           for (let i = 0; i < ids.length; i++) {
             if (!q.includes(ids[i])) {
               dispatch("queue", { id: ids[i] }).then(() => {
-                console.log(
-                  `action: analyzers.sync -- callback ~ analyzers.queue (id=${ids[i]})`
-                );
+                // console.log(
+                //   `action: analyzers.sync -- callback ~ analyzers.queue (id=${ids[i]})`
+                // );
                 dispatch("get_status", { id: ids[i] });
                 dispatch("get_config", { id: ids[i] });
               });
@@ -410,12 +410,12 @@ export const actions = {
   async get_config({ commit }, { id }) {
     try {
       assert(!(id === undefined), "no id provided");
-      console.log(`action: analyzers.get_config (id=${id})`);
+      // console.log(`action: analyzers.get_config (id=${id})`);
 
       return get_config(id).then(config => {
-        console.log(
-          `action: analyzers.get_config -- callback ~ api.get_config (id=${id})`
-        );
+        // console.log(
+        //   `action: analyzers.get_config -- callback ~ api.get_config (id=${id})`
+        // );
         commit("setAnalyzerConfig", {
           id: id,
           config: config
@@ -431,12 +431,12 @@ export const actions = {
   async get_status({ commit }, { id }) {
     try {
       assert(!(id === undefined), "no id provided");
-      console.log(`action: analyzers.get_status (id=${id})`);
+      // console.log(`action: analyzers.get_status (id=${id})`);
 
       return get_status(id).then(status => {
-        console.log(
-          `action: analyzers.get_status -- callback ~ api.get_status (id=${id})`
-        );
+        // console.log(
+        //   `action: analyzers.get_status -- callback ~ api.get_status (id=${id})`
+        // );
         commit("setAnalyzerStatus", { id: id, status: status });
       });
     } catch (e) {
@@ -449,12 +449,12 @@ export const actions = {
     try {
       assert(!(id === undefined), "no id provided");
       assert(!(config === undefined), "no config");
-      console.log(`action: analyzers.set_config (id=${id})`);
+      // console.log(`action: analyzers.set_config (id=${id})`);
 
       return set_config(id, config).then(config => {
-        console.log(
-          `action: analyzers.set_config -- callback ~ api.set_config (id=${id})`
-        );
+        // console.log(
+        //   `action: analyzers.set_config -- callback ~ api.set_config (id=${id})`
+        // );
         commit("setAnalyzerConfig", {
           id: id,
           config: config
