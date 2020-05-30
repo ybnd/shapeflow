@@ -108,11 +108,11 @@
           icon="icon-layers"
           :id="link.filter"
         />
-        <div>
-          <div @click="handleAnalyze" class="sidebar-analysis-link nav-link">
-            <i class="icon-control-play"></i>Analyze
-          </div>
-        </div>
+        <SidebarNavAnalysisLink
+          name="Analyze"
+          icon="icon-control-play"
+          :id="link.analyze"
+        />
         <SidebarNavAnalysisLink
           name="Remove"
           icon="icon-trash"
@@ -155,11 +155,11 @@
           icon="icon-layers"
           :id="link.filter"
         />
-        <div>
-          <div @click="handleAnalyze" class="sidebar-analysis-link nav-link">
-            <i class="icon-control-play"></i>Analyze
-          </div>
-        </div>
+        <SidebarNavAnalysisLink
+          name="Analyze"
+          icon="icon-control-play"
+          :id="link.analyze"
+        />
         <template v-if="status.results">
           <SidebarNavAnalysisLink
             name="Results"
@@ -192,11 +192,11 @@
           icon="icon-layers"
           :id="filter"
         />
-        <div>
-          <div @click="handleAnalyze" class="sidebar-analysis-link nav-link">
-            <i class="icon-control-play"></i>Analyze
-          </div>
-        </div>
+        <SidebarNavAnalysisLink
+          name="Analyze"
+          icon="icon-control-play"
+          :id="link.analyze"
+        />
         <template v-if="status.results">
           <SidebarNavAnalysisLink
             name="Results"
@@ -229,11 +229,11 @@
           icon="icon-layers"
           :id="link.filter"
         />
-        <div>
-          <div @click="handleAnalyze" class="sidebar-analysis-link nav-link">
-            <i class="icon-control-play"></i>Analyze
-          </div>
-        </div>
+        <SidebarNavAnalysisLink
+          name="Analyze"
+          icon="icon-control-play"
+          :id="link.analyze"
+        />
         <template v-if="status.results">
           <SidebarNavAnalysisLink
             name="Results"
@@ -330,7 +330,8 @@ export default {
         align: `/analysis/align?id=${this.id}`,
         filter: `/analysis/filter?id=${this.id}`,
         result: `/analysis/result?id=${this.id}`,
-        cache: `/api/${this.id}/call/cache`
+        cache: `/api/${this.id}/call/cache`,
+        analyze: `/api/${this.id}/call/analyze`
       };
     },
     event() {

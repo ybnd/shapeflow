@@ -22,7 +22,8 @@ import _ from "lodash";
 const CATEGORY_COMMIT = {
   status: "setAnalyzerStatus",
   config: "setAnalyzerConfig",
-  result: "updateAnalyzerResult"
+  result: "updateAnalyzerResult",
+  result_metadata: "resetAnalyzerResult"
 };
 
 export const state = () => {
@@ -131,10 +132,10 @@ export const mutations = {
     }
   },
 
-  initAnalyzerResult(state, { id, colors }) {
+  resetAnalyzerResult(state, { id, result_metadata }) {
     try {
       assert(!(id === undefined), "no id provided");
-      assert(!(colors === undefined), "no colors provided");
+      assert(!(result_metadata === undefined), "no metadata provided");
 
       state.result[id] = {};
 
@@ -145,8 +146,8 @@ export const mutations = {
             ...state.result[id][feature],
             {
               label: state.config[id].masks[m].name,
-              backgroundColor: colors[feature][m],
-              borderColor: colors[feature][m],
+              backgroundColor: result_metadata.colors[feature][m],
+              borderColor: result_metadata.colors[feature][m],
               showLine: true,
               data: []
             }
@@ -154,7 +155,7 @@ export const mutations = {
         }
       }
     } catch (err) {
-      console.warn(`initAnalyzerResult failed: '${id}'`);
+      console.warn(`resetAnalyzerResult failed: '${id}'`);
       console.warn(err);
     }
   },
@@ -172,11 +173,6 @@ export const mutations = {
           ];
         }
       }
-      console.log(`${id} data: `);
-      console.log(result);
-      console.log(
-        `result[${id}] has ${state.result[id].Volume_uL[0].data.length} data points.`
-      );
     } catch (err) {
       console.warn(`updateAnalyzerResult failed: '${id}', result: `);
       console.warn(result);
@@ -301,16 +297,14 @@ export const actions = {
         try {
           let event = JSON.parse(message.data);
 
+          if (event.category === "reset_result") {
+            console.log("caught");
+          }
+
           assert(event.hasOwnProperty("category"));
           assert(_.includes(EVENT_CATEGORIES, event.category));
           assert(event.hasOwnProperty("id"));
           assert(event.hasOwnProperty("data"));
-
-          // console.log("/api/stream/events callback");
-          // console.log(`category: ${event.category}`);
-          // console.log(`id: ${event.id}`);
-          // console.log("data: ");
-          // console.log(event.data);
 
           commit(CATEGORY_COMMIT[event.category], {
             id: event.id,
@@ -469,21 +463,6 @@ export const actions = {
       });
     } catch (e) {
       console.warn(`could not set config for ${id}`);
-      return undefined;
-    }
-  },
-
-  async analyze({ commit }, { id }) {
-    try {
-      assert(!(id === undefined), "no id provided");
-      console.log(`action: analyzers.analyze (id=${id})`);
-
-      get_colors(id).then(colors => {
-        commit("initAnalyzerResult", { id: id, colors: colors });
-        analyze(id);
-      });
-    } catch (e) {
-      console.warn(`could not analyze for ${id}`);
       return undefined;
     }
   }

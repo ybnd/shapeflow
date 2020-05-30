@@ -225,7 +225,6 @@ class VideoFileHandler(CachingBackendInstance, Lockable):
         else:
             return self._cached_call(self._read_frame, self.path, frame_number)
 
-    @backend.expose(backend.seek)
     def seek(self, position: float = None) -> float:
         """Seek to the relative position ~ [0,1]
         """
@@ -364,7 +363,6 @@ class TransformHandler(BackendInstance, Handler):  # todo: clean up config / con
         else:
             return {}
 
-    @backend.expose(backend.estimate_transform)
     def estimate(self, roi: dict) -> None:
         """Estimate the transform matrix from a set of coordinates.
             Coordinates should correspond to the corners of the outline of
@@ -1043,11 +1041,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 [], columns=['time'] + [f.name for f in fs.features], index=list(self.frame_numbers())
             )
 
-    @backend.expose(backend.get_config)
-    def get_config(self) -> dict:
-        config = self.config.to_dict()
-        return config
-
     @property
     def position(self):
         if hasattr(self, 'video'):
@@ -1112,12 +1105,11 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                     self.commit()  # todo: isimple.video doesn't know about isimple.history!
 
                 # Check for state transitions
-                self.state_transition()
+                self.state_transition(send_event=True)
 
                 config = self.get_config()
 
-                # Push events
-                self.event(AnalyzerEvent.STATUS, self.status())
+                # Push config event
                 self.event(AnalyzerEvent.CONFIG, config)  # todo category should be ~ Enum
 
                 # Push streams
@@ -1165,6 +1157,26 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             log.debug('transform not set, showing raw frame')
             return self.video.read_frame(frame_number)
 
+    @backend.expose(backend.seek)
+    def seek(self, position: float = None) -> float:
+        self.video.seek(position)
+        self.event(AnalyzerEvent.STATUS, self.status())
+
+        return self.position
+
+    @backend.expose(backend.estimate_transform)
+    def estimate_transform(self, roi) -> dict:
+        if roi is not None:
+            self.transform.estimate(roi)
+        else:
+            roi = self.transform.config.roi
+
+        self.state_transition()
+        self.event(AnalyzerEvent.CONFIG, self.get_config())
+        self.commit()
+
+        return roi
+
     @backend.expose(backend.undo_roi)
     def undo_roi(self) -> dict:
         from isimple.history import History
@@ -1190,6 +1202,10 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             self.transform.estimate(roi)
         else:
             roi = self.transform.config.roi
+
+        self.state_transition()
+        self.event(AnalyzerEvent.CONFIG, self.get_config())
+        self.commit()
 
         return roi
 
@@ -1312,6 +1328,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 self.save_config()
 
                 log.info(f"Analyzing {self.id}")
+
+                self.event(AnalyzerEvent.RMETAD, {'colors': self.get_colors()})
 
                 for fn in self.frame_numbers():
                     if not self._cancel.is_set():

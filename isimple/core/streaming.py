@@ -147,6 +147,7 @@ class EventStreamer(JsonStreamer):
         :param data: event data
         :return:
         """
+        log.debug(f"{id} category:{category} data:{data}")
         self.push({'category': category, 'id': id, 'data': data})
 
 

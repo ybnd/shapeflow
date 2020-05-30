@@ -24,7 +24,12 @@ export const QueueState = {
   PAUSED: 2
 };
 
-export const EVENT_CATEGORIES = ["status", "config", "result"];
+export const EVENT_CATEGORIES = [
+  "status",
+  "config",
+  "result",
+  "result_metadata"
+];
 
 export const endpoints = {
   GET_INVERSE_OVERLAID_FRAME: "get_inverse_overlaid_frame",

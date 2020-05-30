@@ -268,10 +268,6 @@ class Main(isimple.core.Lockable):
                 queue = list(self._roots.keys())
             return respond(self.q_start(queue))
 
-        @app.route('/api/pause', methods=['POST'])
-        def pause():
-            return respond(self.q_pause())
-
         @app.route('/api/stop', methods=['POST'])
         def stop():
             return respond(self.q_stop())
@@ -585,7 +581,6 @@ class Main(isimple.core.Lockable):
             method = self._roots[id].get(getattr(backend.backend, endpoint))  # todo: check whether endpoint.streaming is not _Streaming('off')
             self._roots[id].cache_open()
 
-            # todo: type / assert properly
             new_stream = streaming.streams.register(method.__self__, method)  # type: ignore
 
             log.debug(f"{self._roots[id]}: stream '{endpoint}'")

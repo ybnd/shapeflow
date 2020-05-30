@@ -110,14 +110,14 @@ class Timer(object):
     def __enter__(self, message: str = ''):
         self._message = message
         self._t0 = time.time()
-        log.debug(f"{self._parent.__class__.__name__}: "
+        log.info(f"{self._parent.__class__.__name__}: "
                   f"timer started {message}")
 
     def __exit__(self):
         if hasattr(self, '_t0'):
             self._t1 = time.time()
             self._elapsed = self._t1 - self._t0
-            log.debug(f"{self._parent.__class__.__name__}: "
+            log.info(f"{self._parent.__class__.__name__}: "
                       f"{self._elapsed} s. elapsed {self._message}")
 
     @property

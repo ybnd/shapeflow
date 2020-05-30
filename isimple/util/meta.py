@@ -131,3 +131,15 @@ def unbind(m):
         return m.__func__
     except AttributeError:
         return m
+
+
+def bind(instance, func):
+    # https://stackoverflow.com/a/1015405/12259362
+    bound_method = func.__get__(instance, instance.__class__)
+    setattr(instance, func.__name__, bound_method)
+    return bound_method
+
+
+def separate(m):
+    assert hasattr(m, '__self__')
+    return m.__self__, unbind(m)

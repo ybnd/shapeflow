@@ -411,6 +411,7 @@ class AnalyzerEvent(Enum):
     STATUS = 'status'
     CONFIG = 'config'
     RESULT = 'result'
+    RMETAD = 'result_metadata'
 
 
 class AnalyzerState(IntEnum):
@@ -540,9 +541,11 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
     def launched(self):
         return AnalyzerState.is_launched(self.state)
 
-    def set_state(self, state: int):
+    def set_state(self, state: int, send_event: bool = True):
         self._state = state
-        self.event(AnalyzerEvent.STATUS, self.status())
+
+        if send_event:
+            self.event(AnalyzerEvent.STATUS, self.status())
 
     @property
     def state(self) -> AnalyzerState:
@@ -554,31 +557,31 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
         return self.state == AnalyzerState.DONE
 
     @backend.expose(backend.state_transition)
-    def state_transition(self) -> AnalyzerState:
+    def state_transition(self, send_event: bool = True) -> AnalyzerState:
         """Handle state transitions
         """
 
         if self.state == AnalyzerState.INCOMPLETE and self.can_launch():
-            self.set_state(AnalyzerState.CAN_LAUNCH)
+            self.set_state(AnalyzerState.CAN_LAUNCH, send_event)
         elif self.state == AnalyzerState.LAUNCHED:
             if self.can_analyze:
-                self.set_state(AnalyzerState.CAN_ANALYZE)
+                self.set_state(AnalyzerState.CAN_ANALYZE, send_event)
         elif self.state == AnalyzerState.DONE or self.state == AnalyzerState.CANCELED:
             self.set_progress(0.0)
             if self.can_analyze:
-                self.set_state(AnalyzerState.CAN_ANALYZE)
+                self.set_state(AnalyzerState.CAN_ANALYZE, send_event)
             elif self.launched:
-                self.set_state(AnalyzerState.LAUNCHED)
+                self.set_state(AnalyzerState.LAUNCHED, send_event)
             elif self.can_launch:
-                self.set_state(AnalyzerState.CAN_LAUNCH)
+                self.set_state(AnalyzerState.CAN_LAUNCH, send_event)
 
-
-        self.event(AnalyzerEvent.STATUS, self.status())
         return self.state
 
-    def set_busy(self, busy: bool):
+    def set_busy(self, busy: bool, send_event: bool = True):
         self._busy = busy
-        self.event(AnalyzerEvent.STATUS, self.status())
+
+        if send_event:
+            self.event(AnalyzerEvent.STATUS, self.status())
 
     @property
     def busy(self) -> bool:
@@ -602,9 +605,10 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
         super().cancel()
         self.set_state(AnalyzerState.CANCELED)
 
-    def set_progress(self, progress: float):
+    def set_progress(self, progress: float, send_event: bool = True):
         self._progress = progress
-        self.event(AnalyzerEvent.STATUS, self.status())
+        if send_event:
+            self.event(AnalyzerEvent.STATUS, self.status())
 
     @property
     def progress(self) -> float:
@@ -655,6 +659,11 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
 
         return status
 
+    @backend.expose(backend.get_config)
+    def get_config(self) -> dict:
+        config = self.config.to_dict()
+        return config
+
     @backend.expose(backend.launch)
     def launch(self) -> bool:
         with self.lock():
@@ -667,7 +676,7 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
 
                 # Push events
                 self.set_state(AnalyzerState.LAUNCHED)
-                self.event(AnalyzerEvent.CONFIG, self.config.to_dict())
+                self.event(AnalyzerEvent.CONFIG, self.get_config())
 
                 return self.launched
             else:
