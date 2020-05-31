@@ -13,7 +13,7 @@
             :target="id"
             :id="`popover-${id}`"
             :show.sync="show_popup"
-            @ok="doRequest"
+            @ok="handleClick"
             container="body"
             placement="right"
             boundary="viewport"
@@ -28,20 +28,10 @@
         </template>
       </div>
     </template>
-    <template v-else-if="isApiLink">
-      <div
-        :id="id"
-        @click="doRequest"
-        :class="classList"
-        class="sidebar-analysis-link"
-      >
-        <i :class="icon"></i>{{ name }}
-      </div>
-    </template>
     <template v-else>
       <div
         :id="id"
-        @click="doNavigate"
+        @click="handleClick"
         :class="classList"
         class="sidebar-analysis-link"
       >
@@ -59,6 +49,7 @@ export default {
   name: "sidebar-nav-link",
   props: {
     id: {
+      // todo: should be called url :/
       type: String,
       required: true
     },
@@ -84,13 +75,12 @@ export default {
     }
   },
   methods: {
-    doNavigate() {
-      // id should be set to the api
-      this.$router.push(this.id);
-    },
-    doRequest(rl) {
-      // id should be set to the api
-      axios.post(this.id);
+    handleClick() {
+      if (this.isApiLink) {
+        axios.post(this.id);
+      } else {
+        this.$router.push(this.id);
+      }
     },
     handleShowStageTwo() {
       this.show_popup = true;
@@ -103,13 +93,11 @@ export default {
       this.handleHideStageTwo();
     }
   },
-  beforeMount() {
+  created() {
     this.$root.$on(events.sidebar.highlight(this.id), () => {
-      console.log(`${this.id} got highlight event`);
       this.highlight = true;
     });
     this.$root.$on(events.sidebar.unhighlight(this.id), () => {
-      console.log(`${this.id} got unhighlight event`); // todo: these are not received...
       this.highlight = false;
     });
     this.handleHideStageTwo();

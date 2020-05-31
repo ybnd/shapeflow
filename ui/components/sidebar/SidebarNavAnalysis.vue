@@ -140,7 +140,7 @@ export default {
   components: {
     SidebarNavAnalysisLink
   },
-  mounted() {
+  created() {
     // this.$root.$on(this.event.status, this.handleUpdateStatus);
     this.$root.$on(this.event.remove, this.handleRemove);
     this.$root.$on(this.event.cancel, this.handleCancel);

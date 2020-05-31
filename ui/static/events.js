@@ -26,14 +26,14 @@ export let events = {
     cancel(analyzer_id) {
       return `sidebar-cancel-${analyzer_id}`;
     },
-    open(id) {
-      return `sidebar-open-${id}`;
+    open(url) {
+      return `sidebar-open-${url}`;
     },
-    highlight(link_id) {
-      return `sidebar-highlight-${link_id}`;
+    highlight(url) {
+      return `sidebar-highlight-${url}`;
     },
-    unhighlight(link_id) {
-      return `sidebar-unhighlight-${link_id}`;
+    unhighlight(url) {
+      return `sidebar-unhighlight-${url}`;
     }
   },
   data: {
