@@ -1,7 +1,9 @@
 <template>
   <PageHeaderItem>
     <div class="slider-container">
-      <div class="slider-caption">Seek position</div>
+      <div class="slider-caption">{{ currentTime }} / {{ totalTime }}</div>
+      <!--      todo: should format number into '00:00'-->
+      &ensp;
       <vue-slider
         v-model="position"
         v-bind="options"
@@ -81,9 +83,6 @@ export default {
     stepBackward() {
       this.position = this.position - this.step;
       this.handleSeek();
-    },
-    formatTooltip(tooltip) {
-      return `${Math.round(tooltip * 100)}%`;
     }
   },
   computed: {
@@ -113,7 +112,7 @@ export default {
         duration: 0.05,
         adsorb: false,
         lazy: false,
-        tooltip: "active",
+        tooltip: "inactive",
         tooltipPlacement: "bottom",
         tooltipFormatter: this.formatTooltip,
         useKeyboard: true,
@@ -125,7 +124,9 @@ export default {
         marks: false,
         process: false
       },
-      syncInterval: null
+      syncInterval: null,
+      currentTime: 0,
+      totalTime: 0
     };
   }
 };
@@ -154,7 +155,8 @@ export default {
 
 .slider-container {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  padding-top: 4px;
   padding-left: 4px;
   padding-right: 4px;
 }

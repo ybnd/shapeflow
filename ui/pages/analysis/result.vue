@@ -1,5 +1,10 @@
 <template>
   <div class="fixed-page">
+    <PageHeader>
+      <PageHeaderItem>
+        <b-button>Export</b-button>
+      </PageHeaderItem>
+    </PageHeader>
     <ResultChartStack
       container_class="fullpage-result-container"
       result_class="fullpage-result"
@@ -9,10 +14,12 @@
 
 <script>
 import ResultChartStack from "../../components/results/ResultChartStack";
+import PageHeader from "../../components/header/PageHeader";
+import PageHeaderItem from "../../components/header/PageHeaderItem";
 
 export default {
   name: "result",
-  components: { ResultChartStack }
+  components: { PageHeader, PageHeaderItem, ResultChartStack }
 };
 </script>
 
@@ -22,12 +29,11 @@ export default {
 @import "node_modules/bootstrap/scss/functions";
 
 .fullpage-result-container {
-  width: calc(100vw - #{$sidebar-width} - 16px);
-  height: calc(100vh - 10px);
+  width: calc(100vw - #{$sidebar-width});
+  height: calc(100vh - #{$header-height});
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding-top: 8px;
 }
 .fullpage-result {
   position: relative;
@@ -37,8 +43,6 @@ export default {
   min-height: 200px;
   display: flex;
   width: calc(100vw - #{$sidebar-width});
-  min-width: calc(100vw - #{$sidebar-width});
-  max-width: calc(100vw - #{$sidebar-width});
 }
 .fullpage-result canvas {
   /*flex-grow: 1;*/

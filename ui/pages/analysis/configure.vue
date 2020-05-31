@@ -1,5 +1,13 @@
 <template>
   <div class="fixed-page">
+    <PageHeader>
+      <PageHeaderItem>
+        <b-button @click="setSettings">Export</b-button>
+      </PageHeaderItem>
+      <PageHeaderItem>
+        <b-button @click="clearCache">Import</b-button>
+      </PageHeaderItem>
+    </PageHeader>
     <p>
       In the future, you will be able to change analysis configuration directly
       from here, for now just use the align/filter pages or add a new analysis.
@@ -57,9 +65,11 @@
 </template>
 
 <script>
+import PageHeader from "../../components/header/PageHeader";
+import PageHeaderItem from "../../components/header/PageHeaderItem";
 export default {
   name: "dashboard",
-  components: {},
+  components: { PageHeader, PageHeaderItem },
   beforeMount() {
     this.initConfig();
   },

@@ -15,13 +15,13 @@ export default {
 @import "../../assets/scss/_core-variables";
 @import "node_modules/bootstrap/scss/functions";
 
-$item-height: calc(#{$header-height} - 15px);
+$item-height: calc(#{$header-height - 8px});
 
 .page-header-item {
   flex: 0 1 auto;
 
-  margin-bottom: 7px; /* lame pixel-matching */
-  margin-top: 8px;
+  padding-top: 4px;
+  padding-bottom: 4px;
 
   background: $gray-200;
   display: block;
@@ -45,10 +45,10 @@ $item-height: calc(#{$header-height} - 15px);
 
 .header-button-icon {
   width: $item-height;
-  font-size: 16px;
-  padding-top: 4px;
-  padding-bottom: 4px;
-  padding-left: 4px;
-  padding-right: 4px;
+  font-size: 14px;
+  padding-top: 2px;
+  padding-bottom: 2px;
+  padding-left: 2px;
+  padding-right: 2px;
 }
 </style>

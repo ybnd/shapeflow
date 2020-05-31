@@ -38,16 +38,19 @@ export default {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import "../../assets/scss/_bootstrap-variables";
+@import "../../assets/scss/_core-variables";
+@import "node_modules/bootstrap/scss/functions";
 .sidebar-header {
-  height: 36px;
+  height: $header-height;
   padding: 0;
   margin: 0;
 }
 .sidebar-header-items {
   margin: 0;
-  padding: 0;
-  height: 36px;
+  padding: 2px;
+  height: calc($header-height - 4px);
   display: flex;
   flex-direction: row;
   overflow: hidden;
