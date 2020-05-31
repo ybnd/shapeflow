@@ -69,9 +69,14 @@
         :ref="ref_frame"
       />
       <img
-        :src="`${state_url}?${opened_at}`"
+        :src="`${overlay_url}?${opened_at}`"
         alt=""
         class="streamed-image-f overlay"
+      />
+      <img
+        :src="`${state_url}?${opened_at}`"
+        alt=""
+        class="streamed-image-f overlay-state"
       />
     </div>
   </div>
@@ -303,6 +308,9 @@ export default {
     frame_url() {
       return api(this.$route.query.id, "stream", endpoints.GET_FRAME);
     },
+    overlay_url() {
+      return api(this.$route.query.id, "call", endpoints.GET_OVERLAY_PNG);
+    },
     ref_frame() {
       return `filter-frame-${this.$route.query.id}`;
     },
@@ -366,6 +374,14 @@ export default {
 }
 
 .overlay {
+  mix-blend-mode: multiply;
+  pointer-events: none;
+  float: left;
+  max-height: calc(100vh - #{$header-height});
+  opacity: 0.25;
+}
+
+.overlay-state {
   mix-blend-mode: multiply;
   pointer-events: none;
   float: left;

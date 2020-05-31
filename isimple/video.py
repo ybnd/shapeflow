@@ -754,29 +754,12 @@ class DesignFileHandler(CachingBackendInstance):
     def get_dpi(self) -> float:
         return self.config.dpi
 
-    @stream
-    @backend.expose(backend.get_overlay)
     def overlay(self) -> np.ndarray:
-        return self._overlay
+        return cv2.cvtColor(self._overlay, cv2.COLOR_BGR2HSV)
 
     @backend.expose(backend.get_overlay_png)
     def get_overlay_png(self) -> bytes:
-        # OpenCV complains if self.overlay (property) is used
-
-        _overlay = self._overlay.copy()
-
-        # Get position of completely white pixels  todo: might look weird ~filtering
-        overlay_white = np.logical_and(
-            *[_overlay[:,:,i] for i in range(_overlay.shape[2])]
-        )
-
-        # Add an alpha channel
-        overlay_alpha = cv2.cvtColor(_overlay, cv2.COLOR_BGR2BGRA)
-
-        # Make white transparent
-        overlay_alpha[overlay_white] = [0,0,0,255]
-
-        _, buffer = cv2.imencode('.png', overlay_alpha)
+        _, buffer = cv2.imencode('.png', self._overlay.copy())
         return buffer.tobytes()
 
     @backend.expose(backend.overlay_frame)

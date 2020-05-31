@@ -34,7 +34,8 @@ export const EVENT_CATEGORIES = [
 export const endpoints = {
   GET_INVERSE_OVERLAID_FRAME: "get_inverse_overlaid_frame",
   GET_STATE_FRAME: "get_state_frame",
-  GET_FRAME: "get_frame"
+  GET_FRAME: "get_frame",
+  GET_OVERLAY_PNG: "get_overlay_png"
 };
 
 export function ping() {
