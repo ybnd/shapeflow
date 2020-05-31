@@ -125,5 +125,6 @@ export default {
 
 .nav-link {
   cursor: pointer;
+  color: $gray-100;
 }
 </style>

@@ -150,16 +150,20 @@ export default {
 @import "node_modules/bootstrap/scss/functions";
 
 .highlight {
-  background: theme-color("secondary") !important;
-  color: $gray-800;
+  background: $gray-700 !important;
+  /*color: $gray-800 !important;*/
+  /*font-weight: bold;*/
   pointer-events: none;
-  :hover {
-    background: $blue;
+  i {
+    color: theme-color("primary") !important;
   }
 }
 
 .disabled {
-  color: #6c757d !important; /* todo: copied from CSS output; find theme equivalent! */
+  color: $gray-600 !important; /* todo: copied from CSS output; find theme equivalent! */
+  i {
+    color: $gray-600 !important;
+  }
 }
 
 .sidebar-analysis-link {
