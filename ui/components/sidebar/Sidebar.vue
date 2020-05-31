@@ -113,6 +113,16 @@ export default {
     $route(to, from) {
       this.$root.$emit(events.sidebar.unhighlight(from.fullPath));
       this.$root.$emit(events.sidebar.highlight(to.fullPath));
+
+      console.log("to URL:");
+      console.log(to);
+
+      if (to.query.id !== undefined) {
+        this.$root.$emit(events.sidebar.open(to.query.id));
+      } else if (["/about", "/tutorial", "/settings"].includes(to.fullPath)) {
+        // todo: very wonky, should be handled by these urls being in the dropdown in the first place!!
+        this.$root.$emit(events.sidebar.open("Application"));
+      }
     }
   }
 };

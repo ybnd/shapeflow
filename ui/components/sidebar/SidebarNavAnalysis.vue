@@ -1,9 +1,9 @@
 <template>
-  <div class="nav-item nav-dropdown" :ref="`dropdown-${id}`">
+  <div class="nav-item nav-dropdown" :ref="ref">
     <div
       class="nav-link nav-dropdown-toggle"
       @click="handleDropdownClick"
-      :id="'dropdown-' + id"
+      :id="ref"
     >
       <!--      <b-popover-->
       <!--        class="analysis-info-popover"-->
@@ -159,7 +159,7 @@ export default {
     },
     handleOpen() {
       console.log(`${this.id} got open event`); // todo: doesn't seem to work
-      this.$refs[`dropdown-${this.id}`].classList.add("open");
+      this.$refs[this.ref].classList.add("open");
     },
     handleAnalyze() {
       this.$store.dispatch("analyzers/analyze", { id: this.id });
@@ -186,6 +186,9 @@ export default {
   computed: {
     name() {
       return this.$store.getters["analyzers/getName"](this.id);
+    },
+    ref() {
+      return `dropdown-${this.id}`;
     },
     link() {
       return {

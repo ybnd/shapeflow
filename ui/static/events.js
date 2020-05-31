@@ -26,8 +26,8 @@ export let events = {
     cancel(analyzer_id) {
       return `sidebar-cancel-${analyzer_id}`;
     },
-    open(analyzer_id) {
-      return `sidebar-open-${analyzer_id}`;
+    open(id) {
+      return `sidebar-open-${id}`;
     },
     highlight(link_id) {
       return `sidebar-highlight-${link_id}`;
