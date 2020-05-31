@@ -61,7 +61,7 @@
         </b-button-group>
       </PageHeaderItem>
     </PageHeader>
-    <div class="filter">
+    <div class="filter" @click="handleClick">
       <img
         :src="`${frame_url}?${opened_at}`"
         alt=""
@@ -72,10 +72,8 @@
         :src="`${state_url}?${opened_at}`"
         alt=""
         class="streamed-image-f overlay"
-        @click="handleClick"
       />
     </div>
-    <div class="controls"></div>
   </div>
 </template>
 
@@ -345,27 +343,33 @@ export default {
 @import "node_modules/bootstrap/scss/functions";
 
 .filter {
+  z-index: 100; /* has to be top of fixed-page etc. to handle clicks*/
   position: absolute;
   float: left;
   display: block;
   margin: 0 0 0 0;
-  max-height: calc(100vh - #{$header-height});
+  height: calc(100vh - #{$header-height});
+  width: calc(100vw - #{$sidebar-width});
 }
 
 .streamed-image-f {
-  z-index: 100; /* has to on top of fixed-page etc. to handle clicks*/
   display: block;
   max-width: calc(
     100vw - #{$sidebar-width}
   ); /* todo: handle actual width! (import assets/scss/core/_variables -> doesn't compile) */
-  max-height: calc(100vh - #{$header-height});
+
   width: auto;
   height: auto;
+  float: left;
   position: absolute;
+  pointer-events: none;
 }
 
 .overlay {
   mix-blend-mode: multiply;
+  pointer-events: none;
+  float: left;
+  max-height: calc(100vh - #{$header-height});
 }
 
 .hidden * {
