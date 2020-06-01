@@ -358,6 +358,12 @@ export default {
   margin: 0 0 0 0;
   height: calc(100vh - #{$header-height});
   width: calc(100vw - #{$sidebar-width});
+  /* Disable double-click selection */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -o-user-select: none;
+  user-select: none;
 }
 
 .streamed-image-f {
