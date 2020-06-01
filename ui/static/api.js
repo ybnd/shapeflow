@@ -167,6 +167,14 @@ export async function check_design_path(design_path) {
     });
 }
 
+export async function get_total_time(id) {
+  return axios.get(api(id, "call/get_total_time")).then(response => {
+    if (response.status === 200) {
+      return response.data;
+    }
+  });
+}
+
 export async function get_config(id) {
   return axios.get(api(id, "call/get_config")).then(response => {
     if (response.status === 200) {

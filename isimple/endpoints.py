@@ -52,6 +52,7 @@ class BackendRegistry(ImmutableRegistry):
     get_state_frame = Endpoint(Callable[[Optional[int], Optional[int]], np.ndarray], stream_image)
     get_colors = Endpoint(Callable[[], List[Tuple[HsvColor,...]]])
     get_time = Endpoint(Callable[[int], float])
+    get_total_time = Endpoint(Callable[[], float])
     get_fps = Endpoint(Callable[[], float])
     get_h = Endpoint(Callable[[], float])
     get_dpi = Endpoint(Callable[[], float])

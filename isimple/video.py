@@ -210,6 +210,10 @@ class VideoFileHandler(CachingBackendInstance, Lockable):
     def get_fps(self) -> float:
         return self.fps
 
+    @backend.expose(backend.get_total_time)
+    def get_total_time(self) -> float:
+        return self.frame_count / self.fps
+
     @stream
     @backend.expose(backend.get_raw_frame)
     def read_frame(self, frame_number: Optional[int] = None) -> np.ndarray:

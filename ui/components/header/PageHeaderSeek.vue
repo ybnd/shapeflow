@@ -15,8 +15,9 @@
 </template>
 
 <script>
-import { seek } from "../../static/api";
+import { seek, get_total_time } from "../../static/api";
 import { events } from "../../static/events";
+import { seconds2timestr } from "../../static/util";
 
 import VueSlider from "vue-slider-component";
 import PageHeaderItem from "./PageHeaderItem";
@@ -41,7 +42,10 @@ export default {
   beforeMount() {
     this.resetSeekPosition();
 
-    this.$root.$on(events.seek.get(this.id), this.getSeekPosition);
+    get_total_time(this.id).then(total => {
+      this.totalSeconds = total;
+    });
+
     this.$root.$on(events.seek.set(this.id), this.handleSeek);
     this.$root.$on(events.seek.reset(this.id), this.resetSeekPosition);
     this.$root.$on(events.seek.step_fw(this.id), this.stepForward);
@@ -52,7 +56,6 @@ export default {
 
     clearInterval(this.syncInterval);
 
-    this.$root.$off(events.seek.get(this.id), this.getSeekPosition);
     this.$root.$off(events.seek.set(this.id), this.handleSeek);
     this.$root.$off(events.seek.reset(this.id), this.resetSeekPosition);
     this.$root.$off(events.seek.step_fw(this.id), this.stepForward);
@@ -91,6 +94,12 @@ export default {
         right: this.stepForward,
         left: this.stepBackward
       };
+    },
+    currentTime() {
+      return seconds2timestr(this.position * this.totalSeconds);
+    },
+    totalTime() {
+      return seconds2timestr(this.totalSeconds);
     }
   },
   data() {
@@ -125,8 +134,7 @@ export default {
         process: false
       },
       syncInterval: null,
-      currentTime: 0,
-      totalTime: 0
+      totalSeconds: 0
     };
   }
 };
