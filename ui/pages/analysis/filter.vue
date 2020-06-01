@@ -30,7 +30,7 @@
           <i class="fa fa-repeat" />
         </b-button>
       </PageHeaderItem>
-      <PageHeaderSeek :id="id" />
+      <PageHeaderSeek :id="id" :key="id" />
       <PageHeaderItem>
         <!-- todo: should not set features here though! -->
       </PageHeaderItem>
