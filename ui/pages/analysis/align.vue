@@ -37,7 +37,7 @@
       <PageHeaderItem>
         <b-button
           class="header-button-icon"
-          @click="handleFlipV"
+          @click="handleFlipH"
           data-toggle="tooltip"
           title="Flip horizontally"
         >
@@ -45,7 +45,7 @@
         </b-button>
         <b-button
           class="header-button-icon"
-          @click="handleFlipH"
+          @click="handleFlipV"
           data-toggle="tooltip"
           title="Flip vertically"
         >
