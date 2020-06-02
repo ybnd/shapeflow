@@ -82,10 +82,44 @@ export function roiRectInfoToRelativeCoordinates(rect, frame) {
 }
 
 export function clickEventToRelativeCoordinate(event, frame) {
+  let x = (event.clientX - frame.left) / frame.width;
+  let y = (event.clientY - frame.top) / frame.height;
+
+  if (x < 0) x = 0;
+  if (x > 1) x = 1;
+  if (y < 0) y = 0;
+  if (y > 1) y = 1;
+
   return {
-    x: (event.clientX - frame.left) / frame.width,
-    y: (event.clientY - frame.top) / frame.height
+    x: x,
+    y: y
   };
+}
+
+export function dragEventToRelativeRectangle(down, up, frame) {
+  const co0 = clickEventToRelativeCoordinate(down, frame);
+  const co1 = clickEventToRelativeCoordinate(up, frame);
+
+  const A = Math.abs(co0.x - co1.x) * Math.abs(co0.y - co1.y);
+
+  // Assuming any area smaller than 1% of the frame is an error
+
+  console.log(`Area is ${A}`);
+
+  if (A > 0.01) {
+    const h = [co0.x, co1.x].sort();
+    const v = [co0.y, co1.y].sort();
+
+    return {
+      BL: { x: h[1], y: v[0] },
+      TL: { x: h[1], y: v[1] },
+      TR: { x: h[0], y: v[1] },
+      BR: { x: h[0], y: v[0] }
+    };
+  } else {
+    console.warn("invalid rectangle");
+    return null;
+  }
 }
 
 export function roiCoordinatesToTransform(coordinates, frame) {

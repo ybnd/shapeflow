@@ -69,26 +69,32 @@
         </b-button-group>
       </PageHeaderItem>
     </PageHeader>
-    <div class="align" ref="align">
+    <div
+      class="align"
+      ref="align"
+      v-on:mousedown="handleStartRectangle"
+      v-on:mouseup="handleStopRectangle"
+    >
       <img
         :src="`${overlaid_url}?${opened_at}`"
         alt=""
         class="streamed-image-a"
-        :ref="ref_frame"
+        ref="frame"
       />
-      <Moveable
-        class="moveable"
-        :class="moveableHide"
-        :ref="ref_moveable"
-        v-bind="moveable"
-        @drag="handleTransform"
-        @scale="handleTransform"
-        @rotate="handleRotate"
-        @warp="handleTransform"
-        @render="handleUpdate"
-        @renderEnd="handleSaveAlignment"
-      >
-      </Moveable>
+      <template v-if="moveableShow">
+        <Moveable
+          class="moveable"
+          ref="moveable"
+          v-bind="moveable"
+          @drag="handleTransform"
+          @scale="handleTransform"
+          @rotate="handleRotate"
+          @warp="handleTransform"
+          @render="handleUpdate"
+          @renderEnd="handleSaveAlignment"
+        >
+        </Moveable>
+      </template>
     </div>
   </div>
 </template>
@@ -113,9 +119,10 @@ import {
 import Moveable from "vue-moveable";
 import {
   roiRectInfoToRelativeCoordinates,
-  default_relative_coords,
+  clickEventToRelativeCoordinate,
   roiIsValid,
-  getInitialTransform
+  getInitialTransform,
+  dragEventToRelativeRectangle
 } from "../../static/coordinates";
 import { events } from "../../static/events";
 
@@ -199,17 +206,15 @@ export default {
           right: 50
         }
       };
-      this.refs = {
-        frame: null,
-        moveable: null
-      };
     },
     handleClearAlignment() {
+      console.log("align: handleClearAlignment");
       commit(this.id).then(ok => {
         if (ok) {
           clear_roi(this.id).then(ok => {
             if (ok) {
-              this.setRoi(default_relative_coords);
+              this.handleHideMoveable();
+              this.clearRoi;
               this.handleUpdate();
             }
           });
@@ -229,45 +234,48 @@ export default {
         this.setRoi(roi);
       });
     },
-    getRefs() {
-      console.log("filter: getRefs()");
-
-      console.log("this.ref_frame = ");
-      console.log(this.ref_frame);
-
-      console.log("this.ref_moveable = ");
-      console.log(this.ref_moveable);
-
-      console.log("this.$refs attrs = ");
-      console.log(Object.keys(this.$refs));
-
-      console.log("this.$refs[this.ref_frame] = ");
-      console.log(this.$refs[this.ref_frame]);
-
-      console.log("this.$refs[this.ref_moveable] = ");
-      console.log(this.$refs[this.ref_moveable]);
-
-      this.refs.frame = this.$refs[this.ref_frame];
-      this.refs.moveable = this.$refs[this.ref_moveable];
-    },
     setRoi(roi) {
+      console.log("filter: setRoi()");
+
       console.log("roi");
       console.log(roi);
+
       if (!(this.align.roi === roi)) {
         if (roiIsValid(roi)) {
           console.log("is valid");
-          this.align.roi = roi;
+          if (this.moveableShow) {
+            this.align.roi = roi;
+            this.resolveTransform();
+          } else {
+            this.handleShowMoveable().then(() => {
+              console.log("setRoi() -- moveable should be exist & accessible");
+              this.align.roi = roi;
+              this.resolveTransform();
+              this.handleUpdate();
+            });
+          }
         } else {
           console.log("is invalid");
-          this.align.roi = default_relative_coords;
+          console.warn("SHOULD ALLOW USER TO DRAW A RECTANGLE");
+          this.handleHideMoveable();
+          // this.align.roi = default_relative_coords;
         }
-        this.resolveTransform();
       }
     },
+    clearRoi() {
+      console.log("filter: clearRoi()");
+      this.handleHideMoveable();
+      this.align.roi = null;
+      this.align.transform = null;
+    },
     resolveTransform() {
-      console.log("resolveTransform");
+      console.log("filter: resolveTransform()");
+      console.log("this.$refs.moveable = ");
+      console.log(this.$refs.moveable);
 
       if (this.align.roi && this.align.frame && this.align.overlay) {
+        clearInterval(this.waitUntilHasMoveable);
+
         console.log(
           `roi.BL = (x: ${this.align.roi.BL.x}, y: ${this.align.roi.BL.y})`
         );
@@ -283,10 +291,25 @@ export default {
         );
 
         // todo: sanity check transform
-
-        this.refs.moveable.$el.style.transform = this.align.transform;
-        this.refs.moveable.updateRect();
-        this.refs.moveable.updateTarget();
+        if (this.moveableShow) {
+          if (this.$refs.moveable === undefined) {
+            this.waitUntilHasMoveable = setInterval(() => {
+              // todo: try to do ~ Promise instead?
+              if (this.$refs.moveable !== undefined) {
+                this.$refs.moveable.$el.style.transform = this.align.transform;
+                this.$refs.moveable.updateRect();
+                this.$refs.moveable.updateTarget();
+                clearInterval(this.waitUntilHasMoveable);
+              } else {
+                console.log("oops no moveable");
+              }
+            }, 50);
+          } else {
+            this.$refs.moveable.$el.style.transform = this.align.transform;
+            this.$refs.moveable.updateRect();
+            this.$refs.moveable.updateTarget();
+          }
+        }
       } else {
       }
     },
@@ -327,9 +350,10 @@ export default {
         });
     },
     updateRoiCoordinates() {
+      console.log("align: updateRoiCoordinates");
       if (this.align.frame) {
         this.align.roi = roiRectInfoToRelativeCoordinates(
-          this.refs.moveable.getRect(),
+          this.$refs.moveable.getRect(),
           this.align.frame
         );
 
@@ -352,8 +376,9 @@ export default {
       })
     ),
     updateFrame() {
+      console.log("align: updateFrame");
       try {
-        let frame = this.refs.frame.getBoundingClientRect();
+        let frame = this.$refs.frame.getBoundingClientRect();
 
         this.moveable.bounds = {
           left: frame.left,
@@ -371,15 +396,13 @@ export default {
       // todo: clean up
       let frame_ok = false;
       let overlay_ok = false;
-      this.getRefs();
 
       try {
         if (!(this.waitUntilHasRect === undefined)) {
-          if (this.refs.frame.getBoundingClientRect()["width"] > 50) {
+          if (this.$refs.frame.getBoundingClientRect()["width"] > 50) {
             // console.log("HAS FRAME");
             this.updateFrame();
             clearInterval(this.waitUntilHasRect);
-            this.moveable.className = this.moveableShow;
           }
         }
       } catch (err) {
@@ -391,15 +414,63 @@ export default {
     },
     stepBackward() {
       this.$root.$emit(events.seek.step_bw(this.id));
+    },
+    async handleShowMoveable() {
+      console.log("align: handleShowMoveable()");
+      return new Promise((resolve, reject) => {
+        this.moveableShow = true;
+        var wait = setInterval(() => {
+          console.log("checking if moveable exists");
+          if (this.$refs.moveable !== undefined) {
+            console.log("it does, resolving");
+            clearInterval(wait);
+            resolve();
+          }
+        }, 5);
+      });
+    },
+    handleHideMoveable() {
+      console.log("align: handleHideMoveable()");
+      this.moveableShow = false;
+    },
+    handleStartRectangle(start_event) {
+      console.log("align: handleStartRectangle");
+      if (!this.moveableShow) {
+        this.dragROI.started = true;
+        this.dragROI.start_event = start_event;
+      }
+    },
+    handleStopRectangle(stop_event) {
+      console.log("align: handleStopRectangle()");
+      if (!this.moveableShow && this.dragROI.started) {
+        console.log("align: handleStopRectangle() -- setting ROI");
+
+        const rectangle = dragEventToRelativeRectangle(
+          this.dragROI.start_event,
+          stop_event,
+          this.align.frame
+        );
+
+        if (rectangle !== null) {
+          this.setRoi(rectangle);
+        }
+      } else {
+        console.log(
+          "align: handleStopRectangle() -- moveable is already shown!"
+        );
+      }
     }
   },
   watch: {
     "$route.query.id"() {
-      console.log(`id has changed ${this.id}`);
+      console.log(`id changed to ${this.id}`);
 
       this.handleCleanUp();
-
       this.handleInit();
+    },
+    "$refs.moveable.$el"() {
+      console.warn("there was a change in $ref.moveable.data");
+      console.warn(this.$refs.moveable);
     }
   },
   computed: {
@@ -422,10 +493,10 @@ export default {
       );
     },
     ref_frame() {
-      return `align-frame-${this.$route.query.id}`;
+      return `frame`;
     },
     ref_moveable() {
-      return `align-moveable-${this.$route.query.id}`;
+      return `moveable`;
     },
     report_change() {
       const state = this.$store.getters["analyzers/getStatus"](this.id).state;
@@ -440,7 +511,6 @@ export default {
     transform: "",
     moveable: {
       // request-level throttle & debounce to limit traffic, but keep pixel-level throttle at 0 for precision
-      className: "hidden", //
       draggable: true,
       throttleDrag: 0,
       rotatable: true,
@@ -464,13 +534,11 @@ export default {
       roi: null,
       transform: null
     },
-    refs: {
-      frame: null,
-      moveable: null
-    },
     updateCall: null,
-    moveableShow: "", // todo: doesn't seem to work!
-    moveableHide: "hidden", // todo: doesn't seem to work!
+    moveableShow: false,
+    dragROI: {
+      start_event: {}
+    },
     waitUntilHasRect: null,
     previous_id: ""
   })
@@ -487,7 +555,14 @@ export default {
   float: left;
   display: block;
   margin: 0 0 0 0;
-  max-height: calc(100vh - #{$header-height});
+  height: calc(100vh - #{$header-height});
+  width: calc(100vw - #{$sidebar-width});
+  /* Disable double-click selection */
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  -o-user-select: none;
+  user-select: none;
 }
 
 .streamed-image-a {
