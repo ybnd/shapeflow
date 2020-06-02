@@ -206,9 +206,15 @@ class Main(isimple.core.Lockable):
                     {'options': fis.options, 'descriptions': fis.descriptions}
                 )
             elif for_type == "filter":
-                return respond(video.FilterType().options)
+                return respond({
+                    'options': video.FilterType().options,
+                    'descriptions': video.FilterType().descriptions
+                })
             elif for_type == "transform":
-                return respond(video.TransformType().options)
+                return respond({
+                    'options': video.TransformType().options,
+                    'descriptions': video.TransformType().descriptions
+                })
             elif for_type == "video_path":
                 return respond(
                     list(set([config['video_path'] for config in self._latest_configs]))

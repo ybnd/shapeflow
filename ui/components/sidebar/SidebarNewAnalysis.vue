@@ -6,6 +6,7 @@
       <b-popover
         target="new-analysis"
         :show.sync="show"
+        @bv::popover::shown="handleUpdatePopover"
         placement="right"
         boundary="viewport"
         class="new-analysis-popover"
@@ -70,6 +71,9 @@ export default {
   },
   components: { BasicConfig },
   methods: {
+    handleUpdatePopover() {
+      console.log("UPDATING POPOVER");
+    },
     handleNewAnalysis() {
       let config = this.$refs.new_analyzer_form.getConfig();
 

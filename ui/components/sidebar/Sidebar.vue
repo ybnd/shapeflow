@@ -60,28 +60,12 @@ export default {
     },
     init() {
       this.$store.dispatch("analyzers/source");
-      this.full_sync();
+      this.sync();
     },
     updateQueue() {
       this.queue = this.$store.getters["analyzers/getQueue"];
     },
     sync() {
-      if (!this.waiting) {
-        this.waiting = true;
-        this.$store.dispatch("analyzers/sync").then(ok => {
-          if (ok) {
-            this.queue = this.$store.getters["analyzers/getQueue"];
-          } else {
-            console.warn("backend may be down");
-          }
-          this.waiting = false;
-        });
-      } else {
-        console.warn("backend may be down");
-      }
-    },
-
-    full_sync() {
       if (!this.waiting) {
         this.waiting = true;
         this.$store.dispatch("options/sync");
