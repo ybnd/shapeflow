@@ -50,7 +50,7 @@ export default {
 .sidebar-header-items {
   margin: 0;
   padding: 2px;
-  height: calc($header-height - 4px);
+  height: calc(#{$header-height} - 4px);
   display: flex;
   flex-direction: row;
   overflow: hidden;
