@@ -24,7 +24,7 @@ $item-height: calc(#{$header-height - 8px});
   padding-bottom: 4px;
 
   background: $gray-200;
-  display: block;
+  display: flex;
   padding-left: $sidebar-nav-link-padding-x;
 
   overflow: visible;
@@ -37,18 +37,26 @@ $item-height: calc(#{$header-height - 8px});
 }
 .page-header-item .btn {
   height: $item-height;
+  padding: 4px;
 }
 .page-header-item * {
   height: $item-height;
   max-height: $item-height;
+  margin-right: 4px;
 }
 
 .header-button-icon {
   width: $item-height;
   font-size: 14px;
-  padding-top: 2px;
-  padding-bottom: 2px;
-  padding-left: 2px;
-  padding-right: 2px;
+  display: flex;
+}
+.header-button-icon i {
+  max-height: calc(#{$item-height} - 8px);
+  max-width: calc(#{$item-height} - 8px);
+  margin: 0;
+  padding: 0;
+  padding-top: 4px;
+  flex-shrink: 1;
+  flex-grow: 1;
 }
 </style>
