@@ -465,5 +465,37 @@ export const actions = {
       console.warn(`could not set config for ${id}`);
       return undefined;
     }
+  },
+
+  async turn({ commit, getters }, { id, direction }) {
+    try {
+      assert(!(id === undefined), "no id provided");
+      if (direction === undefined) {
+        direction = "CW";
+      }
+
+      let config = {
+        transform: { turn: getters["getConfig"](id).transform.turn }
+      };
+
+      if (direction === "CW") {
+        config.transform.turn += 1;
+      } else if (direction === "CCW") {
+        config.transform.turn -= 1;
+      }
+
+      set_config(id, config).then(config => {
+        // console.log(
+        //   `action: analyzers.set_config -- callback ~ api.set_config (id=${id})`
+        // );
+        commit("setAnalyzerConfig", {
+          id: id,
+          config: config
+        });
+        return config;
+      });
+    } catch (e) {
+      console.warn(`could not turn ${id}`);
+    }
   }
 };

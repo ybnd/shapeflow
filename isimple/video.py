@@ -385,13 +385,16 @@ class TransformHandler(BackendInstance, Handler):  # todo: clean up config / con
             } for k,v in roi.items()
         }
 
-        self.set(self._implementation.estimate(self.flip(roi), self._design_shape))
+        self.set(self._implementation.estimate(self.adjust(roi), self._design_shape))
         streams.update()
 
-    def flip(self, roi: dict) -> dict:
+    def adjust(self, roi: dict) -> dict:
+        """Adjust ROI (90° turns & flips)
+        """
+        # Flip
         if self.config.flip == (True, False):
             # Flip vertically
-            return {
+            roi = {
                 'BL': roi['TL'],
                 'TL': roi['BL'],
                 'BR': roi['TR'],
@@ -399,7 +402,7 @@ class TransformHandler(BackendInstance, Handler):  # todo: clean up config / con
             }
         elif self.config.flip == (False, True):
             # Flip horizontally
-            return {
+            roi = {
                 'BL': roi['BR'],
                 'TL': roi['TR'],
                 'BR': roi['BL'],
@@ -407,14 +410,28 @@ class TransformHandler(BackendInstance, Handler):  # todo: clean up config / con
             }
         elif self.config.flip == (True, True):
             # Flip both (180° rotation)
-            return {
+            roi = {
                 'BL': roi['TR'],
                 'TL': roi['BR'],
                 'BR': roi['TL'],
                 'TR': roi['BL']
             }
-        else:
-            return roi
+
+        # Turn
+        if self.config.turn != 0:
+            self.config(turn = self.config.turn % 4)
+
+            corners = ['TR', 'BR', 'BL', 'TL',]
+            turnedc = ['TL', 'TR', 'BR', 'BL',]
+            cw_90d_map = {c:t for c,t in zip(corners, turnedc)}
+
+            cw_turn_map = {c:c for c in corners}
+            for _ in range(self.config.turn):
+                cw_turn_map = {k:cw_90d_map[v] for k,v in cw_turn_map.items()}
+
+            roi = {cw_turn_map[k]:v for k,v in roi.items()}
+
+        return roi
 
     @backend.expose(backend.clear_roi)
     def clear(self) -> None:
@@ -1045,7 +1062,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 previous_features = copy.copy(self.config.features)  # todo: clean up
                 previous_video_path = copy.copy(self.config.video_path)
                 previous_design_path = copy.copy(self.config.design_path)
-                previous_flip = copy.copy((self.config.transform.flip))
+                previous_flip = copy.copy(self.config.transform.flip)
+                previous_turn = copy.copy(self.config.transform.turn)
 
                 self._config(**config)
                 self._config.resolve()
@@ -1079,9 +1097,9 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 if self.launched and not self._featuresets:
                     self._get_featuresets()
 
-                # Check for flip
-                if previous_flip != self.config.transform.flip:
-                    self.transform.estimate(self.transform.config.roi)  # todo: self.config.bla.thing should be exactly self.bla.config.thing always
+                # Check for ROI adjustments
+                if previous_flip != self.config.transform.flip or previous_turn != self.config.transform.turn:
+                    self.estimate_transform()  # todo: self.config.bla.thing should be exactly self.bla.config.thing always
                     do_commit = True
 
                 # Check for file changes
@@ -1152,11 +1170,11 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         return self.position
 
     @backend.expose(backend.estimate_transform)
-    def estimate_transform(self, roi) -> dict:
-        if roi is not None:
-            self.transform.estimate(roi)
-        else:
+    def estimate_transform(self, roi = None) -> dict:
+        if roi is None:
             roi = self.transform.config.roi
+
+        self.transform.estimate(roi)
 
         self.state_transition()
         self.event(AnalyzerEvent.CONFIG, self.get_config())

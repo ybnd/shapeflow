@@ -120,5 +120,5 @@ class FilterType(InterfaceFactory):
             )
 
 
-class TransformType(Factory):
+class TransformType(InterfaceFactory):
     _type = TransformInterface

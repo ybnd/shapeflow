@@ -12,7 +12,7 @@
           data-toggle="tooltip"
           title="Clear alignment"
         >
-          <i class="fa fa-remove" />
+          <i class="icon-ban" />
         </b-button>
         <b-button
           class="header-button-icon"
@@ -21,7 +21,7 @@
           title="Undo alignment"
           v-hotkey="keymap"
         >
-          <i class="fa fa-undo" />
+          <i class="icon-action-undo" />
         </b-button>
         <b-button
           class="header-button-icon"
@@ -30,7 +30,7 @@
           title="Redo alignment"
           v-hotkey="keymap"
         >
-          <i class="fa fa-repeat" />
+          <i class="icon-action-redo" />
         </b-button>
       </PageHeaderItem>
       <PageHeaderSeek :id="id" :key="id" />
@@ -50,6 +50,24 @@
           title="Flip vertically"
         >
           <i class="fa fa-arrows-v" />
+        </b-button>
+      </PageHeaderItem>
+      <PageHeaderItem>
+        <b-button
+          class="header-button-icon"
+          @click="handleTurnCW"
+          data-toggle="tooltip"
+          title="Rotate 90° clockwise"
+        >
+          <i class="fa fa-rotate-right" />
+        </b-button>
+        <b-button
+          class="header-button-icon"
+          @click="handleTurnCCW"
+          data-toggle="tooltip"
+          title="Rotate 90° counter-clockwise"
+        >
+          <i class="fa fa-rotate-left" />
         </b-button>
       </PageHeaderItem>
       <PageHeaderItem>
@@ -327,7 +345,7 @@ export default {
           id: this.id,
           config: {
             transform: {
-              flip: [this.align.flip[0], !this.align.flip[1]]
+              flip: [this.align.flip[0], !this.align.flip[1]] // todo: better to synchronize this to store?
             }
           }
         })
@@ -348,6 +366,14 @@ export default {
         .then(config => {
           this.align.flip = config.transform.flip;
         });
+    },
+    handleTurnCW() {
+      console.log("align.handleTurnCW()");
+      this.$store.dispatch("analyzers/turn", { id: this.id, direction: "CW" });
+    },
+    handleTurnCCW() {
+      console.log("align.handleTurnCCW()");
+      this.$store.dispatch("analyzers/turn", { id: this.id, direction: "CCW" });
     },
     updateRoiCoordinates() {
       console.log("align: updateRoiCoordinates");

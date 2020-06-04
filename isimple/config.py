@@ -45,12 +45,13 @@ class PerspectiveTransformConfig(TransformConfig):
 
 @extend(ConfigType)
 @dataclass
-class TransformHandlerConfig(Config):
+class TransformHandlerConfig(HandlerConfig):
     type: TransformType = field(default_factory=TransformType)
     data: TransformConfig = field(default_factory=TransformConfig)
 
     roi: Optional[dict] = field(default=None)  # todo: maybe make this a config?
     flip: Tuple[bool, bool] = field(default=(False, False))  # (vertical, horizontal)
+    turn: int = field(default=0) # number of 90° turns (CW)
 
 
 @extend(ConfigType)
