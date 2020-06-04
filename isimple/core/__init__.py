@@ -243,14 +243,14 @@ class Lockable(abc.ABC):
 
     @contextmanager
     def lock(self):
-        log.debug(f"Acquiring lock {self}...")
+        log.vdebug(f"Acquiring lock {self}...")
         lock = self._lock.acquire()
-        log.debug(f"Acquired lock {self}")
+        log.vdebug(f"Acquired lock {self}")
         try:
-            log.debug(f"Locking {self}")
+            log.vdebug(f"Locking {self}")
             yield lock
         finally:
-            log.debug(f"Unlocking {self}")
+            log.vdebug(f"Unlocking {self}")
             self._lock.release()
 
     def cancel(self):
