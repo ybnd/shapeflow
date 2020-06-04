@@ -525,7 +525,8 @@ export default {
       return `moveable`;
     },
     report_change() {
-      const state = this.$store.getters["analyzers/getStatus"](this.id).state;
+      const state = this.$store.getters["analyzers/getAnalyzerStatus"](this.id)
+        .state;
       return (
         state === ast.DONE || state === ast.ERROR || state === ast.CANCELED
       ); // todo: cleaner

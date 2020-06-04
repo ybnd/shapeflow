@@ -1,19 +1,13 @@
 import Vue from "vue";
 import {
-  AnalyzerState as ast,
-  get_config,
-  set_config,
-  get_state,
-  get_schemas,
-  init,
-  list,
-  launch,
-  events,
   EVENT_CATEGORIES,
+  events,
+  get_config,
   get_status,
-  get_colors,
-  analyze,
-  get_q_state
+  init,
+  launch,
+  get_app_state,
+  set_config
 } from "../static/api";
 
 import assert from "assert";
@@ -233,7 +227,7 @@ export const getters = {
   getFullStatus: state => {
     return state.status;
   },
-  getStatus: state => id => {
+  getAnalyzerStatus: state => id => {
     if (id in state.status) {
       return state.status[id];
     }
@@ -354,6 +348,7 @@ export const actions = {
                 dispatch("unqueue", { id: id });
                 console.warn(`Could not launch '${id}'`);
               }
+              dispatch("sync");
             });
           }
         );
@@ -369,34 +364,36 @@ export const actions = {
         dispatch("source");
       }
 
-      get_q_state().then(queue_state => {
-        commit("setQueueState", { queue_state: queue_state });
-      });
-
-      return await list().then(ids => {
-        // console.log(`action: analyzers.sync -- callback ~ api.list`);
+      return await get_app_state().then(app_state => {
+        // console.log(`action: analyzers.sync -- callback ~ api.get_app_state`);
         // unqueue dead ids
+
+        commit("setQueueState", { queue_state: app_state.q_state });
+
         let q = getters["getQueue"];
         if (q.length > 0) {
           for (let i = 0; i < q.length; i++) {
-            if (!ids.includes(q[i])) {
+            if (!app_state.ids.includes(q[i])) {
               dispatch("unqueue", { id: q[i] });
             }
           }
         }
         // queue new ids
-        if (ids.length > 0) {
+        if (app_state.ids.length > 0) {
           let q = getters["getQueue"];
-          for (let i = 0; i < ids.length; i++) {
-            if (!q.includes(ids[i])) {
-              dispatch("queue", { id: ids[i] }).then(() => {
+          for (let i = 0; i < app_state.ids.length; i++) {
+            if (!q.includes(app_state.ids[i])) {
+              dispatch("queue", { id: app_state.ids[i] }).then(() => {
                 // console.log(
                 //   `action: analyzers.sync -- callback ~ analyzers.queue (id=${ids[i]})`
                 // );
-                dispatch("get_status", { id: ids[i] });
-                dispatch("get_config", { id: ids[i] });
+                dispatch("get_config", { id: app_state.ids[i] });
               });
             }
+            commit("setAnalyzerStatus", {
+              id: app_state.ids[i],
+              status: app_state.status[i]
+            });
           }
         }
         return true;

@@ -1110,7 +1110,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                     self.commit()  # todo: isimple.video doesn't know about isimple.history!
 
                 # Check for state transitions
-                self.state_transition(send_event=True)
+                self.state_transition(push=True)
 
                 config = self.get_config()
 
@@ -1165,7 +1165,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     @backend.expose(backend.seek)
     def seek(self, position: float = None) -> float:
         self.video.seek(position)
-        self.event(AnalyzerEvent.STATUS, self.status())
+        self.push_status()
 
         return self.position
 

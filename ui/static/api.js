@@ -39,7 +39,7 @@ export const endpoints = {
 };
 
 export function ping() {
-  // todo: deprecated, just ping with list()
+  // todo: deprecated, just ping with get_app_state()
   axios.get(api("ping"));
 }
 
@@ -74,8 +74,8 @@ export async function set_settings(settings) {
     });
 }
 
-export async function list() {
-  return axios.get(api("list")).then(response => {
+export async function get_app_state() {
+  return axios.get(api("app_state")).then(response => {
     if (response.status === 200) {
       return response.data;
     }
@@ -85,14 +85,6 @@ export async function list() {
 export async function init() {
   // initialize an Analyzer in the backend & return its id
   return axios.post(api("init")).then(response => {
-    if (response.status === 200) {
-      return response.data;
-    }
-  });
-}
-
-export async function get_q_state() {
-  return axios.get(api("q_state")).then(response => {
     if (response.status === 200) {
       return response.data;
     }

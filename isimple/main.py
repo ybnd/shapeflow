@@ -278,10 +278,6 @@ class Main(isimple.core.Lockable):
         def stop():
             return respond(self.q_stop())
 
-        @app.route('/api/q_state', methods=['GET'])
-        def get_q_state():
-            return respond(self._q_state)
-
         # API: working with Analyzer instances
         @app.route('/api/init', methods=['POST'])
         def init():  # todo: also add a model instance to self._models
@@ -375,12 +371,16 @@ class Main(isimple.core.Lockable):
             )
 
         # API: utility
-        @app.route('/api/list', methods=['GET'])
-        def get_list():
+        @app.route('/api/app_state', methods=['GET'])
+        def get_app_state():
             """List instances in self._roots
             """
             active()
-            return respond([k for k in self._roots.keys()])
+            return respond({
+                'q_state': self._q_state,
+                'ids': [k for k in self._roots.keys()],
+                'status': [a.status() for a in self._roots.values()],
+            })
 
         @app.route('/api/get_log')
         def get_log():
@@ -486,7 +486,7 @@ class Main(isimple.core.Lockable):
             return analyzer.id
 
     def remove_instance(self, id: str) -> bool:
-        with self.valid(id):
+        if self.valid(id):
             analyzer = self._roots.pop(id)
             with analyzer.lock():
                 analyzer.commit()

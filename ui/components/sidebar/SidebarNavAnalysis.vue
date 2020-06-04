@@ -210,24 +210,7 @@ export default {
       };
     },
     status() {
-      let status = this.$store.getters["analyzers/getStatus"](this.id);
-
-      console.log(`${this.id} state = ${status.state}`);
-      console.log(status);
-
-      console.log("'Analyze' button disabled: ");
-      console.log(
-        [
-          undefined,
-          ast.UNKNOWN,
-          ast.INCOMPLETE,
-          ast.LAUNCHED,
-          ast.CAN_LAUNCH,
-          ast.CACHING
-        ].includes(status.state)
-      );
-
-      return status;
+      return this.$store.getters["analyzers/getAnalyzerStatus"](this.id);
     }
   },
   data() {
