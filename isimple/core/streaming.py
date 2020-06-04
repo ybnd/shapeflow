@@ -67,7 +67,7 @@ class BaseStreamer(abc.ABC):
                 output = self._decorate(self._encode(value))
 
                 if output is not None:
-                    log.debug(f"{self}: yielding...")
+                    log.vdebug(f"{self}: yielding...")
                     yield output
                     if self._double_yield:
                         yield output   # todo: image streaming doesn't work properly if not yielded twice for some reason
