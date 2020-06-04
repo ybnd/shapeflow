@@ -229,6 +229,15 @@ class Config(abc.ABC):
                                 })
                         else:
                             setattr(self, kw, self._resolve_value(value, field_type))
+                    elif issubclass(field_type, Config):
+                        # If field is an existing Config subclass, integrate value instead of overwriting
+                        if not isinstance(getattr(self, kw), field_type):
+                            # Resolve current value to correct type
+                            setattr(self, kw, self._resolve_value(getattr(self, kw), field_type))
+                        if isinstance(value, dict):
+                            getattr(self, kw).__call__(**untag(value))
+                        elif isinstance(value, Config):
+                            getattr(self, kw).__call__(**untag(value.to_dict()))
                     else:
                         setattr(self, kw, self._resolve_value(value, field_type))
                 else:
