@@ -315,22 +315,24 @@ class Main(isimple.core.Lockable):
             with self.lock():
                 return respond(self.remove_instance(id))
 
-        @app.route('/api/<id>/call/get_overlay_png', methods=['GET'])  # todo: why is this here?
-        def get_overlay_png(id: str):
-            null: dict = {}
-            return make_response(self.call(id, 'get_overlay_png', null))
-
         @app.route('/api/<id>/call/<endpoint>', methods=['GET','PUT','POST'])
         def call(id: str, endpoint: str):
             active()
+
             if request.data:
                 data = json.loads(request.data)
             else:
-                data = {k:json.loads(v) for k,v in request.args.to_dict().items()}
+                data = {k:json.loads(v) for k,v in request.args.to_dict().items() if v != ''}
+
             result = self.call(id, endpoint, data)
+
             if result is None:
                 result = True
-            return respond(result)
+
+            if isinstance(result, bytes):
+                return make_response(result)
+            else:
+                return respond(result)
 
         # API: streaming
         @app.route('/api/<id>/stream/<endpoint>', methods=['GET'])
@@ -573,7 +575,7 @@ class Main(isimple.core.Lockable):
         else:
             return None
 
-    def call(self, id: str, endpoint: str, data: dict) -> Any:
+    def call(self, id: str, endpoint: str, data: dict = {}) -> Any:
         if self.valid(id):
             t0 = time.time()
             log.debug(f"{self._roots[id]}: call '{endpoint}'")
