@@ -1328,11 +1328,9 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             if self.model is None:
                 log.warning(f"{self} has no database model; result data will be lost")
 
-            with self.lock(), self.time():
+            with self.lock(), self.time(f"Analyzing {self.id}", log):
                 self._get_featuresets()
                 self.save_config()
-
-                log.info(f"Analyzing {self.id}")
 
                 self.event(AnalyzerEvent.RMETAD, {'colors': self.get_colors()})
 

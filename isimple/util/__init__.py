@@ -13,7 +13,7 @@ import diskcache
 
 import numpy as np
 
-from isimple import get_logger, settings
+from isimple import get_logger, settings, Logger
 
 log = get_logger(__name__)
 
@@ -100,25 +100,28 @@ class Timer(object):
     _t0: float
     _t1: float
     _parent: object
+    _logger: Logger
     _message: str
     _elapsed: Optional[float]
 
     def __init__(self, parent: object):
         self._parent = parent
         self._elapsed = None
+        self.set_logger()
 
     def __enter__(self, message: str = ''):
         self._message = message
         self._t0 = time.time()
-        log.info(f"{self._parent.__class__.__name__}: "
-                  f"timer started {message}")
+        self._logger.info(f"{self._message}...")
 
     def __exit__(self):
         if hasattr(self, '_t0'):
             self._t1 = time.time()
             self._elapsed = self._t1 - self._t0
-            log.info(f"{self._parent.__class__.__name__}: "
-                      f"{self._elapsed} s. elapsed {self._message}")
+            self._logger.info(f"{self._message}: {self._elapsed} s. elapsed ")
+
+    def set_logger(self, logger: Logger = log):
+        self._logger = logger
 
     @property
     def timing(self) -> Optional[tuple]:

@@ -176,7 +176,7 @@ def update_settings(new_settings: dict):
     save_settings(settings)
 
 
-class CustomLogger(logging.Logger):
+class Logger(logging.Logger):
     _pattern = re.compile('(\n|\r|\t| [ ]+)')
 
     def debug(self, msg, *args, **kwargs):
@@ -233,11 +233,11 @@ def get_cache(settings: Settings = settings) -> diskcache.Cache:
 cache = get_cache()  # todo: why is this required?
 
 
-def get_logger(name: str = __name__, settings: LogSettings = settings.log) -> CustomLogger:
+def get_logger(name: str = __name__, settings: LogSettings = settings.log) -> Logger:
     if settings is None:
         settings = LogSettings()
 
-    log = CustomLogger(name)
+    log = Logger(name)
     log.setLevel(
         max([_levels[settings.lvl_console], _levels[settings.lvl_file]])
     )

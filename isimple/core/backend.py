@@ -167,7 +167,7 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
                 if isinstance(value, str) and value == _BLOCKED:
                     log.warning(f'{self.__class__}: timed out waiting for {key}.')
                 else:
-                    log.debug(f"{self.__class__}: read {key}.")
+                    log.debug(f"{self.__class__}: read cached {key}.")
                     return value
 
             # Cache a temporary string to 'block' the key
@@ -728,8 +728,9 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
             element.__exit__(*sys.exc_info())
 
     @contextmanager
-    def time(self, message: str = ''):
+    def time(self, message: str = '', logger = log):
         try:
+            self._timer.set_logger(logger)
             self._timer.__enter__(message)
             yield self
         finally:

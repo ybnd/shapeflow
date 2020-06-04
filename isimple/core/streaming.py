@@ -147,7 +147,7 @@ class EventStreamer(JsonStreamer):
         :param data: event data
         :return:
         """
-        log.debug(f"{id} category:{category} data:{data}")
+        log.debug(f"pushing event - id:{id} category:{category} data:{data}")
         self.push({'category': category, 'id': id, 'data': data})
 
 
@@ -186,7 +186,22 @@ class JpegStreamer(FrameStreamer):  # todo: configure quality in settings
         # Assuming HSV input frame, cv2.imencode works with BGR
         (success, encoded_frame) = cv2.imencode(
             ".jpg", cv2.cvtColor(frame, cv2.COLOR_HSV2BGR),
-            params = [cv2.IMWRITE_JPEG_QUALITY, 50]
+            params = [cv2.IMWRITE_JPEG_QUALITY, 85]
+        )
+
+        if success:
+            return encoded_frame
+        else:
+            return None
+
+
+class BmpStreamer(FrameStreamer):  # todo: configure quality in settings
+    _content_type = b"image/jpeg"
+
+    def _encode(self, frame: np.ndarray) -> Optional[bytes]:
+        # Assuming HSV input frame, cv2.imencode works with BGR
+        (success, encoded_frame) = cv2.imencode(
+            ".bmp", cv2.cvtColor(frame, cv2.COLOR_HSV2BGR),
         )
 
         if success:
@@ -227,7 +242,6 @@ class StreamHandler(Lockable):
         super().__init__()
         self._streams = {}
 
-    @logged
     def register(self, instance: object, method, stream_type: Type[BaseStreamer] = None) -> BaseStreamer:
         """Register `method`, start a streamer.
             If `method` has been registered already, return its streamer.
@@ -293,7 +307,6 @@ class StreamHandler(Lockable):
                         stream.stop()
                     del self._streams[instance]
 
-    @logged
     def update(self):
         try:
             for instance in self._streams.keys():
@@ -314,8 +327,8 @@ class StreamHandler(Lockable):
             log.error(f"{e} occurred")
 
     def stop(self):
-        for instance, method in self._streams:
-            self.unregister(instance, method)
+        for instance in list(self._streams):
+            self.unregister(instance)
 
 
 # Global StreamHandler instance

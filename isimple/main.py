@@ -8,6 +8,7 @@ from contextlib import contextmanager
 import time
 import webbrowser
 from threading import Thread, Event, Lock
+from _thread import interrupt_main
 from typing import Dict, Any, List, Optional
 from enum import IntEnum
 
@@ -37,11 +38,21 @@ def respond(*args) -> str:
     return jsonify(*args)
 
 
+def restart_server():
+    log.info('restarting server...')
+    import subprocess
+
+    log.info(
+        f"cwd = {os.path.dirname(os.path.dirname(os.path.abspath(__file__)))}")
+    subprocess.Popen('sleep 1; python .venv.py .server.py &', shell=True,
+                     cwd=os.path.dirname(
+                         os.path.dirname(os.path.abspath(__file__))))
+
+
 class ServerThread(Thread, metaclass=util.Singleton):
     _app: Flask
     _host: str
     _port: int
-    _stopevent = Event()
 
     def __init__(self, app, host, port):
         self._app = app
@@ -50,16 +61,19 @@ class ServerThread(Thread, metaclass=util.Singleton):
         super().__init__(daemon=True)
 
     def run(self):
-        while not self._stopevent.is_set():
+        try:
             waitress.serve(
                 self._app,
                 host=self._host,
                 port=self._port,
-                threads=64,
+                threads=32,
             )
+        except OSError:
+            log.warning('address already in use')
+            self.stop()
 
     def stop(self):
-        self._stopevent.set()
+        os._exit(0)
 
 
 class QueueState(IntEnum):
@@ -76,14 +90,12 @@ class Main(isimple.core.Lockable):
     _models: Dict[str, history.VideoAnalysisModel] = {}
     _history = history.History()
 
-    _host: str = 'localhost'  # todo: load from settings.yaml
-    _port: int = 7951  # todo: load from settings.yaml
-
     _server: ServerThread
 
     _lock = Lock()
     _ping = Event()
     _unload = Event()
+    _override = Event()
     _quit = Event()
 
     _timeout_suppress = 0.5  # todo: load from settings.yaml
@@ -129,17 +141,33 @@ class Main(isimple.core.Lockable):
 
         # API: general
         def active():
-            self._unload.clear()
-            self._ping.set()
-
-        @app.route('/api/ping', methods=['GET'])
-        def ping():  # todo: deprecated
-            active()
-            return respond(True)
+            if self._unload.is_set():
+                log.debug('Incoming traffic - cancelling quit.')
+                self._unload.clear()
+                self._ping.set()
 
         @app.route('/api/unload', methods=['POST'])
         def unload():
+            self.save_state()
             self._unload.set()
+            return respond(True)
+
+        @app.route('/api/quit', methods=['POST'])
+        def quit():
+            self.save_state()
+            self._override.set()
+            self._unload.set()
+            return respond(True)
+
+        @app.route('/api/restart', methods=['POST'])
+        def restart():
+            quit()
+
+            while not self._quit.is_set():
+                time.sleep(self._timeout_loop)
+
+            restart_server()
+
             return respond(True)
 
         @app.route('/api/settings_schema')
@@ -165,6 +193,7 @@ class Main(isimple.core.Lockable):
 
         @app.route('/api/options/<for_type>', methods=['GET'])
         def get_options(for_type):
+            active()
             log.debug(f"get options for '{for_type}'")
             if for_type == "state":
                 return respond(dict(video.AnalyzerState.__members__))
@@ -429,43 +458,41 @@ class Main(isimple.core.Lockable):
                 self.load_state()
                 return respond(True)
 
+        @app.before_first_request
+        def initialize():
+            self.load_state()
+
         self._app = app
 
-    def serve(self, open_in_browser: bool):
+    def serve(self, host, port):
         # Don't show waitress console output (server URL)
         with util.suppress_stdout():
-            self._server = ServerThread(self._app, self._host, self._port)
+            self._server = ServerThread(self._app, host, port)
             self._server.start()
-
-            # Run in separate thread to revent Ctrl+C from closing browser
-            #  if no tabs were open before  todo: doesn't seem to work anymore?
-            if open_in_browser:
-                Thread(
-                    target=lambda: webbrowser.open(
-                        f"http://{self._host}:{self._port}/"
-                    )
-                ).start()
 
             time.sleep(self._timeout_suppress)  # Wait for Waitress to catch up
 
-        while not self._quit.is_set():
-            if self._ping.is_set():
-                self._ping.clear()
-            if self._unload.is_set():
-                log.debug(f'Unloaded from browser, waiting for ping.')
-                time.sleep(self._timeout_unload)
-                if not self._ping.is_set():
-                    log.debug('No ping received; quitting.')
-                    self._quit.set()
-                else:
-                    log.debug('Ping received; cancelling.')
-            time.sleep(self._timeout_loop)
-
-    def cleanup(self):
-        log.debug('cleaning up')
-        self._server.stop()
-        self._server.join()
+        try:
+            while not self._quit.is_set():
+                if self._ping.is_set():
+                    self._ping.clear()
+                if self._unload.is_set():
+                    if self._override.is_set():
+                        log.debug(f'Quitting...')
+                        self._quit.set()
+                    else:
+                        log.debug(f'Unloaded from browser, waiting for traffic.')
+                        time.sleep(self._timeout_unload)
+                        if not self._ping.is_set():
+                            log.debug(f'No traffic for {self._timeout_unload} seconds - quitting...')
+                            self._quit.set()
+                time.sleep(self._timeout_loop)
+        except KeyboardInterrupt:
+            log.info('interrupted by user')
+        log.info('Main.serve() stopped.')
+        self.save_state()
         streaming.streams.stop()
+        self._server.stop()
 
     def get_latest(self):
         self._latest = self._history.get_latest_analyses()
@@ -483,15 +510,20 @@ class Main(isimple.core.Lockable):
             self._roots[analyzer.id] = analyzer
             assert isinstance(analyzer, video.VideoAnalyzer)
             self._history.add_analysis(analyzer)
-            return analyzer.id
+
+        self.save_state()
+        return analyzer.id
 
     def remove_instance(self, id: str) -> bool:
-        if self.valid(id):
-            analyzer = self._roots.pop(id)
-            with analyzer.lock():
-                analyzer.commit()
-                del analyzer
-                return True
+        with self.lock():
+            if self.valid(id):
+                analyzer = self._roots.pop(id)
+                with analyzer.lock():
+                    analyzer.commit()
+                    del analyzer
+                    return True
+            else:
+                return False
 
     def q_start(self, q: List[str]) -> bool:
         if self._q_state == QueueState.STOPPED:
@@ -533,36 +565,38 @@ class Main(isimple.core.Lockable):
         self._stop_q.set()
 
     def save_state(self):
-        log.debug("saving application state...")
+        with self.lock():
+            log.debug("saving application state...")
 
-        s = {
-            k:{'config': root.config, 'state': root.state} for k,root in self._roots.items()
-        }
+            s = {
+                k:{'config': root.config, 'state': root.state} for k,root in self._roots.items()
+            }
 
-        with open(os.path.join(isimple.ROOTDIR, 'state'), 'wb') as f:
-            pickle.dump(s, f)
+            with open(os.path.join(isimple.ROOTDIR, 'state'), 'wb') as f:
+                pickle.dump(s, f)
 
     def load_state(self):
-        log.debug("loading application state...")
-        # todo: check if instances retain reference to self._eventstreamer!
+        with self.lock():
+            log.debug("loading application state...")
+            # todo: check if instances retain reference to self._eventstreamer!
 
-        try:
-            with open(os.path.join(isimple.ROOTDIR, 'state'), 'rb') as f:
-                S = pickle.load(f)
+            try:
+                with open(os.path.join(isimple.ROOTDIR, 'state'), 'rb') as f:
+                    S = pickle.load(f)
 
-            for k,s in S.items():
-                analyzer = video.init(s['config'])
-                analyzer._set_id(k)
+                for k,s in S.items():
+                    analyzer = video.init(s['config'])
+                    analyzer._set_id(k)
 
-                if video.AnalyzerState.can_launch(s['state']):
-                    analyzer.launch()
+                    if video.AnalyzerState.can_launch(s['state']):
+                        analyzer.launch()
 
-                self._roots[k] = analyzer
-                assert isinstance(analyzer, video.VideoAnalyzer)
-                self._history.add_analysis(analyzer)
+                    self._roots[k] = analyzer
+                    assert isinstance(analyzer, video.VideoAnalyzer)
+                    self._history.add_analysis(analyzer)
 
-        except FileNotFoundError:
-            pass
+            except FileNotFoundError:
+                pass
 
     def get_schemas(self, id: str) -> Optional[dict]:
         if self.valid(id):
@@ -622,3 +656,6 @@ class Main(isimple.core.Lockable):
     @property
     def events(self) -> streaming.EventStreamer:
         return self._eventstreamer
+
+
+wsgi = Main()._app
