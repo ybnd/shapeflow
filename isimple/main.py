@@ -8,7 +8,7 @@ from contextlib import contextmanager
 import time
 import webbrowser
 from threading import Thread, Event, Lock
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from enum import IntEnum
 
 import cv2
@@ -342,12 +342,15 @@ class Main(isimple.core.Lockable):
             """
             # todo: sanity check if `endpoint' is streamable
             stream = self.stream(id, endpoint)
-            response = Response(
-                stream.stream(),
-                mimetype = stream.mime_type(),
-            )
-            # response.cache_control.no_cache = True
-            return response
+            if stream is not None:
+                response = Response(
+                    stream.stream(),
+                    mimetype = stream.mime_type(),
+                )
+                # response.cache_control.no_cache = True
+                return response
+            else:
+                return respond(None)
 
         @app.route('/api/<id>/stream/<endpoint>/stop', methods=['GET'])
         def stop_stream(id: str, endpoint: str):
@@ -481,14 +484,12 @@ class Main(isimple.core.Lockable):
             return analyzer.id
 
     def remove_instance(self, id: str) -> bool:
-        if id in self._roots:
+        with self.valid(id):
             analyzer = self._roots.pop(id)
             with analyzer.lock():
                 analyzer.commit()
                 del analyzer
                 return True
-        else:
-            return False
 
     def q_start(self, q: List[str]) -> bool:
         if self._q_state == QueueState.STOPPED:
@@ -561,43 +562,60 @@ class Main(isimple.core.Lockable):
         except FileNotFoundError:
             pass
 
-    def get_schemas(self, id: str) -> dict:
-        log.debug(f"Providing schemas for '{id}'")
-        root = self._roots[id]
-        return {
-                'config': schema.schema(root._config.__class__),
-                'methods': {e.name:[schema.schema(m) for m in ms] for e,ms in root.instance_mapping.items()}
-        }
+    def get_schemas(self, id: str) -> Optional[dict]:
+        if self.valid(id):
+            log.debug(f"Providing schemas for '{id}'")
+            root = self._roots[id]
+            return {
+                    'config': schema.schema(root._config.__class__),
+                    'methods': {e.name:[schema.schema(m) for m in ms] for e,ms in root.instance_mapping.items()}
+            }
+        else:
+            return None
 
     def call(self, id: str, endpoint: str, data: dict) -> Any:
-        t0 = time.time()
-        log.debug(f"{self._roots[id]}: call '{endpoint}'")
-        # todo: sanity check this
-        method = self._roots[id].get(getattr(backend.backend, endpoint))
+        if self.valid(id):
+            t0 = time.time()
+            log.debug(f"{self._roots[id]}: call '{endpoint}'")
+            # todo: sanity check this
+            method = self._roots[id].get(getattr(backend.backend, endpoint))
 
-        result = method(**data)
-        log.debug(f"{self._roots[id]}: return '{endpoint}' "
-                  f"({time.time() - t0} s elapsed)")
-        return result
+            result = method(**data)
+            log.debug(f"{self._roots[id]}: return '{endpoint}' "
+                      f"({time.time() - t0} s elapsed)")
+            return result
+        else:
+            return None
 
-    def stream(self, id: str, endpoint: str) -> streaming.BaseStreamer:  # todo: extend to handle json streaming also
+    def stream(self, id: str, endpoint: str) -> Optional[streaming.BaseStreamer]:  # todo: extend to handle json streaming also
         with self.lock():
-            # todo: sanity check this also
-            method = self._roots[id].get(getattr(backend.backend, endpoint))  # todo: check whether endpoint.streaming is not _Streaming('off')
-            self._roots[id].cache_open()
+            if self.valid(id):
+                # todo: sanity check this also
+                method = self._roots[id].get(getattr(backend.backend, endpoint))  # todo: check whether endpoint.streaming is not _Streaming('off')
+                self._roots[id].cache_open()
 
-            new_stream = streaming.streams.register(method.__self__, method)  # type: ignore
+                new_stream = streaming.streams.register(method.__self__, method)  # type: ignore
 
-            log.debug(f"{self._roots[id]}: stream '{endpoint}'")
-            return new_stream
+                log.debug(f"{self._roots[id]}: stream '{endpoint}'")
+                return new_stream
+            else:
+                return None
 
     def stop_stream(self, id: str, endpoint: str):
         with self.lock():
-            method = self._roots[id].get(getattr(backend.backend, endpoint))
+            if self.valid(id):
+                method = self._roots[id].get(getattr(backend.backend, endpoint))
 
-            # todo: type / assert properly
-            streaming.streams.unregister(method.__self__, method)  # type: ignore
-            log.debug(f"{self._roots[id]}: stopped streaming '{endpoint}'")
+                # todo: type / assert properly
+                streaming.streams.unregister(method.__self__, method)  # type: ignore
+                log.debug(f"{self._roots[id]}: stopped streaming '{endpoint}'")
+
+    def valid(self, id):
+        if id in self._roots:
+            return True
+        else:
+            log.warning(f"{id} is not a valid analyzer id or refers to an analyzer from a previous session")
+            return False
 
     @property
     def events(self) -> streaming.EventStreamer:
