@@ -173,7 +173,7 @@ export default {
         ) {
           this.$router.push("/");
         }
-        this.$store.dispatch("analyzers/sync");
+        this.$store.dispatch("analyzers/sync"); // todo: this doesn't help
       });
     },
     handleCancel() {
