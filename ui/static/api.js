@@ -48,6 +48,14 @@ export function unload() {
   return navigator.sendBeacon(api("unload"));
 }
 
+export async function restart() {
+  return axios.post(api("restart")).then(response => {
+    if (response.status === 200) {
+      return response.data; // todo: this pattern is QUITE common
+    }
+  });
+}
+
 export async function settings_schema() {
   return axios.get(api("settings_schema")).then(response => {
     if (response.status === 200) {

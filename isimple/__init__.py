@@ -48,7 +48,6 @@ class FormatSettings(_Settings):
     datetime_format_fs: str = field(default='%Y-%m-%d_%H-%M-%S_%f')
 
 
-
 _levels: dict = defaultdict(default_factory=lambda: logging.INFO)
 _levels.update({
     'critical': logging.CRITICAL,

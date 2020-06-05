@@ -6,7 +6,7 @@ import pickle
 import os
 from contextlib import contextmanager
 import time
-import webbrowser
+import subprocess
 from threading import Thread, Event, Lock
 from _thread import interrupt_main
 from typing import Dict, Any, List, Optional
@@ -27,7 +27,7 @@ import isimple.core.streaming as streaming
 import isimple.history as history
 import isimple.video as video
 
-log = isimple.get_logger('isimple')
+log = isimple.get_logger(__name__)
 UI = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     , 'ui', 'dist'
@@ -40,11 +40,8 @@ def respond(*args) -> str:
 
 def restart_server():
     log.info('restarting server...')
-    import subprocess
 
-    log.info(
-        f"cwd = {os.path.dirname(os.path.dirname(os.path.abspath(__file__)))}")
-    subprocess.Popen('sleep 1; python .venv.py .server.py &', shell=True,
+    subprocess.Popen('sleep 1; python .venv.py .server.py', shell=True,
                      cwd=os.path.dirname(
                          os.path.dirname(os.path.abspath(__file__))))
 
@@ -95,8 +92,8 @@ class Main(isimple.core.Lockable):
     _lock = Lock()
     _ping = Event()
     _unload = Event()
-    _override = Event()
     _quit = Event()
+    _done = Event()
 
     _timeout_suppress = 0.5  # todo: load from settings.yaml
     _timeout_unload = 5  # todo: load from settings.yaml
@@ -154,17 +151,15 @@ class Main(isimple.core.Lockable):
 
         @app.route('/api/quit', methods=['POST'])
         def quit():
-            self.save_state()
-            self._override.set()
-            self._unload.set()
+            self._quit.set()
             return respond(True)
 
         @app.route('/api/restart', methods=['POST'])
         def restart():
             quit()
 
-            while not self._quit.is_set():
-                time.sleep(self._timeout_loop)
+            while not self._done.is_set():
+                pass
 
             restart_server()
 
@@ -477,21 +472,20 @@ class Main(isimple.core.Lockable):
                 if self._ping.is_set():
                     self._ping.clear()
                 if self._unload.is_set():
-                    if self._override.is_set():
-                        log.debug(f'Quitting...')
+                    log.debug(f'Unloaded from browser, waiting for traffic.')
+                    time.sleep(self._timeout_unload)
+                    if not self._ping.is_set():
+                        log.debug(f'No traffic for {self._timeout_unload} seconds - quitting...')
                         self._quit.set()
-                    else:
-                        log.debug(f'Unloaded from browser, waiting for traffic.')
-                        time.sleep(self._timeout_unload)
-                        if not self._ping.is_set():
-                            log.debug(f'No traffic for {self._timeout_unload} seconds - quitting...')
-                            self._quit.set()
                 time.sleep(self._timeout_loop)
         except KeyboardInterrupt:
             log.info('interrupted by user')
         log.info('Main.serve() stopped.')
+        self._done.set()
+
         self.save_state()
         streaming.streams.stop()
+
         self._server.stop()
 
     def get_latest(self):
@@ -566,7 +560,7 @@ class Main(isimple.core.Lockable):
 
     def save_state(self):
         with self.lock():
-            log.debug("saving application state...")
+            log.info("saving application state")
 
             s = {
                 k:{'config': root.config, 'state': root.state} for k,root in self._roots.items()
@@ -577,7 +571,7 @@ class Main(isimple.core.Lockable):
 
     def load_state(self):
         with self.lock():
-            log.debug("loading application state...")
+            log.info("loading application state")
             # todo: check if instances retain reference to self._eventstreamer!
 
             try:
