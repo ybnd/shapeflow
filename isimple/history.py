@@ -447,13 +447,22 @@ class History(Database):
         # If no other options, return the current ROI
         return json.loads(analysis._roi['roi'])
 
-    def add_analysis(self, analyzer: BaseVideoAnalyzer) -> VideoAnalysisModel:
-        model = VideoAnalysisModel()
+    def add_analysis(self, analyzer: BaseVideoAnalyzer, model: VideoAnalysisModel = None) -> VideoAnalysisModel:
+        if model is None:
+            model = VideoAnalysisModel()
+            model.add(self)
         model.set_analyzer(analyzer)
-        model.add(self)
         analyzer.set_model(model)
 
         return model
+
+    def fetch_analysis(self, model_id: int) -> Optional[VideoAnalysisModel]:
+        try:
+            model = self._fetch(VideoAnalysisModel, f"id:{model_id}")[0]
+            model._db = self
+            return model
+        except IndexError:
+            return None
 
     def add_file(self, path: Optional[str], filetype: Type[FileModel], parent: Model = None, attribute: str = None) -> FileModel:
         if path is not None:

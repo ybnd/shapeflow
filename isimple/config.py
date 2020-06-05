@@ -139,6 +139,18 @@ def load(path: str) -> VideoAnalyzerConfig:
     return VideoAnalyzerConfig(**d)
 
 
+def loads(config: str) -> Config:
+    d = json.loads(config)
+
+    try:
+        config_cls = ConfigType(d[CLASS]).get()
+    except KeyError:
+        config_cls = VideoAnalyzerConfig
+
+    d = normalize_config(d)
+    return config_cls(**d)
+
+
 def normalize_config(d: dict) -> dict:
     """Normalize a configuration dictionary to match the current version of `isimple.core.config`
     :param d: configuration dictionary

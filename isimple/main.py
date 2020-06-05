@@ -19,6 +19,7 @@ import waitress
 from OnionSVG import check_svg
 
 import isimple
+import isimple.config
 import isimple.util as util
 import isimple.util.filedialog
 import isimple.core.backend as backend
@@ -515,6 +516,7 @@ class Main(isimple.core.Lockable):
                 with analyzer.lock():
                     analyzer.commit()
                     del analyzer
+                    self.save_state()
                     return True
             else:
                 return False
@@ -558,12 +560,20 @@ class Main(isimple.core.Lockable):
             self._pause_q.clear()
         self._stop_q.set()
 
+    def commit(self):
+        for root in self._roots.values():
+            root.commit()
+
     def save_state(self):
         with self.lock():
             log.info("saving application state")
 
+            self.commit()
+
             s = {
-                k:{'config': root.config, 'state': root.state} for k,root in self._roots.items()
+                id:root.model.id
+                for id,root in self._roots.items()
+                if not root.done
             }
 
             with open(os.path.join(isimple.ROOTDIR, 'state'), 'wb') as f:
@@ -578,17 +588,23 @@ class Main(isimple.core.Lockable):
                 with open(os.path.join(isimple.ROOTDIR, 'state'), 'rb') as f:
                     S = pickle.load(f)
 
-                for k,s in S.items():
-                    analyzer = video.init(s['config'])
-                    analyzer._set_id(k)
-                    analyzer.set_eventstreamer(self._eventstreamer)
+                for id,model_id in S.items():
+                    assert isinstance(id, str)
+                    assert isinstance(model_id, int)
 
-                    if video.AnalyzerState.can_launch(s['state']):
+                    model = self._history.fetch_analysis(model_id)
+
+                    if model is not None:
+                        analyzer = video.init(isimple.config.loads(model.config))
+                        analyzer._set_id(id)
+                        analyzer.set_eventstreamer(self._eventstreamer)
+
                         analyzer.launch()
 
-                    self._roots[k] = analyzer
-                    assert isinstance(analyzer, video.VideoAnalyzer)
-                    self._history.add_analysis(analyzer)
+                        self._roots[id] = analyzer
+
+                        assert isinstance(analyzer, video.VideoAnalyzer)
+                        self._history.add_analysis(analyzer, model)
 
             except FileNotFoundError:
                 pass
