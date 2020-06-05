@@ -291,10 +291,6 @@ export const actions = {
         try {
           let event = JSON.parse(message.data);
 
-          // if (event.category === "reset_result") {
-          //   console.log("caught");
-          // }
-
           assert(event.hasOwnProperty("category"));
           assert(_.includes(EVENT_CATEGORIES, event.category));
           assert(event.hasOwnProperty("id"));

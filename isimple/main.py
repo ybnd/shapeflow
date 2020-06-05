@@ -581,6 +581,7 @@ class Main(isimple.core.Lockable):
                 for k,s in S.items():
                     analyzer = video.init(s['config'])
                     analyzer._set_id(k)
+                    analyzer.set_eventstreamer(self._eventstreamer)
 
                     if video.AnalyzerState.can_launch(s['state']):
                         analyzer.launch()
