@@ -125,8 +125,8 @@ import {
   commit,
   api,
   get_relative_roi,
-  undo_roi,
-  redo_roi,
+  undo_config,
+  redo_config,
   flip_transform,
   set_config,
   endpoints,
@@ -243,13 +243,13 @@ export default {
       commit(this.previous_id);
     },
     handleUndoAlignment() {
-      undo_roi(this.id).then(roi => {
-        this.setRoi(roi);
+      undo_config(this.id).then(config => {
+        this.setRoi(config.transform.roi);
       });
     },
     handleRedoAlignment() {
-      redo_roi(this.id).then(roi => {
-        this.setRoi(roi);
+      redo_config(this.id).then(config => {
+        this.setRoi(config.transform.roi);
       });
     },
     setRoi(roi) {

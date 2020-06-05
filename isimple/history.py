@@ -126,9 +126,9 @@ class FileModel(NoGetterModel):
                     time.sleep(0.01)
 
 
-class RoiModel(NoGetterModel):
-    _table = 'rois'
-    _flex_table = 'roi_attributes'
+class ConfigModel(NoGetterModel):
+    _table = 'configs'
+    _flex_table = 'config_attributes'
     _fields: dict = {
         'id': types.PRIMARY_ID,
 
@@ -136,7 +136,7 @@ class RoiModel(NoGetterModel):
         'design': types.FOREIGN_ID,
         'analysis': types.FOREIGN_ID,
 
-        'roi': types.STRING,
+        'json': types.STRING,             # configuration (JSON)
 
         'added': types.DATE,
         'modified': types.DATE,
@@ -181,7 +181,7 @@ class VideoAnalysisModel(NoGetterModel):
     _analyzer: Optional[BaseVideoAnalyzer]  # todo: try to be more VideoAnalyzer-agnostic
     _video: Optional[VideoFileModel]
     _design: Optional[DesignFileModel]
-    _roi: Optional[RoiModel]
+    _config: Optional[ConfigModel]
 
     _table = 'analyses'
     _flex_table = 'analysis_attributes'
@@ -190,18 +190,17 @@ class VideoAnalysisModel(NoGetterModel):
 
         'video': types.FOREIGN_ID,
         'design': types.FOREIGN_ID,
-        'roi': types.FOREIGN_ID,
+        'config': types.FOREIGN_ID,
         'results': types.FOREIGN_ID,  # ID of ResultsModel entry
 
         'analyzer_type': types.STRING,      # type of the analyzer (resolved ~ isimple.core.config.AnalyzerConfig)
-        'config': types.STRING,             # configuration (JSON)
 
         'description': types.STRING,        # description of the analysis
         'added': types.DATE,                # date&time when this analysis was added
         'modified': types.DATE,             # date&time when this analysis was last modified
-        'start_date': types.DATE,           # date&time when this analysis was started
-        'finish_date': types.DATE,          # date&time when this analysis was finished
-        'elapsed': types.FLOAT,             # duration of analysis (in seconds)
+        'start_date': types.DATE,           # date&time when the latest run of this analysis was started
+        'finish_date': types.DATE,          # date&time when the latest run of this analysis was finished
+        'elapsed': types.FLOAT,             # duration of the latest run of this analysis (in seconds)
     }
 
     _search_fields = (
@@ -213,7 +212,7 @@ class VideoAnalysisModel(NoGetterModel):
         self._analyzer = None
         self._video = None
         self._design = None
-        self._roi = None
+        self._config = None
 
     def set_analyzer(self, analyzer: BaseVideoAnalyzer):
         self._analyzer = analyzer
@@ -233,7 +232,6 @@ class VideoAnalysisModel(NoGetterModel):
             # Store analysis setup
             self.update({
                 'analyzer_type': self._analyzer.__class__.__name__,
-                'config': json.dumps(self._analyzer.config.to_dict(do_tag=True)),
                 'description': self._analyzer.description,
             })
 
@@ -253,23 +251,8 @@ class VideoAnalysisModel(NoGetterModel):
             if self._video is not None and self._design is not None:
                 self.commit_files()
 
-            # Store ROI
-            if self._roi is None:
-                if hasattr(self._analyzer, 'transform'):
-                    self._roi = self._db.add_roi(
-                        self._analyzer.transform.config.roi,
-                        self._video, self._design, self
-                    )
-            if self._roi is not None:
-                if hasattr(self._analyzer, 'transform'):
-                    if self._analyzer.transform.config.roi != json.loads(self._roi['roi']):
-                        self._roi = self._db.add_roi(
-                            self._analyzer.transform.config.roi,
-                            self._video, self._design, self
-                        )
-                else:
-                    self._roi = None
-                    self['roi'] = None
+            # Store config
+            self._db.add_config(self._analyzer.get_config(do_tag=True), self, self._video, self._design)
 
             # Store results
             for k, df in self._analyzer.results.items():
@@ -325,11 +308,18 @@ class VideoAnalysisModel(NoGetterModel):
         w.save()
         w.close()
 
+    @property
+    def config(self):
+        if self._config is None and self['config'] is not None:
+            self._config = self._db.fetch_config(self['config'])
+
+        return self._config['json'] if self._config is not None else '{}'
+
 
 class History(Database):
     path = settings.db.path
 
-    _models = (VideoAnalysisModel, ResultsModel, VideoFileModel, DesignFileModel, RoiModel)
+    _models = (VideoAnalysisModel, ResultsModel, VideoFileModel, DesignFileModel, ConfigModel)
     _memotable: dict
 
     def __init__(self, timeout=1.0):
@@ -372,7 +362,7 @@ class History(Database):
     def get_config(self, analysis: VideoAnalysisModel, video: FileModel, design: FileModel = None, include: List[str] = None) -> dict:
         config = {}
         if include is None:
-            include = ['video', 'design', 'transform', 'masks']
+            include = ['video', 'design', 'transform', 'masks']  # todo: how to handle feature parameters?
 
         # Query history for latest usages of current video
         # (not including the curent analysis)
@@ -390,47 +380,46 @@ class History(Database):
             # Also grab design file
             include = ['design_path'] + include
 
-        for match in self._fetch(VideoAnalysisModel, q):
+        for match in self._fetch(ConfigModel, q):
             # Don't return own config
-            if match['id'] != analysis_id:
-                match_config = json.loads(match['config'])
-                if len(match_config) > 0:
-                    match_config = normalize_config(match_config)
+            if match['analysis'] != analysis_id:
+                if match['json'] is not None:
+                    match_config = normalize_config(json.loads(match['json']))
 
-                # Assimilate `include` fields from match
-                for field in include:
-                    if field in match_config:
-                        config[field] = match_config[field]
+                    # Assimilate `include` fields from match
+                    for field in include:
+                        if field in match_config:
+                            config[field] = match_config[field]
 
-                # Check if enough
-                ok = []
-                if 'transform' in config:
-                    if 'roi' in config['transform']:
-                        if config['transform']['roi'] is not {}:
+                    # Check if enough
+                    ok = []
+                    if 'transform' in config:
+                        if 'roi' in config['transform']:
+                            if config['transform']['roi'] is not {}:
+                                ok.append(True)
+                                include.remove('transform')
+                    if 'masks' in config:
+                        if len(config['masks']) > 0:
                             ok.append(True)
-                            include.remove('transform')
-                if 'masks' in config:
-                    if len(config['masks']) > 0:
-                        ok.append(True)
-                        include.remove('masks')
+                            include.remove('masks')
 
-                if len(ok) > 0 and all(ok):
-                    break
+                    if len(ok) > 0 and all(ok):
+                        break
 
         return config
 
-    def get_roi(self, analysis: VideoAnalysisModel, next: bool = False) -> dict:
-        """For a given VideoAnalysisModel, get the previous or next roi
+    def get_config_buffer(self, analysis: VideoAnalysisModel, next: bool = False) -> Optional[dict]:
+        """For a given VideoAnalysisModel, get the previous or next config
         """
-        if analysis._roi is None:
-            analysis._roi = self._fetch(
-                RoiModel,
+        if analysis._config is None:
+            analysis._config = self._fetch(
+                ConfigModel,
                 f"analysis:{analysis} added-"
             )[0]
 
         # Query must be performed with formatted timestamp string
         modified = datetime.fromtimestamp(
-            analysis._roi['modified']
+            analysis._config['modified']
         ).strftime('%Y-%m-%dT%H:%M:%S')
 
         if next:
@@ -439,13 +428,14 @@ class History(Database):
         else:
             q = f"video:{analysis['video']} design:{analysis['design']} " \
                 f"modified:..{modified} modified-"
-        for match in self._fetch(RoiModel, q):
+        for match in self._fetch(ConfigModel, q):
             # Make sure not to return the same ROI
-            if match['id'] != analysis._roi['id']:
-                if match['roi'] != analysis._roi['roi']:
-                    return json.loads(match['roi'])
-        # If no other options, return the current ROI
-        return json.loads(analysis._roi['roi'])
+            if match['id'] != analysis._config['id']:
+                if match['json'] != analysis._config['json']:
+                    return normalize_config(json.loads(match['json']))
+
+        # If no other options, return None
+        return None
 
     def add_analysis(self, analyzer: BaseVideoAnalyzer, model: VideoAnalysisModel = None) -> VideoAnalysisModel:
         if model is None:
@@ -456,13 +446,31 @@ class History(Database):
 
         return model
 
-    def fetch_analysis(self, model_id: int) -> Optional[VideoAnalysisModel]:
+    def fetch_analysis(self, id: int) -> Optional[VideoAnalysisModel]:
         try:
-            model = self._fetch(VideoAnalysisModel, f"id:{model_id}")[0]
+            model = self._fetch(VideoAnalysisModel, f"id:{id}")[0]
             model._db = self
             return model
         except IndexError:
             return None
+
+    def fetch_config(self, id: int) -> Optional[ConfigModel]:
+        try:
+            model = self._fetch(ConfigModel, f"id:{id}")[0]
+            model._db = self
+            return model
+        except IndexError:
+            return None
+
+    def fetch_recent_paths(self, model: Type[FileModel]) -> List[str]:
+        files = self._fetch(model, 'added-')
+        paths = []
+        for i, file in enumerate(files):
+            if i < settings.db.recent_files:
+                paths.append(file['path'])
+            else:
+                break
+        return paths
 
     def add_file(self, path: Optional[str], filetype: Type[FileModel], parent: Model = None, attribute: str = None) -> FileModel:
         if path is not None:
@@ -481,31 +489,31 @@ class History(Database):
         model.store()
         return model
 
-    def add_roi(self, roi: dict, video: VideoFileModel, design: DesignFileModel, analysis: VideoAnalysisModel) -> RoiModel:
-        roi_string = json.dumps(roi)
+    def add_config(self, config: dict,  analysis: VideoAnalysisModel, video: VideoFileModel = None, design: DesignFileModel = None) -> ConfigModel:
+        config_json = json.dumps(config)
 
-        # Return existing entry if ROI ~ video, design exists already
-        q = f"video:{video['id']} design:{design['id']} roi:'{roi_string}'"
+        # Return existing entry if the exact same config ~ analysis exists already
+        q = f"analysis:{analysis['id']} json:'{config_json}'"
 
-        match = self._fetch(RoiModel, q)
+        match = self._fetch(ConfigModel, q)
         if len(match) > 0:
             model = match[0]
             # Update ROI entry
             model['added'] = time.time()
         else:
             # Add a new ROI entry
-            model = RoiModel()
+            model = ConfigModel()
             model.update({
-                'roi': roi_string,
-                'video': video['id'],
-                'design': design['id'],
+                'json': config_json,
+                'video': video['id'] if video is not None else None,
+                'design': design['id'] if design is not None else None,
                 'analysis': analysis['id']
             })
             model.add(self)
             model.store()
 
-        analysis.update({'roi': model['id']})
-        analysis._roi = model
+        analysis.update({'config': model['id']})
+        analysis._config = model
         return model
 
     def clean(self, deep: bool = False):

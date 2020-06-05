@@ -121,8 +121,6 @@ class Main(isimple.core.Lockable):
         self._stop_q = Event()
         self._q_state = QueueState.STOPPED
 
-        self.get_latest()  # todo: should update once in a while
-
         # Serve webapp (bypassed when frontend runs in development mode)
         @app.route('/', methods=['GET'])
         def index_html():
@@ -242,11 +240,11 @@ class Main(isimple.core.Lockable):
                 })
             elif for_type == "video_path":
                 return respond(
-                    list(set([config['video_path'] for config in self._latest_configs]))
+                    self._history.fetch_recent_paths(history.VideoFileModel)
                 )
             elif for_type == "design_path":
                 return respond(
-                    list(set([config['design_path'] for config in self._latest_configs]))
+                    self._history.fetch_recent_paths(history.DesignFileModel)
                 )
             else:
                 raise ValueError(f"No options for '{for_type}'")
@@ -333,8 +331,7 @@ class Main(isimple.core.Lockable):
 
         @app.route('/api/<id>/remove', methods=['POST'])
         def remove(id: str):
-            with self.lock():
-                return respond(self.remove_instance(id))
+            return respond(self.remove_instance(id))
 
         @app.route('/api/<id>/call/<endpoint>', methods=['GET','PUT','POST'])
         def call(id: str, endpoint: str):
@@ -489,10 +486,6 @@ class Main(isimple.core.Lockable):
 
         self._server.stop()
 
-    def get_latest(self):
-        self._latest = self._history.get_latest_analyses()
-        self._latest_configs = [json.loads(model['config']) for model in self._latest]
-
     def add_instance(self, type: video.AnalyzerType = None) -> str:
         with self.lock():
             if type is None:
@@ -565,19 +558,18 @@ class Main(isimple.core.Lockable):
             root.commit()
 
     def save_state(self):
-        with self.lock():
-            log.info("saving application state")
+        log.info("saving application state")
 
-            self.commit()
+        self.commit()
 
-            s = {
-                id:root.model.id
-                for id,root in self._roots.items()
-                if not root.done
-            }
+        s = {
+            id:root.model.id
+            for id,root in self._roots.items()
+            if not root.done
+        }
 
-            with open(os.path.join(isimple.ROOTDIR, 'state'), 'wb') as f:
-                pickle.dump(s, f)
+        with open(os.path.join(isimple.ROOTDIR, 'state'), 'wb') as f:
+            pickle.dump(s, f)
 
     def load_state(self):
         with self.lock():

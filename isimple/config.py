@@ -156,6 +156,11 @@ def normalize_config(d: dict) -> dict:
     :param d: configuration dictionary
     :return:
     """
+
+    # If empty dict, return empty dict
+    if len(d) == 0:
+        return d
+
     # Deal with legacy formatting
     if VERSION not in d or CLASS not in d:
         if 'version' in d:

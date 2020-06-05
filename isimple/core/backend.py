@@ -663,8 +663,8 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
         self.event(AnalyzerEvent.STATUS, self.status())
 
     @backend.expose(backend.get_config)
-    def get_config(self) -> dict:
-        config = self.config.to_dict()
+    def get_config(self, do_tag=False) -> dict:
+        config = self.config.to_dict(do_tag)
         return config
 
     @backend.expose(backend.launch)

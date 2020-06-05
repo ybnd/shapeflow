@@ -86,6 +86,7 @@ class RenderSettings(_Settings):  # todo: this class should track whether path e
 @dataclass()
 class DatabaseSettings(_Settings):
     path: str = field(default=os.path.join(ROOTDIR, 'history.db'))
+    recent_files: int = field(default=16)
 
 
 @dataclass

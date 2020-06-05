@@ -1182,37 +1182,29 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
         return roi
 
-    @backend.expose(backend.undo_roi)
-    def undo_roi(self) -> dict:
+    @backend.expose(backend.undo_config)
+    def undo_config(self) -> dict:
         from isimple.history import History
         _history = History()
 
         self.commit()
-        roi = _history.get_roi(self.model, next=False)
-        if roi is not None:
-            self.transform.estimate(roi)
-        else:
-            roi = self.transform.config.roi
+        config = _history.get_config_buffer(self.model, next=False)
+        if config is not None:
+            self.set_config(config)
 
-        return roi
+        return self.get_config()
 
-    @backend.expose(backend.redo_roi)
-    def redo_roi(self) -> dict:
+    @backend.expose(backend.redo_config)
+    def redo_config(self) -> dict:
         from isimple.history import History
         _history = History()
 
         self.commit()
-        roi = _history.get_roi(self.model, next=True)
-        if roi is not None:
-            self.transform.estimate(roi)
-        else:
-            roi = self.transform.config.roi
+        config = _history.get_config_buffer(self.model, next=True)
+        if config is not None:
+            self.set_config(config)
 
-        self.state_transition()
-        self.event(AnalyzerEvent.CONFIG, self.get_config())
-        self.commit()
-
-        return roi
+        return self.get_config()
 
     @backend.expose(backend.set_filter_click)
     def set_filter_click(self, relative_x: float, relative_y: float) -> dict:

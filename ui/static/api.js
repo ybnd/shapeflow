@@ -289,8 +289,8 @@ export async function clear_roi(id) {
   });
 }
 
-export async function undo_roi(id) {
-  return axios.put(api(id, "call/undo_roi")).then(response => {
+export async function undo_config(id) {
+  return axios.put(api(id, "call/undo_config")).then(response => {
     if (response.status === 200) {
       return response.data;
     } else {
@@ -299,8 +299,8 @@ export async function undo_roi(id) {
   });
 }
 
-export async function redo_roi(id) {
-  return axios.put(api(id, "call/redo_roi")).then(response => {
+export async function redo_config(id) {
+  return axios.put(api(id, "call/redo_config")).then(response => {
     if (response.status === 200) {
       return response.data;
     } else {
