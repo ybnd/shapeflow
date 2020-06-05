@@ -148,16 +148,3 @@ def schema(obj) -> dict:
             'call': get_method_schema(obj).json_schema(id),
             'return': get_return_schema(obj).json_schema(id)
         }
-
-
-_d: dict = {}
-for k,v in settings.to_dict().items():
-    if isinstance(v, dict):
-        _d[k] = {}
-        for sk, sv in v.items():
-            _d[k][sk] = type(sv)
-    else:
-        _d[k] = type(v)
-
-
-settings_schema = Schema(_d).json_schema('settings.json')

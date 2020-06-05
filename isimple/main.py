@@ -166,11 +166,11 @@ class Main(isimple.core.Lockable):
 
         @app.route('/api/settings_schema')
         def settings_schema():
-            return respond(schema.settings_schema)
+            return respond(isimple.settings.schema())
 
         @app.route('/api/get_settings', methods=['GET'])
         def get_settings():
-            return respond(isimple.settings)
+            return respond(isimple.settings.to_dict())
 
         @app.route('/api/set_settings', methods=['POST'])
         def set_settings():
@@ -183,7 +183,7 @@ class Main(isimple.core.Lockable):
 
             # todo: restart the server with original
 
-            return respond(isimple.settings)
+            return respond(isimple.settings.to_dict())
 
         @app.route('/api/options/<for_type>', methods=['GET'])
         def get_options(for_type):

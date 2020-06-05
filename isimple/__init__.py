@@ -10,7 +10,7 @@ import logging
 import yaml
 
 from _collections import defaultdict
-from dataclasses import dataclass, field
+from pydantic import BaseModel, Field
 
 import diskcache
 
@@ -34,18 +34,16 @@ if not os.path.isdir(ROOTDIR):
             os.mkdir(_path)
 
 
-@dataclass
-class _Settings(abc.ABC):
+class _Settings(BaseModel):
     def to_dict(self):
         d = {k:v or v for k,v in self.__dict__.items()}
         d.update({k:v.to_dict() for k,v in d.items() if isinstance(v, _Settings)})
         return d
 
 
-@dataclass
 class FormatSettings(_Settings):
-    datetime_format: str = field(default='%Y/%m/%d %H:%M:%S.%f')
-    datetime_format_fs: str = field(default='%Y-%m-%d_%H-%M-%S_%f')
+    datetime_format: str = Field(default='%Y/%m/%d %H:%M:%S.%f')
+    datetime_format_fs: str = Field(default='%Y-%m-%d_%H-%M-%S_%f')
 
 
 _levels: dict = defaultdict(default_factory=lambda: logging.INFO)
@@ -61,41 +59,36 @@ _levels.update({
 })
 
 
-@dataclass
 class LogSettings(_Settings):  # todo: this class should track whether path exists
-    path: str = field(default=os.path.join(ROOTDIR, 'current.log'))
-    dir: str = field(default=os.path.join(ROOTDIR, 'log'))
-    keep: int = field(default=3)
-    lvl_console: str = field(default='info')
-    lvl_file: str = field(default='info')
+    path: str = Field(default=os.path.join(ROOTDIR, 'current.log'), description='Current log file')
+    dir: str = Field(default=os.path.join(ROOTDIR, 'log'), description='Log file directory')
+    keep: int = Field(default=3, description="Number of log files to keep")
+    lvl_console: str = Field(default='info', description="Logging level (Python console)")
+    lvl_file: str = Field(default='info', description="Logging level (file)")
 
 
-@dataclass
 class CacheSettings(_Settings):  # todo: this class should track whether path exists
-    dir: str = field(default=os.path.join(ROOTDIR, 'cache'))
-    size_limit_gb: int = field(default=4)
-    resolve_frame_number: bool = field(default=True)
+    dir: str = Field(default=os.path.join(ROOTDIR, 'cache'))
+    size_limit_gb: int = Field(default=4)
+    resolve_frame_number: bool = Field(default=True)
 
 
-@dataclass
 class RenderSettings(_Settings):  # todo: this class should track whether path exists
-    dir: str = field(default=os.path.join(ROOTDIR, 'render'))
-    keep: bool = field(default=False)
+    dir: str = Field(default=os.path.join(ROOTDIR, 'render'))
+    keep: bool = Field(default=False)
 
 
-@dataclass()
 class DatabaseSettings(_Settings):
-    path: str = field(default=os.path.join(ROOTDIR, 'history.db'))
-    recent_files: int = field(default=16)
+    path: str = Field(default=os.path.join(ROOTDIR, 'history.db'))
+    recent_files: int = Field(default=16)
 
 
-@dataclass
 class Settings(_Settings):
-    log: LogSettings = field(default=LogSettings())
-    cache: CacheSettings = field(default=CacheSettings())
-    render: RenderSettings = field(default=RenderSettings())
-    format: FormatSettings = field(default=FormatSettings())
-    db: DatabaseSettings = field(default=DatabaseSettings())
+    log: LogSettings = Field(default=LogSettings())
+    cache: CacheSettings = Field(default=CacheSettings())
+    render: RenderSettings = Field(default=RenderSettings())
+    format: FormatSettings = Field(default=FormatSettings())
+    db: DatabaseSettings = Field(default=DatabaseSettings())
 
     @classmethod
     def from_dict(cls, settings: dict):
@@ -109,7 +102,7 @@ class Settings(_Settings):
             render=RenderSettings(**settings['render']),
             format=FormatSettings(**settings['format']),
             db=DatabaseSettings(**settings['db']),
-        )
+        ) # type: ignore
 
 
 def _load_settings(path: str = _SETTINGS_FILE) -> Settings:  # todo: if there are unexpected fields: warn, don't crash
