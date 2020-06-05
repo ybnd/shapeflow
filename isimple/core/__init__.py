@@ -1,7 +1,7 @@
 import abc
 import threading
-from typing import Callable, Dict, List, Tuple, Type
-from collections import namedtuple
+from typing import Callable, Dict, List, Tuple, Type, _GenericAlias  # type: ignore
+import collections
 from contextlib import contextmanager
 
 import uuid
@@ -97,7 +97,9 @@ class Endpoint(object):
     _signature: Type[Callable]
     _streaming: _Streaming
 
-    def __init__(self, signature: Type[Callable], streaming: _Streaming = stream_off):
+    def __init__(self, signature: _GenericAlias, streaming: _Streaming = stream_off):  # todo: type Callable[] correctly
+        assert signature.__origin__ == collections.abc.Callable
+
         self._registered = False
         if not hasattr(signature, '__args__'):
             raise SetupError('Cannot define an Endpoint without a signature!')
