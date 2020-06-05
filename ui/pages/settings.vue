@@ -2,10 +2,7 @@
   <div class="fixed-page">
     <PageHeader>
       <PageHeaderItem>
-        <b-button @click="setSettings">Save</b-button>
-      </PageHeaderItem>
-      <PageHeaderItem>
-        <b-button @click="restart">Restart backend</b-button>
+        <b-button @click="setSettings">Save settings</b-button>
       </PageHeaderItem>
       <PageHeaderItem>
         <b-button @click="clearCache">Clear cache</b-button>
@@ -51,8 +48,7 @@ import {
   settings_schema,
   get_settings,
   set_settings,
-  clear_cache,
-  restart
+  clear_cache
 } from "../static/api";
 
 import FormSchema from "@formschema/native";
@@ -109,9 +105,6 @@ export default {
       });
       console.log("got back settings");
       console.log(this.settings);
-    },
-    restart() {
-      restart();
     },
     clearCache() {
       clear_cache();
