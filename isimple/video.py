@@ -367,7 +367,7 @@ class TransformHandler(BackendInstance, Handler):  # todo: clean up config / con
         else:
             return {}
 
-    def estimate(self, roi: dict) -> None:
+    def estimate(self, roi: dict = None) -> None:
         """Estimate the transform matrix from a set of coordinates.
             Coordinates should correspond to the corners of the outline of
             the design, relative to the video frame size:
@@ -376,17 +376,18 @@ class TransformHandler(BackendInstance, Handler):  # todo: clean up config / con
         """
         # todo: sanity check roi
 
-        self.config(roi=roi)
+        if roi is not None:
+            self.config(roi=roi)
 
-        roi = {
-            k: {
-            'x': v['x'] * self._video_shape[0],
-            'y': v['y'] * self._video_shape[1]
-            } for k,v in roi.items()
-        }
+            roi = {
+                k: {
+                'x': v['x'] * self._video_shape[0],
+                'y': v['y'] * self._video_shape[1]
+                } for k,v in roi.items()
+            }
 
-        self.set(self._implementation.estimate(self.adjust(roi), self._design_shape))
-        streams.update()
+            self.set(self._implementation.estimate(self.adjust(roi), self._design_shape))
+            streams.update()
 
     def adjust(self, roi: dict) -> dict:
         """Adjust ROI (90° turns & flips)
@@ -1016,9 +1017,10 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
 
     @backend.expose(backend.cache)
-    def cache(self):
+    def cache(self) -> bool:
         with self.busy_context(AnalyzerState.CACHING):
             self.video.cache_frames(self.set_progress, self.set_state)
+            return True
 
 
     def _get_featuresets(self):
@@ -1170,7 +1172,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         return self.position
 
     @backend.expose(backend.estimate_transform)
-    def estimate_transform(self, roi = None) -> dict:
+    def estimate_transform(self, roi: dict = None) -> Optional[dict]:
         if roi is None:
             roi = self.transform.config.roi
 
@@ -1256,8 +1258,11 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
     @stream
     @backend.expose(backend.get_state_frame)
-    def get_state_frame(self, frame_number: Optional[int] = None, featureset: int = 0) -> np.ndarray:
+    def get_state_frame(self, frame_number: Optional[int] = None, featureset: Optional[int] = None) -> np.ndarray:
         # todo: eliminate duplicate code ~ calculate (calculate should just call get_state_frame, ideally)
+
+        if featureset is None:
+            featureset = 0
 
         # Empty state image in BGR
         state = np.zeros(self.design._overlay.shape, dtype=np.uint8)

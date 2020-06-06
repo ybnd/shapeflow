@@ -105,7 +105,7 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
         return self._is_caching
 
     @backend.expose(backend.cancel_caching)
-    def cancel_caching(self):
+    def cancel_caching(self) -> None:
         if self._cancel_caching is not None:
             self._cancel_caching.set()
 
@@ -557,7 +557,7 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
         return self.state == AnalyzerState.DONE
 
     @backend.expose(backend.state_transition)
-    def state_transition(self, push: bool = True) -> AnalyzerState:
+    def state_transition(self, push: bool = True) -> int:
         """Handle state transitions
         """
 
@@ -575,7 +575,7 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
             elif self.can_launch:
                 self.set_state(AnalyzerState.CAN_LAUNCH, push)
 
-        return self.state
+        return int(self.state)
 
     def set_busy(self, busy: bool, push: bool = True):
         self._busy = busy
@@ -601,7 +601,7 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
             self.set_state(done_state)
 
     @backend.expose(backend.cancel)
-    def cancel(self):
+    def cancel(self) -> None:
         super().cancel()
         self.set_state(AnalyzerState.CANCELED)
 
@@ -628,7 +628,7 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
 
     @abc.abstractmethod
     @backend.expose(backend.analyze)
-    def analyze(self):
+    def analyze(self) -> bool:
         raise NotImplementedError
 
     @property
