@@ -1,1 +1,91 @@
-// Here you can add other styles
+@import "_bootstrap-variables";
+@import "_core-variables";
+@import "node_modules/bootstrap/scss/functions";
+
+$form-field-height: 30px;
+$form-gap: 4px;
+
+$form-section-basis-width: calc((100vw - #{$sidebar-width} - 3 * #{$form-gap})/2);
+
+.isimple-form-section {
+  border-radius: 0;
+  margin-top: $form-gap;
+  margin-bottom: 0;
+  margin-left: $form-gap;
+  width: $form-section-basis-width;
+  max-width: 512px;
+}
+
+.card-header {
+  font-weight: bold;
+  padding-left: calc(#{$form-gap} + 1px);
+  padding-top: calc(#{$form-gap} + 1px);
+  height: $form-field-height;
+}
+
+.isimple-form-row {
+  margin-bottom: $form-gap;
+  height: $form-field-height;
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 1;
+  flex-grow: 0;
+  align-content: flex-start;
+}
+
+.isimple-form-group {
+  flex-grow: 0;
+}
+
+.isimple-form-field-text {
+  border-radius: 0;
+  margin-right: -1px;
+  height: $form-field-height;
+  padding-left: 6px;
+  padding-right: 6px;
+  justify-content: right;
+}
+
+.isimple-form-field-input {
+  height: $form-field-height;
+  display: block;
+  min-width: 120px;
+  flex-shrink: 1;
+  flex-grow: 1;
+}
+
+.isimple-form-field-checkbox {
+  height: $form-field-height;
+  display: block;
+  flex-shrink: 1;
+  flex-grow: 0;
+  border-radius: 0;
+}
+
+.isimple-form-path-input {
+  height: $form-field-height;
+  display: block;
+  min-width: 60px;
+  flex-shrink: 1;
+  flex-grow: 1;
+}
+
+.card-body {
+  padding-top: $form-gap;
+  padding-bottom: 0;
+  padding-right: 20px;
+}
+
+.custom-control {
+
+}
+
+.custom-control-input { /* Boootstrap checkbox */
+  position: absolute;
+  left: 0;
+  z-index: -1;
+  width: $form-field-height;
+  height: $form-field-height;
+  opacity: 0;
+}
+

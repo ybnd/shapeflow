@@ -180,8 +180,7 @@ class Main(isimple.core.Lockable):
             log.info(f'setting settings: {new_settings}')
 
             isimple.update_settings(new_settings)
-
-            # todo: restart the server with original
+            restart()
 
             return respond(isimple.settings.to_dict())
 

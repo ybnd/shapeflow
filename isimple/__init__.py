@@ -7,10 +7,13 @@ import re
 import datetime
 import logging
 
+from pathlib import Path
+from enum import Enum
+
 import yaml
 
 from _collections import defaultdict
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, FilePath, DirectoryPath
 
 import diskcache
 
@@ -36,14 +39,31 @@ if not os.path.isdir(ROOTDIR):
 
 class _Settings(BaseModel):
     def to_dict(self):
-        d = {k:v or v for k,v in self.__dict__.items()}
-        d.update({k:v.to_dict() for k,v in d.items() if isinstance(v, _Settings)})
+        d = {}
+        for k,v in self.__dict__.items():
+            if isinstance(v, _Settings):
+                d.update({
+                    k:v.to_dict()
+                })
+            elif isinstance(v, Enum):
+                d.update({
+                    k:v.value
+                })
+            elif isinstance(v, Path):
+                d.update({
+                    k:str(v)
+                })
+            else:
+                d.update({
+                    k:v
+                })
         return d
 
 
+
 class FormatSettings(_Settings):
-    datetime_format: str = Field(default='%Y/%m/%d %H:%M:%S.%f')
-    datetime_format_fs: str = Field(default='%Y-%m-%d_%H-%M-%S_%f')
+    datetime_format: str = Field(default='%Y/%m/%d %H:%M:%S.%f', description="date/time format")
+    datetime_format_fs: str = Field(default='%Y-%m-%d_%H-%M-%S_%f', description="file system date/time format")
 
 
 _levels: dict = defaultdict(default_factory=lambda: logging.INFO)
@@ -58,37 +78,44 @@ _levels.update({
     'default': logging.INFO
 })
 
+class LoggingLevel(str, Enum):
+    critical = 'critical'
+    error =  'error'
+    warning = "warning"
+    info = "info"
+    debug = "debug"
+    vdebug = "vdebug"
 
 class LogSettings(_Settings):  # todo: this class should track whether path exists
-    path: str = Field(default=os.path.join(ROOTDIR, 'current.log'), description='Current log file')
-    dir: str = Field(default=os.path.join(ROOTDIR, 'log'), description='Log file directory')
-    keep: int = Field(default=3, description="Number of log files to keep")
-    lvl_console: str = Field(default='info', description="Logging level (Python console)")
-    lvl_file: str = Field(default='info', description="Logging level (file)")
+    path: FilePath = Field(default=os.path.join(ROOTDIR, 'current.log'), description='running log file')
+    dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'log'), description='log file directory')
+    keep: int = Field(default=16, description="# of log files to keep")
+    lvl_console: LoggingLevel = Field(default=LoggingLevel.info, description="logging level (Python console)")
+    lvl_file: LoggingLevel = Field(default=LoggingLevel.info, description="logging level (file)")
 
 
 class CacheSettings(_Settings):  # todo: this class should track whether path exists
-    dir: str = Field(default=os.path.join(ROOTDIR, 'cache'))
-    size_limit_gb: int = Field(default=4)
-    resolve_frame_number: bool = Field(default=True)
+    dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'cache'), description="cache directory")
+    size_limit_gb: int = Field(default=4, description="cache size limit (GB)")
+    resolve_frame_number: bool = Field(default=True, description="resolve to (nearest) cached frame numbers")
 
 
 class RenderSettings(_Settings):  # todo: this class should track whether path exists
-    dir: str = Field(default=os.path.join(ROOTDIR, 'render'))
-    keep: bool = Field(default=False)
+    dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'render'), description="render directory")
+    keep: bool = Field(default=False, description="keep files after rendering")
 
 
 class DatabaseSettings(_Settings):
-    path: str = Field(default=os.path.join(ROOTDIR, 'history.db'))
-    recent_files: int = Field(default=16)
+    path: FilePath = Field(default=os.path.join(ROOTDIR, 'history.db'), description="database file")
+    recent_files: int = Field(default=16, description="# of recent files to fetch")
 
 
 class Settings(_Settings):
-    log: LogSettings = Field(default=LogSettings())
-    cache: CacheSettings = Field(default=CacheSettings())
-    render: RenderSettings = Field(default=RenderSettings())
-    format: FormatSettings = Field(default=FormatSettings())
-    db: DatabaseSettings = Field(default=DatabaseSettings())
+    log: LogSettings = Field(default=LogSettings(), description="Logging")
+    cache: CacheSettings = Field(default=CacheSettings(), description="Caching")
+    render: RenderSettings = Field(default=RenderSettings(), description="SVG Rendering")
+    format: FormatSettings = Field(default=FormatSettings(), description="Formatting")
+    db: DatabaseSettings = Field(default=DatabaseSettings(), description="Database")
 
     @classmethod
     def from_dict(cls, settings: dict):
