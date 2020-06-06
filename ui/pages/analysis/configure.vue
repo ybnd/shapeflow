@@ -2,10 +2,35 @@
   <div class="fixed-page">
     <PageHeader>
       <PageHeaderItem>
-        <b-button @click="setSettings">Export</b-button>
+        <b-button
+          class="header-button-icon"
+          data-toggle="tooltip"
+          title="Clear configuration"
+          @click="undefined"
+        >
+          <i class="icon-ban" />
+        </b-button>
+        <b-button
+          class="header-button-icon"
+          @click="undefined"
+          data-toggle="tooltip"
+          title="Undo"
+          v-hotkey="keymap"
+        >
+          <i class="icon-action-undo" />
+        </b-button>
+        <b-button
+          class="header-button-icon"
+          @click="undefined"
+          data-toggle="tooltip"
+          title="Redo"
+          v-hotkey="keymap"
+        >
+          <i class="icon-action-redo" />
+        </b-button>
       </PageHeaderItem>
       <PageHeaderItem>
-        <b-button @click="clearCache">Import</b-button>
+        <b-button @click="undefined">Export</b-button>
       </PageHeaderItem>
     </PageHeader>
     <p>
@@ -84,6 +109,12 @@ export default {
   computed: {
     id() {
       return this.$route.query.id;
+    },
+    keymap() {
+      return {
+        "ctrl+z": undefined,
+        "ctrl+shift+z": undefined,
+      };
     },
   },
   data: function () {
