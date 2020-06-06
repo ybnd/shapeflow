@@ -466,13 +466,20 @@ export default {
   padding-right: 0;
   border: hidden;
   background: none;
+  display: block;
+  flex-shrink: 0;
+  flex-grow: 0;
 }
 .feature-col {
   margin-left: -10px;
-  margin-right: -15px;
   display: block;
   width: 200px;
+  margin-right: 4px;
   flex-grow: 0;
+}
+.par-col {
+  margin-left: 200px;
+  display: flex;
 }
 .feature-selector {
   flex-basis: auto;
