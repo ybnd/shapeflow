@@ -89,7 +89,7 @@ import {
   api,
   analyze,
   stop_stream,
-  endpoints
+  endpoints,
 } from "../../static/api";
 import { events } from "../../static/events";
 
@@ -111,7 +111,7 @@ export default {
   components: {
     PageHeader,
     PageHeaderItem,
-    PageHeaderSeek
+    PageHeaderSeek,
   },
   methods: {
     handleInit() {
@@ -130,7 +130,7 @@ export default {
         this.waitForMasks = setInterval(this.getMasks, 100);
         this.waitForFeatures = setInterval(this.getFeatures, 100);
 
-        get_options("filter").then(options => {
+        get_options("filter").then((options) => {
           this.filter_options = options;
         });
 
@@ -154,10 +154,10 @@ export default {
       clearInterval(this.waitForMasks);
 
       this.filter = {
-        frame: null
+        frame: null,
       };
       this.refs = {
-        frame: null
+        frame: null,
       };
     },
     getRefs() {
@@ -227,7 +227,7 @@ export default {
       set_filter(
         this.id,
         clickEventToRelativeCoordinate(e, this.filter.frame)
-      ).then(message => {
+      ).then((message) => {
         if (message) {
           console.log(`//PUT THIS IN A POPUP OR SOMETHING// ${message}`);
         }
@@ -237,9 +237,9 @@ export default {
       this.$store
         .dispatch("analyzers/set_config", {
           id: this.id,
-          config: { features: [feature] }
+          config: { features: [feature] },
         })
-        .then(stuff => {
+        .then((stuff) => {
           console.log("in analyzers/set_config callback");
           let features = this.$store.getters["analyzers/getFeatures"](this.id);
           this.feature = features[0];
@@ -264,7 +264,7 @@ export default {
       this.$store
         .dispatch("analyzers/set_config", {
           id: this.id,
-          config: config
+          config: config,
         })
         .then(() => {
           this.filter_type = this.$store.getters["analyzers/getMaskFilterType"](
@@ -286,7 +286,7 @@ export default {
     },
     stepBackward() {
       this.$root.$emit(events.seek.step_bw(this.id));
-    }
+    },
   },
   watch: {
     "$route.query.id"() {
@@ -296,7 +296,7 @@ export default {
 
       this.handleInit();
       this.updateFrame(); // todo: this *tries* to update the moveable, but it grows for some reason :( / :)
-    }
+    },
   },
   computed: {
     id() {
@@ -319,9 +319,9 @@ export default {
         "ctrl+z": this.handleUndoFilters,
         "ctrl+shift+z": this.handleRedoFilters,
         right: this.stepForward,
-        left: this.stepBackward
+        left: this.stepBackward,
       };
-    }
+    },
   },
   data: () => ({
     opened_at: 0,
@@ -336,12 +336,12 @@ export default {
     feature: "",
     features: [],
     filter: {
-      frame: null
+      frame: null,
     },
     refs: {
-      frame: null
-    }
-  })
+      frame: null,
+    },
+  }),
 };
 </script>
 

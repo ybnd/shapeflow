@@ -19,7 +19,7 @@ import PageHeaderItem from "../../components/header/PageHeaderItem";
 
 export default {
   name: "result",
-  components: { PageHeader, PageHeaderItem, ResultChartStack }
+  components: { PageHeader, PageHeaderItem, ResultChartStack },
 };
 </script>
 

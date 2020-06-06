@@ -31,7 +31,7 @@
         caching: status.state === ast.CACHING,
         error: status.state === ast.ERROR,
         canceled: status.state === ast.CANCELED,
-        done: status.state === ast.DONE
+        done: status.state === ast.DONE,
       }"
       v-bind:value="status.progress"
       max="1"
@@ -53,7 +53,7 @@
             ast.UNKNOWN,
             ast.INCOMPLETE,
             ast.CAN_LAUNCH,
-            ast.ANALYZING
+            ast.ANALYZING,
           ].includes(status.state)
         "
       />
@@ -67,7 +67,7 @@
             ast.UNKNOWN,
             ast.INCOMPLETE,
             ast.CAN_LAUNCH,
-            ast.ANALYZING
+            ast.ANALYZING,
           ].includes(status.state)
         "
       />
@@ -90,7 +90,7 @@
               ast.INCOMPLETE,
               ast.LAUNCHED,
               ast.CAN_LAUNCH,
-              ast.CACHING
+              ast.CACHING,
             ].includes(status.state)
           "
         />
@@ -124,7 +124,7 @@ import {
   AnalyzerState as ast,
   analyze,
   remove,
-  cancel
+  cancel,
 } from "../../static/api";
 
 import { events } from "../../static/events";
@@ -134,11 +134,11 @@ export default {
   props: {
     id: {
       type: String,
-      required: true
-    }
+      required: true,
+    },
   },
   components: {
-    SidebarNavAnalysisLink
+    SidebarNavAnalysisLink,
   },
   created() {
     // this.$root.$on(this.event.status, this.handleUpdateStatus);
@@ -181,7 +181,7 @@ export default {
       cancel(this.id).then(() => {
         this.$store.dispatch("analyzers/sync");
       });
-    }
+    },
   },
   computed: {
     name() {
@@ -198,7 +198,7 @@ export default {
         result: `/analysis/result?id=${this.id}`,
         cache: `/api/${this.id}/call/cache`,
         analyze: `/api/${this.id}/call/analyze`,
-        cancel: `/api/${this.id}/call/cancel`
+        cancel: `/api/${this.id}/call/cancel`,
       };
     },
     event() {
@@ -206,16 +206,16 @@ export default {
         status: events.sidebar.status(this.id),
         cancel: events.sidebar.cancel(this.id),
         remove: events.sidebar.remove(this.id),
-        open: events.sidebar.open(this.id)
+        open: events.sidebar.open(this.id),
       };
     },
     status() {
       return this.$store.getters["analyzers/getAnalyzerStatus"](this.id);
-    }
+    },
   },
   data() {
     return {
-      ast: ast
+      ast: ast,
       // status: {
       //   state: ast.UNKNOWN,
       //   busy: false,
@@ -223,7 +223,7 @@ export default {
       //   position: 0
       // }
     };
-  }
+  },
 };
 </script>
 

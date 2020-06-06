@@ -41,14 +41,14 @@ import PageHeaderItem from "../components/header/PageHeaderItem";
 export default {
   name: "log",
   components: { PageHeader, PageHeaderItem },
-  data: function() {
+  data: function () {
     return {
       request: null,
       log: "",
       scrolled: false,
       filter: "",
       filtered_log: "",
-      matches: {}
+      matches: {},
     };
   },
   mounted() {
@@ -108,8 +108,9 @@ export default {
 
           for (const match of matches) {
             console.log(
-              `Found ${match[0]} start=${match.index} end=${match.index +
-                match[0].length}.`
+              `Found ${match[0]} start=${match.index} end=${
+                match.index + match[0].length
+              }.`
             );
           }
 
@@ -123,13 +124,13 @@ export default {
         this.filtered_log = this.log;
         this.matches = {};
       }
-    }
+    },
   },
   watch: {
-    filter: function() {
+    filter: function () {
       this.filterLog();
-    }
-  }
+    },
+  },
 };
 </script>
 

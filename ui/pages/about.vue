@@ -12,9 +12,9 @@ export default {
   components: { WebpackMarkdown },
   data() {
     return {
-      raw_content: markdown.about
+      raw_content: markdown.about,
     };
-  }
+  },
 };
 </script>
 

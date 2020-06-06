@@ -35,14 +35,14 @@ export default {
     id: {
       type: String,
       default: "",
-      required: true
-    }
+      required: true,
+    },
   },
   components: { VueSlider, PageHeaderItem },
   beforeMount() {
     this.resetSeekPosition();
 
-    get_total_time(this.id).then(total => {
+    get_total_time(this.id).then((total) => {
       this.totalSeconds = total;
     });
 
@@ -63,14 +63,14 @@ export default {
   },
   methods: {
     setSeekPosition() {
-      seek(this.id, this.position).then(position => {
+      seek(this.id, this.position).then((position) => {
         this.position = position;
       });
     },
     handleSeek: throttle(
       100,
       true,
-      debounce(25, true, function() {
+      debounce(25, true, function () {
         this.setSeekPosition();
       })
     ),
@@ -86,13 +86,13 @@ export default {
     stepBackward() {
       this.position = this.position - this.step;
       this.handleSeek();
-    }
+    },
   },
   computed: {
     keymap() {
       return {
         right: this.stepForward,
-        left: this.stepBackward
+        left: this.stepBackward,
       };
     },
     currentTime() {
@@ -100,7 +100,7 @@ export default {
     },
     totalTime() {
       return seconds2timestr(this.totalSeconds);
-    }
+    },
   },
   data() {
     return {
@@ -131,12 +131,12 @@ export default {
         fixed: false,
         order: true,
         marks: false,
-        process: false
+        process: false,
       },
       syncInterval: null,
-      totalSeconds: 0
+      totalSeconds: 0,
     };
-  }
+  },
 };
 </script>
 

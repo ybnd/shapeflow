@@ -24,7 +24,7 @@ export default {
   components: {
     SidebarNavDropdown,
     SidebarNavItem,
-    SidebarNavLink
+    SidebarNavLink,
   },
   computed: {
     restart() {
@@ -32,8 +32,8 @@ export default {
     },
     quit() {
       return api("quit");
-    }
-  }
+    },
+  },
 };
 </script>
 

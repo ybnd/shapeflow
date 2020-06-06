@@ -14,7 +14,7 @@ export const mutations = {
     try {
       assert(!(id === undefined), "no id provided");
       state[id] = {
-        frame: null
+        frame: null,
       };
       if (!(id in state)) {
         state = { ...state, [id]: {} };
@@ -32,24 +32,24 @@ export const mutations = {
       if (!(state[id].frame === frame)) {
         state[id] = {
           ...state[id],
-          frame: frame
+          frame: frame,
         };
       }
     } catch (err) {
       console.warn(`setFrame failed: '${id}', frame: ${frame}`);
     }
-  }
+  },
   // Assume that it's not necessary to remove entries from this store
   // May cause if the application runs for a long time without refreshing / reloading,
   //  but is also easily solved by just refreshing, so it's not a priority
 };
 
 export const getters = {
-  getFrame: state => id => {
+  getFrame: (state) => (id) => {
     console.log("trying to get frame");
     console.log(state);
     return state[id].frame;
-  }
+  },
 };
 
 export const actions = {
@@ -60,12 +60,12 @@ export const actions = {
     let frame = getters.getFrame(id);
     if (frame !== null) {
       return set_filter(id, clickEventToRelativeCoordinate(event, frame)).then(
-        message => {
+        (message) => {
           if (message) {
             console.log(`//PU THIS IN A POPUP OR SOMETHING// ${message}`);
           }
         }
       );
     }
-  }
+  },
 };

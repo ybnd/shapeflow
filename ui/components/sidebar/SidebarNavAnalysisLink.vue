@@ -51,28 +51,28 @@ export default {
     id: {
       // todo: should be called url :/
       type: String,
-      required: true
+      required: true,
     },
     name: {
       type: String,
-      default: ""
+      default: "",
     },
     icon: {
       type: String,
-      default: ""
+      default: "",
     },
     badge: {
       type: Object,
-      default: () => {}
+      default: () => {},
     },
     variant: {
       type: String,
-      default: ""
+      default: "",
     },
     disabled: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
   methods: {
     handleClick() {
@@ -91,7 +91,7 @@ export default {
     handleClickStageTwo() {
       this.$root.$emit(this.id);
       this.handleHideStageTwo();
-    }
+    },
   },
   created() {
     this.$root.$on(events.sidebar.highlight(this.id), () => {
@@ -110,7 +110,7 @@ export default {
         "nav-link",
         this.highlight ? "highlight" : "",
         this.disabled ? "disabled" : "",
-        this.linkVariant
+        this.linkVariant,
       ];
     },
     linkVariant() {
@@ -121,14 +121,14 @@ export default {
     },
     isTwoStage() {
       return this.id.substring(0, 7) === "sidebar"; // todo: very shitty way to distinguish link type :)
-    }
+    },
   },
   data() {
     return {
       show_popup: false,
-      highlight: false
+      highlight: false,
     };
-  }
+  },
 };
 </script>
 

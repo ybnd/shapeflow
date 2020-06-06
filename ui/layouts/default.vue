@@ -10,23 +10,17 @@
 </template>
 
 <script>
-import {
-  Header as AppHeader,
-  Sidebar,
-  Aside as AppAside,
-  Footer as AppFooter,
-  Breadcrumb
-} from "~/components/";
+import { Sidebar } from "~/components/";
 
 import { unload } from "../static/api";
 
 export default {
   name: "default-layout",
   components: {
-    Sidebar
+    Sidebar,
   },
   mounted() {
     window.onunload = unload;
-  }
+  },
 };
 </script>

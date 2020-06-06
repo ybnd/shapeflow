@@ -14,7 +14,7 @@ export let events = {
     },
     step_bw(analyzer_id) {
       return `seek-backward-${analyzer_id}`;
-    }
+    },
   },
   sidebar: {
     status(analyzer_id) {
@@ -34,11 +34,11 @@ export let events = {
     },
     unhighlight(url) {
       return `sidebar-unhighlight-${url}`;
-    }
+    },
   },
   data: {
     update(analyzer_id) {
       return `data-update-${analyzer_id}`;
-    }
-  }
+    },
+  },
 };

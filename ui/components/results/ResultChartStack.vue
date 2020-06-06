@@ -14,13 +14,13 @@
         <ResultChart
           :chart-data="{
             datasets: feature_data,
-            unit: $store.state.options.feature.units[feature]
+            unit: $store.state.options.feature.units[feature],
           }"
           :options="{
             ...options,
             legend: {
               display: is_last(index),
-              position: 'bottom'
+              position: 'bottom',
             },
             scales: {
               xAxes: [
@@ -29,9 +29,9 @@
                     display: is_last(index),
                     labelString: 'Time (s)',
                     fontStyle: 'bold',
-                    fontSize: 14
-                  }
-                }
+                    fontSize: 14,
+                  },
+                },
               ],
               yAxes: [
                 {
@@ -39,11 +39,11 @@
                     display: true,
                     labelString: `${$store.state.options.feature.labels[feature]} (${$store.state.options.feature.units[feature]})`,
                     fontStyle: 'bold',
-                    fontSize: 14
-                  }
-                }
-              ]
-            }
+                    fontSize: 14,
+                  },
+                },
+              ],
+            },
           }"
         />
       </div>
@@ -60,16 +60,16 @@ export default {
   props: {
     container_class: {
       type: String,
-      default: ""
+      default: "",
     },
     result_class: {
       type: String,
-      default: ""
+      default: "",
     },
     canvas_class: {
       type: String,
-      default: ""
-    }
+      default: "",
+    },
   },
   components: { ResultChart },
   beforeMount() {
@@ -84,7 +84,7 @@ export default {
     },
     updateChartsKey() {
       this.charts_key = Date.now();
-    }
+    },
   },
   computed: {
     id() {
@@ -102,17 +102,17 @@ export default {
       console.log("result = ");
       console.log(result);
       return result;
-    }
+    },
   },
   data() {
     return {
       options: {
         responsive: true,
-        maintainAspectRatio: false
+        maintainAspectRatio: false,
       },
-      charts_key: ""
+      charts_key: "",
     };
-  }
+  },
 };
 </script>
 

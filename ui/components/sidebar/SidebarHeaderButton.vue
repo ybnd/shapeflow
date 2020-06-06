@@ -16,20 +16,20 @@ export default {
   props: {
     link: {
       type: String,
-      required: true
+      required: true,
     },
     link_payload: {
       type: Object,
-      required: false
+      required: false,
     },
     enable: {
       type: Boolean,
-      required: true
+      required: true,
     },
     icon: {
       type: String,
-      required: true
-    }
+      required: true,
+    },
   },
   methods: {
     execute() {
@@ -37,13 +37,13 @@ export default {
       console.log(this.link);
       console.log(this.link_payload);
       axios.post(this.link, this.link_payload);
-    }
+    },
   },
   computed: {
     classList() {
       return [this.enable ? "enable" : "disable"];
-    }
-  }
+    },
+  },
 };
 </script>
 

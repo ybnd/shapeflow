@@ -53,7 +53,7 @@
             Filter type & mask-specific filter parameters
           </li>
           <li>
-            Color to filter
+            Color to filter Header as AppHeader,
           </li>
           <li>
             Mask-specific feature parameters
@@ -79,16 +79,16 @@ export default {
         this.$router.push(`/`);
       } else {
       }
-    }
+    },
   },
   computed: {
     id() {
       return this.$route.query.id;
-    }
+    },
   },
-  data: function() {
+  data: function () {
     return {};
-  }
+  },
 };
 </script>
 

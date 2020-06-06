@@ -4,15 +4,15 @@ const webpack = require("webpack");
 const markdown = {
   // Can't be loaded ~ webapp if decoded here!
   about: fs.readFileSync("../ABOUT.md"), // todo: better performance if converted to html here?
-  tutorial: fs.readFileSync("../TUTORIAL.md")
+  tutorial: fs.readFileSync("../TUTORIAL.md"),
 };
 
-const changeLoaderOptions = loaders => {
+const changeLoaderOptions = (loaders) => {
   if (loaders) {
     for (const loader of loaders) {
       if (loader.loader === "sass-loader") {
         Object.assign(loader.options, {
-          includePaths: ["./assets"]
+          includePaths: ["./assets"],
         });
       }
     }
@@ -27,20 +27,20 @@ module.exports = {
       {
         name: "viewport",
         content:
-          "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+          "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no",
       },
       {
         hid: "description",
         name: "description",
-        content: ""
-      }
+        content: "",
+      },
     ],
-    link: [{ rel: "icon", type: "image/x-icon", href: "/favicon.ico" }]
+    link: [{ rel: "icon", type: "image/x-icon", href: "/favicon.ico" }],
   },
 
   router: {
     linkActiveClass: "active open",
-    mode: "hash"
+    mode: "hash",
   },
 
   loading: { color: "#42A5CC" },
@@ -49,7 +49,7 @@ module.exports = {
     "~/node_modules/font-awesome/css/font-awesome.min.css",
     "~/node_modules/simple-line-icons/css/simple-line-icons.css",
     "~/node_modules/bootstrap-vue/dist/bootstrap-vue.css",
-    { src: "~/assets/scss/style.scss", lang: "scss" }
+    { src: "~/assets/scss/style.scss", lang: "scss" },
   ],
 
   plugins: [],
@@ -63,12 +63,12 @@ module.exports = {
   proxy: {
     "/api": {
       target: "http://localhost:7951",
-      pathrewrite: { "^/api": "/" }
-    }
+      pathrewrite: { "^/api": "/" },
+    },
   },
 
   styleResources: {
-    scss: "./assets/scss/style.scss"
+    scss: "./assets/scss/style.scss",
   },
 
   build: {
@@ -79,14 +79,14 @@ module.exports = {
           enforce: "pre",
           test: /\.(js|vue)$/,
           loader: "eslint-loader",
-          exclude: /(node_modules)/
+          exclude: /(node_modules)/,
         });
 
         const vueLoader = config.module.rules.find(
           ({ loader }) => loader === "vue-loader"
         );
         const {
-          options: { loaders }
+          options: { loaders },
         } = vueLoader || { options: {} };
 
         if (loaders) {
@@ -95,7 +95,7 @@ module.exports = {
           }
         }
 
-        config.module.rules.forEach(rule => changeLoaderOptions(rule.use));
+        config.module.rules.forEach((rule) => changeLoaderOptions(rule.use));
       }
       if (isClient) {
       }
@@ -105,10 +105,10 @@ module.exports = {
     plugins: [
       // todo: loop over `contents`?
       new webpack.DefinePlugin({
-        markdown: markdown
-      })
-    ]
+        markdown: markdown,
+      }),
+    ],
   },
 
-  lintOnSave: true
+  lintOnSave: true,
 };

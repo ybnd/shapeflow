@@ -7,7 +7,7 @@ import {
   init,
   launch,
   get_app_state,
-  set_config
+  set_config,
 } from "../static/api";
 
 import assert from "assert";
@@ -17,7 +17,7 @@ const CATEGORY_COMMIT = {
   status: "setAnalyzerStatus",
   config: "setAnalyzerConfig",
   result: "updateAnalyzerResult",
-  result_metadata: "resetAnalyzerResult"
+  result_metadata: "resetAnalyzerResult",
 };
 
 export const state = () => {
@@ -27,7 +27,7 @@ export const state = () => {
     status: {}, // id: analyzer status object
     config: {}, // id: analyzer config object
     result: {},
-    source: {}
+    source: {},
   };
 };
 
@@ -91,7 +91,7 @@ export const mutations = {
 
       state.status[id] = {
         ...state.status[id],
-        ...status
+        ...status,
       };
     } catch (err) {
       console.warn(`setAnalyzerStatus failed: '${id}', status: `);
@@ -110,7 +110,7 @@ export const mutations = {
 
       state.config[id] = {
         ...state.config[id],
-        ...config
+        ...config,
       };
 
       if (!(config.name === undefined)) {
@@ -143,8 +143,8 @@ export const mutations = {
               backgroundColor: result_metadata.colors[feature][m],
               borderColor: result_metadata.colors[feature][m],
               showLine: true,
-              data: []
-            }
+              data: [],
+            },
           ];
         }
       }
@@ -163,7 +163,7 @@ export const mutations = {
         for (let m = 0; m < state.config[id].masks.length; m++) {
           state.result[id][feature][m].data = [
             ...state.result[id][feature][m].data,
-            { x: result.t, y: result[feature][m] }
+            { x: result.t, y: result[feature][m] },
           ];
         }
       }
@@ -213,40 +213,40 @@ export const mutations = {
   },
   setQueue(state, { queue }) {
     state.queue = queue;
-  }
+  },
 };
 
 export const getters = {
-  getQueue: state => {
+  getQueue: (state) => {
     // Clone instead of returning reference
     return [...state.queue];
   },
-  getIndex: state => id => {
+  getIndex: (state) => (id) => {
     return state.queue.indexOf(id);
   },
-  getFullStatus: state => {
+  getFullStatus: (state) => {
     return state.status;
   },
-  getAnalyzerStatus: state => id => {
+  getAnalyzerStatus: (state) => (id) => {
     if (id in state.status) {
       return state.status[id];
     }
   },
-  getResult: state => id => {
+  getResult: (state) => (id) => {
     if (id in state.result) {
       return state.result[id];
     }
   },
-  getConfig: state => id => {
+  getConfig: (state) => (id) => {
     return state.config[id];
   },
-  getFeatures: state => id => {
+  getFeatures: (state) => (id) => {
     return state.config[id].features;
   },
-  getMasks: state => id => {
+  getMasks: (state) => (id) => {
     return state.config[id].masks.map(({ name }) => name);
   },
-  getMaskFilterType: state => (id, mask_index) => {
+  getMaskFilterType: (state) => (id, mask_index) => {
     // console.log(`getMaskFilterType: id=${id} mask_index=${mask_index}`);
     //
     // console.log("state.config[id].masks[mask_index] = ");
@@ -254,7 +254,7 @@ export const getters = {
 
     return state.config[id].masks[mask_index].filter.type;
   },
-  getMaskFilterData: state => (id, mask_index) => {
+  getMaskFilterData: (state) => (id, mask_index) => {
     // console.log(`getMaskFilterData: id=${id} mask_index=${mask_index}`);
     //
     // console.log("state.config[id].masks[mask_index] = ");
@@ -262,7 +262,7 @@ export const getters = {
 
     return state.config[id].masks[mask_index].filter.data;
   },
-  getMaskFilterParameters: state => (id, mask_index) => {
+  getMaskFilterParameters: (state) => (id, mask_index) => {
     // console.log(`getMaskFilterParameters: id=${id} mask_index=${mask_index}`);
     //
     // console.log("state.config[id].masks[mask_index] = ");
@@ -270,15 +270,15 @@ export const getters = {
 
     return state.config[id].masks[mask_index].filter.parameters;
   },
-  getRoi: state => id => {
+  getRoi: (state) => (id) => {
     return state.config[id].transform.roi;
   },
-  getName: state => id => {
+  getName: (state) => (id) => {
     return state.config[id].name;
   },
-  hasSource: state => {
+  hasSource: (state) => {
     return _.isEmpty(state.source) && state.source.readyState !== 2;
-  }
+  },
 };
 
 export const actions = {
@@ -287,7 +287,7 @@ export const actions = {
       commit("closeSource");
     }
     commit("setSource", {
-      source: events(function(message) {
+      source: events(function (message) {
         try {
           let event = JSON.parse(message.data);
 
@@ -298,13 +298,13 @@ export const actions = {
 
           commit(CATEGORY_COMMIT[event.category], {
             id: event.id,
-            [event.category]: event.data
+            [event.category]: event.data,
           });
         } catch (err) {
           console.warn(`backend event callback failed`);
           console.warn(err);
         }
-      })
+      }),
     });
   },
 
@@ -322,18 +322,18 @@ export const actions = {
 
   async init({ commit, dispatch }, { config = {} }) {
     // console.log(`action: analyzers.init`);
-    return init().then(id => {
+    return init().then((id) => {
       // console.log(`action: analyzers.init -- callback ~ api.init (id=${id})`);
       return dispatch("queue", { id: id }).then(() => {
         // console.log(
         //   `action: analyzers.init -- callback ~ analyzers.queue (id=${id})`
         // );
         return dispatch("set_config", { id: id, config: config }).then(
-          config => {
+          (config) => {
             // console.log(
             //   `action: analyzers.init -- callback ~ analyzers.set_config (id=${id})`
             // );
-            return launch(id).then(ok => {
+            return launch(id).then((ok) => {
               // console.log(
               //   `action: analyzers.init -- callback ~ api.launch (id=${id})`
               // );
@@ -360,7 +360,7 @@ export const actions = {
         dispatch("source");
       }
 
-      return await get_app_state().then(app_state => {
+      return await get_app_state().then((app_state) => {
         // console.log(`action: analyzers.sync -- callback ~ api.get_app_state`);
         // unqueue dead ids
 
@@ -388,7 +388,7 @@ export const actions = {
             }
             commit("setAnalyzerStatus", {
               id: app_state.ids[i],
-              status: app_state.status[i]
+              status: app_state.status[i],
             });
           }
         }
@@ -405,13 +405,13 @@ export const actions = {
       assert(!(id === undefined), "no id provided");
       // console.log(`action: analyzers.get_config (id=${id})`);
 
-      return get_config(id).then(config => {
+      return get_config(id).then((config) => {
         // console.log(
         //   `action: analyzers.get_config -- callback ~ api.get_config (id=${id})`
         // );
         commit("setAnalyzerConfig", {
           id: id,
-          config: config
+          config: config,
         });
         return config;
       });
@@ -426,7 +426,7 @@ export const actions = {
       assert(!(id === undefined), "no id provided");
       // console.log(`action: analyzers.get_status (id=${id})`);
 
-      return get_status(id).then(status => {
+      return get_status(id).then((status) => {
         // console.log(
         //   `action: analyzers.get_status -- callback ~ api.get_status (id=${id})`
         // );
@@ -444,13 +444,13 @@ export const actions = {
       assert(!(config === undefined), "no config");
       // console.log(`action: analyzers.set_config (id=${id})`);
 
-      return set_config(id, config).then(config => {
+      return set_config(id, config).then((config) => {
         // console.log(
         //   `action: analyzers.set_config -- callback ~ api.set_config (id=${id})`
         // );
         commit("setAnalyzerConfig", {
           id: id,
-          config: config
+          config: config,
         });
         return config;
       });
@@ -468,7 +468,7 @@ export const actions = {
       }
 
       let config = {
-        transform: { turn: getters["getConfig"](id).transform.turn }
+        transform: { turn: getters["getConfig"](id).transform.turn },
       };
 
       if (direction === "CW") {
@@ -477,18 +477,18 @@ export const actions = {
         config.transform.turn -= 1;
       }
 
-      set_config(id, config).then(config => {
+      set_config(id, config).then((config) => {
         // console.log(
         //   `action: analyzers.set_config -- callback ~ api.set_config (id=${id})`
         // );
         commit("setAnalyzerConfig", {
           id: id,
-          config: config
+          config: config,
         });
         return config;
       });
     } catch (e) {
       console.warn(`could not turn ${id}`);
     }
-  }
+  },
 };

@@ -8,7 +8,7 @@ export var default_relative_coords = {
   BL: { x: 0.2, y: 0.8 },
   TL: { x: 0.2, y: 0.2 },
   TR: { x: 0.8, y: 0.2 },
-  BR: { x: 0.8, y: 0.8 }
+  BR: { x: 0.8, y: 0.8 },
 };
 
 export function roiIsValid(roi) {
@@ -35,20 +35,20 @@ export function rectToCoordinates(rect) {
   return {
     BL: {
       x: rect.left,
-      y: rect.bottom
+      y: rect.bottom,
     },
     TL: {
       x: rect.left,
-      y: rect.top
+      y: rect.top,
     },
     TR: {
       x: rect.right,
-      y: rect.top
+      y: rect.top,
     },
     BR: {
       x: rect.right,
-      y: rect.bottom
-    }
+      y: rect.bottom,
+    },
   };
 }
 
@@ -60,20 +60,20 @@ export function roiRectInfoToRelativeCoordinates(rect, frame) {
     return {
       BL: {
         x: (rect.pos3[0] - frame.left) / frame.width,
-        y: (rect.pos3[1] - frame.top) / frame.height
+        y: (rect.pos3[1] - frame.top) / frame.height,
       },
       TL: {
         x: (rect.pos1[0] - frame.left) / frame.width,
-        y: (rect.pos1[1] - frame.top) / frame.height
+        y: (rect.pos1[1] - frame.top) / frame.height,
       },
       TR: {
         x: (rect.pos2[0] - frame.left) / frame.width,
-        y: (rect.pos2[1] - frame.top) / frame.height
+        y: (rect.pos2[1] - frame.top) / frame.height,
       },
       BR: {
         x: (rect.pos4[0] - frame.left) / frame.width,
-        y: (rect.pos4[1] - frame.top) / frame.height
-      }
+        y: (rect.pos4[1] - frame.top) / frame.height,
+      },
     };
   } catch {
     console.warn(`roiRectInfoToCoordinates: frame is null`);
@@ -92,7 +92,7 @@ export function clickEventToRelativeCoordinate(event, frame) {
 
   return {
     x: x,
-    y: y
+    y: y,
   };
 }
 
@@ -114,7 +114,7 @@ export function dragEventToRelativeRectangle(down, up, frame) {
       BL: { x: h[1], y: v[0] },
       TL: { x: h[1], y: v[1] },
       TR: { x: h[0], y: v[1] },
-      BR: { x: h[0], y: v[0] }
+      BR: { x: h[0], y: v[0] },
     };
   } else {
     console.warn("invalid rectangle");
@@ -152,7 +152,7 @@ export function transform(from_obj, to_obj) {
       0,
       0,
       -from[i].x * to[i].x,
-      -from[i].y * to[i].x
+      -from[i].y * to[i].x,
     ]);
     A.push([
       0,
@@ -162,7 +162,7 @@ export function transform(from_obj, to_obj) {
       from[i].y,
       1,
       -from[i].x * to[i].y,
-      -from[i].y * to[i].y
+      -from[i].y * to[i].y,
     ]);
   }
   b = []; // 8x1
@@ -177,7 +177,7 @@ export function transform(from_obj, to_obj) {
     [h[0], h[1], 0, h[2]],
     [h[3], h[4], 0, h[5]],
     [0, 0, 1, 0],
-    [h[6], h[7], 0, 1]
+    [h[6], h[7], 0, 1],
   ];
   // Sanity check that H actually maps `from` to `to`
   for (i = l = 0; l < 4; i = ++l) {
@@ -207,10 +207,10 @@ export function toAbsolute(relative, frame, center = { x: 0, y: 0 }) {
   try {
     let absolute = {};
 
-    Object.keys(relative).map(key => {
+    Object.keys(relative).map((key) => {
       absolute[key] = {
         x: relative[key].x * frame.width - center.x,
-        y: relative[key].y * frame.height - center.y
+        y: relative[key].y * frame.height - center.y,
       };
     });
 

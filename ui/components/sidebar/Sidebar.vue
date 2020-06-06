@@ -46,7 +46,7 @@ export default {
     SidebarNewAnalysis,
     SidebarNavLink,
     SidebarNavItem,
-    draggable
+    draggable,
   },
   beforeMount() {
     this.init();
@@ -69,7 +69,7 @@ export default {
       if (!this.waiting) {
         this.waiting = true;
         this.$store.dispatch("options/sync");
-        this.$store.dispatch("analyzers/sync").then(ok => {
+        this.$store.dispatch("analyzers/sync").then((ok) => {
           if (ok) {
             this.queue = this.$store.getters["analyzers/getQueue"];
           } else {
@@ -83,14 +83,14 @@ export default {
     },
     handleReorderQueue() {
       this.$store.commit("analyzers/setQueue", { queue: this.queue });
-    }
+    },
   },
   data: () => {
     return {
       queue: [], // local copy of queue
       interval_update: null,
       interval_sync: null,
-      waiting: false
+      waiting: false,
     };
   },
   watch: {
@@ -107,8 +107,8 @@ export default {
         // todo: very wonky, should be handled by these urls being in the dropdown in the first place!!
         this.$root.$emit(events.sidebar.open("Application"));
       }
-    }
-  }
+    },
+  },
 };
 </script>
 

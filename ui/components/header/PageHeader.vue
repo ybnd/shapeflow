@@ -12,7 +12,7 @@ export default {
   name: "PageHeader",
   props: {},
   components: { PageHeaderItem },
-  methods: {}
+  methods: {},
 };
 </script>
 

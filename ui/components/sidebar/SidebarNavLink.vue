@@ -13,20 +13,20 @@ export default {
   props: {
     name: {
       type: String,
-      default: ""
+      default: "",
     },
     url: {
       type: String,
-      default: ""
+      default: "",
     },
     icon: {
       type: String,
-      default: ""
+      default: "",
     },
     classes: {
       type: String,
-      default: ""
-    }
+      default: "",
+    },
   },
   created() {
     this.$root.$on(events.sidebar.highlight(this.url), () => {
@@ -45,7 +45,7 @@ export default {
       return [
         "nav-link",
         this.highlight ? "highlight" : "",
-        ...this.itemClasses
+        ...this.itemClasses,
       ];
     },
     itemClasses() {
@@ -53,7 +53,7 @@ export default {
     },
     isApiLink() {
       return this.url.substring(0, 4) === "/api";
-    }
+    },
   },
   methods: {
     handleClick() {
@@ -62,11 +62,11 @@ export default {
       } else {
         this.$router.push(this.url);
       }
-    }
+    },
   },
   data() {
     return { highlight: false };
-  }
+  },
 };
 </script>
 

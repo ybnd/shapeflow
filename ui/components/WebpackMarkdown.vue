@@ -13,14 +13,14 @@ export default {
   components: { VueMarkdown },
   props: {
     raw_content: {
-      required: true
-    }
+      required: true,
+    },
   },
   computed: {
     content() {
       return decodeWebpackString(this.raw_content);
-    }
-  }
+    },
+  },
 };
 </script>
 

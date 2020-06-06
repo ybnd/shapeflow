@@ -20,20 +20,20 @@ export default {
   props: {
     name: {
       type: String,
-      default: ""
+      default: "",
     },
     url: {
       type: String,
-      default: ""
+      default: "",
     },
     icon: {
       type: String,
-      default: ""
+      default: "",
     },
     progress: {
       type: Number,
-      default: 0
-    }
+      default: 0,
+    },
   },
   created() {
     console.log("SidebarNavDropdown listening for open events on ");
@@ -56,7 +56,7 @@ export default {
     handleOpen() {
       console.log("SidebarNavDropdown -- handling open event");
       this.$refs[this.ref].classList.add("open");
-    }
+    },
   },
   computed: {
     ref() {
@@ -64,7 +64,7 @@ export default {
     },
     event() {
       return { open: events.sidebar.open(this.name) };
-    }
-  }
+    },
+  },
 };
 </script>

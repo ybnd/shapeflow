@@ -54,7 +54,7 @@ import {
   settings_schema,
   get_settings,
   set_settings,
-  clear_cache
+  clear_cache,
 } from "../static/api";
 
 import VueFormJsonSchema from "vue-form-json-schema";
@@ -69,15 +69,15 @@ export default {
     PageHeader,
     PageHeaderItem,
     PageHeaderSeek,
-    VueFormJsonSchema
+    VueFormJsonSchema,
   },
   beforeMount() {
-    get_settings().then(settings => {
+    get_settings().then((settings) => {
       console.log(`settings.get_settings(): settings=`);
       console.log(settings);
       this.settings = settings;
     });
-    settings_schema().then(schema => {
+    settings_schema().then((schema) => {
       console.log(`settings.settings_schema(): schema=`);
       console.log(schema);
 
@@ -111,7 +111,7 @@ export default {
       console.log("try to set settings");
       console.log(this.settings);
 
-      set_settings(this.settings).then(settings => {
+      set_settings(this.settings).then((settings) => {
         this.settings = settings;
       });
 
@@ -120,7 +120,7 @@ export default {
     },
     clearCache() {
       clear_cache();
-    }
+    },
   },
   data() {
     return {
@@ -129,7 +129,7 @@ export default {
         db: {},
         format: {},
         log: {},
-        render: {}
+        render: {},
       },
       schema: {},
       ui_schema: [
@@ -140,17 +140,17 @@ export default {
               component: "b-input",
               model: "db.path",
               fieldOptions: {
-                on: ["input"]
-              }
+                on: ["input"],
+              },
             },
             {
               component: "b-input",
               model: "db.recent_files",
               fieldOptions: {
-                on: { input: value => Number(value) } // todo: handle type coercion like this ~ https://jarvelov.gitbook.io/vue-form-json-schema/api/vue-form-json-schema/ui-schema/field/field-options/on
-              }
-            }
-          ]
+                on: { input: (value) => Number(value) }, // todo: handle type coercion like this ~ https://jarvelov.gitbook.io/vue-form-json-schema/api/vue-form-json-schema/ui-schema/field/field-options/on
+              },
+            },
+          ],
         },
         {
           component: "b-card",
@@ -159,38 +159,38 @@ export default {
               component: "b-input",
               model: "log.dir",
               fieldOptions: {
-                on: ["input"]
-              }
+                on: ["input"],
+              },
             },
             {
               component: "b-input",
               model: "log.keep",
               fieldOptions: {
-                on: { input: value => Number(value) }
-              }
+                on: { input: (value) => Number(value) },
+              },
             },
             {
               component: "b-input",
               model: "log.lvl_console",
               fieldOptions: {
-                on: ["input"]
-              }
+                on: ["input"],
+              },
             },
             {
               component: "b-input",
               model: "log.lvl_file",
               fieldOptions: {
-                on: ["input"]
-              }
+                on: ["input"],
+              },
             },
             {
               component: "b-input",
               model: "log.path",
               fieldOptions: {
-                on: ["input"]
-              }
-            }
-          ]
+                on: ["input"],
+              },
+            },
+          ],
         },
         {
           component: "b-card",
@@ -199,24 +199,24 @@ export default {
               component: "b-input",
               model: "cache.dir",
               fieldOptions: {
-                on: ["input"]
-              }
+                on: ["input"],
+              },
             },
             {
               component: "b-input",
               model: "cache.size_limit_gb",
               fieldOptions: {
-                on: { input: value => Number(value) }
-              }
+                on: { input: (value) => Number(value) },
+              },
             },
             {
               component: "b-input",
               model: "cache.resolve_frame_number",
               fieldOptions: {
-                on: "input"
-              }
-            }
-          ]
+                on: "input",
+              },
+            },
+          ],
         },
         {
           component: "b-card",
@@ -225,10 +225,10 @@ export default {
               component: "b-input",
               model: "render.dir",
               fieldOptions: {
-                on: ["input"]
-              }
-            }
-          ]
+                on: ["input"],
+              },
+            },
+          ],
         },
         {
           component: "b-card",
@@ -237,68 +237,68 @@ export default {
               component: "b-input",
               model: "format.datetime_format",
               fieldOptions: {
-                on: ["input"]
-              }
+                on: ["input"],
+              },
             },
             {
               component: "b-input",
               model: "format.datetime_format_fs",
               fieldOptions: {
-                on: ["input"]
-              }
-            }
-          ]
-        }
+                on: ["input"],
+              },
+            },
+          ],
+        },
       ],
       schema_attrs: {
         cache: {
           dir: {
-            title: "Cache folder"
+            title: "Cache folder",
           },
           size_limit_gb: {
-            title: "Cache size limit (GB)"
-          }
+            title: "Cache size limit (GB)",
+          },
         },
         db: {
           path: {
-            title: "Database file"
-          }
+            title: "Database file",
+          },
         },
         format: {
           datetime_format: {
-            title: "Date/time format"
+            title: "Date/time format",
           },
           datetime_format_fs: {
-            title: "Date/time format (filesystem-safe)"
-          }
+            title: "Date/time format (filesystem-safe)",
+          },
         },
         log: {
           dir: {
-            title: "Log folder"
+            title: "Log folder",
           },
           keep: {
-            title: "# of log files to keep"
+            title: "# of log files to keep",
           },
           lvl_console: {
             title:
-              "Logging level - Python console - choose from critical, error, warning, info, debug or vdebug"
+              "Logging level - Python console - choose from critical, error, warning, info, debug or vdebug",
           },
           lvl_file: {
             title:
-              "Logging level - file / application log - choose from critical, error, warning, info, debug or vdebug"
+              "Logging level - file / application log - choose from critical, error, warning, info, debug or vdebug",
           },
           path: {
-            title: "Log file path"
-          }
+            title: "Log file path",
+          },
         },
         render: {
           dir: {
-            title: "Render folder"
-          }
-        }
-      }
+            title: "Render folder",
+          },
+        },
+      },
     };
-  }
+  },
 };
 </script>
 

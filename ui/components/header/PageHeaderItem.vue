@@ -6,7 +6,7 @@
 
 <script>
 export default {
-  name: "PageHeaderItem"
+  name: "PageHeaderItem",
 };
 </script>
 

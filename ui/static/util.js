@@ -2,7 +2,7 @@ export async function fileExists(path) {
   // todo: deprecated?
   let http = new XMLHttpRequest();
   http.open("HEAD", path, false);
-  http.send().then(response => {
+  http.send().then((response) => {
     return response.status !== 404;
   });
 }

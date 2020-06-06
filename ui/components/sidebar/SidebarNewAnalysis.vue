@@ -58,16 +58,16 @@ export default {
   props: {
     icon: {
       type: String,
-      default: ""
+      default: "",
     },
     badge: {
       type: Object,
-      default: () => {}
+      default: () => {},
     },
     variant: {
       type: String,
-      default: ""
-    }
+      default: "",
+    },
   },
   components: { BasicConfig },
   methods: {
@@ -80,12 +80,12 @@ export default {
       // console.log("new analysis: config is");
       // console.log(config);
 
-      this.$refs.new_analyzer_form.hasValidFiles().then(ok => {
+      this.$refs.new_analyzer_form.hasValidFiles().then((ok) => {
         if (ok) {
           this.show = false;
           this.$store
             .dispatch("analyzers/init", { config: config })
-            .then(id => {
+            .then((id) => {
               this.$router.push(`/analysis/align?id=${id}`);
             });
         } else {
@@ -93,7 +93,7 @@ export default {
           console.log("FORM IS NOT COMPLETE");
         }
       });
-    }
+    },
   },
   computed: {
     classList() {
@@ -113,7 +113,7 @@ export default {
     },
     form_ref() {
       return id + "form";
-    }
+    },
   },
   data() {
     return {
@@ -121,10 +121,10 @@ export default {
       selected: "dt", // todo: this means that the default value is always reset; we should go by the history though!
       interval_placeholder: {
         Nf: "# frames", // todo: this works when `selected`is changed here, but I'm not sure how to make it resolve on click...
-        dt: "interval (s)"
-      }
+        dt: "interval (s)",
+      },
     };
-  }
+  },
 };
 </script>
 

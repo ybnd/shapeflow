@@ -27,14 +27,14 @@ import SidebarHeaderButton from "./SidebarHeaderButton";
 export default {
   name: "sidebar-header",
   components: {
-    SidebarHeaderButton
+    SidebarHeaderButton,
   },
   data() {
     return {
       api,
-      QueueState
+      QueueState,
     };
-  }
+  },
 };
 </script>
 

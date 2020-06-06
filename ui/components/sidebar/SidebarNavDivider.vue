@@ -8,8 +8,8 @@ export default {
   props: {
     classes: {
       type: String,
-      default: ""
-    }
+      default: "",
+    },
   },
   computed: {
     classList() {
@@ -17,7 +17,7 @@ export default {
     },
     itemClasses() {
       return this.classes ? this.classes.split(" ") : "";
-    }
-  }
+    },
+  },
 };
 </script>

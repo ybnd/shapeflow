@@ -8,7 +8,7 @@ export const state = () => ({
   analyzer: [],
   analyzer_state: {
     options: AnalyzerState,
-    match: null
+    match: null,
   },
   feature: {
     options: [],
@@ -17,20 +17,20 @@ export const state = () => ({
     descriptions: {},
     parameters: {},
     parameter_defaults: {},
-    parameter_descriptions: {}
+    parameter_descriptions: {},
   },
   frame_interval_setting: {
     options: [],
-    descriptions: {}
+    descriptions: {},
   },
   transform: {
     options: [],
-    descriptions: {}
+    descriptions: {},
   },
   filter: {
     options: [],
-    descriptions: {}
-  }
+    descriptions: {},
+  },
 });
 
 export const mutations = {
@@ -93,41 +93,41 @@ export const mutations = {
       console.warn(`setFilterOptions failed`);
       console.warn(err);
     }
-  }
+  },
 };
 
 export const getters = {
-  hasNoAnalyzerOptions: state => {
+  hasNoAnalyzerOptions: (state) => {
     return _.isEmpty(state.analyzer);
   },
-  hasNoAnalyzerStateMatch: state => {
+  hasNoAnalyzerStateMatch: (state) => {
     return state.analyzer_state.match === null;
   },
-  hasNoFrameIntervalSettingOptions: state => {
+  hasNoFrameIntervalSettingOptions: (state) => {
     return _.isEmpty(state.frame_interval_setting.options);
   },
-  hasNoFeatureOptions: state => {
+  hasNoFeatureOptions: (state) => {
     return _.isEmpty(state.feature.options);
   },
-  hasNoTransformOptions: state => {
+  hasNoTransformOptions: (state) => {
     return _.isEmpty(state.transform.options);
   },
-  hasNoFilterOptions: state => {
+  hasNoFilterOptions: (state) => {
     return _.isEmpty(state.filter.options);
-  }
+  },
 };
 
 export const actions = {
   async sync({ commit, getters }) {
     if (getters["hasNoAnalyzerOptions"]) {
-      get_options("analyzer").then(options => {
+      get_options("analyzer").then((options) => {
         // console.log(options);
         commit("setAnalyzerOptions", { options: options });
       });
     }
 
     if (getters["hasNoAnalyzerStateMatch"]) {
-      get_options("state").then(options => {
+      get_options("state").then((options) => {
         try {
           assert(
             _.isEqual(options, AnalyzerState),
@@ -145,31 +145,31 @@ export const actions = {
     }
 
     if (getters["hasNoFrameIntervalSettingOptions"]) {
-      get_options("frame_interval_setting").then(options => {
+      get_options("frame_interval_setting").then((options) => {
         // console.log(options);
         commit("setFrameIntervalSettingOptions", { options: options });
       });
     }
 
     if (getters["hasNoFeatureOptions"]) {
-      get_options("feature").then(options => {
+      get_options("feature").then((options) => {
         // console.log(options);
         commit("setFeatureOptions", { options: options });
       });
     }
 
     if (getters["hasNoTransformOptions"]) {
-      get_options("transform").then(options => {
+      get_options("transform").then((options) => {
         // console.log(options);
         commit("setTransformOptions", { options: options });
       });
     }
 
     if (getters["hasNoFilterOptions"]) {
-      get_options("filter").then(options => {
+      get_options("filter").then((options) => {
         // console.log(options);
         commit("setFilterOptions", { options: options });
       });
     }
-  }
+  },
 };

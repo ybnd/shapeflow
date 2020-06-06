@@ -12,7 +12,7 @@ export default {
 
     this.renderChart(this.chartData, {
       ...this.default_options,
-      ...this.options
+      ...this.options,
     });
   },
   data() {
@@ -23,24 +23,24 @@ export default {
       tooltips: {
         show: false,
         origin: { x: 0, y: 0 },
-        labels: []
+        labels: [],
       },
       default_options: {
         elements: {
           point: {
             radius: 0,
             hoverRadius: 5,
-            hitRadius: 5
+            hitRadius: 5,
           },
           line: {
             // stepped: true,
             fill: false,
             borderWidth: 2,
-            tension: 0
-          }
+            tension: 0,
+          },
         },
         animation: {
-          duration: 0
+          duration: 0,
         },
         tooltips: {
           mode: "nearest",
@@ -67,7 +67,7 @@ export default {
           //   }
           // }
           callbacks: {
-            label: function(tooltipItem, data) {
+            label: function (tooltipItem, data) {
               // https://www.chartjs.org/docs/latest/configuration/tooltip.html
               var label = data.datasets[tooltipItem.datasetIndex].label || "";
 
@@ -82,12 +82,12 @@ export default {
               label += " ";
               label += data.unit;
               return label;
-            }
-          }
-        }
-      }
+            },
+          },
+        },
+      },
     };
-  }
+  },
 };
 </script>
 

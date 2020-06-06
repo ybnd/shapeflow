@@ -132,7 +132,7 @@ import {
   endpoints,
   stop_stream,
   AnalyzerState as ast,
-  state_transition
+  state_transition,
 } from "../../static/api";
 import Moveable from "vue-moveable";
 import {
@@ -140,7 +140,7 @@ import {
   clickEventToRelativeCoordinate,
   roiIsValid,
   getInitialTransform,
-  dragEventToRelativeRectangle
+  dragEventToRelativeRectangle,
 } from "../../static/coordinates";
 import { events } from "../../static/events";
 
@@ -168,7 +168,7 @@ export default {
     Moveable,
     PageHeader,
     PageHeaderItem,
-    PageHeaderSeek
+    PageHeaderSeek,
   },
   methods: {
     handleInit() {
@@ -189,12 +189,12 @@ export default {
 
         this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
 
-        get_options("transform").then(options => {
+        get_options("transform").then((options) => {
           this.transform_options = options; // todo: get from store.options.transform
           this.transform = options[0]; // todo: get from store.analyzers.config
         });
         // this.$store.dispatch("align/init", { id: this.id }).then(() => {
-        get_relative_roi(this.id).then(roi => {
+        get_relative_roi(this.id).then((roi) => {
           this.setRoi(roi);
           this.$root.$emit(events.seek.reset(this.id)); // todo: this doesn't trigger the stream for some reason
           // this.$store.dispatch("analyzers/get_config", { id: this.id }); // todo: why?
@@ -221,15 +221,15 @@ export default {
           top: -50,
           left: -50,
           bottom: 50,
-          right: 50
-        }
+          right: 50,
+        },
       };
     },
     handleClearAlignment() {
       console.log("align: handleClearAlignment");
-      commit(this.id).then(ok => {
+      commit(this.id).then((ok) => {
         if (ok) {
-          clear_roi(this.id).then(ok => {
+          clear_roi(this.id).then((ok) => {
             if (ok) {
               this.handleHideMoveable();
               this.clearRoi;
@@ -243,12 +243,12 @@ export default {
       commit(this.previous_id);
     },
     handleUndoAlignment() {
-      undo_config(this.id).then(config => {
+      undo_config(this.id).then((config) => {
         this.setRoi(config.transform.roi);
       });
     },
     handleRedoAlignment() {
-      redo_config(this.id).then(config => {
+      redo_config(this.id).then((config) => {
         this.setRoi(config.transform.roi);
       });
     },
@@ -345,11 +345,11 @@ export default {
           id: this.id,
           config: {
             transform: {
-              flip: [this.align.flip[0], !this.align.flip[1]] // todo: better to synchronize this to store?
-            }
-          }
+              flip: [this.align.flip[0], !this.align.flip[1]], // todo: better to synchronize this to store?
+            },
+          },
         })
-        .then(config => {
+        .then((config) => {
           this.align.flip = config.transform.flip;
         });
     },
@@ -359,11 +359,11 @@ export default {
           id: this.id,
           config: {
             transform: {
-              flip: [!this.align.flip[0], this.align.flip[1]]
-            }
-          }
+              flip: [!this.align.flip[0], this.align.flip[1]],
+            },
+          },
         })
-        .then(config => {
+        .then((config) => {
           this.align.flip = config.transform.flip;
         });
     },
@@ -397,7 +397,7 @@ export default {
     handleUpdate: throttle(
       100,
       false,
-      debounce(20, false, function() {
+      debounce(20, false, function () {
         this.updateRoiCoordinates();
       })
     ),
@@ -410,7 +410,7 @@ export default {
           left: frame.left,
           right: frame.right,
           top: frame.top,
-          bottom: frame.bottom
+          bottom: frame.bottom,
         };
         this.align.frame = frame;
         this.resolveTransform();
@@ -485,7 +485,7 @@ export default {
           "align: handleStopRectangle() -- moveable is already shown!"
         );
       }
-    }
+    },
   },
   watch: {
     "$route.query.id"() {
@@ -497,7 +497,7 @@ export default {
     "$refs.moveable.$el"() {
       console.warn("there was a change in $ref.moveable.data");
       console.warn(this.$refs.moveable);
-    }
+    },
   },
   computed: {
     id() {
@@ -508,7 +508,7 @@ export default {
         "ctrl+z": this.handleUndoAlignment,
         "ctrl+shift+z": this.handleRedoAlignment,
         right: this.stepForward,
-        left: this.stepBackward
+        left: this.stepBackward,
       };
     },
     overlaid_url() {
@@ -530,7 +530,7 @@ export default {
       return (
         state === ast.DONE || state === ast.ERROR || state === ast.CANCELED
       ); // todo: cleaner
-    }
+    },
   },
   data: () => ({
     opened_at: 0,
@@ -545,7 +545,7 @@ export default {
       warpable: true,
       throttleWarp: 0,
       snappable: true,
-      bounds: {}
+      bounds: {},
     },
     align: {
       frame: null,
@@ -556,19 +556,19 @@ export default {
         top: -50,
         left: -50,
         bottom: 50,
-        right: 50
+        right: 50,
       },
       roi: null,
-      transform: null
+      transform: null,
     },
     updateCall: null,
     moveableShow: false,
     dragROI: {
-      start_event: {}
+      start_event: {},
     },
     waitUntilHasRect: null,
-    previous_id: ""
-  })
+    previous_id: "",
+  }),
 };
 </script>
 

@@ -26,15 +26,15 @@ export default {
   props: {
     id: {
       type: String,
-      required: true
-    }
+      required: true,
+    },
   },
   methods: {
     handleClick() {
       console.log(
         "CLICKED RESULT CARD, SHOULD NAVIGATE TO CORRESPONDING RESULT PAGE"
       );
-    }
+    },
   },
   computed: {
     name() {
@@ -42,17 +42,17 @@ export default {
     },
     result() {
       return this.$store.getters["analyzers/getResult"](this.id);
-    }
+    },
   },
   data() {
     return {
       options: {
         tooltips: {
-          enabled: false
-        }
-      }
+          enabled: false,
+        },
+      },
     };
-  }
+  },
 };
 </script>
 

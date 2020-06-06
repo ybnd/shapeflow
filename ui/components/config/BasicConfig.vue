@@ -44,7 +44,7 @@
             class="path-form"
             v-bind:class="{
               'is-valid': validVideo,
-              'is-invalid': invalidVideo
+              'is-invalid': invalidVideo,
             }"
           ></b-form-input>
         </b-input-group>
@@ -81,7 +81,7 @@
             v-model="config.design_path"
             v-bind:class="{
               'is-valid': validDesign,
-              'is-invalid': invalidDesign
+              'is-invalid': invalidDesign,
             }"
           ></b-form-input>
         </b-input-group>
@@ -203,7 +203,7 @@ import {
   check_design_path,
   check_video_path,
   get_options,
-  resolve_paths
+  resolve_paths,
 } from "../../static/api";
 
 import AsyncComputed from "vue-async-computed";
@@ -220,7 +220,7 @@ export default {
       type: Object,
       default() {
         return {};
-      }
+      },
     },
     config: {
       type: Object,
@@ -232,10 +232,10 @@ export default {
           Nf: 100,
           dt: 5,
           features: ["Volume_uL"],
-          parameters: {}
+          parameters: {},
         };
-      }
-    }
+      },
+    },
   },
   methods: {
     hasParameterData(feature, parameter) {
@@ -247,7 +247,7 @@ export default {
       return Object.assign(this.config, {
         [`${this.config.frame_interval_setting}`]: Number(
           this.config[`${this.config.frame_interval_setting}`]
-        )
+        ),
       });
     },
     selectFrameIntervalSetting(setting) {
@@ -263,7 +263,7 @@ export default {
     handleAddFeature() {
       this.config.features = [
         ...this.config.features,
-        this.features.options[0]
+        this.features.options[0],
       ];
       // console.log(this.config);
     },
@@ -277,7 +277,7 @@ export default {
       }
     },
     selectVideoFile() {
-      select_video_path().then(path => {
+      select_video_path().then((path) => {
         if (path) {
           this.config.video_path = path;
         }
@@ -290,7 +290,7 @@ export default {
       }
     },
     selectDesignFile() {
-      select_design_path().then(path => {
+      select_design_path().then((path) => {
         if (path) {
           this.config.design_path = path;
         }
@@ -308,19 +308,19 @@ export default {
       return video_ok && design_ok;
     },
     async checkVideoPath() {
-      return check_video_path(this.config.video_path).then(ok => {
+      return check_video_path(this.config.video_path).then((ok) => {
         this.validVideo = ok;
         this.invalidVideo = !ok;
         return ok;
       });
     },
     async checkDesignPath() {
-      return check_design_path(this.config.design_path).then(ok => {
+      return check_design_path(this.config.design_path).then((ok) => {
         this.validDesign = ok;
         this.invalidDesign = !ok;
         return ok;
       });
-    }
+    },
   },
   watch: {
     features() {
@@ -330,7 +330,7 @@ export default {
           this.config.parameters = {
             ...this.config.parameters,
             [features.options[i]]:
-              features.parameter_defaults[features.options[i]]
+              features.parameter_defaults[features.options[i]],
           };
         }
       }
@@ -344,7 +344,7 @@ export default {
       } catch (err) {
         console.warn(err);
       }
-    }
+    },
   },
   computed: {
     features() {
@@ -352,12 +352,12 @@ export default {
     },
     frame_interval_settings() {
       return this.$store.state.options.frame_interval_setting;
-    }
+    },
   },
   asyncComputed: {
     video_path_options: {
       async get() {
-        return get_options("video_path").then(options => {
+        return get_options("video_path").then((options) => {
           // console.log(options);
 
           if (!this.config.video_path) {
@@ -367,11 +367,11 @@ export default {
           return options;
         });
       },
-      default: []
+      default: [],
     },
     design_path_options: {
       async get() {
-        return get_options("design_path").then(options => {
+        return get_options("design_path").then((options) => {
           // console.log(options);
 
           if (!this.config.design_path) {
@@ -381,8 +381,8 @@ export default {
           return options;
         });
       },
-      default: []
-    }
+      default: [],
+    },
   },
   data() {
     return {
@@ -395,10 +395,10 @@ export default {
       design_path_options: [],
       frame_interval_setting_text: {
         Nf: "# of equally spaced frames",
-        dt: "frame interval (s)"
-      }
+        dt: "frame interval (s)",
+      },
     };
-  }
+  },
 };
 </script>
 
