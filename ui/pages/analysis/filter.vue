@@ -9,7 +9,7 @@
           data-toggle="tooltip"
           title="Clear alignment"
         >
-          <i class="fa fa-remove" />
+          <i class="icon-ban" />
         </b-button>
         <b-button
           class="header-button-icon"
@@ -18,7 +18,7 @@
           title="Undo alignment"
           v-hotkey="keymap"
         >
-          <i class="fa fa-undo" />
+          <i class="icon-action-undo" />
         </b-button>
         <b-button
           class="header-button-icon"
@@ -27,7 +27,7 @@
           title="Redo alignment"
           v-hotkey="keymap"
         >
-          <i class="fa fa-repeat" />
+          <i class="icon-action-redo" />
         </b-button>
       </PageHeaderItem>
       <PageHeaderSeek :id="id" :key="id" />
