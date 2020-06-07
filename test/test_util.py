@@ -48,7 +48,7 @@ class ResolveTypeTest(unittest.TestCase):
 
 class SchemaTest(unittest.TestCase):
     def test_get_schema_schema(self):
-        s = schema(VideoAnalyzerConfig)
+        s = VideoAnalyzerConfig.schema()
 
     def test_get_method_schema(self):
         def annotated_method(

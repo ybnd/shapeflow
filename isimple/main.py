@@ -185,7 +185,7 @@ class Main(isimple.core.Lockable):
             return respond(isimple.settings.to_dict())
 
         @app.route('/api/options/<for_type>', methods=['GET'])
-        def get_options(for_type):
+        def get_options(for_type):  # todo: should be a single-call endpoint, /api/schemas
             active()
             log.debug(f"get options for '{for_type}'")
             if for_type == "state":
@@ -244,6 +244,10 @@ class Main(isimple.core.Lockable):
             elif for_type == "design_path":
                 return respond(
                     self._history.fetch_recent_paths(history.DesignFileModel)
+                )
+            elif for_type == "config":
+                return respond(
+                    backend.AnalyzerType().get()._config_class.schema()  # todo: { AnalyzerType:<schema> }
                 )
             else:
                 raise ValueError(f"No options for '{for_type}'")
@@ -557,48 +561,50 @@ class Main(isimple.core.Lockable):
             root.commit()
 
     def save_state(self):
-        log.info("saving application state")
+        if isimple.settings.app.save_state:
+            log.info("saving application state")
 
-        self.commit()
+            self.commit()
 
-        s = {
-            id:root.model.id
-            for id,root in self._roots.items()
-            if not root.done
-        }
+            s = {
+                id:root.model.id
+                for id,root in self._roots.items()
+                if not root.done
+            }
 
-        with open(os.path.join(isimple.ROOTDIR, 'state'), 'wb') as f:
-            pickle.dump(s, f)
+            with open(os.path.join(isimple.ROOTDIR, 'state'), 'wb') as f:
+                pickle.dump(s, f)
 
     def load_state(self):
-        with self.lock():
-            log.info("loading application state")
-            # todo: check if instances retain reference to self._eventstreamer!
+        if isimple.settings.app.load_state:
+            with self.lock():
+                log.info("loading application state")
+                # todo: check if instances retain reference to self._eventstreamer!
 
-            try:
-                with open(os.path.join(isimple.ROOTDIR, 'state'), 'rb') as f:
-                    S = pickle.load(f)
+                try:
+                    with open(os.path.join(isimple.ROOTDIR, 'state'), 'rb') as f:
+                        S = pickle.load(f)
 
-                for id,model_id in S.items():
-                    assert isinstance(id, str)
-                    assert isinstance(model_id, int)
+                    for id,model_id in S.items():
+                        assert isinstance(id, str)
+                        assert isinstance(model_id, int)
 
-                    model = self._history.fetch_analysis(model_id)
+                        model = self._history.fetch_analysis(model_id)
 
-                    if model is not None:
-                        analyzer = video.init(isimple.config.loads(model.config))
-                        analyzer._set_id(id)
-                        analyzer.set_eventstreamer(self._eventstreamer)
+                        if model is not None:
+                            analyzer = video.init(isimple.config.loads(model.config))
+                            analyzer._set_id(id)
+                            analyzer.set_eventstreamer(self._eventstreamer)
 
-                        analyzer.launch()
+                            analyzer.launch()
 
-                        self._roots[id] = analyzer
+                            self._roots[id] = analyzer
 
-                        assert isinstance(analyzer, video.VideoAnalyzer)
-                        self._history.add_analysis(analyzer, model)
+                            assert isinstance(analyzer, video.VideoAnalyzer)
+                            self._history.add_analysis(analyzer, model)
 
-            except FileNotFoundError:
-                pass
+                except FileNotFoundError:
+                    pass
 
     def get_schemas(self, id: str) -> Optional[dict]:
         if self.valid(id):

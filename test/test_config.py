@@ -3,7 +3,7 @@ import unittest
 import os
 
 from isimple.video import *
-from isimple.core.config import Factory, dataclass, field, Config
+from isimple.core.config import Factory, Field, BaseConfig
 from isimple.core import EnforcedStr
 from isimple.core.interface import FilterType
 
@@ -56,12 +56,11 @@ class EnforcedStrTest(unittest.TestCase):
 
 class ConfigTest(unittest.TestCase):
     def test_from_kwargs(self):
-        @dataclass
-        class DummyConfig(Config):
-            a: int = field(default=123)
-            b: str = field(default='abc')
-            c: tuple = field(default=(4, 5, 6))
-            d: float = field(default=7.89)
+        class DummyConfig(BaseConfig):
+            a: int = Field(default=123)
+            b: str = Field(default='abc')
+            c: tuple = Field(default=(4, 5, 6))
+            d: float = Field(default=7.89)
 
         conf = DummyConfig(b='not abc')
 
@@ -78,12 +77,11 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual(1.23, conf.d)
 
     def test_instance_attributes(self):
-        @dataclass
-        class DummyConfig(Config):
-            a: int = field(default=123)
-            b: str = field(default='abc')
-            c: tuple = field(default=(4, 5, 6))
-            d: float = field(default=7.89)
+        class DummyConfig(BaseConfig):
+            a: int = Field(default=123)
+            b: str = Field(default='abc')
+            c: tuple = Field(default=(4, 5, 6))
+            d: float = Field(default=7.89)
 
         conf1 = DummyConfig()
         conf2 = DummyConfig()
@@ -107,10 +105,9 @@ class ConfigResolutionTest(unittest.TestCase):
         class DummyEnforcedStr(EnforcedStr):
             _options = ['option1', 'option2']
 
-        @dataclass
-        class DummyResolveConfig(Config):
-            a: np.ndarray = field(default=np.array([4,5,6,7]))
-            b: DummyEnforcedStr = field(default_factory=DummyEnforcedStr)
+        class DummyResolveConfig(BaseConfig):
+            a: np.ndarray = Field(default=np.array([4,5,6,7]))
+            b: DummyEnforcedStr = Field(default_factory=DummyEnforcedStr)
 
         original = DummyResolveConfig()
         loaded = DummyResolveConfig(**original.to_dict())
@@ -122,14 +119,12 @@ class ConfigResolutionTest(unittest.TestCase):
         class DummyEnforcedStr(EnforcedStr):
             _options = ['option1', 'option2']
 
-        @dataclass
-        class DummyNestedConfig(Config):
-            a: np.ndarray = field(default=np.array([4,5,6,7]))
-            b: DummyEnforcedStr = field(default_factory=DummyEnforcedStr)
+        class DummyNestedConfig(BaseConfig):
+            a: np.ndarray = Field(default=np.array([4,5,6,7]))
+            b: DummyEnforcedStr = Field(default_factory=DummyEnforcedStr)
 
-        @dataclass
-        class DummyResolveConfig(Config):
-            c: DummyNestedConfig = field(default_factory=DummyNestedConfig)
+        class DummyResolveConfig(BaseConfig):
+            c: DummyNestedConfig = Field(default_factory=DummyNestedConfig)
 
         original = DummyResolveConfig()
         loaded = DummyResolveConfig(**original.to_dict())
@@ -141,7 +136,7 @@ class ConfigResolutionTest(unittest.TestCase):
 
 class BackendConfigTest(unittest.TestCase):
     def test_videoanalyzerconfig(self):
-        vac = VideoAnalyzerConfig(__VIDEO__, __DESIGN__)
+        vac = VideoAnalyzerConfig(video_path=__VIDEO__, design_path=__DESIGN__)
 
         self.assertEqual(__VIDEO__, vac.video_path)
         self.assertEqual(__DESIGN__, vac.design_path)
@@ -149,11 +144,11 @@ class BackendConfigTest(unittest.TestCase):
         self.assertEqual('Nf', vac.frame_interval_setting)
 
     def test_instantiate_factories(self):
-        vac = VideoAnalyzerConfig(__VIDEO__, __DESIGN__)
+        vac = VideoAnalyzerConfig(video_path=__VIDEO__, design_path=__DESIGN__)
 
         self.assertEqual(FrameIntervalSetting(), vac.frame_interval_setting)
         self.assertIsInstance(vac.frame_interval_setting, FrameIntervalSetting)
 
-        vac = VideoAnalyzerConfig(__VIDEO__, __DESIGN__, FrameIntervalSetting('dt'))
+        vac = VideoAnalyzerConfig(video_path=__VIDEO__, design_path=__DESIGN__, frame_interval_setting=FrameIntervalSetting('Nf'))
         self.assertEqual(FrameIntervalSetting(), vac.frame_interval_setting)
         self.assertIsInstance(vac.frame_interval_setting, FrameIntervalSetting)

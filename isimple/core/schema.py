@@ -7,7 +7,7 @@ from schema import Optional, Schema, Or  #type: ignore
 
 from isimple import get_logger, settings
 
-from isimple.core.config import Config
+from isimple.core.config import BaseConfig
 from isimple.core import EnforcedStr
 from isimple.maths.colors import HsvColor
 from isimple.util.meta import all_attributes, all_annotations, \
@@ -48,7 +48,7 @@ def _type_to_schema(t, k=None) -> dict:  # todo: how to type t here?
                 raise NotImplementedError(f"Can't handle {t}")
         else:
             raise NotImplementedError(t)
-    elif issubclass(t, Config):
+    elif issubclass(t, BaseConfig):
         return {
             sk: Schema(_schemify(t, k), name=k, as_reference=True),
         }
@@ -87,7 +87,7 @@ def _type_to_schema(t, k=None) -> dict:  # todo: how to type t here?
 
 def _schemify(t: type, k: str = None) -> dict:
     try:
-        if issubclass(t, Config):
+        if issubclass(t, BaseConfig):
             schema = {}
             annotations = all_annotations(t)
             for a in all_attributes(t, include_under=False, include_methods=False):
@@ -107,7 +107,7 @@ def _schemify(t: type, k: str = None) -> dict:
         return _type_to_schema(t, k)
 
 
-def get_config_schema(config: Type[Config]) -> Schema:
+def get_config_schema(config: Type[BaseConfig]) -> Schema:
     return Schema(_schemify(config))
 
 
@@ -139,7 +139,7 @@ def get_return_schema(method: Callable) -> Schema:
 def schema(obj) -> dict:
     id = obj.__qualname__ + '.json'
     try:
-        if issubclass(obj, Config):
+        if issubclass(obj, BaseConfig):
             return get_config_schema(obj).json_schema(id)
         else:
             raise TypeError

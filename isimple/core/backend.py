@@ -13,6 +13,8 @@ from typing import Any, Callable, List, Optional, Union, Tuple, Dict, Type
 import numpy as np
 import pandas as pd
 
+from pydantic import Field, FilePath, DirectoryPath
+
 from isimple import settings, get_logger, get_cache
 from isimple.endpoints import BackendRegistry
 
@@ -20,7 +22,7 @@ from isimple.core import RootException, SetupError, RootInstance
 from isimple.maths.colors import HsvColor
 from isimple.util.meta import describe_function
 from isimple.util import Timer, Timing, hash_file, timed
-from isimple.core.config import Factory, untag, Config
+from isimple.core.config import Factory, untag, BaseConfig, Instance
 from isimple.core.streaming import stream, streams, EventStreamer
 
 
@@ -40,49 +42,10 @@ class CacheAccessError(RootException):
     msg = 'Trying to access cache out of context'
 
 
-class BackendInstance(object):
-    _config: Config
-
-    def __init__(self, config: Optional[Config]):
-        self._configure(config)
-        self._lock = threading.Lock()
-        super(BackendInstance, self).__init__()
-
-        log.debug(f'Initialized {self.__class__.__qualname__} with {self._config}')
-
-    def _configure(self, config: Config = None):   # todo: adapt to dataclass implementation
-        _type = self.__annotations__['_config']
-
-        if config is not None:
-            if isinstance(config, _type):
-                # Each instance should have a *copy* of the config, not references to the actual values
-                self._config = copy.deepcopy(config)
-            elif isinstance(config, dict):
-                log.warning(f"Initializing '{self.__class__.__name__}' from a dict, "
-                            f"please initialize from '{_type}' instead.")
-                self._config = _type(**untag(config))
-            else:
-                raise TypeError(f"Tried to initialize '{self.__class__.__name__}' with {type(config).__name__} '{config}'.")
-        else:
-            self._config = _type()
-
-    @property
-    def config(self) -> Config:
-        return self._config
-
-
 _BLOCKED = 'BLOCKED'
 
 
-@dataclass
-class CachingBackendInstanceConfig(Config):
-    do_cache: bool = field(default=True)
-    do_background: bool = field(default=True)
-
-    block_timeout: float = field(default=0.1)
-
-
-class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cache: e.g. 2 GB in-memory, 4GB on-disk, finally the actual video
+class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB in-memory, 4GB on-disk, finally the actual video
     """Interface to diskcache.Cache
     """
     _cache: Optional[diskcache.Cache]
@@ -91,11 +54,8 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
     _background: threading.Thread
     _cancel_caching: threading.Event
 
-    _config: CachingBackendInstanceConfig
-    _class = CachingBackendInstanceConfig()
-
-    def __init__(self, config: CachingBackendInstanceConfig = None):
-        super(CachingBackendInstance, self).__init__(config)
+    def __init__(self, config: BaseConfig = None):
+        super(CachingInstance, self).__init__(config)
 
         self._cache = None
         self._cancel_caching = threading.Event()
@@ -157,7 +117,7 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
             # Check if the file's already cached
             if key in self._cache:
                 t0 = time.time()
-                while self._is_blocked(key) and time.time() < t0 + self._config.block_timeout:
+                while self._is_blocked(key) and time.time() < t0 + settings.cache.block_timeout:
                     # Some other thread is currently reading the same frame
                     # Wait a bit and try to get from cache again
                     log.debug(f'{self.__class__}: waiting for {key} to be released...', 5)
@@ -185,7 +145,7 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
         return method(*args, **kwargs)
 
     def __enter__(self, override: bool = False):
-        if self._config.do_cache or override:
+        if settings.cache.do_cache or override:
             if self._cache is None:
                 log.debug(f'{self.__class__.__qualname__}: opening cache @ {settings.cache.dir}')
                 self._cache = diskcache.Cache(
@@ -215,10 +175,10 @@ class CachingBackendInstance(BackendInstance):  # todo: consider a waterfall cac
             self.__exit__(*sys.exc_info())
 
 
-class Handler(object):
+class Handler(abc.ABC):
     _implementation: object
     _implementation_factory = Factory
-    _implementation_class = object  # actually, it's type, but that doesn't fly with MyPy for some reason
+    _implementation_class: Type[Instance] = Instance  # actually, it's type, but that doesn't fly with MyPy for some reason
 
     def set_implementation(self, implementation: str) -> str:
         impl_type: type = self._implementation_factory(implementation).get()
@@ -243,13 +203,13 @@ class Feature(abc.ABC):  # todo: should probably use Config for parameters after
     _label: str = ''
     _unit: str = ''
     _description: str = ''
-    _elements: Tuple[BackendInstance, ...] = ()
+    _elements: Tuple[Instance, ...] = ()
 
     _parameters: Tuple[str,...] = ()
     _parameter_defaults: Dict[str, Any] = {}
     _parameter_descriptions: Dict[str, str] = {}
 
-    def __init__(self, elements: Tuple[BackendInstance, ...]):
+    def __init__(self, elements: Tuple[Instance, ...]):
         self._name = '<unnamed feature>'
         self._skip = False
         self._ready = False
@@ -399,12 +359,11 @@ class FeatureType(Factory):  # todo: nest in Feature?
             )
 
 
-@dataclass
-class BaseAnalyzerConfig(Config):
-    video_path: Optional[str] = field(default=None)
-    design_path: Optional[str] = field(default=None)
-    name: Optional[str] = field(default=None)
-    description: Optional[str] = field(default=None)
+class BaseAnalyzerConfig(BaseConfig):
+    video_path: Optional[str] = Field(default=None)
+    design_path: Optional[str] = Field(default=None)
+    name: Optional[str] = Field(default=None)
+    description: Optional[str] = Field(default=None)
 
 
 class AnalyzerEvent(Enum):
@@ -447,10 +406,10 @@ class AnalyzerState(IntEnum):
         ]
 
 
-class BaseVideoAnalyzer(BackendInstance, RootInstance):
+class BaseVideoAnalyzer(Instance, RootInstance):
     _endpoints: BackendRegistry = backend
-    _instances: List[BackendInstance]
-    _instance_class = BackendInstance
+    _instances: List[Instance]
+    _instance_class = Instance
     _config: BaseAnalyzerConfig
 
     _state: int
@@ -520,7 +479,7 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
         """Save video analysis configuration to history database
         """
         if self._model is not None:
-            log.debug("committing")
+            log.debug(f"committing {self.id}")
             self._model.store()  # type: ignore
             # todo: solve circular dependency
             return True
@@ -696,7 +655,7 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
         """
         caching_instances = [
             e for e in self._instances if
-            isinstance(e, CachingBackendInstance)
+            isinstance(e, CachingInstance)
         ]
         log.debug(f'{self.__class__.__name__}: propagate caching context '
                   f'to {[i.__class__.__name__ for i in caching_instances]}')
@@ -711,7 +670,7 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
     def cache_open(self):
         caching_instances = [
             e for e in self._instances if
-            isinstance(e, CachingBackendInstance)
+            isinstance(e, CachingInstance)
         ]
         log.debug(f'{self.__class__.__name__}: propagate caching context '
                   f'to {[i.__class__.__name__ for i in caching_instances]}')
@@ -721,7 +680,7 @@ class BaseVideoAnalyzer(BackendInstance, RootInstance):
     def cache_close(self):
         caching_instances = [
             e for e in self._instances if
-            isinstance(e, CachingBackendInstance)
+            isinstance(e, CachingInstance)
         ]
         log.debug(f'close cache')
         for element in caching_instances:

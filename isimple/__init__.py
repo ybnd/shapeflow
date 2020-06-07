@@ -13,12 +13,17 @@ from enum import Enum
 import yaml
 
 from _collections import defaultdict
-from pydantic import BaseModel, Field, FilePath, DirectoryPath
+from pydantic import BaseModel, Field, FilePath, DirectoryPath, validator
+from pydantic.error_wrappers import ValidationError
+from pydantic.errors import PathNotExistsError, PathNotADirectoryError, PathNotAFileError
 
 import diskcache
 
+print('loading library')
+
+
 # Library version
-__version__: str = '0.3.10'
+__version__: str = '0.3.11'
 
 VDEBUG = 9
 logging.addLevelName(VDEBUG, "VDEBUG")
@@ -97,7 +102,10 @@ class LogSettings(_Settings):  # todo: this class should track whether path exis
 class CacheSettings(_Settings):  # todo: this class should track whether path exists
     dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'cache'), description="cache directory")
     size_limit_gb: int = Field(default=4, description="cache size limit (GB)")
+    do_cache: bool = Field(default=True, description="use the cache")
+    do_background: bool = Field(default=True, description="cache in the background")
     resolve_frame_number: bool = Field(default=True, description="resolve to (nearest) cached frame numbers")
+    block_timeout: float = Field(default=0.1, description="wait for blocked item (s)")
 
 
 class RenderSettings(_Settings):  # todo: this class should track whether path exists
@@ -107,6 +115,11 @@ class RenderSettings(_Settings):  # todo: this class should track whether path e
 
 class DatabaseSettings(_Settings):
     path: FilePath = Field(default=os.path.join(ROOTDIR, 'history.db'), description="database file")
+
+
+class ApplicationSettings(_Settings):
+    save_state: bool = Field(default=True, description="save application state")
+    load_state: bool = Field(default=True, description="load application state on start")
     recent_files: int = Field(default=16, description="# of recent files to fetch")
 
 
@@ -116,6 +129,7 @@ class Settings(_Settings):
     render: RenderSettings = Field(default=RenderSettings(), description="SVG Rendering")
     format: FormatSettings = Field(default=FormatSettings(), description="Formatting")
     db: DatabaseSettings = Field(default=DatabaseSettings(), description="Database")
+    app: ApplicationSettings = Field(default=ApplicationSettings(), description="Application")
 
     @classmethod
     def from_dict(cls, settings: dict):
@@ -138,29 +152,40 @@ def _load_settings(path: str = _SETTINGS_FILE) -> Settings:  # todo: if there ar
 
         # Get settings
         if settings_yaml is not None:
-            settings = Settings.from_dict(settings_yaml)
+            try:
+                settings = Settings.from_dict(settings_yaml)
+            except ValidationError as e:
+                for error in e.raw_errors:
+                    if isinstance(error.exc, PathNotExistsError):
+                        path = Path(error.exc.path)
+                        if e.model().fields[error._loc].type_ == DirectoryPath:  # todo: this is a bit...
+                            path.mkdir()
+                        elif e.model().fields[error._loc].type_ == FilePath:
+                            path.touch()
+                _load_settings(_SETTINGS_FILE)  # todo: should have a recursion limit of like 2
+
         else:
             settings = Settings()
 
         # Create directories if needed
         for dir in (settings.log.dir, settings.render.dir, settings.cache.dir):
-            if not os.path.isdir(dir):
-                os.mkdir(dir)
+            if not dir.is_dir():
+                dir.mkdir()
 
         # Move the previous log file to ROOTDIR/log
-        if os.path.isfile(settings.log.path):
+        if settings.log.path.is_file():
             shutil.move(
-                settings.log.path,
+                str(settings.log.path),  # todo: convert to pathlib
                 os.path.join(
-                    settings.log.dir,
+                    str(settings.log.dir),
                     datetime.datetime.fromtimestamp(
-                        os.path.getmtime(settings.log.path)
+                        os.path.getmtime(str(settings.log.path))
                     ).strftime(settings.format.datetime_format_fs) + '.log'
                 )
             )
 
         # If more files than specified in ini.log.keep, remove the oldest
-        files = glob.glob(os.path.join(settings.log.dir, '*.log'))
+        files = glob.glob(os.path.join(str(settings.log.dir), '*.log'))  # todo: convert to pathlib
         files.sort(key=lambda f: os.path.getmtime(f), reverse=True)
         while len(files) > settings.log.keep:
             os.remove(files.pop())
@@ -168,15 +193,15 @@ def _load_settings(path: str = _SETTINGS_FILE) -> Settings:  # todo: if there ar
         return settings
 
 
+def save_settings(settings: Settings, path: str = _SETTINGS_FILE):
+    with open(path, 'w+') as f:
+        yaml.safe_dump(settings.to_dict(),f)
+
+
 if not os.path.isfile(_SETTINGS_FILE):
     settings = Settings()
 else:
     settings = _load_settings(_SETTINGS_FILE)
-
-
-def save_settings(settings: Settings, path: str = _SETTINGS_FILE):
-    with open(path, 'w+') as f:
-        yaml.safe_dump(settings.to_dict(),f)
 
 
 save_settings(settings)

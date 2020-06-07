@@ -4,23 +4,17 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from isimple.core.config import Config, Factory
+from pydantic import Field, FilePath, DirectoryPath, Schema
+
+from isimple.core.config import BaseConfig, Instance, Factory, NpArray
 from isimple.maths.colors import HsvColor
 from isimple.maths.coordinates import Coo
 
 
-class Interface(object):
-    _config_class: Type[Config]
-
-    @classmethod
-    def config_class(cls):
-        return cls._config_class
-
-
 class InterfaceFactory(Factory):
-    def get(self) -> Type[Interface]:
+    def get(self) -> Type[Instance]:
         interface = super().get()
-        if issubclass(interface, Interface):
+        if issubclass(interface, Instance):
             return interface
         else:
             raise TypeError(
@@ -29,9 +23,9 @@ class InterfaceFactory(Factory):
             )
 
 
-class HandlerConfig(Config, abc.ABC):
+class HandlerConfig(BaseConfig, abc.ABC):
     type: InterfaceFactory
-    data: Config
+    data: BaseConfig
 
     def _get_field_type(self, attr):
         """Resolve type of self.data ~ implementation (self.type)
@@ -42,14 +36,14 @@ class HandlerConfig(Config, abc.ABC):
             return super()._get_field_type(attr)
 
 
-@dataclass
-class TransformConfig(Config):
-    matrix: Optional[np.ndarray] = field(default=None)
-    inverse: Optional[np.ndarray] = field(default=None)
+class TransformConfig(BaseConfig):
+    """Undefined transform"""
+    pass
 
 
-class TransformInterface(Interface, abc.ABC):
+class TransformInterface(Instance, abc.ABC):
     _config_class: Type[TransformConfig]
+    _config: TransformConfig
 
     @abc.abstractmethod
     def validate(self, matrix: Optional[np.ndarray]) -> bool:
@@ -72,14 +66,13 @@ class TransformInterface(Interface, abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def inverse(self, transform, img: np.ndarray, shape: Tuple[int, int]) -> np.ndarray:
-        raise NotImplementedError
-
     def coordinate(self, transform, coordinate: Coo, shape: Tuple[int, int]) -> Coo:
         raise NotImplementedError
 
 
-class FilterConfig(Config):
+class FilterConfig(BaseConfig):
+    """Undefined filter"""
+
     @property
     def ready(self):
         """Return true if filter can be applied ~ this configuration.
@@ -88,7 +81,7 @@ class FilterConfig(Config):
         return False
 
 
-class FilterInterface(Interface, abc.ABC):
+class FilterInterface(Instance, abc.ABC):
     """Handles pixel filtering operations
     """
     _config_class: Type[FilterConfig]

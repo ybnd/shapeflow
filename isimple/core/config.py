@@ -1,7 +1,9 @@
 import abc
+import copy
+import json
 
 import numpy as np
-from typing import Optional, Union, Type, Dict
+from typing import Optional, Union, Type, Dict, Any
 from functools import partial
 
 from isimple import get_logger, __version__
@@ -9,6 +11,8 @@ from isimple.core import EnforcedStr
 from isimple.maths.colors import Color
 from isimple.util import ndarray2str, str2ndarray
 from isimple.util.meta import resolve_type_to_most_specific, is_optional
+
+from pydantic import BaseModel, Field
 
 
 log = get_logger(__name__)
@@ -97,10 +101,21 @@ def untag(d: dict) -> dict:
     return d
 
 
-class Config(abc.ABC):
+class NpArray(np.ndarray):
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v: Any) -> str:
+        # validate data...
+        return v
+
+
+class BaseConfig(BaseModel):
     """Abstract class for configuration data.
 
-    * Usage, where `SomeConfig` is a subclass of `Config`:
+    * Usage, where `SomeConfig` is a subclass of `BaseConfig`:
         * Instantiating:
             ```
                 config = SomeConfig()
@@ -118,38 +133,37 @@ class Config(abc.ABC):
                 dict_with_fields_and_values = config.to_dict()
             ```
 
-    * Writing `Config` subclasses:
+    * Writing `BaseConfig` subclasses:
         * Use the `@extends(ConfigType)` decorator to make your configuration
             class accessible from the `ConfigType` Factory (defined below)
-        * Every subclass of `Config` should be made a [dataclass](https://docs.python.org/3/library/dataclasses.html)
-            with the `@dataclass` decorator
-        * Configuration keys are declared as `field` instances
+        * Configuration keys are declared as pydantic `Field` instances
             - Must be type-annotated for type resolution to work properly!
             -
     ```
-        from dataclasses import dataclass, field
-        from isimple.core.config import Config
+        from pydantic import Field
+        from isimple.core.config import BaseConfig
 
         @extend(ConfigType)
-        @dataclass
-        class SomeConfig(Config):
-            field1: int = field(default=42)
-            field2: SomeOtherConfig = field(default_factory=SomeOtherConfig)
+        class SomeConfig(BaseConfig):
+            field1: int = Field(default=42)
+            field2: SomeNestedConfig = Field(default_factory=SomeOtherConfig)
     ```
     """
-    def __init__(self, **kwargs):
-        """Placeholder for dataclass.__init__()
-        """
-        pass
+    class Config:
+        """pydantic configuration class"""
+        arbitrary_types_allowed = True
+        json_encoders = {
+            np.ndarray: list
+        }
 
-    def __post_init__(self):
-        self.resolve()
+    def __init__(self, **kwargs):
+        super().__init__()
+        self.__call__(**kwargs)
 
     def resolve(self):
         """Passes fields to self.__call__() to resolve type
                 """
         self(**self.__dict__)
-
 
     def __call__(self, **kwargs) -> None:
         """Set fields ~ (field, value) in kwargs.
@@ -181,11 +195,11 @@ class Config(abc.ABC):
         """
 
         for kw, value in kwargs.items():
-            if kw in self.fields():
+            if kw in self.fields:
                 field_type = self._get_field_type(kw)
 
                 if value is None:
-                    if is_optional(self.fields()[kw].type):
+                    if self.fields[kw].allow_none:
                         setattr(self, kw, value)
                     else:
                         raise ValueError
@@ -227,14 +241,14 @@ class Config(abc.ABC):
                                 })
                         else:
                             setattr(self, kw, self._resolve_value(value, field_type))
-                    elif issubclass(field_type, Config):
+                    elif issubclass(field_type, BaseConfig):
                         # If field is an existing Config subclass, integrate value instead of overwriting
                         if not isinstance(getattr(self, kw), field_type):
                             # Resolve current value to correct type
                             setattr(self, kw, self._resolve_value(getattr(self, kw), field_type))
                         if isinstance(value, dict):
                             getattr(self, kw).__call__(**untag(value))
-                        elif isinstance(value, Config):
+                        elif isinstance(value, BaseConfig):
                             getattr(self, kw).__call__(**untag(value.to_dict()))
                     else:
                         setattr(self, kw, self._resolve_value(value, field_type))
@@ -247,7 +261,7 @@ class Config(abc.ABC):
                             f"unexpected field {{'{kw}': {value}}}.")
 
     def _get_field_type(self, attr):
-        return resolve_type_to_most_specific(self.fields()[attr].type)
+        return resolve_type_to_most_specific(self.__fields__[attr].outer_type_)
 
     @staticmethod
     def _resolve_value(val, type, iter: bool = False):
@@ -274,9 +288,9 @@ class Config(abc.ABC):
                     val = np.array(val)
                 else:
                     val = type(*val)
-            elif isinstance(val, dict) and issubclass(type, Config):
+            elif isinstance(val, dict) and issubclass(type, BaseConfig):
                 val = type(**untag(val))
-            elif issubclass(type, Config) or issubclass(type, EnforcedStr):
+            elif issubclass(type, BaseConfig) or issubclass(type, EnforcedStr):
                 val = type()
             return val
 
@@ -286,13 +300,6 @@ class Config(abc.ABC):
             # Resolve `val`
             val = __resolve_value(val, type)
         return val
-
-    @classmethod
-    def fields(cls) -> dict:  # todo: something something type Config properly as a dataclass?
-        if hasattr(cls, '__dataclass_fields__'):
-            return cls.__dataclass_fields__  # type: ignore
-        else:
-            return {}
 
     def to_dict(self, do_tag: bool = False) -> dict:
         """Return the configuration as a serializable dict.
@@ -305,7 +312,7 @@ class Config(abc.ABC):
             :param obj: object
             :return:
             """
-            if isinstance(obj, Config):
+            if isinstance(obj, BaseConfig):
                 # Recurse, but don't tag
                 return obj.to_dict(do_tag = False)
             if isinstance(obj, EnforcedStr):
@@ -355,14 +362,48 @@ class Config(abc.ABC):
 
 
 class ConfigType(Factory):
-    _type = Config
+    _type = BaseConfig
 
-    def get(self) -> Type[Config]:
+    def get(self) -> Type[BaseConfig]:
         config = super().get()
-        if issubclass(config, Config):
+        if issubclass(config, BaseConfig):
             return config
         else:
             raise TypeError(
                 f"'{self.__class__.__name__}' tried to return an unexpected type '{config}'. "
                 f"This is very weird and shouldn't happen, really."
             )
+
+class Instance(object):
+    _config_class: Type[BaseConfig]
+    _config: BaseConfig
+
+    @classmethod
+    def config_class(cls):
+        return cls._config_class
+
+    @property
+    def config(self) -> BaseConfig:
+        return self._config
+
+    def __init__(self, config: BaseConfig = None):
+        self._configure(config)
+        super(Instance, self).__init__()
+
+        log.debug(f'Initialized {self.__class__.__qualname__} with {self._config}')
+
+    def _configure(self, config: BaseConfig = None):   # todo: adapt to dataclass implementation
+        _type = self._config_class
+
+        if config is not None:
+            if isinstance(config, _type):
+                # Each instance should have a *copy* of the config, not references to the actual values
+                self._config = copy.deepcopy(config)
+            elif isinstance(config, dict):
+                log.warning(f"Initializing '{self.__class__.__name__}' from a dict, "
+                            f"please initialize from '{_type}' instead.")
+                self._config = _type(**untag(config))
+            else:
+                raise TypeError(f"Tried to initialize '{self.__class__.__name__}' with {type(config).__name__} '{config}'.")
+        else:
+            self._config = _type()

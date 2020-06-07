@@ -31,12 +31,13 @@ class SetupError(RootException):
     pass
 
 
-class EnforcedStr(object):
+class EnforcedStr(str):  # todo: should derive from enum.StrEnum instead
     _options: List[str] = ['']
     _descriptions: Dict[str, str] = {}
     _str: str
 
     def __init__(self, string: str = None):
+        super().__init__()
         if string is not None:
             if string not in self.options:
                 if string:
@@ -79,7 +80,7 @@ class EnforcedStr(object):
     def default(self):
         return self._options[0]
 
-    def __hash__(self):
+    def __hash__(self):  # todo: why?
         return hash(str(self))
 
 
@@ -267,7 +268,7 @@ class RootInstance(Lockable):
 
     _endpoints: ImmutableRegistry
     _instances: List
-    _instance_class = object
+    _instance_class: type
     _instance_mapping: Dict[Endpoint, List[Callable]]
 
     def __init__(self):

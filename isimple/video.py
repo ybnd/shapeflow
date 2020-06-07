@@ -15,7 +15,7 @@ from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     DesignFileHandlerConfig, VideoAnalyzerConfig, load, dump, \
     FrameIntervalSetting, BaseAnalyzerConfig, PerspectiveTransformConfig
 from isimple.core import RootInstance, Lockable
-from isimple.core.backend import BackendInstance, CachingBackendInstance, \
+from isimple.core.backend import Instance, CachingInstance, \
     Handler, BaseVideoAnalyzer, BackendSetupError, AnalyzerType, Feature, \
     FeatureSet, \
     FeatureType, backend, AnalyzerState, AnalyzerEvent
@@ -37,7 +37,7 @@ class VideoFileTypeError(BackendSetupError):
     msg = 'Unrecognized video file type'  # todo: formatting
 
 
-class VideoFileHandler(CachingBackendInstance, Lockable):
+class VideoFileHandler(CachingInstance, Lockable):
     """Interface to video files ~ OpenCV
     """
     path: str
@@ -54,6 +54,7 @@ class VideoFileHandler(CachingBackendInstance, Lockable):
     colorspace: str
 
     _config: VideoFileHandlerConfig
+    _config_class = VideoFileHandlerConfig
     _class = VideoFileHandlerConfig()
 
     _progress_callback: Callable[[float], None]
@@ -145,7 +146,7 @@ class VideoFileHandler(CachingBackendInstance, Lockable):
             state_callback(AnalyzerState.ERROR)
 
     def cache_frames(self, progress_callback: Callable[[float], None], state_callback: Callable[[int], None]):
-        if self.config.do_cache and self.config.do_background and not self.cached:
+        if settings.cache.do_cache and settings.cache.do_background and not self.cached:
             self._background = threading.Thread(
                 target=self._cache_frames, args=(progress_callback, state_callback,), daemon=True
             )
@@ -256,6 +257,7 @@ class VideoFileHandler(CachingBackendInstance, Lockable):
 @extend(TransformType)
 class PerspectiveTransform(TransformInterface):
     _config_class = PerspectiveTransformConfig
+    _config: PerspectiveTransformConfig
 
     def validate(self, matrix: Optional[np.ndarray]) -> bool:
         if matrix is not None:
@@ -289,24 +291,18 @@ class PerspectiveTransform(TransformInterface):
             self.to_coordinates(shape)
         )
 
-    def transform(self, transform: PerspectiveTransformConfig, img: np.ndarray, shape: tuple) -> np.ndarray:
+    def transform(self, matrix: np.ndarray, img: np.ndarray, shape: tuple) -> np.ndarray:
         return cv2.warpPerspective(
-            img, transform.matrix, shape,   # can't set destination image here! it's the wrong shape!
+            img, matrix, shape,   # can't set destination image here! it's the wrong shape!
             borderValue=(255,255,255),  # makes the border white instead of black ~https://stackoverflow.com/questions/30227979/
         )
 
-    def inverse(self, transform: PerspectiveTransformConfig, img: np.ndarray, shape: tuple) -> np.ndarray:
-        return cv2.warpPerspective(
-            img, transform.inverse, shape,   # can't set destination image here! it's the wrong shape!
-            borderValue=(255,255,255),  # makes the border white instead of black ~https://stackoverflow.com/questions/30227979/
-        )
-
-    def coordinate(self, transform: PerspectiveTransformConfig, coordinate: Coo, shape: Tuple[int, int]) -> Coo:
-        coordinate.transform(transform.inverse, shape)
+    def coordinate(self, inverse: np.ndarray, coordinate: Coo, shape: Tuple[int, int]) -> Coo:
+        coordinate.transform(inverse, shape)
         return coordinate
 
 
-class TransformHandler(BackendInstance, Handler):  # todo: clean up config / config.data -> Handler should not care what goes on in config.data!
+class TransformHandler(Instance, Handler):  # todo: clean up config / config.data -> Handler should not care what goes on in config.data!
     """Handles coordinate transforms.
     """
     _video_shape: Tuple[int, int]
@@ -317,7 +313,10 @@ class TransformHandler(BackendInstance, Handler):  # todo: clean up config / con
     _implementation_class = TransformInterface
 
     _config: TransformHandlerConfig
-    _class = TransformHandlerConfig()
+    _config_class = TransformHandlerConfig
+
+    _matrix: Optional[np.ndarray]
+    _inverse: Optional[np.ndarray]
 
     def __init__(self, video_shape, design_shape, config: TransformHandlerConfig):
         super(TransformHandler, self).__init__(config)
@@ -325,13 +324,13 @@ class TransformHandler(BackendInstance, Handler):  # todo: clean up config / con
         self._video_shape = (video_shape[0], video_shape[1])  # Don't include color dimension
         self._design_shape = (design_shape[0], design_shape[1])
 
-        self.set(self.config.data.matrix)
+        self.estimate(self.config.roi)
 
     @property
     def config(self) -> TransformHandlerConfig:
         return self._config
 
-    @backend.expose(backend.set_transform_implementation)
+    @backend.expose(backend.set_transform_implementation)  # todo: doesn't need to be an endpoint if ~ set_config (+ don't need to worry about endpoint/nested instance resolution)
     def set_implementation(self, implementation: str) -> str:
         # If there's ever any method to set additional transform options, this method/endpoint can be merged into that
         return super(TransformHandler, self).set_implementation(implementation)
@@ -341,16 +340,21 @@ class TransformHandler(BackendInstance, Handler):  # todo: clean up config / con
         """
         if matrix is not None:
             if self._implementation.validate(matrix):
-                self.config.data(matrix=matrix, inverse=np.linalg.inv(matrix))
+                self._matrix = matrix
+                self._inverse = np.linalg.inv(matrix)
             else:
                 raise ValueError(f"Invalid transform {matrix} for "
                                  f"'{self._implementation.__class__.__name__}'")
         else:
-            self.config.data(matrix=None, inverse=None)
+            self._matrix = None
+            self._inverse = None
 
     @property
-    def is_set(self):
-        return self.config.data.matrix is not None
+    def is_set(self) -> bool:
+        if hasattr(self, '_matrix'):
+            return self._matrix is not None
+        else:
+            return False
 
     @backend.expose(backend.get_relative_roi)
     def get_relative_roi(self) -> dict:
@@ -454,23 +458,24 @@ class TransformHandler(BackendInstance, Handler):  # todo: clean up config / con
             Writes to the provided variable!
             If caller needs the original value, they should copy explicitly
         """
-        return self._implementation.transform(self.config.data, img, self._design_shape)
+        return self._implementation.transform(self._matrix, img, self._design_shape)
 
     def coordinate(self, coordinate: Coo) -> Coo:
         """Transform a design coordinate to a video coordinate
         """
         og_co = coordinate.copy()
-        co = self._implementation.coordinate(self.config.data, coordinate, self._video_shape[::-1])  # todo: ugh
+        co = self._implementation.coordinate(self._inverse, coordinate, self._video_shape[::-1])  # todo: ugh
         return co
 
     def inverse(self, img: np.ndarray) -> np.ndarray:
-        return self._implementation.inverse(self.config.data, img, self._video_shape)
+        return self._implementation.transform(self._inverse, img, self._video_shape)
 
 
 @extend(FilterType)
 class HsvRangeFilter(FilterInterface):
     """Filters by a range of hues ~ HSV representation
     """
+    _config: HsvRangeFilterConfig
     _config_class = HsvRangeFilterConfig
 
     def validate(self, filter):  # todo: may be better to 'normalize' the filter dict -- i.e. replace all fields that weren't found with the defaults
@@ -498,11 +503,12 @@ class HsvRangeFilter(FilterInterface):
         )
 
 
-class FilterHandler(BackendInstance, Handler):
+class FilterHandler(Instance, Handler):
     _implementation: FilterInterface
     _implementation_factory = FilterType
     _implementation_class = FilterInterface
 
+    _config_class = FilterHandlerConfig
     _config: FilterHandlerConfig
 
     def __init__(self, config: FilterHandlerConfig = None):
@@ -550,12 +556,13 @@ class FilterHandler(BackendInstance, Handler):
 
 
 
-class Mask(BackendInstance):
+class Mask(Instance):
     """Handles masks in the context of a video file
     """
 
     filter: FilterHandler
 
+    _config_class = MaskConfig
     _config: MaskConfig
     _dpi: float
 
@@ -658,12 +665,12 @@ class Mask(BackendInstance):
         return self.config.skip
 
 
-class DesignFileHandler(CachingBackendInstance):
+class DesignFileHandler(CachingInstance):
     _overlay: np.ndarray
     _masks: List[Mask]
 
     _config: DesignFileHandlerConfig
-    _class = DesignFileHandlerConfig()
+    _config_class = DesignFileHandlerConfig
 
     def __init__(self, path: str, config: DesignFileHandlerConfig = None, mask_config: Tuple[MaskConfig,...] = None):
         super(DesignFileHandler, self).__init__(config)
@@ -942,7 +949,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             * Load/save measurement metadata
     """
     _config: VideoAnalyzerConfig
-    _class = VideoAnalyzerConfig('', '')  # todo: why is this again?
+    _config_class = VideoAnalyzerConfig
     # _endpoints: BackendRegistry = backend
 
     video: VideoFileHandler

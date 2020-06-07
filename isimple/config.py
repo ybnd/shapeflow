@@ -7,11 +7,14 @@ import numpy as np
 import yaml
 import json
 
+from pydantic import Field, FilePath, DirectoryPath
+from pydantic.dataclasses import dataclass
+
 from isimple import __version__
-from isimple.core.backend import BaseAnalyzerConfig, CachingBackendInstanceConfig, \
+from isimple.core.backend import BaseAnalyzerConfig, \
     FeatureType
 from isimple.core.config import extend, ConfigType, \
-    log, VERSION, CLASS, untag, Config
+    log, VERSION, CLASS, untag, BaseConfig
 from isimple.core import EnforcedStr
 from isimple.core.interface import FilterConfig, \
     FilterType, TransformType, TransformConfig, FilterConfig, HandlerConfig
@@ -32,35 +35,35 @@ class FrameIntervalSetting(EnforcedStr):
 
 
 @extend(ConfigType)
-@dataclass
-class VideoFileHandlerConfig(CachingBackendInstanceConfig):
+class VideoFileHandlerConfig(BaseConfig):
+    """Video file"""
     pass
 
 
 @extend(ConfigType)
-@dataclass
 class PerspectiveTransformConfig(TransformConfig):
+    """Perspective transform"""
     pass
 
 
 @extend(ConfigType)
-@dataclass
 class TransformHandlerConfig(HandlerConfig):
-    type: TransformType = field(default_factory=TransformType)
-    data: TransformConfig = field(default_factory=TransformConfig)
+    """Transform"""
+    type: TransformType = Field(default_factory=TransformType)
+    data: TransformConfig = Field(default_factory=TransformConfig)
 
-    roi: Optional[dict] = field(default=None)  # todo: maybe make this a config?
-    flip: Tuple[bool, bool] = field(default=(False, False))  # (vertical, horizontal)
-    turn: int = field(default=0) # number of 90° turns (CW)
+    roi: Optional[dict] = Field(default=None)  # todo: maybe make this a config?
+    flip: Tuple[bool, bool] = Field(default=(False, False))  # (vertical, horizontal)
+    turn: int = Field(default=0) # number of 90° turns (CW)
 
 
 @extend(ConfigType)
-@dataclass
 class HsvRangeFilterConfig(FilterConfig):
-    radius: HsvColor = field(default=HsvColor(10, 75, 75))
+    """HSV range filter"""
+    radius: HsvColor = Field(default=HsvColor(10, 75, 75))
 
-    c0: HsvColor = field(default=HsvColor(0, 0, 0))
-    c1: HsvColor = field(default=HsvColor(0, 0, 0))
+    c0: HsvColor = Field(default=HsvColor(0, 0, 0))
+    c1: HsvColor = Field(default=HsvColor(0, 0, 0))
 
     @property
     def ready(self) -> bool:
@@ -68,10 +71,10 @@ class HsvRangeFilterConfig(FilterConfig):
 
 
 @extend(ConfigType)
-@dataclass
 class FilterHandlerConfig(HandlerConfig):
-    type: FilterType = field(default_factory=FilterType)
-    data: FilterConfig = field(default_factory=FilterConfig)
+    """Filter"""
+    type: FilterType = Field(default_factory=FilterType)
+    data: FilterConfig = Field(default_factory=FilterConfig)
 
     @property
     def ready(self) -> bool:
@@ -79,13 +82,13 @@ class FilterHandlerConfig(HandlerConfig):
 
 
 @extend(ConfigType)
-@dataclass
-class MaskConfig(Config):
-    name: Optional[str] = field(default=None)
-    skip: bool = field(default=False)
-    filter: FilterHandlerConfig = field(default_factory=FilterHandlerConfig)
+class MaskConfig(BaseConfig):
+    """Mask"""
+    name: Optional[str] = Field(default=None)
+    skip: bool = Field(default=False)
+    filter: FilterHandlerConfig = Field(default_factory=FilterHandlerConfig)
 
-    parameters: Dict[FeatureType, Dict[str, Tuple[bool, Any]]] = field(default_factory=dict)
+    parameters: Dict[FeatureType, Dict[str, Tuple[bool, Any]]] = Field(default_factory=dict)
 
     @property
     def ready(self):
@@ -93,31 +96,31 @@ class MaskConfig(Config):
 
 
 @extend(ConfigType)
-@dataclass
-class DesignFileHandlerConfig(CachingBackendInstanceConfig):
-    dpi: int = field(default=400)
+class DesignFileHandlerConfig(BaseConfig):
+    """Design file"""
+    dpi: int = Field(default=400)
 
-    overlay_alpha: float = field(default=0.1)  # todo: more of a application setting
-    smoothing: int = field(default=7)
+    overlay_alpha: float = Field(default=0.1)  # todo: more of a application setting
+    smoothing: int = Field(default=7)
 
 
 @extend(ConfigType)
-@dataclass
 class VideoAnalyzerConfig(BaseAnalyzerConfig):
-    frame_interval_setting: Union[FrameIntervalSetting,str] = field(default_factory=FrameIntervalSetting)
-    dt: Optional[float] = field(default=5.0)
-    Nf: Optional[int] = field(default=100)
+    """Video analyzer"""
+    frame_interval_setting: FrameIntervalSetting = Field(default_factory=FrameIntervalSetting)
+    dt: Optional[float] = Field(default=5.0)
+    Nf: Optional[int] = Field(default=100)
 
-    video: VideoFileHandlerConfig = field(default_factory=VideoFileHandlerConfig)
-    design: DesignFileHandlerConfig = field(default_factory=DesignFileHandlerConfig)
-    transform: TransformHandlerConfig = field(default_factory=TransformHandlerConfig)
-    masks: Tuple[MaskConfig, ...] = field(default_factory=tuple)
+    video: VideoFileHandlerConfig = Field(default_factory=VideoFileHandlerConfig)
+    design: DesignFileHandlerConfig = Field(default_factory=DesignFileHandlerConfig)
+    transform: TransformHandlerConfig = Field(default_factory=TransformHandlerConfig)
+    masks: Tuple[MaskConfig, ...] = Field(default_factory=tuple)
 
-    features: Tuple[FeatureType, ...] = field(default=())  # todo: should be a tuple of (FeatureType, <config of feature>)
-    parameters: Dict[FeatureType, Dict[str, Any]] = field(default_factory=dict)
+    features: Tuple[FeatureType, ...] = Field(default=())  # todo: should be a tuple of (FeatureType, <config of feature>)
+    parameters: Dict[FeatureType, Dict[str, Any]] = Field(default_factory=dict)
 
     def resolve(self):
-        super(VideoAnalyzerConfig, self).resolve()
+        super(VideoAnalyzerConfig, self).resolve()  # todo: doesn't seem to resolve correctly ~ pydantic
 
         # Remove unused parameters
         for feature in list(self.parameters.keys()):
@@ -127,6 +130,8 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
         # Propagate global parameters to masks
         #   this overwrites any values that were overridden by the masks!
         for mask in self.masks:
+            if isinstance(mask, dict):
+                mask = MaskConfig(**mask)  # todo: this should have happened in super().resolve(), but it didn't!
             mask(parameters=self.parameters)
 
 
@@ -139,7 +144,7 @@ def load(path: str) -> VideoAnalyzerConfig:
     return VideoAnalyzerConfig(**d)
 
 
-def loads(config: str) -> Config:
+def loads(config: str) -> BaseConfig:
     d = json.loads(config)
 
     try:
@@ -251,7 +256,7 @@ def normalize_config(d: dict) -> dict:
                     d.pop('keep_renders')
         if before_version(d[VERSION], '0.3.8'):
             normalizing_to('0.3.8')
-            # remove CachingBackendInstance.cache_consumer
+            # remove CachingInstance.cache_consumer
             if 'video' in d:
                 if 'cache_consumer' in d['video']:
                     d['video'].pop('cache_consumer')
@@ -272,16 +277,25 @@ def normalize_config(d: dict) -> dict:
                 if not 'data' in d['transform']:
                     d['transform']['data'] = {}
                 d['transform']['data']['matrix'] = d['transform'].pop('matrix')
+        if before_version(d[VERSION], '0.3.11'):
+            normalizing_to('0.3.11')
+            # remove matrix & inverse fields from TransformConfig.data
+            if 'transform' in d:
+                if 'data' in d['transform']:
+                    if 'matrix' in d['transform']['data']:
+                        d['transform']['data'].pop('matrix')
+                    if 'inverse' in d['transform']['data']:
+                        d['transform']['data'].pop('inverse')
 
 
     else:
         raise NotImplementedError
 
-    # Deal with non-standard fields
+    # Remove non-standard fields
     config_type = ConfigType(d[CLASS]).get()
     for k in list(d.keys()):
         if k not in (VERSION, CLASS):
-            if not k in config_type.fields():
+            if not k in config_type.__fields__:
                 log.warning(f"Removed unexpected attribute "
                             f"'{k}':{d.pop(k)} from {d[CLASS]}")
 

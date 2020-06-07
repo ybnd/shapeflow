@@ -295,17 +295,19 @@ class StreamHandler(Lockable):
     def unregister(self, instance: object, method = None):
         """Unregister `method`: stop its streamer & delete
         """  # todo: should unregister explicitly e.g. when closing a page
-        with self.lock():
+        def _unregister(method):
             method = unbind(method)
             if self.is_registered(instance, method):
                 log.debug(f'unregistering {instance}, {method}')
-                if method is not None:
-                    self._streams[instance][method].stop()
-                    del self._streams[instance][method]
-                else:
-                    for stream in self._streams[instance].values():
-                        stream.stop()
-                    del self._streams[instance]
+                self._streams[instance][method].stop()
+                del self._streams[instance][method]
+
+        with self.lock():
+            if method is not None:
+                _unregister(method)
+            else:
+                for method in self._streams[instance].values():
+                    _unregister(method)
 
     def update(self):
         try:

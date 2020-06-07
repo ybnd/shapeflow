@@ -14,7 +14,7 @@ from OnionSVG import OnionSVG
 from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     DesignFileHandlerConfig, VideoAnalyzerConfig, TransformType, PerspectiveTransformConfig
 from isimple.video import VideoFileHandler, VideoFileTypeError, \
-    CachingBackendInstance, VideoAnalyzer
+    CachingInstance, VideoAnalyzer
 from isimple import settings
 from isimple.core.config import *
 
@@ -69,7 +69,7 @@ class FrameTest(unittest.TestCase):
         self.assertTrue(np.equal(frame1, frame2).all())
 
     def assertFrameInCache(self, vi, frame_number):
-        assert isinstance(vi, CachingBackendInstance) and vi._cache is not None
+        assert isinstance(vi, CachingInstance) and vi._cache is not None
         self.assertTrue(
             vi._get_key(vi._read_frame, vi.path, frame_number) in vi._cache
         )
@@ -154,17 +154,17 @@ class VideoInterfaceTest(FrameTest):
 
 class VAConfigTest(FrameTest):
     def test_config_propagation(self):
-        t = TransformHandlerConfig(type=TransformType('PerspectiveTransform'), data=PerspectiveTransformConfig(matrix=TRANSFORM))
-        va = VideoAnalyzerConfig(transform=t)
+        d = DesignFileHandlerConfig(smoothing = 37)
+        va = VideoAnalyzerConfig(design=d)
 
-        self.assertEqualArray(t.data.matrix, va.transform.data.matrix)
+        self.assertEqualArray(d.smoothing, va.design.smoothing)
 
 
 class VideoAnalyzerTest(FrameTest):
     config = VideoAnalyzerConfig(
         video_path=__VIDEO__,
         design_path=__DESIGN__,
-        transform=TransformHandlerConfig(type=TransformType('PerspectiveTransform'), data=PerspectiveTransformConfig(matrix=TRANSFORM)),
+        transform=TransformHandlerConfig(type=TransformType('PerspectiveTransform')),
         video=VideoFileHandlerConfig(do_cache=False),
         design=DesignFileHandlerConfig(),
     )
@@ -199,26 +199,22 @@ class VideoAnalyzerTest(FrameTest):
 
         self.assertTrue(hasattr(va.design, '_masks'))
         self.assertEqual(len(va.design._masks), 9)
-        self.assertTrue(
-            np.all(np.equal(TRANSFORM, va._config.transform.data.matrix))
-        )
 
         settings.render.keep=og_keep  # set keep renders back to original setting
 
     def test_loading_after_init(self):
         config = deepcopy(self.config)
-        config.design(do_cache = False) # we want to check the render folder, so we have to render
 
-        og_keep = deepcopy(settings.render.keep)
+        og_cache = deepcopy(settings.cache)
+        og_render = deepcopy(settings.render)
+        settings.cache.do_cache=False # force render
         settings.render.keep=True # keep renders
 
-        va = VideoAnalyzer(None)
+        va = VideoAnalyzer()
 
         self.assertFalse(hasattr(va, 'video'))
         self.assertFalse(hasattr(va, 'design'))
         self.assertFalse(hasattr(va, 'transform'))
-
-
 
         va.set_config(config.to_dict())
         va.launch()
@@ -243,11 +239,9 @@ class VideoAnalyzerTest(FrameTest):
 
         self.assertTrue(hasattr(va.design, '_masks'))
         self.assertEqual(len(va.design._masks), 9)
-        self.assertTrue(
-            np.all(np.equal(TRANSFORM, va.transform.config.data.matrix))
-        )
 
-        settings.render.keep=og_keep  # set keep renders back to original setting
+        settings.cache = og_cache
+        settings.render = og_render
 
     def test_frame_number_generator(self):  # todo: don't need the design to load here
         # Don't overwrite self.config
@@ -273,10 +267,11 @@ class VideoAnalyzerTest(FrameTest):
     def test_context(self):  # todo: don't need the design to load here
         # Don't overwrite self.config
         config = deepcopy(self.config)
+        og_cache = deepcopy(settings.cache)
 
         # Caching is disabled
-        config.video.do_cache = False
-        config.do_background = False
+        settings.cache.do_cache = False
+        settings.cache.do_background = False
         va = VideoAnalyzer(config)
         va.launch()
 
@@ -286,8 +281,8 @@ class VideoAnalyzerTest(FrameTest):
         self.assertEqual(None, va.video._cache)
 
         # Caching is enabled
-        config.video.do_cache = True
-        config.do_background = False
+        settings.cache.do_cache = True
+        settings.cache.do_background = False
         va = VideoAnalyzer(config)
         va.launch()
 
@@ -297,8 +292,8 @@ class VideoAnalyzerTest(FrameTest):
         self.assertEqual(None, va.video._cache)
 
         # Background caching is enabled
-        config.video.do_cache = True
-        config.do_background = True
+        settings.cache.do_cache = True
+        settings.cache.do_background = True
         va = VideoAnalyzer(config)
         va.launch()
 
@@ -316,10 +311,13 @@ class VideoAnalyzerTest(FrameTest):
             self.assertNotEqual(None, va.video._cache)
         self.assertEqual(None, va.video._cache)
 
+        settings.cache = og_cache
+
     def test_get_frame(self):
         config = deepcopy(self.config)
         va = VideoAnalyzer(config)
         va.launch()
+        va.transform._matrix = TRANSFORM
 
         with va.caching():
             for fn in va.frame_numbers():

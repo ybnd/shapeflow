@@ -102,13 +102,13 @@ class FileModel(NoGetterModel):
 
                 if any(hash == m['hash'] for m in match):
                     match = match.get()
-                    log.debug(f"{hash} -> {match}")
+                    log.debug(f"file {hash} -> {match}")
                     self.remove()
                     if self._parent is not None:
                         setattr(*self._parent, match)
                     return match['id']
                 else:
-                    log.debug(f"{hash} -> {self}")
+                    log.debug(f"file {hash} -> {self}")
                     self.update({
                         'path': self._path,
                         'hash': hash,
@@ -466,7 +466,7 @@ class History(Database):
         files = self._fetch(model, 'added-')
         paths = []
         for i, file in enumerate(files):
-            if i < settings.db.recent_files:
+            if i < settings.app.recent_files:
                 paths.append(file['path'])
             else:
                 break
