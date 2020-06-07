@@ -14,7 +14,7 @@ import yaml
 
 from _collections import defaultdict
 from pydantic import BaseModel, Field, FilePath, DirectoryPath, validator
-from pydantic.error_wrappers import ValidationError
+from pydantic.error_wrappers import ValidationError, ErrorWrapper
 from pydantic.errors import PathNotExistsError, PathNotADirectoryError, PathNotAFileError
 
 import diskcache
@@ -154,14 +154,15 @@ def _load_settings(path: str = _SETTINGS_FILE) -> Settings:  # todo: if there ar
         if settings_yaml is not None:
             try:
                 settings = Settings.from_dict(settings_yaml)
-            except ValidationError as e:
+            except ValidationError as e:  # todo: this is very messy
                 for error in e.raw_errors:
+                    assert isinstance(error, ErrorWrapper)
                     if isinstance(error.exc, PathNotExistsError):
-                        path = Path(error.exc.path)
-                        if e.model().fields[error._loc].type_ == DirectoryPath:  # todo: this is a bit...
-                            path.mkdir()
-                        elif e.model().fields[error._loc].type_ == FilePath:
-                            path.touch()
+                        errored_path: Path = Path(error.exc.path)  # type: ignore
+                        if e.model().fields[error._loc].type_ == DirectoryPath:  # type: ignore
+                            errored_path.mkdir()
+                        elif e.model().fields[error._loc].type_ == FilePath:  # type: ignore
+                            errored_path.touch()
                 _load_settings(_SETTINGS_FILE)  # todo: should have a recursion limit of like 2
 
         else:

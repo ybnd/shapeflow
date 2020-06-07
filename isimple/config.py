@@ -1,4 +1,3 @@
-from dataclasses import dataclass, field
 from typing import Union, Optional, Tuple, Dict, Any
 
 import datetime
@@ -7,8 +6,7 @@ import numpy as np
 import yaml
 import json
 
-from pydantic import Field, FilePath, DirectoryPath
-from pydantic.dataclasses import dataclass
+from pydantic import Field
 
 from isimple import __version__
 from isimple.core.backend import BaseAnalyzerConfig, \
