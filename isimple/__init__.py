@@ -3,12 +3,15 @@ import abc
 import glob
 import shutil
 import pathlib
+import copy
 import re
 import datetime
 import logging
 
 from pathlib import Path
 from enum import Enum
+
+from contextlib import contextmanager
 
 import yaml
 
@@ -64,6 +67,18 @@ class _Settings(BaseModel):
                 })
         return d
 
+    @contextmanager
+    def override(self, overrides: dict):
+        originals: dict = {}
+        try:
+            for attribute, value in overrides.items():
+                originals[attribute] = copy.deepcopy(
+                    getattr(self, attribute))
+                setattr(self, attribute, value)
+            yield
+        finally:
+            for attribute, original in originals.items():
+                setattr(self, attribute, original)
 
 
 class FormatSettings(_Settings):

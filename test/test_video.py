@@ -172,76 +172,66 @@ class VideoAnalyzerTest(FrameTest):
     def test_loading(self):
         config = deepcopy(self.config)
 
-        og_keep = deepcopy(settings.render.keep)
-        settings.render.keep=True  # keep renders
-        config.design(do_cache=False) # don't use cached design renders
+        with settings.render.override({"keep": True}), \
+             settings.cache.override({"do_cache": False}):
+            va = VideoAnalyzer(config)
+            va.launch()
+            # self.assertEqual(self.config, config)  # todo: replace with a less problematic assertion
 
-        va = VideoAnalyzer(config)
-        va.launch()
-        # self.assertEqual(self.config, config)  # todo: replace with a less problematic assertion
+            self.assertListEqual(
+                sorted(list(os.listdir(settings.render.dir))),
+                sorted([
+                    '1 - WLC_SIMPLE.png',
+                    '2 - PM_SIMPLE.png',
+                    '3 - push1.png',
+                    '4 - push2.png',
+                    '5 - WLC_iSIMPLE.png',
+                    '6 - PM_iSIMPLE.png',
+                    '7 - block.png',
+                    '8 - PM_block.png',
+                    '9 - SLC.png',
+                    'overlay.png'
+                ])
+            )
+            va.design._clear_renders()
 
-        self.assertListEqual(
-            sorted(list(os.listdir(settings.render.dir))),
-            sorted([
-                '1 - WLC_SIMPLE.png',
-                '2 - PM_SIMPLE.png',
-                '3 - push1.png',
-                '4 - push2.png',
-                '5 - WLC_iSIMPLE.png',
-                '6 - PM_iSIMPLE.png',
-                '7 - block.png',
-                '8 - PM_block.png',
-                '9 - SLC.png',
-                'overlay.png'
-            ])
-        )
-        va.design._clear_renders()
-
-        self.assertTrue(hasattr(va.design, '_masks'))
-        self.assertEqual(len(va.design._masks), 9)
-
-        settings.render.keep=og_keep  # set keep renders back to original setting
+            self.assertTrue(hasattr(va.design, '_masks'))
+            self.assertEqual(len(va.design._masks), 9)
 
     def test_loading_after_init(self):
         config = deepcopy(self.config)
 
-        og_cache = deepcopy(settings.cache)
-        og_render = deepcopy(settings.render)
-        settings.cache.do_cache=False # force render
-        settings.render.keep=True # keep renders
+        with settings.render.override({"keep": True}), \
+             settings.cache.override({"do_cache": False}):
+            va = VideoAnalyzer()
 
-        va = VideoAnalyzer()
+            self.assertFalse(hasattr(va, 'video'))
+            self.assertFalse(hasattr(va, 'design'))
+            self.assertFalse(hasattr(va, 'transform'))
 
-        self.assertFalse(hasattr(va, 'video'))
-        self.assertFalse(hasattr(va, 'design'))
-        self.assertFalse(hasattr(va, 'transform'))
+            va.set_config(config.to_dict())
+            va.launch()
+            # self.assertEqual(self.config, config)  # todo: replace with a less problematic assertion
 
-        va.set_config(config.to_dict())
-        va.launch()
-        # self.assertEqual(self.config, config)  # todo: replace with a less problematic assertion
+            self.assertListEqual(
+                sorted(list(os.listdir(settings.render.dir))),
+                sorted([
+                    '1 - WLC_SIMPLE.png',
+                    '2 - PM_SIMPLE.png',
+                    '3 - push1.png',
+                    '4 - push2.png',
+                    '5 - WLC_iSIMPLE.png',
+                    '6 - PM_iSIMPLE.png',
+                    '7 - block.png',
+                    '8 - PM_block.png',
+                    '9 - SLC.png',
+                    'overlay.png'
+                ])
+            )
+            va.design._clear_renders()
 
-        self.assertListEqual(
-            sorted(list(os.listdir(settings.render.dir))),
-            sorted([
-                '1 - WLC_SIMPLE.png',
-                '2 - PM_SIMPLE.png',
-                '3 - push1.png',
-                '4 - push2.png',
-                '5 - WLC_iSIMPLE.png',
-                '6 - PM_iSIMPLE.png',
-                '7 - block.png',
-                '8 - PM_block.png',
-                '9 - SLC.png',
-                'overlay.png'
-            ])
-        )
-        va.design._clear_renders()
-
-        self.assertTrue(hasattr(va.design, '_masks'))
-        self.assertEqual(len(va.design._masks), 9)
-
-        settings.cache = og_cache
-        settings.render = og_render
+            self.assertTrue(hasattr(va.design, '_masks'))
+            self.assertEqual(len(va.design._masks), 9)
 
     def test_frame_number_generator(self):  # todo: don't need the design to load here
         # Don't overwrite self.config
@@ -263,55 +253,52 @@ class VideoAnalyzerTest(FrameTest):
 
         self.assertEqual(12, len(frames))
 
-    @unittest.skip("Unreliable, needs a deep dive")
+    # @unittest.skip("Unreliable, needs a deep dive.")
     def test_context(self):  # todo: don't need the design to load here
         # Don't overwrite self.config
         config = deepcopy(self.config)
         og_cache = deepcopy(settings.cache)
 
-        # Caching is disabled
-        settings.cache.do_cache = False
-        settings.cache.do_background = False
-        va = VideoAnalyzer(config)
-        va.launch()
+        with settings.cache.override(
+                {"do_cache": False, "do_background": False}):
+            va = VideoAnalyzer(config)
+            va.launch()
 
-        self.assertEqual(None, va.video._cache)
-        with va.caching():
             self.assertEqual(None, va.video._cache)
-        self.assertEqual(None, va.video._cache)
+            with va.caching():
+                self.assertEqual(None, va.video._cache)
+            self.assertEqual(None, va.video._cache)
 
-        # Caching is enabled
-        settings.cache.do_cache = True
-        settings.cache.do_background = False
-        va = VideoAnalyzer(config)
-        va.launch()
 
-        # self.assertEqual(None, va.video._cache)  todo: cache stays open ~ isimple.main -- not sure why
-        with va.caching():
-            self.assertNotEqual(None, va.video._cache)
-        self.assertEqual(None, va.video._cache)
+        with settings.cache.override(
+                {"do_cache": True, "do_background": False}):
+            va = VideoAnalyzer(config)
+            va.launch()
 
-        # Background caching is enabled
-        settings.cache.do_cache = True
-        settings.cache.do_background = True
-        va = VideoAnalyzer(config)
-        va.launch()
+            self.assertEqual(None, va.video._cache) # todo: cache stays open ~ isimple.main -- not sure why
+            with va.caching():
+                self.assertNotEqual(None, va.video._cache)
+            self.assertEqual(None, va.video._cache)
 
-        self.assertEqual(None, va.video._cache)
-        with va.caching():
-            self.assertNotEqual(None, va.video._cache)
-        self.assertEqual(None, va.video._cache)
+            # Background caching is enabled
+            settings.cache.do_cache = True
+            settings.cache.do_background = True
+            va = VideoAnalyzer(config)
+            va.launch()
+
+            self.assertEqual(None, va.video._cache)
+            with va.caching():
+                self.assertNotEqual(None, va.video._cache)
+            self.assertEqual(None, va.video._cache)
 
         # By default, main-thread caching is enabled
-        va = VideoAnalyzer(VideoAnalyzerConfig(__VIDEO__, __DESIGN__))
+        va = VideoAnalyzer(VideoAnalyzerConfig(video_path=__VIDEO__, design_path=__DESIGN__))
         va.launch()
 
         self.assertEqual(None, va.video._cache)
         with va.caching():
             self.assertNotEqual(None, va.video._cache)
         self.assertEqual(None, va.video._cache)
-
-        settings.cache = og_cache
 
     def test_get_frame(self):
         config = deepcopy(self.config)
