@@ -29,3 +29,4 @@ schema
 waitress
 flask
 unidecode
+pydantic
