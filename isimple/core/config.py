@@ -195,11 +195,11 @@ class BaseConfig(BaseModel):
         """
 
         for kw, value in kwargs.items():
-            if kw in self.fields:
+            if kw in self.__fields__:
                 field_type = self._get_field_type(kw)
 
                 if value is None:
-                    if self.fields[kw].allow_none:
+                    if self.__fields__[kw].allow_none:
                         setattr(self, kw, value)
                     else:
                         raise ValueError
