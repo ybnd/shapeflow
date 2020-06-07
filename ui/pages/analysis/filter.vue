@@ -258,7 +258,7 @@ export default {
       );
     },
     handleSetFilter(filter) {
-      let config = this.$store.getters["analyzers/getConfig"](this.id);
+      let config = this.$store.getters["analyzers/getAnalyzerConfig"](this.id);
       config.masks[this.mask].filter.type = filter;
 
       this.$store

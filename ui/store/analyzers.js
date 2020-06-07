@@ -237,7 +237,7 @@ export const getters = {
       return state.result[id];
     }
   },
-  getConfig: (state) => (id) => {
+  getAnalyzerConfig: (state) => (id) => {
     return state.config[id];
   },
   getFeatures: (state) => (id) => {
@@ -468,7 +468,7 @@ export const actions = {
       }
 
       let config = {
-        transform: { turn: getters["getConfig"](id).transform.turn },
+        transform: { turn: getters["getAnalyzerConfig"](id).transform.turn },
       };
 
       if (direction === "CW") {

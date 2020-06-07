@@ -14,7 +14,7 @@
       >
         <div class="popover-form-container">
           <b-row>
-            <basic-config
+            <BasicConfig
               ref="new_analyzer_form"
               :formStyle="{ width: '600px' }"
             />
@@ -89,7 +89,6 @@ export default {
               this.$router.push(`/analysis/align?id=${id}`);
             });
         } else {
-          // todo: some visual warning that it's incomplete...
           console.log("FORM IS NOT COMPLETE");
         }
       });

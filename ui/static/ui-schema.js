@@ -48,6 +48,20 @@ const InputComponent = {
       },
     };
   },
+  number() {
+    // todo: not sure how or why this is in schema...
+    return {
+      component: "b-form-input",
+      fieldOptions: {
+        attrs: {
+          type: "number",
+          step: 0.1,
+        },
+        on: { input: (value) => parseInt(value) },
+        class: "isimple-form-field-input",
+      },
+    };
+  },
   boolean() {
     return {
       component: "b-form-select",
@@ -75,7 +89,20 @@ const getComponent = {
       children: children,
     };
   },
+  NESTED_CATEGORY(title, children) {
+    return {
+      component: "b-card",
+      fieldOptions: {
+        class: "isimple-form-section-fit",
+        props: {
+          header: title,
+        },
+      },
+      children: children,
+    };
+  },
   FIELD(title, type, model, options) {
+    console.log(`FIELD() for type=${type}`);
     return {
       component: "b-row",
       fieldOptions: {
@@ -116,50 +143,124 @@ function getReference(property_schema) {
   }
 }
 
-export function UiSchema(schema, context = "", subschema) {
+export function UiSchema(
+  schema,
+  skip = [],
+  order = {},
+  context = "",
+  subschema
+) {
   console.log("ui-schema.UiSchema()");
-  assert(schema.properties !== undefined);
 
-  if (context !== "") {
-    assert(subschema !== undefined);
-  } else {
-    subschema = schema;
-  }
+  console.log("schema=");
+  console.log(schema);
 
-  let ui_schema = [];
+  console.log("skip=");
+  console.log(skip);
 
-  for (const property in subschema.properties) {
-    if (subschema.properties.hasOwnProperty(property)) {
-      console.log(`property ${property}`);
-      console.log(subschema.properties[property]);
+  try {
+    assert(schema !== undefined);
+    assert(schema.properties !== undefined);
 
-      // Check for reference & definition, recurse if found
-      const reference = getReference(subschema.properties[property]);
+    if (context !== "") {
+      assert(subschema !== undefined);
+    } else {
+      subschema = schema;
+    }
 
-      const title =
-        subschema.properties[property].description ||
-        subschema.properties[property].title.toLowerCase();
+    let ui_schema = [];
 
-      if (reference) {
-        const definition = pointer.get(schema, reference.slice(1));
-        const children = UiSchema(schema, property, definition);
+    console.log("We've got properties in this order: ");
+    console.log(subschema.properties);
 
-        ui_schema = [...ui_schema, getComponent.CATEGORY(title, children)];
-      } else {
-        const type = subschema.properties[property].enum
-          ? "enum"
-          : subschema.properties[property].type;
+    console.log("Order for this context is: ");
+    console.log(order[context]);
 
-        ui_schema = [
-          ...ui_schema,
-          getComponent.FIELD(title, type, `${context}.${property}`, {
-            enum_options: subschema.properties[property].enum,
-            format: subschema.properties[property].format,
-          }),
-        ];
+    let properties = [];
+    if (order[context]) {
+      let unordered = Object.keys(subschema.properties);
+      _.pullAll(unordered, order[context]);
+      properties = [...order[context], ...unordered];
+    } else {
+      properties = Object.keys(subschema.properties);
+    }
+
+    for (let i = 0; i < properties.length; i++) {
+      const property = properties[i];
+
+      if (subschema.properties.hasOwnProperty(property)) {
+        const model = context ? `${context}.${property}` : property;
+
+        console.log(`model = ${model}`);
+
+        if (skip.includes(model)) {
+          console.log(`skipping ${model}`);
+        } else {
+          console.log(`property ${property}`);
+          console.log(subschema.properties[property]);
+
+          // Check for reference & definition, recurse if found
+          const reference = getReference(subschema.properties[property]);
+
+          const title =
+            subschema.properties[property].description ||
+            subschema.properties[property].title.toLowerCase();
+
+          if (reference) {
+            const definition = pointer.get(schema, reference.slice(1));
+            const children = UiSchema(
+              schema,
+              skip,
+              order,
+              property,
+              definition
+            );
+
+            if (children.length > 0) {
+              if (context) {
+                ui_schema = [
+                  ...ui_schema,
+                  getComponent.NESTED_CATEGORY(title, children),
+                ];
+              } else {
+                ui_schema = [
+                  ...ui_schema,
+                  getComponent.CATEGORY(title, children),
+                ];
+              }
+            }
+          } else {
+            const type = subschema.properties[property].enum
+              ? "enum"
+              : subschema.properties[property].type;
+
+            if (type === "array") {
+              // todo: handle arrays
+              console.log("THIS IS AN ARRAY I'M CONFUSED");
+            } else if (type === "object") {
+              // todo: handle arrays
+              console.log("THIS IS AN OBJECT I'M CONFUSED");
+            } else {
+              ui_schema = [
+                ...ui_schema,
+                getComponent.FIELD(title, type, model, {
+                  enum_options: subschema.properties[property].enum,
+                  format: subschema.properties[property].format,
+                }),
+              ];
+            }
+          }
+        }
       }
     }
-  }
 
-  return ui_schema;
+    // todo: postprocess
+    //  -> orphan fields on top
+    //  -> fix order?
+
+    return ui_schema;
+  } catch (err) {
+    console.warn(`ui-schema.UiSchema() failed`);
+    console.warn(err);
+  }
 }

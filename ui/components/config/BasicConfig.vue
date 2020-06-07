@@ -232,7 +232,7 @@ export default {
           Nf: 100,
           dt: 5,
           features: ["Volume_uL"],
-          parameters: {},
+          parameters: {}, // todo: don't actually get sent to the backend
         };
       },
     },
@@ -348,10 +348,10 @@ export default {
   },
   computed: {
     features() {
-      return this.$store.state.options.feature;
+      return this.$store.state.schemas.feature; // todo: replace with getter
     },
     frame_interval_settings() {
-      return this.$store.state.options.frame_interval_setting;
+      return this.$store.state.schemas.frame_interval_setting; // todo: replace with getter
     },
   },
   asyncComputed: {

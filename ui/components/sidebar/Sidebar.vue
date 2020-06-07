@@ -68,7 +68,7 @@ export default {
     sync() {
       if (!this.waiting) {
         this.waiting = true;
-        this.$store.dispatch("options/sync");
+        this.$store.dispatch("schemas/sync");
         this.$store.dispatch("analyzers/sync").then((ok) => {
           if (ok) {
             this.queue = this.$store.getters["analyzers/getQueue"];

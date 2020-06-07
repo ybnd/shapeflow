@@ -183,7 +183,7 @@ export default {
       } else {
         this.$root.$emit(events.sidebar.open(this.id));
 
-        this.align.flip = this.$store.getters["analyzers/getConfig"](
+        this.align.flip = this.$store.getters["analyzers/getAnalyzerConfig"](
           this.id
         ).transform.flip;
 
@@ -445,12 +445,14 @@ export default {
       console.log("align: handleShowMoveable()");
       return new Promise((resolve, reject) => {
         this.moveableShow = true;
-        var wait = setInterval(() => {
+        const wait = setInterval(() => {
           console.log("checking if moveable exists");
           if (this.$refs.moveable !== undefined) {
             console.log("it does, resolving");
             clearInterval(wait);
             resolve();
+          } else {
+            console.log("it doesn't seem to...");
           }
         }, 5);
       });

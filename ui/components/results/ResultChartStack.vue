@@ -14,7 +14,7 @@
         <ResultChart
           :chart-data="{
             datasets: feature_data,
-            unit: $store.state.options.feature.units[feature],
+            unit: $store.state.schemas.feature.units[feature],
           }"
           :options="{
             ...options,
@@ -37,7 +37,7 @@
                 {
                   scaleLabel: {
                     display: true,
-                    labelString: `${$store.state.options.feature.labels[feature]} (${$store.state.options.feature.units[feature]})`,
+                    labelString: `${$store.state.schemas.feature.labels[feature]} (${$store.state.schemas.feature.units[feature]})`,
                     fontStyle: 'bold',
                     fontSize: 14,
                   },
@@ -94,14 +94,7 @@ export default {
       return this.$store.getters["analyzers/getName"](this.id);
     },
     result() {
-      let result = this.$store.getters["analyzers/getResult"](this.id);
-
-      console.log("store state =");
-      console.log(this.$store.state);
-
-      console.log("result = ");
-      console.log(result);
-      return result;
+      return this.$store.getters["analyzers/getResult"](this.id);
     },
   },
   data() {

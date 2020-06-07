@@ -5,15 +5,32 @@
 $form-field-height: 30px;
 $form-gap: 4px;
 
-$form-section-basis-width: calc((100vw - #{$sidebar-width} - 3 * #{$form-gap})/2);
+$fit-width: calc(100% + 3*#{$form-gap});
+$half-width: calc((100vw - #{$sidebar-width} - 3 * #{$form-gap})/2);
+$full-width: calc(100vw - #{$sidebar-width} - 2 * #{$form-gap});
 
 .isimple-form-section {
   border-radius: 0;
   margin-top: $form-gap;
   margin-bottom: 0;
   margin-left: $form-gap;
-  width: $form-section-basis-width;
-  max-width: 512px;
+  width: $half-width;
+}
+
+.isimple-form-section-full {
+  border-radius: 0;
+  margin-top: $form-gap;
+  margin-bottom: 0;
+  margin-left: $form-gap;
+  width: $full-width;
+}
+
+.isimple-form-section-fit {
+  border-radius: 0;
+  margin-top: $form-gap;
+  margin-bottom: 0;
+  margin-left: $form-gap;
+  width: $fit-width;
 }
 
 .card-header {
@@ -23,9 +40,18 @@ $form-section-basis-width: calc((100vw - #{$sidebar-width} - 3 * #{$form-gap})/2
   height: $form-field-height;
 }
 
+.card-body {
+  padding-top: 0;
+  padding-bottom: $form-gap;
+  padding-right: 20px;  /* magic pixel-peeping */
+  padding-left: 0;
+}
+
 .isimple-form-row {
-  margin-bottom: $form-gap;
+  margin-top: $form-gap;
+  margin-left: $form-gap;
   height: $form-field-height;
+  width: $fit-width;
   display: flex;
   flex-direction: row;
   flex-shrink: 1;
@@ -68,12 +94,6 @@ $form-section-basis-width: calc((100vw - #{$sidebar-width} - 3 * #{$form-gap})/2
   min-width: 60px;
   flex-shrink: 1;
   flex-grow: 1;
-}
-
-.card-body {
-  padding-top: $form-gap;
-  padding-bottom: 0;
-  padding-right: 20px;
 }
 
 .custom-control {

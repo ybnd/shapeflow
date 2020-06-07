@@ -5,7 +5,7 @@ import assert from "assert";
 import _ from "lodash";
 
 export const state = () => ({
-  analyzer: [],
+  analyzer: [], // todo: can be merged with config à la rest of things
   analyzer_state: {
     options: AnalyzerState,
     match: null,
@@ -26,10 +26,15 @@ export const state = () => ({
   transform: {
     options: [],
     descriptions: {},
+    // todo: add schemas for TransformConfig
   },
   filter: {
     options: [],
     descriptions: {},
+    // todo: add schemas for FilterConfig
+  },
+  config: {
+    // AnalyzerType: AnalyzerConfig schema  todo: this also makes more sense for filter/transform/feature
   },
 });
 
@@ -94,6 +99,16 @@ export const mutations = {
       console.warn(err);
     }
   },
+  setConfigOptions(state, { options }) {
+    try {
+      assert(!(options === undefined), "no options provided");
+      state.config = options;
+      // console.log(state);
+    } catch (err) {
+      console.warn(`setConfigOptions failed`);
+      console.warn(err);
+    }
+  },
 };
 
 export const getters = {
@@ -114,6 +129,12 @@ export const getters = {
   },
   hasNoFilterOptions: (state) => {
     return _.isEmpty(state.filter.options);
+  },
+  hasNoConfigSchemas: (state) => {
+    return _.isEmpty(state.config);
+  },
+  getConfigSchema: (state) => {
+    return state.config;
   },
 };
 
@@ -169,6 +190,13 @@ export const actions = {
       get_options("filter").then((options) => {
         // console.log(options);
         commit("setFilterOptions", { options: options });
+      });
+    }
+
+    if (getters["hasNoConfigSchemas"]) {
+      get_options("config").then((options) => {
+        // console.log(options);
+        commit("setConfigOptions", { options: options });
       });
     }
   },

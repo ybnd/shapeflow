@@ -154,7 +154,7 @@ $form-element-width: 600px;
   padding: 0;
   margin: 0;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   flex-wrap: wrap;
   overflow-x: hidden;
   overflow-y: hidden;
