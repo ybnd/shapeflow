@@ -12,7 +12,8 @@ import shutil
 from OnionSVG import OnionSVG
 
 from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
-    DesignFileHandlerConfig, VideoAnalyzerConfig, TransformType, PerspectiveTransformConfig
+    DesignFileHandlerConfig, VideoAnalyzerConfig, TransformType
+from isimple.plugins.PerspectiveTransform import PerspectiveTransformConfig
 from isimple.video import VideoFileHandler, VideoFileTypeError, \
     CachingInstance, VideoAnalyzer
 from isimple import settings

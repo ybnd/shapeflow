@@ -220,7 +220,7 @@ class colorTest(unittest.TestCase):
         self.assertTrue(
             np.all(np.equal(
                 np.array(self.colors['rgb']),
-                RgbColor(*self.colors['rgb']).np
+                RgbColor(*self.colors['rgb']).np3d
             ))
         )
 

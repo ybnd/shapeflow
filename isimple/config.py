@@ -1,22 +1,18 @@
 from typing import Union, Optional, Tuple, Dict, Any
 
-import datetime
-
-import numpy as np
 import yaml
 import json
 
 from pydantic import Field
 
-from isimple import __version__
 from isimple.core.backend import BaseAnalyzerConfig, \
     FeatureType
 from isimple.core.config import extend, ConfigType, \
     log, VERSION, CLASS, untag, BaseConfig
 from isimple.core import EnforcedStr
-from isimple.core.interface import FilterConfig, \
-    FilterType, TransformType, TransformConfig, FilterConfig, HandlerConfig
+from isimple.core.interface import FilterType, TransformType, TransformConfig, FilterConfig, HandlerConfig
 from isimple.maths.colors import HsvColor
+
 from isimple.util import before_version
 
 
@@ -38,10 +34,9 @@ class VideoFileHandlerConfig(BaseConfig):
     pass
 
 
-@extend(ConfigType)
-class PerspectiveTransformConfig(TransformConfig):
-    """Perspective transform"""
-    pass
+class FlipConfig(BaseConfig):
+    vertical: bool = Field(default=False)
+    horizontal: bool = Field(default=False)
 
 
 @extend(ConfigType)
@@ -51,21 +46,8 @@ class TransformHandlerConfig(HandlerConfig):
     data: TransformConfig = Field(default_factory=TransformConfig)
 
     roi: Optional[dict] = Field(default=None)  # todo: maybe make this a config?
-    flip: Tuple[bool, bool] = Field(default=(False, False))  # (vertical, horizontal)
+    flip: FlipConfig = Field(default_factory=FlipConfig)  # (vertical, horizontal)
     turn: int = Field(default=0) # number of 90° turns (CW)
-
-
-@extend(ConfigType)
-class HsvRangeFilterConfig(FilterConfig):
-    """HSV range filter"""
-    radius: HsvColor = Field(default=HsvColor(10, 75, 75))
-
-    c0: HsvColor = Field(default=HsvColor(0, 0, 0))
-    c1: HsvColor = Field(default=HsvColor(0, 0, 0))
-
-    @property
-    def ready(self) -> bool:
-        return self.c0 != self.c1
 
 
 @extend(ConfigType)
@@ -112,10 +94,10 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
     video: VideoFileHandlerConfig = Field(default_factory=VideoFileHandlerConfig)
     design: DesignFileHandlerConfig = Field(default_factory=DesignFileHandlerConfig)
     transform: TransformHandlerConfig = Field(default_factory=TransformHandlerConfig)
-    masks: Tuple[MaskConfig, ...] = Field(default_factory=tuple)
+    masks: Tuple[MaskConfig, ...] = Field(default_factory=tuple)  # todo: should be Dict[mask_name, MaskConfig]
 
-    features: Tuple[FeatureType, ...] = Field(default=())  # todo: should be a tuple of (FeatureType, <config of feature>)
-    parameters: Dict[FeatureType, Dict[str, Any]] = Field(default_factory=dict)
+    features: Tuple[FeatureType, ...] = Field(default=())  # todo: should be Dict[feature_id, FeatureType]
+    parameters: Dict[FeatureType, Dict[str, Any]] = Field(default_factory=dict)  # todo: should be Dict[feature_id, FeatureConfig] -- can then 'merge' with VideoAnalyzerConfig.features
 
     def resolve(self):
         super(VideoAnalyzerConfig, self).resolve()  # todo: doesn't seem to resolve correctly ~ pydantic
@@ -284,7 +266,27 @@ def normalize_config(d: dict) -> dict:
                         d['transform']['data'].pop('matrix')
                     if 'inverse' in d['transform']['data']:
                         d['transform']['data'].pop('inverse')
-
+        if before_version(d[VERSION], '0.3.12'):
+            normalizing_to('0.3.12')
+            # flip (bool, bool) to pydantic
+            if 'transform' in d:
+                if 'flip' in d['transform']:
+                    d['transform']['flip'] = {
+                        'vertical': d['transform']['flip'][0],
+                        'horizontal': d['transform']['flip'][1]
+                    }
+        if before_version(d[VERSION], '0.3.13'):
+            normalizing_to('0.3.13')
+            # HsvRangeFilter: radius/c0/c1 -> range/color
+            if 'masks' in d:
+                for mask in d['masks']:
+                    if 'filter' in mask and mask['filter']['type'] == 'HsvRangeFilter':
+                        if 'radius' in mask['filter']['data']:
+                            mask['filter']['data']['range'] = mask['filter']['data'].pop('radius')
+                        if 'c0' in mask['filter']['data']:
+                            c0 = mask['filter']['data'].pop('c0')
+                        if 'c1' in mask['filter']['data']:
+                            mask['filter']['data'].pop('c1')
 
     else:
         raise NotImplementedError

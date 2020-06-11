@@ -26,7 +26,7 @@ print('loading library')
 
 
 # Library version
-__version__: str = '0.3.11'
+__version__: str = '0.3.13'
 
 VDEBUG = 9
 logging.addLevelName(VDEBUG, "VDEBUG")
@@ -107,15 +107,15 @@ class LoggingLevel(str, Enum):
     vdebug = "vdebug"
 
 class LogSettings(_Settings):  # todo: this class should track whether path exists
-    path: FilePath = Field(default=os.path.join(ROOTDIR, 'current.log'), description='running log file')
-    dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'log'), description='log file directory')
+    path: FilePath = Field(default=Path(ROOTDIR, 'current.log'), description='running log file')
+    dir: DirectoryPath = Field(default=Path(ROOTDIR, 'log'), description='log file directory')
     keep: int = Field(default=16, description="# of log files to keep")
     lvl_console: LoggingLevel = Field(default=LoggingLevel.info, description="logging level (Python console)")
     lvl_file: LoggingLevel = Field(default=LoggingLevel.info, description="logging level (file)")
 
 
 class CacheSettings(_Settings):  # todo: this class should track whether path exists
-    dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'cache'), description="cache directory")
+    dir: DirectoryPath = Field(default=Path(ROOTDIR, 'cache'), description="cache directory")
     size_limit_gb: int = Field(default=4, description="cache size limit (GB)")
     do_cache: bool = Field(default=True, description="use the cache")
     do_background: bool = Field(default=True, description="cache in the background")
@@ -124,17 +124,17 @@ class CacheSettings(_Settings):  # todo: this class should track whether path ex
 
 
 class RenderSettings(_Settings):  # todo: this class should track whether path exists
-    dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'render'), description="render directory")
+    dir: DirectoryPath = Field(default=Path(ROOTDIR, 'render'), description="render directory")
     keep: bool = Field(default=False, description="keep files after rendering")
 
 
 class DatabaseSettings(_Settings):
-    path: FilePath = Field(default=os.path.join(ROOTDIR, 'history.db'), description="database file")
+    path: FilePath = Field(default=Path(ROOTDIR, 'history.db'), description="database file")
 
 
 class ApplicationSettings(_Settings):
     save_state: bool = Field(default=True, description="save application state")
-    load_state: bool = Field(default=True, description="load application state on start")
+    load_state: bool = Field(default=False, description="load application state on start")
     recent_files: int = Field(default=16, description="# of recent files to fetch")
 
 
@@ -161,32 +161,35 @@ class Settings(_Settings):
         ) # type: ignore
 
 
+global settings
+
+
 def _load_settings(path: str = _SETTINGS_FILE) -> Settings:  # todo: if there are unexpected fields: warn, don't crash
     with open(path, 'r') as f:
         settings_yaml = yaml.safe_load(f)
 
-        # Get settings
-        if settings_yaml is not None:
+        def _from_dict():
             try:
-                settings = Settings.from_dict(settings_yaml)
+                return Settings.from_dict(settings_yaml)
             except ValidationError as e:  # todo: this is very messy
                 for error in e.raw_errors:
                     assert isinstance(error, ErrorWrapper)
                     if isinstance(error.exc, PathNotExistsError):
-                        errored_path: Path = Path(error.exc.path)  # type: ignore
-                        if e.model().fields[error._loc].type_ == DirectoryPath:  # type: ignore
+                        errored_path: Path = Path(
+                            error.exc.path)  # type: ignore
+                        if e.model().fields[
+                            error._loc].type_ == DirectoryPath:  # type: ignore
                             errored_path.mkdir()
-                        elif e.model().fields[error._loc].type_ == FilePath:  # type: ignore
+                        elif e.model().fields[
+                            error._loc].type_ == FilePath:  # type: ignore
                             errored_path.touch()
-                _load_settings(_SETTINGS_FILE)  # todo: should have a recursion limit of like 2
+                return _from_dict()  # todo: should have a recursion limit of like 2
 
+        # Get settings
+        if settings_yaml is not None:
+            settings = _from_dict()
         else:
             settings = Settings()
-
-        # Create directories if needed
-        for dir in (settings.log.dir, settings.render.dir, settings.cache.dir):
-            if not dir.is_dir():
-                dir.mkdir()
 
         # Move the previous log file to ROOTDIR/log
         if settings.log.path.is_file():
@@ -212,7 +215,6 @@ def _load_settings(path: str = _SETTINGS_FILE) -> Settings:  # todo: if there ar
 def save_settings(settings: Settings, path: str = _SETTINGS_FILE):
     with open(path, 'w+') as f:
         yaml.safe_dump(settings.to_dict(),f)
-
 
 if not os.path.isfile(_SETTINGS_FILE):
     settings = Settings()

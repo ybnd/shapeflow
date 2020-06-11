@@ -2,6 +2,10 @@ import re
 from collections import namedtuple
 from typing import Dict, Type, List
 
+from pydantic import BaseModel, Field
+
+from isimple.core.config import BaseConfig
+
 import cv2
 import numpy as np
 
@@ -11,33 +15,36 @@ _BGR = 'bgr'
 _RGB = 'rgb'
 
 
-class Color(object):
+class Color(BaseConfig):
     _colorspace: str = ''
     _conversion_map: Dict = {}
 
     def __init__(self, *args, **kwargs):
-        # Overloaded by NamedTuple.__init__().
-        pass
+        if not args:
+            super().__init__(**kwargs)
+        else:
+            # Make sure no numpy ints get through by accident (not serializable)
+            super().__init__(**{kw:int(arg) for kw, arg in zip(self.__fields__.keys(), args)})
 
-    def __new__(cls, *args) -> 'Color':
-        raise NotImplementedError
+    def __call__(self, **kwargs):
+        # Make sure no numpy ints get through by accident
+        super().__call__(**{kw:int(arg) for kw, arg in kwargs.items()})
 
     def __eq__(self, other: object) -> bool:
-        assert isinstance(other, Color)
-        return self == other and self._colorspace == other._colorspace
+        return self.__dict__ == other.__dict__ and type(self) == type(other)
 
     @property
-    def np(self) -> np.ndarray:
-        return np.uint8([[self]])
+    def np3d(self) -> np.ndarray:
+        return np.uint8([[list(self.__dict__.values())]])
 
     @property
     def list(self) -> List[int]:
-        return list(np.uint8(self))
+        return list(np.uint8(list(self.__dict__.values())))
 
     def _convert(self, colorspace: str) -> tuple:
         if colorspace not in self._conversion_map:
             raise NotImplementedError
-        converted = cv2.cvtColor(self.np, self._conversion_map[colorspace])
+        converted = cv2.cvtColor(self.np3d, self._conversion_map[colorspace])
         return tuple(converted.flatten())
 
     @classmethod
@@ -50,17 +57,40 @@ class Color(object):
     def inverse(self) -> 'Color':
         raise NotImplementedError
 
+    def __add__(self, other):
+        assert isinstance(other, type(self))
+        return type(self)(
+            **{channel:(getattr(self, channel) + getattr(other, channel))
+               for channel in self.__fields__.keys()}
+        )
 
-class HsvColor(namedtuple('HsvColor', ('h', 's', 'v')), Color):
+    def __sub__(self, other):
+        assert isinstance(other, type(self))
+        return type(self)(
+            **{channel:(getattr(self, channel) - getattr(other, channel))
+               for channel in self.__fields__.keys()}
+        )
+
+
+
+class HsvColor(Color):
+    h: int = Field(default=0)
+    s: int = Field(default=0)
+    v: int = Field(default=0)
+
     _colorspace: str = _HSV
     _conversion_map = {
         _RGB: cv2.COLOR_HSV2RGB,
         _BGR: cv2.COLOR_HSV2BGR,
     }
-    __metaclass__ = Color
 
 
-class RgbColor(namedtuple('RgbColor', ('r', 'g', 'b')), Color):
+
+class RgbColor(Color):
+    r: int = Field(default=0)
+    g: int = Field(default=0)
+    b: int = Field(default=0)
+
     _colorspace: str = _RGB
     _conversion_map = {
         _HSV: cv2.COLOR_RGB2HSV,
@@ -68,7 +98,11 @@ class RgbColor(namedtuple('RgbColor', ('r', 'g', 'b')), Color):
     }
 
 
-class BgrColor(namedtuple('BgrColor', ('b', 'g', 'r')), Color):
+class BgrColor(Color):
+    b: int = Field(default=0)
+    g: int = Field(default=0)
+    r: int = Field(default=0)
+
     _colorspace: str = _BGR
     _conversion_map = {
         _HSV: cv2.COLOR_BGR2HSV,

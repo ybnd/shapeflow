@@ -27,6 +27,7 @@ import isimple.core.schema as schema
 import isimple.core.streaming as streaming
 import isimple.history as history
 import isimple.video as video
+import isimple.plugins as plugins
 
 log = isimple.get_logger(__name__)
 UI = os.path.join(
@@ -239,11 +240,11 @@ class Main(isimple.core.Lockable):
                 })
             elif for_type == "video_path":
                 return respond(
-                    self._history.fetch_recent_paths(history.VideoFileModel)
+                    list(set(self._history.fetch_recent_paths(history.VideoFileModel)))
                 )
             elif for_type == "design_path":
                 return respond(
-                    self._history.fetch_recent_paths(history.DesignFileModel)
+                    list(set(self._history.fetch_recent_paths(history.DesignFileModel)))
                 )
             elif for_type == "config":
                 return respond(

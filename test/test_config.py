@@ -1,7 +1,6 @@
 import unittest
 
-import os
-
+from isimple.plugins.HsvRangeFilter import HsvRangeFilter
 from isimple.video import *
 from isimple.core.config import Factory, Field, BaseConfig
 from isimple.core import EnforcedStr

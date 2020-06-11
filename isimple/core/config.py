@@ -8,7 +8,6 @@ from functools import partial
 
 from isimple import get_logger, __version__
 from isimple.core import EnforcedStr
-from isimple.maths.colors import Color
 from isimple.util import ndarray2str, str2ndarray
 from isimple.util.meta import resolve_type_to_most_specific, is_optional
 
@@ -153,7 +152,7 @@ class BaseConfig(BaseModel):
         """pydantic configuration class"""
         arbitrary_types_allowed = True
         json_encoders = {
-            np.ndarray: list
+            np.ndarray: list,
         }
 
     def __init__(self, **kwargs):
@@ -279,8 +278,6 @@ class BaseConfig(BaseModel):
             elif isinstance(val, str):
                 if issubclass(type, EnforcedStr):
                     val = type(val)
-                elif issubclass(type, Color):
-                    val = type.from_str(val)
                 elif type == np.ndarray:
                     val = str2ndarray(val)
             elif isinstance(val, list):
@@ -338,8 +335,6 @@ class BaseConfig(BaseModel):
                     if any([
                         isinstance(val, list),
                         isinstance(val, tuple),
-                    ]) and not any([
-                        isinstance(val, Color),
                     ]):
                         output[_represent(attr)] = type(val)([*map(_represent, val)])
                     elif isinstance(val, dict):
@@ -363,6 +358,7 @@ class BaseConfig(BaseModel):
 
 class ConfigType(Factory):
     _type = BaseConfig
+    _mapping: Dict[str, Type[BaseConfig]] = {}
 
     def get(self) -> Type[BaseConfig]:
         config = super().get()
@@ -374,13 +370,17 @@ class ConfigType(Factory):
                 f"This is very weird and shouldn't happen, really."
             )
 
-class Instance(object):
+
+class Configurable(object):
     _config_class: Type[BaseConfig]
-    _config: BaseConfig
 
     @classmethod
     def config_class(cls):
         return cls._config_class
+
+
+class Instance(Configurable):
+    _config: BaseConfig
 
     @property
     def config(self) -> BaseConfig:

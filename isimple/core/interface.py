@@ -1,20 +1,19 @@
 import abc
-from typing import Type, Tuple, Optional
-from dataclasses import dataclass, field
+from typing import Type, Tuple, Optional, Dict
 
 import numpy as np
 
-from pydantic import Field, FilePath, DirectoryPath, Schema
-
-from isimple.core.config import BaseConfig, Instance, Factory, NpArray
+from isimple.core.config import BaseConfig, Configurable, Factory
 from isimple.maths.colors import HsvColor
 from isimple.maths.coordinates import Coo
 
 
 class InterfaceFactory(Factory):
-    def get(self) -> Type[Instance]:
+    _mapping: Dict[str, Type[Configurable]] = {}
+
+    def get(self) -> Type[Configurable]:
         interface = super().get()
-        if issubclass(interface, Instance):
+        if issubclass(interface, Configurable):
             return interface
         else:
             raise TypeError(
@@ -41,10 +40,7 @@ class TransformConfig(BaseConfig):
     pass
 
 
-class TransformInterface(Instance, abc.ABC):
-    _config_class: Type[TransformConfig]
-    _config: TransformConfig
-
+class TransformInterface(Configurable, abc.ABC):
     @abc.abstractmethod
     def validate(self, matrix: Optional[np.ndarray]) -> bool:
         raise NotImplementedError
@@ -81,10 +77,9 @@ class FilterConfig(BaseConfig):
         return False
 
 
-class FilterInterface(Instance, abc.ABC):
+class FilterInterface(Configurable, abc.ABC):
     """Handles pixel filtering operations
     """
-    _config_class: Type[FilterConfig]
 
     @abc.abstractmethod
     def set_filter(self, filter, color: HsvColor):
@@ -112,6 +107,11 @@ class FilterType(InterfaceFactory):
                 f"This is very weird and shouldn't happen, really."
             )
 
+    def config_class(self) -> Type[FilterConfig]:
+        return self.get().config_class()
+
+
 
 class TransformType(InterfaceFactory):
     _type = TransformInterface
+    _mapping: Dict[str, Type[TransformInterface]] = {}

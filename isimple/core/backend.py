@@ -22,8 +22,10 @@ from isimple.core import RootException, SetupError, RootInstance
 from isimple.maths.colors import HsvColor
 from isimple.util.meta import describe_function
 from isimple.util import Timer, Timing, hash_file, timed
-from isimple.core.config import Factory, untag, BaseConfig, Instance
+from isimple.core.config import Factory, untag, BaseConfig, Instance, Configurable
 from isimple.core.streaming import stream, streams, EventStreamer
+
+from isimple.core.interface import InterfaceFactory
 
 
 log = get_logger(__name__)
@@ -176,9 +178,9 @@ class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB 
 
 
 class Handler(abc.ABC):
-    _implementation: object
-    _implementation_factory = Factory
-    _implementation_class: Type[Instance] = Instance  # actually, it's type, but that doesn't fly with MyPy for some reason
+    _implementation: Configurable
+    _implementation_factory: Type[InterfaceFactory]
+    _implementation_class: Type[Configurable]
 
     def set_implementation(self, implementation: str) -> str:
         impl_type: type = self._implementation_factory(implementation).get()
@@ -191,6 +193,9 @@ class Handler(abc.ABC):
 
     def get_implementation(self) -> str:
         return self._implementation.__class__.__qualname__
+
+    def implementation_config(self) -> BaseConfig:
+        pass
 
 
 class Feature(abc.ABC):  # todo: should probably use Config for parameters after all :)
@@ -215,7 +220,7 @@ class Feature(abc.ABC):  # todo: should probably use Config for parameters after
         self._ready = False
 
         self._elements = elements
-        self._color = HsvColor(0,200,255)  # start out as red
+        self._color = HsvColor(h=0,s=200,v=255)  # start out as red
 
     def calculate(self, frame: np.ndarray, state: np.ndarray = None) \
             -> Tuple[Any, Optional[np.ndarray]]:
@@ -264,7 +269,7 @@ class Feature(abc.ABC):  # todo: should probably use Config for parameters after
             raise ValueError
 
     @abc.abstractmethod
-    def _guideline_color(self) -> np.ndarray:
+    def _guideline_color(self) -> HsvColor:
         """Returns the 'guideline color' of a Feature instance
             Used by FeatureSet to determine the actual _color
         """
@@ -319,21 +324,21 @@ class FeatureSet(object):
                 increment = 60  # todo: should be set *after* the number of repititions is determined, otherwise there may be too much black
                 repetition = 0
                 for registered_color in colors:
-                    if abs(float(color[0]) - float(registered_color[0])) < tolerance:
+                    if abs(float(color.h) - float(registered_color.h)) < tolerance:
                         repetition += 1
 
                 feature.set_color(
                     HsvColor(
-                        float(color[0]),
-                        float(220),
-                        float(255 - repetition * increment)
+                        h=float(color.h),
+                        s=float(220),
+                        v=float(255 - repetition * increment)
                     )
                 )
                 dodge_colors.append(feature.color)
 
             colors.append(feature.color)
 
-        self._colors = tuple(HsvColor(*c) for c in colors)
+        self._colors = tuple(colors)
         return self.colors
 
     @property
@@ -347,6 +352,7 @@ class FeatureSet(object):
 
 class FeatureType(Factory):  # todo: nest in Feature?
     _type = Feature
+    _mapping: Dict[str, Type[Feature]] = {}
 
     def get(self) -> Type[Feature]:
         feature = super().get()
@@ -715,6 +721,7 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
 class AnalyzerType(Factory):
     _type = BaseVideoAnalyzer
+    _mapping: Dict[str, Type[BaseVideoAnalyzer]] = {}
 
     def get(self) -> Type[BaseVideoAnalyzer]:
         t = super().get()

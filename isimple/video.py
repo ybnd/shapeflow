@@ -11,10 +11,10 @@ from OnionSVG import OnionSVG, check_svg
 
 from isimple import get_logger, settings
 from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
-    HsvRangeFilterConfig, FilterHandlerConfig, MaskConfig, \
-    DesignFileHandlerConfig, VideoAnalyzerConfig, load, dump, \
-    FrameIntervalSetting, BaseAnalyzerConfig, PerspectiveTransformConfig
-from isimple.core import RootInstance, Lockable
+    FilterHandlerConfig, MaskConfig, \
+    DesignFileHandlerConfig, VideoAnalyzerConfig, dump, \
+    FrameIntervalSetting, BaseAnalyzerConfig
+from isimple.core import Lockable
 from isimple.core.backend import Instance, CachingInstance, \
     Handler, BaseVideoAnalyzer, BackendSetupError, AnalyzerType, Feature, \
     FeatureSet, \
@@ -23,12 +23,11 @@ from isimple.core.config import extend, __meta_ext__
 from isimple.core.interface import TransformInterface, FilterConfig, \
     FilterInterface, FilterType, TransformType
 from isimple.core.streaming import stream, streams
-from isimple.endpoints import BackendRegistry
 from isimple.maths.colors import HsvColor, BgrColor, convert, css_hex
-from isimple.maths.images import to_mask, crop_mask, area_pixelsum, ckernel, \
+from isimple.maths.images import to_mask, crop_mask, ckernel, \
     overlay, rect_contains
 from isimple.maths.coordinates import Coo
-from isimple.util import frame_number_iterator, timed
+from isimple.util import frame_number_iterator
 
 log = get_logger(__name__)
 
@@ -254,54 +253,6 @@ class VideoFileHandler(CachingInstance, Lockable):
         return self.frame_number / self.frame_count
 
 
-@extend(TransformType)
-class PerspectiveTransform(TransformInterface):
-    _config_class = PerspectiveTransformConfig
-    _config: PerspectiveTransformConfig
-
-    def validate(self, matrix: Optional[np.ndarray]) -> bool:
-        if matrix is not None:
-            return matrix.shape == (3, 3)
-        else:
-            return False
-
-    def from_coordinates(self, roi: dict) -> np.ndarray:
-        return np.float32(
-            [[roi[corner]['x'], roi[corner]['y']]
-             for corner in ['BL', 'TL', 'TR', 'BR']]
-        )
-
-    def to_coordinates(self, shape: tuple) -> np.ndarray:
-        return np.float32(
-                np.array(  # selection rectangle: bottom left to top right
-                    [
-                        [0, shape[1]],          # BL: (x,y)
-                        [0, 0],                 # TL
-                        [shape[0], 0],          # TR
-                        [shape[0], shape[1]],   # BR
-                    ]
-                )
-            )
-
-    def estimate(self, roi: dict, shape: tuple) -> np.ndarray:
-        log.vdebug(f'Estimating transform ~ coordinates {roi} & shape {shape}')
-
-        return cv2.getPerspectiveTransform(
-            self.from_coordinates(roi),
-            self.to_coordinates(shape)
-        )
-
-    def transform(self, matrix: np.ndarray, img: np.ndarray, shape: tuple) -> np.ndarray:
-        return cv2.warpPerspective(
-            img, matrix, shape,   # can't set destination image here! it's the wrong shape!
-            borderValue=(255,255,255),  # makes the border white instead of black ~https://stackoverflow.com/questions/30227979/
-        )
-
-    def coordinate(self, inverse: np.ndarray, coordinate: Coo, shape: Tuple[int, int]) -> Coo:
-        coordinate.transform(inverse, shape)
-        return coordinate
-
-
 class TransformHandler(Instance, Handler):  # todo: clean up config / config.data -> Handler should not care what goes on in config.data!
     """Handles coordinate transforms.
     """
@@ -469,38 +420,6 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
 
     def inverse(self, img: np.ndarray) -> np.ndarray:
         return self._implementation.transform(self._inverse, img, self._video_shape)
-
-
-@extend(FilterType)
-class HsvRangeFilter(FilterInterface):
-    """Filters by a range of hues ~ HSV representation
-    """
-    _config: HsvRangeFilterConfig
-    _config_class = HsvRangeFilterConfig
-
-    def validate(self, filter):  # todo: may be better to 'normalize' the filter dict -- i.e. replace all fields that weren't found with the defaults
-        return all(attr in self._config_class() for attr in filter)
-
-    def set_filter(self, filter: HsvRangeFilterConfig, color: HsvColor) -> HsvRangeFilterConfig:
-        log.debug(f'Setting filter {filter} ~ color {color}')
-        c, r = color, filter.radius
-        assert isinstance(r, tuple)
-        filter.c0 = HsvColor(c[0]-r[0], c[1]-r[1], c[2]-r[2])
-        filter.c1 = HsvColor(c[0]+r[0], c[1]+r[1], c[2]+r[2])
-        return filter
-
-    def mean_color(self, filter: HsvRangeFilterConfig) -> HsvColor:
-        # todo: S and V are arbitrary for now
-        c0 = np.array(filter.c0)
-        c1 = np.array(filter.c1)
-        return HsvColor(float(np.mean([c0[0], c1[0]])), 255.0, 200.0)
-
-    def filter(self, filter: HsvRangeFilterConfig, img: np.ndarray) -> np.ndarray:
-        c0 = np.array(filter.c0)
-        c1 = np.array(filter.c1)
-        return cv2.inRange(
-            img, np.float32(c0), np.float32(c1), img
-        )
 
 
 class FilterHandler(Instance, Handler):
@@ -807,10 +726,6 @@ class DesignFileHandler(CachingInstance):
         return tuple(mask.name for mask in self._masks)
 
 
-def frame_to_none(frame: np.ndarray) -> None:    # todo: this is dumb
-    return None
-
-
 class MaskFunction(Feature):
     mask: Mask
     filter: FilterHandler
@@ -888,7 +803,7 @@ class MaskFunction(Feature):
                 substate = np.multiply(
                     np.ones((binary.shape[0], binary.shape[1], 3),
                             dtype=np.uint8),
-                    convert(self.color, BgrColor).np
+                    convert(self.color, BgrColor).np3d
                     # todo: update to isimple.maths.color
                 )
                 state[self.mask.rows, self.mask.cols, :] \
@@ -910,35 +825,6 @@ class MaskFunction(Feature):
 
     def _function(self, frame: np.ndarray) -> Any:
         raise NotImplementedError
-
-
-@extend(FeatureType)
-class PixelSum(MaskFunction):
-    _label = "Pixels"
-    _unit = "#"
-    _description = "Masked & filtered area as number of pixels"
-
-    def _function(self, frame: np.ndarray) -> Any:
-        return area_pixelsum(frame)
-
-
-@extend(FeatureType)
-class Volume_uL(MaskFunction):
-    _label = "Volume"
-    _unit = "µL"
-    _description = "Volume ~ masked & filtered area multiplied by channel height"
-
-    _parameters = ('h',)
-    _parameter_defaults = {
-        'h': 0.153
-    }
-    _parameter_descriptions = {
-        'h': 'height (mm)'
-    }
-
-    def _function(self, frame: np.ndarray) -> Any:
-        h, = self.unpack()
-        return self.pxsq2mmsq(area_pixelsum(frame)) * h  # todo: better parameter handling for Feature subclasses
 
 
 @extend(AnalyzerType)
