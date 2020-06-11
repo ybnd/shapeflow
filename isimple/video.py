@@ -348,7 +348,7 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
         """Adjust ROI (90° turns & flips)
         """
         # Flip
-        if self.config.flip == (True, False):
+        if self.config.flip.vertical and not self.config.flip.horizontal:
             # Flip vertically
             roi = {
                 'BL': roi['TL'],
@@ -356,7 +356,7 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
                 'BR': roi['TR'],
                 'TR': roi['BR']
             }
-        elif self.config.flip == (False, True):
+        elif self.config.flip.horizontal and not self.config.flip.vertical:
             # Flip horizontally
             roi = {
                 'BL': roi['BR'],
@@ -364,7 +364,7 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
                 'BR': roi['BL'],
                 'TR': roi['TL']
             }
-        elif self.config.flip == (True, True):
+        elif self.config.flip.horizontal and self.config.flip.vertical:
             # Flip both (180° rotation)
             roi = {
                 'BL': roi['TR'],
@@ -954,11 +954,11 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 do_commit = False
                 log.debug(f"Setting VideoAnalyzerConfig to {config}")
 
-                previous_features = copy.copy(self.config.features)  # todo: clean up
-                previous_video_path = copy.copy(self.config.video_path)
-                previous_design_path = copy.copy(self.config.design_path)
-                previous_flip = copy.copy(self.config.transform.flip)
-                previous_turn = copy.copy(self.config.transform.turn)
+                previous_features = copy.deepcopy(self.config.features)  # todo: clean up
+                previous_video_path = copy.deepcopy(self.config.video_path)
+                previous_design_path = copy.deepcopy(self.config.design_path)
+                previous_flip = copy.deepcopy(self.config.transform.flip)
+                previous_turn = copy.deepcopy(self.config.transform.turn)
 
                 self._config(**config)
                 self._config.resolve()

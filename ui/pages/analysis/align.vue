@@ -345,7 +345,9 @@ export default {
           id: this.id,
           config: {
             transform: {
-              flip: [this.align.flip[0], !this.align.flip[1]], // todo: better to synchronize this to store?
+              flip: {
+                horizontal: !this.align.flip.horizontal,
+              }, // todo: better to synchronize this to store?
             },
           },
         })
@@ -359,7 +361,9 @@ export default {
           id: this.id,
           config: {
             transform: {
-              flip: [!this.align.flip[0], this.align.flip[1]],
+              flip: {
+                vertical: !this.align.flip.vertical,
+              },
             },
           },
         })
