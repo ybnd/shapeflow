@@ -202,8 +202,39 @@ class colorTest(unittest.TestCase):
     colors = {
         'rgb': (51, 127, 63),
         'bgr': (63, 127, 51),
-        'hsv': (65, int(60 / 100 * 255), int(50 / 100 * 255))
+        'hsv': (65, int(0.6*255), int(0.5*255))
     }
+
+    def test_coercion(self):
+        self.assertEqual(
+            RgbColor(0, 255, 150),
+            RgbColor(-50, 500, 150)
+        )
+
+    def test_addition(self):
+        self.assertEqual(
+            RgbColor(60,130,70),
+            RgbColor(*self.colors['rgb']) + RgbColor(9,3,7)
+        )
+        self.assertEqual(
+            RgbColor(255,255,255),
+            RgbColor(*self.colors['rgb']) + RgbColor(255,255,255)
+        )
+        self.assertEqual(
+            RgbColor(0, 0, 0),
+            RgbColor(*self.colors['rgb']) - RgbColor(255, 255, 255)
+        )
+
+    def test_hue_addition(self):
+        self.assertEqual(
+            HsvColor(80, 153, 128),
+            HsvColor(50, 153, 128) + HsvColor(30, 0, 0)
+        )
+
+        self.assertEqual(
+            HsvColor(160, 153, 128),
+            HsvColor(50, 153, 128) - HsvColor(70, 0, 0)
+        )
 
     def test_conversion(self):
         self.assertEqual(

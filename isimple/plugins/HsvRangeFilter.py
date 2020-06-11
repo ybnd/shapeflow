@@ -19,7 +19,7 @@ class HsvRangeFilterConfig(FilterConfig):
 
     @property
     def ready(self) -> bool:
-        return self.c0 != self.c1
+        return self.color != HsvColor()
 
     @property
     def c0(self) -> HsvColor:

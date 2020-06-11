@@ -2,7 +2,7 @@ import re
 from collections import namedtuple
 from typing import Dict, Type, List
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator, conint
 
 from isimple.core.config import BaseConfig
 
@@ -51,17 +51,16 @@ class Color(BaseConfig):
     def from_str(cls, color: str) -> 'Color':
         return cls(
             **{k:int(float(v.strip("'"))) for k,v,_
-               in re.findall('([A-Za-z0-9]*)=(.*?)([,)])', color)}
+               in re.findall('([A-Za-z0-9]*)=([0-9]+)([,)]?)', color)}
         )
-
-    def inverse(self) -> 'Color':
-        raise NotImplementedError
 
     def __add__(self, other):
         assert isinstance(other, type(self))
         return type(self)(
-            **{channel:(getattr(self, channel) + getattr(other, channel))
-               for channel in self.__fields__.keys()}
+            **{
+                channel:(getattr(self, channel) + getattr(other, channel))
+                for channel in self.__fields__.keys()
+               }
         )
 
     def __sub__(self, other):
@@ -71,18 +70,35 @@ class Color(BaseConfig):
                for channel in self.__fields__.keys()}
         )
 
+    @validator('*', pre=True)
+    def normalize_channel(cls, v):
+        if v < 0:
+            return 0
+        if v > 255:
+            return 255
+        else:
+            return v
+
 
 
 class HsvColor(Color):
-    h: int = Field(default=0)
-    s: int = Field(default=0)
-    v: int = Field(default=0)
+    h: int = Field(default=0, ge=0, le=180)  # todo: should wrap ~ -20 => 180-20
+    s: int = Field(default=0, ge=0, le=255)
+    v: int = Field(default=0, ge=0, le=255)
 
     _colorspace: str = _HSV
     _conversion_map = {
         _RGB: cv2.COLOR_HSV2RGB,
         _BGR: cv2.COLOR_HSV2BGR,
     }
+
+    @validator('h', pre=True)
+    def hue_wraps(cls, v):
+        while v < 0:
+            v += 180
+        while v > 180:
+            v -= 180
+        return v
 
 
 
