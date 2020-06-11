@@ -92,7 +92,7 @@ export default {
       console.log(schema);
 
       this.schema = schema;
-      this.ui_schema = UiSchema(schema);
+      this.ui_schema = UiSchema(schema, {});
     });
   },
   methods: {

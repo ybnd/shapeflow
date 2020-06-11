@@ -30,6 +30,14 @@
         </b-button>
       </PageHeaderItem>
       <PageHeaderItem>
+        <PageHeaderItem>
+          <b-button @click="handleGetConfig">Get configuration</b-button>
+        </PageHeaderItem>
+        <PageHeaderItem>
+          <b-button @click="handleSetConfig">Set configuration</b-button>
+        </PageHeaderItem>
+      </PageHeaderItem>
+      <PageHeaderItem>
         <b-button @click="undefined">Export</b-button>
       </PageHeaderItem>
     </PageHeader>
@@ -64,22 +72,23 @@
       <b-card class="basic-config isimple-form-section-full">
         <BasicConfig ref="BasicConfig" :config="config" />
       </b-card>
-      <VueFormJsonSchema
-        v-model="config"
-        class="config-form-container"
-        :schema="schema"
-        :ui-schema="ui_schema"
-        :options="{
-          castToSchemaType: true,
-          showValidationErrors: true,
-          allowInvalidModel: true,
-          ajv: {
-            options: {
-              unknownFormats: ['directory-path', 'file-path'], // these get validated by the backend
+      <template v-if="ui_schema && ui_schema.length > 0">
+        <VueFormJsonSchema
+          v-model="config"
+          class="config-form-container"
+          :schema="schema"
+          :ui-schema="ui_schema"
+          :options="{
+            validate: false,
+            validateOnLoad: false,
+            ajv: {
+              options: {
+                validateSchema: false,
+              },
             },
-          },
-        }"
-      />
+          }"
+        />
+      </template>
     </div>
   </div>
 </template>
@@ -87,23 +96,28 @@
 <script>
 import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
-
 import BasicConfig from "../../components/config/BasicConfig";
+
 import { UiSchema } from "../../static/ui-schema";
 
 import VueFormJsonSchema from "vue-form-json-schema";
+import Ajv from "ajv";
 
 import _ from "lodash";
 
 import VueHotkey from "v-hotkey";
 import Vue from "vue";
 
+import AsyncComputed from "vue-async-computed";
+
 Vue.use(VueHotkey);
+Vue.use(AsyncComputed);
 
 export default {
   name: "dashboard",
   components: { PageHeader, PageHeaderItem, BasicConfig, VueFormJsonSchema },
   beforeMount() {
+    this.ajv = new Ajv();
     this.initConfig();
   },
   methods: {
@@ -113,13 +127,41 @@ export default {
       if (this.$store.getters["analyzers/getIndex"](this.id) === -1) {
         this.$router.push(`/`);
       } else {
+        this.handleGetConfig();
       }
     },
     handleGetConfig() {
       // request config from backend
-      this.$store.dispatch("analyzers/get_config", {
-        id: this.id,
-      });
+      this.$store
+        .dispatch("analyzers/get_config", {
+          id: this.id,
+        })
+        .then(() => {
+          this.config = _.cloneDeep(
+            this.$store.getters["analyzers/getAnalyzerConfig"](this.id)
+          );
+          if (this.schema) {
+            this.ui_schema = UiSchema(
+              this.schema,
+              this.config,
+              [
+                // these should be handled ~ BasicConfig
+                "frame_interval_setting",
+                "Nf",
+                "dt",
+                "video_path",
+                "design_path",
+                "features",
+                "parameters",
+                "name",
+                "description",
+              ],
+              { "": ["design", "transform"] }
+            );
+            console.log("ui_schema=");
+            console.log(this.ui_schema);
+          }
+        });
     },
     handleSetConfig() {
       // send config to backend
@@ -139,38 +181,19 @@ export default {
         "ctrl+shift+z": this.redoConfig,
       };
     },
-    config() {
-      return _.cloneDeep(
-        this.$store.getters["analyzers/getAnalyzerConfig"](this.$route.query.id)
-      );
-    },
     schema() {
       return this.$store.getters["schemas/getConfigSchema"];
     },
-    ui_schema() {
-      let ui_schema = UiSchema(
-        this.schema,
-        [
-          // these should be handled ~ BasicConfig
-          "frame_interval_setting",
-          "Nf",
-          "dt",
-          "video_path",
-          "design_path",
-          "features",
-          "parameters",
-          "name",
-          "description",
-        ],
-        {}
-      );
-      console.log("ui_schema=");
-      console.log(ui_schema);
-      return ui_schema;
-    },
   },
-  data: function () {
-    return {};
+  data() {
+    return {
+      avj: undefined,
+      config: {
+        name: "",
+        description: "",
+      },
+      ui_schema: undefined,
+    };
   },
 };
 </script>
@@ -196,7 +219,7 @@ export default {
   flex-direction: row;
   flex-wrap: wrap;
   overflow-x: hidden;
-  overflow-y: show;
+  overflow-y: visible;
   align-content: flex-start;
   justify-content: flex-start;
   max-width: calc(100vw - #{$sidebar-width});
