@@ -311,34 +311,44 @@ class FeatureSet(object):
     def __init__(self, features: Tuple[Feature, ...]):
         self._features = features
 
-    def get_colors(self) -> Tuple[HsvColor, ...]:  # todo: should be called each time a color is set
+    def get_colors(self) -> Tuple[HsvColor, ...]:
         guideline_colors = [f._guideline_color() for f in self._features]
-        colors: list = []
-        dodge_colors: list = []
 
-        # For all features in the FeatureSet
-        for feature, color in zip(self._features, guideline_colors):
-            if feature.ready:
-                # Dodge the other colors by hue
-                tolerance = 15
-                increment = 60  # todo: should be set *after* the number of repititions is determined, otherwise there may be too much black
-                repetition = 0
-                for registered_color in colors:
-                    if abs(float(color.h) - float(registered_color.h)) < tolerance:
-                        repetition += 1
+        min_v = 20.0
+        max_v = 255.0
+        tolerance = 15
 
-                feature.set_color(
+        bins: list = []
+        # todo: clean up binning
+        for index, color in enumerate(guideline_colors):
+            if not bins:
+                bins.append([index])
+            else:
+                in_bin = False
+                for bin in bins:
+                    if abs(float(color.h) - np.mean([guideline_colors[i].h for i in bin])) < tolerance:
+                        bin.append(index)
+                        in_bin = True
+                        break
+                if not in_bin:
+                    bins.append([index])
+
+        for bin in bins:
+            if len(bin) < 4:
+                increment = 60.0
+            else:
+                increment = (max_v - min_v) / len(bin)
+
+            for repetition, index in enumerate(bin):
+                self._features[index].set_color(
                     HsvColor(
-                        h=float(color.h),
-                        s=float(220),
-                        v=float(255 - repetition * increment)
+                        h=guideline_colors[index].h,
+                        s=220,
+                        v=int(max_v - repetition * increment)
                     )
                 )
-                dodge_colors.append(feature.color)
 
-            colors.append(feature.color)
-
-        self._colors = tuple(colors)
+        self._colors = tuple([feature.color for feature in self._features])
         return self.colors
 
     @property
