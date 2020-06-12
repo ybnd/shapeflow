@@ -3,9 +3,14 @@ from typing import Type, Tuple, Optional, Dict
 
 import numpy as np
 
+from isimple import get_logger
 from isimple.core.config import BaseConfig, Configurable, Factory
 from isimple.maths.colors import HsvColor
-from isimple.maths.coordinates import Coo
+from isimple.maths.coordinates import Coo, Roi
+
+from pydantic import validator
+
+log = get_logger(__name__)
 
 
 class InterfaceFactory(Factory):
@@ -26,13 +31,21 @@ class HandlerConfig(BaseConfig, abc.ABC):
     type: InterfaceFactory
     data: BaseConfig
 
-    def _get_field_type(self, attr):
-        """Resolve type of self.data ~ implementation (self.type)
-        """
-        if attr == 'data':
-            return self.type.get().config_class()
+    @validator('type', pre=True)
+    def _validate_type(cls, value, values: dict):
+        if isinstance(value, cls.__fields__['type'].type_):
+            return value
         else:
-            return super()._get_field_type(attr)
+            return cls.__fields__['type'].type_(value)
+
+    @validator('data', pre=True)
+    def _validate_data(cls, value, values: dict):
+        if isinstance(value, values['type'].get().config_class()):
+            return value
+        elif isinstance(value, dict):
+            return values['type'].get().config_class()(**value)
+        else:
+            raise NotImplementedError
 
 
 class TransformConfig(BaseConfig):
@@ -46,7 +59,7 @@ class TransformInterface(Configurable, abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def from_coordinates(self, roi: dict) -> np.ndarray:
+    def from_coordinates(self, roi: Roi) -> np.ndarray:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -54,15 +67,15 @@ class TransformInterface(Configurable, abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def estimate(self, roi: dict, shape: tuple) -> np.ndarray:
+    def estimate(self, roi: Roi, shape: tuple) -> np.ndarray:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def transform(self, transform, img: np.ndarray, shape: Tuple[int, int]) -> np.ndarray:
+    def transform(self, transform: np.ndarray, img: np.ndarray, shape: Tuple[int, int]) -> np.ndarray:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def coordinate(self, transform, coordinate: Coo, shape: Tuple[int, int]) -> Coo:
+    def coordinate(self, transform: np.ndarray, coordinate: Coo, shape: Tuple[int, int]) -> Coo:
         raise NotImplementedError
 
 
@@ -114,4 +127,4 @@ class FilterType(InterfaceFactory):
 
 class TransformType(InterfaceFactory):
     _type = TransformInterface
-    _mapping: Dict[str, Type[TransformInterface]] = {}
+    _mapping: Dict[str, Type[Configurable]] = {}

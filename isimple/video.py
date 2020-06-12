@@ -26,7 +26,7 @@ from isimple.core.streaming import stream, streams
 from isimple.maths.colors import HsvColor, BgrColor, convert, css_hex
 from isimple.maths.images import to_mask, crop_mask, ckernel, \
     overlay, rect_contains
-from isimple.maths.coordinates import Coo
+from isimple.maths.coordinates import Coo, Roi
 from isimple.util import frame_number_iterator
 
 log = get_logger(__name__)
@@ -315,14 +315,14 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
                     k: {
                         'x': v['x'],
                         'y': v['y']
-                    } for k,v in self.config.roi.items()
+                    } for k,v in self.config.roi.dict().items()
                 }
             except KeyError:
                 return {}
         else:
             return {}
 
-    def estimate(self, roi: dict = None) -> None:
+    def estimate(self, roi: Roi = None) -> None:
         """Estimate the transform matrix from a set of coordinates.
             Coordinates should correspond to the corners of the outline of
             the design, relative to the video frame size:
@@ -334,44 +334,44 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
         if roi is not None:
             self.config(roi=roi)
 
-            roi = {
+            roi(**{
                 k: {
                 'x': v['x'] * self._video_shape[0],
                 'y': v['y'] * self._video_shape[1]
-                } for k,v in roi.items()
-            }
+                } for k,v in roi.dict().items()
+            })
 
             self.set(self._implementation.estimate(self.adjust(roi), self._design_shape))
             streams.update()
 
-    def adjust(self, roi: dict) -> dict:
+    def adjust(self, roi: Roi) -> Roi:
         """Adjust ROI (90° turns & flips)
         """
         # Flip
         if self.config.flip.vertical and not self.config.flip.horizontal:
             # Flip vertically
-            roi = {
-                'BL': roi['TL'],
-                'TL': roi['BL'],
-                'BR': roi['TR'],
-                'TR': roi['BR']
-            }
+            roi(
+                BL=roi.TL,
+                TL=roi.BL,
+                BR=roi.TR,
+                TR=roi.BR
+            )
         elif self.config.flip.horizontal and not self.config.flip.vertical:
             # Flip horizontally
-            roi = {
-                'BL': roi['BR'],
-                'TL': roi['TR'],
-                'BR': roi['BL'],
-                'TR': roi['TL']
-            }
+            roi(
+                BL=roi.BR,
+                TL=roi.TR,
+                BR=roi.BL,
+                TR=roi.TL
+            )
         elif self.config.flip.horizontal and self.config.flip.vertical:
             # Flip both (180° rotation)
-            roi = {
-                'BL': roi['TR'],
-                'TL': roi['BR'],
-                'BR': roi['TL'],
-                'TR': roi['BL']
-            }
+            roi(
+                BL=roi.TR,
+                TL=roi.BR,
+                BR=roi.TL,
+                TR=roi.BL
+            )
 
         # Turn
         if self.config.turn != 0:
@@ -385,7 +385,7 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
             for _ in range(self.config.turn):
                 cw_turn_map = {k:cw_90d_map[v] for k,v in cw_turn_map.items()}
 
-            roi = {cw_turn_map[k]:v for k,v in roi.items()}
+            roi(**{cw_turn_map[k]:v for k,v in roi.dict().items()})
 
         return roi
 
@@ -855,6 +855,17 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     def config(self) -> VideoAnalyzerConfig:
         return self._config
 
+    def _gather_config(self):
+        # todo: would be nice if this wasn't necessary :(
+        if hasattr(self, 'video') and self.config.video != self.video.config:
+            self.config(video=self.video.config)
+        if hasattr(self, 'design') and self.config.design != self.design.config:
+            self.config(design=self.design.config)
+        if hasattr(self, 'transform') and self.config.transform != self.transform.config:
+            self.config(transform=self.transform.config)
+        if hasattr(self, 'masks'):
+            self.config(masks=tuple([mask.config for mask in self.masks]))
+
     @property
     def cached(self) -> bool:
         if hasattr(self, 'video'):
@@ -891,12 +902,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         self.filters = [mask.filter for mask in self.masks]
 
         # Link self._config to _config of nested instances
-        self.config(
-            video=self.video.config,
-            design=self.design.config,
-            transform=self.transform.config,
-            masks=tuple([m.config for m in self.masks]),
-        )
+        self._gather_config()
 
         # Initialize FeatureSets
         self._get_featuresets()
@@ -961,7 +967,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 previous_turn = copy.deepcopy(self.config.transform.turn)
 
                 self._config(**config)
-                self._config.resolve()
 
                 if hasattr(self, 'transform'):
                     self.transform._config(**self.config.transform.to_dict())
@@ -1067,15 +1072,20 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     @backend.expose(backend.estimate_transform)
     def estimate_transform(self, roi: dict = None) -> Optional[dict]:
         if roi is None:
-            roi = self.transform.config.roi
+            roi_config = self.transform.config.roi
+        else:
+            roi_config = Roi(**roi)
 
-        self.transform.estimate(roi)
+        self.transform.estimate(roi_config)
 
         self.state_transition()
         self.event(AnalyzerEvent.CONFIG, self.get_config())
         self.commit()
 
-        return roi
+        if roi_config is not None:
+            return roi_config.dict()
+        else:
+            return None
 
     @backend.expose(backend.undo_config)
     def undo_config(self) -> dict:
@@ -1220,7 +1230,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
             with self.lock(), self.time(f"Analyzing {self.id}", log):
                 self._get_featuresets()
-                self.save_config()
+                self.commit()
 
                 self.event(AnalyzerEvent.RMETAD, {'colors': self.get_colors()})
 
@@ -1236,7 +1246,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             self.clear()
             self.set_state(AnalyzerState.CANCELED)
 
-    def load_config(self):  # todo: look in history instead of file next to video
+    def load_config(self):
         """Load video analysis configuration from history database
         """
         if self._model is not None:
@@ -1266,33 +1276,12 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 video.remove()
 
                 self._config(**config)
-                self._config.resolve()  # todo: is this still necessary now? is basically re-passing all attributes ~ the line above.
 
                 log.info(f'config ~ database: {config}')
+                log.info(f'loaded as {self.config}')
             else:
                 log.warning('could not load config - no video path!')
 
-    def save_config(self, path: str = None):  # todo: in isimple.og, make LegacyVideoAnalyzer(VideoAnalyzer) that implements these
-        """Save video analysis configuration
-        """
-        if path is None and self.config.video_path:
-            path = self.config.video_path
-
-        if path is not None:
-            path = os.path.splitext(path)[0] + __meta_ext__
-            config = self._gather_config()
-            dump(config, path)
-        else:
-            log.warning(f"No path provided to `save_config`; no video file either.")
-
-    def _gather_config(self) -> VideoAnalyzerConfig:
-        """Gather configuration from instances  todo: should not be needed since self._config is linked to nested instance _config ~ _launch()
-        """
-        self.config(video=self.video.config)
-        self.config(design=self.design.config)
-        self.config(transform=self.transform.config)
-        self.config(masks=tuple([m.config for m in self.masks]))
-        return self.config
 
     @property  # todo: this was deprecated, right?
     def _video_to_hash(self):

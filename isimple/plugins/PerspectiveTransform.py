@@ -8,8 +8,7 @@ from isimple.config import extend, ConfigType, Field
 
 from isimple.core.interface import TransformConfig, TransformInterface, TransformType
 
-from isimple.maths.coordinates import Coo
-
+from isimple.maths.coordinates import Coo, Roi
 
 log = get_logger(__name__)
 
@@ -29,9 +28,9 @@ class PerspectiveTransform(TransformInterface):
         else:
             return False
 
-    def from_coordinates(self, roi: dict) -> np.ndarray:
+    def from_coordinates(self, roi: Roi) -> np.ndarray:
         return np.float32(
-            [[roi[corner]['x'], roi[corner]['y']]
+            [getattr(roi, corner).list
              for corner in ['BL', 'TL', 'TR', 'BR']]
         )
 
@@ -47,7 +46,7 @@ class PerspectiveTransform(TransformInterface):
                 )
             )
 
-    def estimate(self, roi: dict, shape: tuple) -> np.ndarray:
+    def estimate(self, roi: Roi, shape: tuple) -> np.ndarray:
         log.debug(f'Estimating transform ~ coordinates {roi} & shape {shape}')
 
         return cv2.getPerspectiveTransform(

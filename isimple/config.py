@@ -1,16 +1,18 @@
-from typing import Union, Optional, Tuple, Dict, Any
+from typing import Optional, Tuple, Dict, Any
 
 import yaml
 import json
 
-from pydantic import Field
+from pydantic import Field, validator
 
 from isimple.core.backend import BaseAnalyzerConfig, \
     FeatureType
 from isimple.core.config import extend, ConfigType, \
     log, VERSION, CLASS, untag, BaseConfig
 from isimple.core import EnforcedStr
-from isimple.core.interface import FilterType, TransformType, TransformConfig, FilterConfig, HandlerConfig
+from isimple.core.interface import FilterType, TransformType, TransformConfig, \
+    FilterConfig, HandlerConfig
+from isimple.maths.coordinates import Roi
 from isimple.maths.colors import HsvColor
 
 from isimple.util import before_version
@@ -45,8 +47,8 @@ class TransformHandlerConfig(HandlerConfig):
     type: TransformType = Field(default_factory=TransformType)
     data: TransformConfig = Field(default_factory=TransformConfig)
 
-    roi: Optional[dict] = Field(default=None)  # todo: maybe make this a config?
-    flip: FlipConfig = Field(default_factory=FlipConfig)  # (vertical, horizontal)
+    roi: Optional[Roi] = Field(default=None)  # todo: maybe make this a config?
+    flip: FlipConfig = Field(default_factory=FlipConfig)
     turn: int = Field(default=0) # number of 90° turns (CW)
 
 
@@ -64,15 +66,19 @@ class FilterHandlerConfig(HandlerConfig):
 @extend(ConfigType)
 class MaskConfig(BaseConfig):
     """Mask"""
-    name: Optional[str] = Field(default=None)
+    name: str = Field(default=None)
     skip: bool = Field(default=False)
     filter: FilterHandlerConfig = Field(default_factory=FilterHandlerConfig)
 
-    parameters: Dict[FeatureType, Dict[str, Tuple[bool, Any]]] = Field(default_factory=dict)
+    parameters: dict = Field(default_factory=dict)   # todo: this is basically deprecated
 
     @property
     def ready(self):
         return self.filter.ready
+
+    @validator('parameters', pre=True)
+    def _validate_parameters(cls, value, values):
+        return value
 
 
 @extend(ConfigType)
@@ -99,21 +105,19 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
     features: Tuple[FeatureType, ...] = Field(default=())  # todo: should be Dict[feature_id, FeatureType]
     parameters: Dict[FeatureType, Dict[str, Any]] = Field(default_factory=dict)  # todo: should be Dict[feature_id, FeatureConfig] -- can then 'merge' with VideoAnalyzerConfig.features
 
-    def resolve(self):
-        super(VideoAnalyzerConfig, self).resolve()  # todo: doesn't seem to resolve correctly ~ pydantic
+    @validator('masks', pre=True)
+    def _validate_masks(cls, value, values):
+        return value
 
-        # Remove unused parameters
-        for feature in list(self.parameters.keys()):
-            if feature not in self.features:
-                self.parameters.pop(feature)
+    @validator('parameters', pre=True)
+    def _validate_parameters(cls, value, values):
+        return value
 
-        # Propagate global parameters to masks
-        #   this overwrites any values that were overridden by the masks!
-        for mask in self.masks:
-            if isinstance(mask, dict):
-                mask = MaskConfig(**mask)  # todo: this should have happened in super().resolve(), but it didn't!
-            mask(parameters=self.parameters)
+    _validate_fis = validator('frame_interval_setting')(BaseConfig._resolve_enforcedstr)
 
+    @validator('features', pre=True)
+    def _validate_features(cls, value, values):
+        return value
 
 def load(path: str) -> VideoAnalyzerConfig:
     log.debug(f'Loading VideoAnalyzerConfig from {path}')

@@ -2,7 +2,7 @@ import unittest
 
 from isimple.plugins.HsvRangeFilter import HsvRangeFilter
 from isimple.video import *
-from isimple.core.config import Factory, Field, BaseConfig
+from isimple.core.config import Factory, Field, BaseConfig, validator
 from isimple.core import EnforcedStr
 from isimple.core.interface import FilterType
 
@@ -68,7 +68,8 @@ class ConfigTest(unittest.TestCase):
         self.assertEqual((4,5,6), conf.c)
         self.assertEqual(7.89, conf.d)
 
-        conf(d=1.23, a=789)
+        conf.d = 1.23
+        conf.a = 789
 
         self.assertEqual(789, conf.a)
         self.assertEqual('not abc', conf.b)
@@ -105,13 +106,15 @@ class ConfigResolutionTest(unittest.TestCase):
             _options = ['option1', 'option2']
 
         class DummyResolveConfig(BaseConfig):
-            a: np.ndarray = Field(default=np.array([4,5,6,7]))
+            a: list = Field(default=[4,5,6,7])
             b: DummyEnforcedStr = Field(default_factory=DummyEnforcedStr)
+
+            _resolve_b = validator('b', allow_reuse=True)(BaseConfig._resolve_enforcedstr)
 
         original = DummyResolveConfig()
         loaded = DummyResolveConfig(**original.to_dict())
 
-        self.assertIsInstance(loaded.a, np.ndarray)
+        self.assertIsInstance(loaded.a, list)
         self.assertIsInstance(loaded.b, DummyEnforcedStr)
 
     def test_nested_resolution(self):
@@ -119,7 +122,7 @@ class ConfigResolutionTest(unittest.TestCase):
             _options = ['option1', 'option2']
 
         class DummyNestedConfig(BaseConfig):
-            a: np.ndarray = Field(default=np.array([4,5,6,7]))
+            a: list = Field(default=[4,5,6,7])
             b: DummyEnforcedStr = Field(default_factory=DummyEnforcedStr)
 
         class DummyResolveConfig(BaseConfig):
@@ -128,8 +131,6 @@ class ConfigResolutionTest(unittest.TestCase):
         original = DummyResolveConfig()
         loaded = DummyResolveConfig(**original.to_dict())
 
-        self.assertIsInstance(loaded.c, DummyNestedConfig)
-        self.assertIsInstance(loaded.c, DummyNestedConfig)
         self.assertIsInstance(loaded.c, DummyNestedConfig)
 
 

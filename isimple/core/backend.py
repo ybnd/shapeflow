@@ -629,8 +629,13 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
     @backend.expose(backend.get_config)
     def get_config(self, do_tag=False) -> dict:
+        self._gather_config()
         config = self.config.to_dict(do_tag)
         return config
+
+    @abc.abstractmethod
+    def _gather_config(self):
+        raise NotImplementedError
 
     @backend.expose(backend.launch)
     def launch(self) -> bool:

@@ -4,9 +4,12 @@ from typing import Any, Optional, Tuple
 
 import numpy as np
 import cv2
+from pydantic import Field, validator
+
+from isimple.core.config import BaseConfig
 
 
-class Coo(object):
+class Coo(BaseConfig):
     """Image coordinate object.
         x: horizontal  left    -> right
         y: vertical    top     -> bottom
@@ -14,16 +17,13 @@ class Coo(object):
     x: float
     y: float
 
-    shape: Tuple[int, int]
-
-    def __init__(self, x: float, y: float, shape: Tuple[int, int]):
-        self.x = copy.copy(x)
-        self.y = copy.copy(y)
-
-        self.shape = copy.copy(shape)
+    shape: Optional[Tuple[int, int]]
 
     def __repr__(self):
-        return f"Coo({self.x}, {self.y}) ~ {self.shape}"
+        if self.shape is not None:
+            return f"Coo({self.x}, {self.y}) ~ {self.shape}"
+        else:
+            return f"Coo({self.x}, {self.y})"
 
     def __eq__(self, other: object) -> bool:
         assert isinstance(other, Coo)
@@ -69,7 +69,10 @@ class Coo(object):
 
     @property
     def abs(self) -> Tuple[float, float]:
-        return (self.y * self.shape[0], self.x * self.shape[1])
+        if self.shape is not None:
+            return (self.y * self.shape[0], self.x * self.shape[1])
+        else:
+            raise ValueError('No shape provided')
 
     @property
     def rel(self) -> Tuple[float, float]:
@@ -85,6 +88,13 @@ class Coo(object):
         abs = self.abs
         return (abs[1], abs[0])
 
-    def copy(self) -> 'Coo':
-        return copy.deepcopy(self)
+    @property
+    def list(self) -> list:
+        return [self.x, self.y]
 
+
+class Roi(BaseConfig):
+    BL: Coo = Field(default=None)
+    TL: Coo = Field(default=None)
+    TR: Coo = Field(default=None)
+    BR: Coo = Field(default=None)

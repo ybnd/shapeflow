@@ -11,7 +11,7 @@ from isimple.core import EnforcedStr
 from isimple.util import ndarray2str, str2ndarray
 from isimple.util.meta import resolve_type_to_most_specific, is_optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, root_validator, validator
 
 
 log = get_logger(__name__)
@@ -150,155 +150,32 @@ class BaseConfig(BaseModel):
     """
     class Config:
         """pydantic configuration class"""
-        arbitrary_types_allowed = True
+        arbitrary_types_allowed = False
+        use_enum_value = True
+        validate_assignment = True
         json_encoders = {
             np.ndarray: list,
         }
 
-    def __init__(self, **kwargs):
-        super().__init__()
-        self.__call__(**kwargs)
-
-    def resolve(self):
-        """Passes fields to self.__call__() to resolve type
-                """
-        self(**self.__dict__)
+    @classmethod
+    def _resolve_enforcedstr(cls, value, field):
+        if isinstance(value, field.type_):
+            return value
+        elif isinstance(value, str):
+            return field.type_(value)
+        else:
+            raise NotImplementedError
 
     def __call__(self, **kwargs) -> None:
-        """Set fields ~ (field, value) in kwargs.
-
-            * Resolves value to field type ~ Config.resolve()
-
-            * Handles the following schemes:
-                1) nesting:
-                    Config1
-                        field a: Config2
-
-                2) nesting ~ tuple:
-                    Config1
-                        field a: Tuple[Config2, ...]
-                        field b: Tuple[Config3, EnforcedStr1]
-
-                3) nesting ~ dict:
-                    Config1
-                        field a: Dict[str, Config2]
-                        field b: Dict[EnforcedStr1, Config3]
-
-                !! "Doubly nested" tuples or dicts are not handled !!
-                    The type must be contained in the top level
-                    of a tuple or dict for it to be resolved!
-
-                    i.e. Config2 doesn't get resolved in
-                        e.g.: Dict[str, Dict[str, Config2]
-                        e.g.: Tuple[int, Tuple[Config2, ...]
-        """
-
+        log.debug(f'{self}__call__{kwargs}')
         for kw, value in kwargs.items():
-            if kw in self.__fields__:
-                field_type = self._get_field_type(kw)
+            setattr(self, kw, value)
 
-                if value is None:
-                    if self.__fields__[kw].allow_none:
-                        setattr(self, kw, value)
-                    else:
-                        raise ValueError
-                elif type(value) != field_type:
-                    if hasattr(field_type, '__origin__'):
-                        if field_type.__origin__ == tuple:
-                            if field_type.__args__[1] == Ellipsis:
-                                v_type = field_type.__args__[0]
-                                setattr(
-                                    self, kw,
-                                    tuple([
-                                        self._resolve_value(v, v_type)
-                                        for v in value
-                                    ])
-                                )
-                            else:
-                                assert (len(field_type.__args__) == len(value))
-                                setattr(
-                                    self, kw,
-                                    tuple([
-                                        self._resolve_value(v, v_type)
-                                        for v_type, v in zip(field_type.__args__, value)
-                                    ])
-                                )
-                        elif field_type.__origin__ == dict:
-                            k_type = resolve_type_to_most_specific(
-                                field_type.__args__[0])
-                            v_type = resolve_type_to_most_specific(
-                                field_type.__args__[1])
+    @classmethod
+    def _get_field_type(cls, attr):
+        return resolve_type_to_most_specific(cls.__fields__[attr].outer_type_)
 
-                            try:
-                                setattr(self, kw, {
-                                    k_type(k): self._resolve_value(v, v_type)
-                                    for k, v in value.items()
-                                })
-                            except TypeError:  # todo: not great
-                                setattr(self, kw, {
-                                    k_type(k): v for k, v in value.items()
-                                })
-                        else:
-                            setattr(self, kw, self._resolve_value(value, field_type))
-                    elif issubclass(field_type, BaseConfig):
-                        # If field is an existing Config subclass, integrate value instead of overwriting
-                        if not isinstance(getattr(self, kw), field_type):
-                            # Resolve current value to correct type
-                            setattr(self, kw, self._resolve_value(getattr(self, kw), field_type))
-                        if isinstance(value, dict):
-                            getattr(self, kw).__call__(**untag(value))
-                        elif isinstance(value, BaseConfig):
-                            getattr(self, kw).__call__(**untag(value.to_dict()))
-                    else:
-                        setattr(self, kw, self._resolve_value(value, field_type))
-                else:
-                    setattr(self, kw, value)
-            elif hasattr(self, kw) and kw[0] != '_':
-                setattr(self, kw, value)
-            else:
-                log.warning(f"{self.__class__.__name__}: "
-                            f"unexpected field {{'{kw}': {value}}}.")
-
-    def _get_field_type(self, attr):
-        return resolve_type_to_most_specific(self.__fields__[attr].outer_type_)
-
-    @staticmethod
-    def _resolve_value(val, type, iter: bool = False):
-        """Resolve the value of an attribute to match a specific type
-
-        :param val: current value
-        :param type: type to resolve to
-        :param iter: if True, resolve all elements of val
-        :return: the resolved value for `val`; this should be written to the
-                  original attribute, i.e. `self.attr = resolve(self.attr, type)`
-        """
-        def __resolve_value(val, type):
-            if isinstance(val, type):
-                pass
-            elif isinstance(val, str):
-                if issubclass(type, EnforcedStr):
-                    val = type(val)
-                elif type == np.ndarray:
-                    val = str2ndarray(val)
-            elif isinstance(val, list):
-                if type == np.ndarray:
-                    val = np.array(val)
-                else:
-                    val = type(*val)
-            elif isinstance(val, dict) and issubclass(type, BaseConfig):
-                val = type(**untag(val))
-            elif issubclass(type, BaseConfig) or issubclass(type, EnforcedStr):
-                val = type()
-            return val
-
-        if iter:
-            val = map(partial(__resolve_value, type=type), val)
-        else:
-            # Resolve `val`
-            val = __resolve_value(val, type)
-        return val
-
-    def to_dict(self, do_tag: bool = False) -> dict:
+    def to_dict(self, do_tag: bool = False) -> dict:  # todo: should be replaced by pydantic internals + serialization
         """Return the configuration as a serializable dict.
         :param do_tag: if `True`, add configuration class and version fields to the dict
         :return: dict

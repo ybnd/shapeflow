@@ -43,7 +43,7 @@ class HsvRangeFilter(FilterInterface):
 
     def mean_color(self, filter: HsvRangeFilterConfig) -> HsvColor:
         # todo: S and V are arbitrary for now
-        return HsvColor(h=int(np.mean([filter.c0.h, filter.c1.h])), s=255, v=200)
+        return HsvColor(h=filter.color.h, s=255, v=200)
 
     def filter(self, filter: HsvRangeFilterConfig, img: np.ndarray) -> np.ndarray:
         c0 = np.float32(filter.c0.list)

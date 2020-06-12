@@ -14,10 +14,14 @@ from OnionSVG import OnionSVG
 from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     DesignFileHandlerConfig, VideoAnalyzerConfig, TransformType
 from isimple.plugins.PerspectiveTransform import PerspectiveTransformConfig
+
+from isimple.plugins import *
+
 from isimple.video import VideoFileHandler, VideoFileTypeError, \
     CachingInstance, VideoAnalyzer
 from isimple import settings
 from isimple.core.config import *
+
 
 # Get validation frames from test video ~ "raw" OpenCV
 __VIDEO__ = 'test.mp4'
@@ -166,7 +170,7 @@ class VideoAnalyzerTest(FrameTest):
         video_path=__VIDEO__,
         design_path=__DESIGN__,
         transform=TransformHandlerConfig(type=TransformType('PerspectiveTransform')),
-        video=VideoFileHandlerConfig(do_cache=False),
+        video=VideoFileHandlerConfig(),
         design=DesignFileHandlerConfig(),
     )
 
