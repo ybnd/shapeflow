@@ -43,6 +43,10 @@ class ResultsModel(NoGetterModel):
         'feature': types.STRING,
         'data': types.STRING,
         'added': types.DATE,
+
+        'start_date': types.DATE,
+        'finish_date': types.DATE,
+        'elapsed': types.FLOAT,
     }
     _search_fields = (
         'analysis', 'feature',
@@ -198,9 +202,6 @@ class VideoAnalysisModel(NoGetterModel):
         'description': types.STRING,        # description of the analysis
         'added': types.DATE,                # date&time when this analysis was added
         'modified': types.DATE,             # date&time when this analysis was last modified
-        'start_date': types.DATE,           # date&time when the latest run of this analysis was started
-        'finish_date': types.DATE,          # date&time when the latest run of this analysis was finished
-        'elapsed': types.FLOAT,             # duration of the latest run of this analysis (in seconds)
     }
 
     _search_fields = (
@@ -264,20 +265,20 @@ class VideoAnalysisModel(NoGetterModel):
                         'feature': k,
                         'data': df.to_json(orient='columns'),
                     })
+                    # Store timing info
+                    t = self._analyzer.timing
+                    if t is not None:
+                        model.update({
+                            'start_date': t.t0,
+                            'finish_date': t.t1,
+                            'elapsed': t.elapsed,
+                        })
+
                     model.store()
                     self.update({
                         'results': model['id']  # todo: what if a single analyzer produces multiple results?
                     })
                     self._analyzer._new_results()
-
-            # Store timing info
-            t = self._analyzer.timing
-            if t is not None:
-                self.update({
-                    'start_date': t.t0,
-                    'finish_date': t.t1,
-                    'elapsed': t.elapsed,
-                })
 
         self['modified'] = time.time()
         super().store(fields)

@@ -1240,7 +1240,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                     else:
                         break
 
-                self.commit()
+            self.commit()
 
         if self._cancel.is_set():
             self.clear()
