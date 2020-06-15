@@ -5,7 +5,12 @@ from isimple.config import extend, ConfigType, Field
 
 from isimple.maths.images import area_pixelsum
 
-from isimple.video import MaskFunction, Feature, FeatureType
+from isimple.video import MaskFunction, Feature, FeatureType, FeatureConfig
+
+
+@extend(ConfigType)
+class Volume_uL_Config(FeatureConfig):
+    h: float = Field(default=0.153, description='height (mm)')
 
 
 @extend(FeatureType)
@@ -14,14 +19,8 @@ class Volume_uL(MaskFunction):
     _unit = "µL"
     _description = "Volume ~ masked & filtered area multiplied by channel height"
 
-    _parameters = ('h',)
-    _parameter_defaults = {
-        'h': 0.153
-    }
-    _parameter_descriptions = {
-        'h': 'height (mm)'
-    }
+    _config: Volume_uL_Config
+    _config_class = Volume_uL_Config
 
     def _function(self, frame: np.ndarray) -> float:
-        h, = self.unpack()
-        return self.pxsq2mmsq(area_pixelsum(frame)) * h  # todo: better parameter handling for Feature subclasses
+        return self.pxsq2mmsq(area_pixelsum(frame)) * self.config.h

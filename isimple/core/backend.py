@@ -198,6 +198,10 @@ class Handler(abc.ABC):
         pass
 
 
+class FeatureConfig(BaseConfig, abc.ABC):
+    pass
+
+
 class Feature(abc.ABC):  # todo: should probably use Config for parameters after all :)
     """A feature implements interactions between BackendElements to
         produce a certain value
@@ -205,21 +209,21 @@ class Feature(abc.ABC):  # todo: should probably use Config for parameters after
     _color: Optional[HsvColor]
     _state: Optional[np.ndarray]
 
-    _label: str = ''
+    _label: str = ''  # todo: keep these in the config instead?
     _unit: str = ''
     _description: str = ''
     _elements: Tuple[Instance, ...] = ()
 
-    _parameters: Tuple[str,...] = ()
-    _parameter_defaults: Dict[str, Any] = {}
-    _parameter_descriptions: Dict[str, str] = {}
+    _config: FeatureConfig
+    _config_class: Type[FeatureConfig] = FeatureConfig
 
-    def __init__(self, elements: Tuple[Instance, ...]):
+    def __init__(self, elements: Tuple[Instance, ...], config: FeatureConfig):
         self._name = '<unnamed feature>'
         self._skip = False
         self._ready = False
 
         self._elements = elements
+        self._config = config
         self._color = HsvColor(h=0,s=200,v=255)  # start out as red
 
     def calculate(self, frame: np.ndarray, state: np.ndarray = None) \
@@ -288,20 +292,12 @@ class Feature(abc.ABC):  # todo: should probably use Config for parameters after
         raise NotImplementedError
 
     @classmethod
-    def parameters(cls) -> Tuple[str,...]:
-        return cls._parameters
-
-    @classmethod
-    def parameter_defaults(cls) -> Dict[str, Any]:
-        return cls._parameter_defaults
-
-    @classmethod
-    def parameter_descriptions(cls) -> Dict[str, str]:
-        return cls._parameter_descriptions
-
-    @classmethod
     def description(cls) -> str:
         return cls._description
+
+    @property
+    def config(self):
+        return self._config
 
 
 class FeatureSet(object):
@@ -366,6 +362,7 @@ class FeatureType(Factory):  # todo: nest in Feature?
 
     def get(self) -> Type[Feature]:
         feature = super().get()
+
         if issubclass(feature, Feature):
             return feature
         else:

@@ -210,16 +210,16 @@ class Main(isimple.core.Lockable):
                         k: feature.description() for k, feature
                         in zip(ft.options, features)
                     },
-                    'parameters': {
-                        k: feature.parameters() for k, feature
+                    'parameters': {  # todo: replace with JSON schema ~ pydantic
+                        k: list(feature._config_class.__fields__.keys()) for k, feature
                         in zip(ft.options, features)
                     },
-                    'parameter_defaults': {
-                        k: feature.parameter_defaults() for k, feature
+                    'parameter_defaults': {  # todo: replace with JSON schema ~ pydantic
+                        k: {par: field.default for par, field in feature._config_class.__fields__.items()} for k, feature
                         in zip(ft.options, features)
                     },
-                    'parameter_descriptions': {
-                        k: feature.parameter_descriptions() for k, feature
+                    'parameter_descriptions': {  # todo: replace with JSON schema ~ pydantic
+                        k: {par: field.field_info.description for par, field in feature._config_class.__fields__.items()} for k, feature
                         in zip(ft.options, features)
                     },
                 })

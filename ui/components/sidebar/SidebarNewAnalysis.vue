@@ -80,7 +80,7 @@ export default {
       // console.log("new analysis: config is");
       // console.log(config);
 
-      this.$refs.new_analyzer_form.hasValidFiles().then((ok) => {
+      this.$refs.new_analyzer_form.isValid().then((ok) => {
         if (ok) {
           this.show = false;
           this.$store

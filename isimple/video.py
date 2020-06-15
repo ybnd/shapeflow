@@ -18,7 +18,7 @@ from isimple.core import Lockable
 from isimple.core.backend import Instance, CachingInstance, \
     Handler, BaseVideoAnalyzer, BackendSetupError, AnalyzerType, Feature, \
     FeatureSet, \
-    FeatureType, backend, AnalyzerState, AnalyzerEvent
+    FeatureType, backend, AnalyzerState, AnalyzerEvent, FeatureConfig
 from isimple.core.config import extend, __meta_ext__
 from isimple.core.interface import TransformInterface, FilterConfig, \
     FilterInterface, FilterType, TransformType
@@ -732,12 +732,12 @@ class MaskFunction(Feature):
 
     _feature_type: FeatureType
 
-    def __init__(self, mask: Mask):
+    def __init__(self, mask: Mask, config: FeatureConfig):
         self.mask = mask
         self.filter = mask.filter
 
         super(MaskFunction, self).__init__(
-            (self.mask, self.filter)
+            (self.mask, self.filter), config
         )
 
         self._feature_type = FeatureType(self.__class__.__name__)
@@ -758,33 +758,18 @@ class MaskFunction(Feature):
     def skip(self):
         return self.mask.config.skip
 
-    def unpack(self) -> tuple:
-        """Resolve `self.mask.config.parameters` & `self.default_parameters()`
-            to a tuple of values in the order of `self.parameters()`
-        """
-
-        if self.feature_type in self.mask.config.parameters:
-            pars = []
-            for parameter in self.parameters():
-                if parameter in self.mask.config.parameters[self.feature_type]:
-                    pars.append(
-                        self.mask.config.parameters[self.feature_type][parameter]
-                    )
-                else:
-                    pars.append(
-                        self.parameter_defaults()[parameter]
-                    )
-            return tuple(pars)
-        else:
-            return tuple(
-                [self.parameter_defaults()[parameter]
-                 for parameter in self.parameters()]
-            )
-
     def px2mm(self, value):
+        """Convert design-space pixels to mm
+        :param value: # of pixels
+        :return:
+        """
         return value / (self.mask.dpi / 25.4)
 
     def pxsq2mmsq(self, value):
+        """Convert design-space pixels to mm²
+        :param value:
+        :return:
+        """
         return value / (self.mask.dpi / 25.4) ** 2
 
     def _guideline_color(self) -> HsvColor:
@@ -934,8 +919,12 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
         self._featuresets = {
             feature: FeatureSet(
-                tuple(feature.get()(mask) for mask in self.design.masks),
-            ) for feature in self.config.features
+                tuple(
+                    feature.get()(mask, config) for mask in self.design.masks
+                ),
+            ) for feature, config in zip(
+                self.config.features,
+                self.config.parameters)
         }
         self.get_colors()
         self._new_results()

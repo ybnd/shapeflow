@@ -43,8 +43,8 @@
             v-model="config.video_path"
             class="path-form"
             v-bind:class="{
-              'is-valid': validVideo,
-              'is-invalid': invalidVideo,
+              'is-valid': validVideo === true,
+              'is-invalid': validVideo === false,
             }"
           ></b-form-input>
         </b-input-group>
@@ -80,8 +80,8 @@
             type="text"
             v-model="config.design_path"
             v-bind:class="{
-              'is-valid': validDesign,
-              'is-invalid': invalidDesign,
+              'is-valid': validDesign === true,
+              'is-invalid': validDesign === false,
             }"
           ></b-form-input>
         </b-input-group>
@@ -136,7 +136,7 @@
                 ref="feature_setting"
                 v-bind:key="`form-feature-${feature}`"
                 v-model="config.features[index]"
-                @change="selectFeature"
+                @change="selectFeature(index, feature)"
                 :plain="false"
                 :options="features.options"
                 class="feature-selector"
@@ -157,11 +157,7 @@
                   <b-form-input
                     type="text"
                     class="config-form"
-                    :value="
-                      hasParameterData(feature, parameter)
-                        ? config.parameters[feature][parameter]
-                        : features.parameter_defaults[feature][parameter]
-                    "
+                    v-model="config.parameters[index][parameter]"
                     v-bind:key="`form-field-${index}-${parameter}`"
                   >
                   </b-form-input>
@@ -184,7 +180,14 @@
       <b-input-group-text class="leftmost-text"> </b-input-group-text>
       <b-col class="feature-col">
         <b-form-row>
-          <b-input-group-text class="add-feature" @click="handleAddFeature">
+          <b-input-group-text
+            class="add-feature"
+            @click="handleAddFeature"
+            v-bind:class="{
+              'is-valid': validFeatures === true,
+              'is-invalid': validFeatures === false,
+            }"
+          >
             <i class="fa fa-plus" />
             <div class="add-feature-text">
               &nbsp; Add feature...
@@ -226,24 +229,34 @@ export default {
       type: Object,
       default: () => {
         return {
-          video_path: "/home/ybnd/projects/200210 - isimple/data/shuttle.mp4",
-          design_path: "/home/ybnd/projects/200210 - isimple/data/shuttle.svg",
+          video_path: "",
+          design_path: "",
           frame_interval_setting: "Nf",
           Nf: 100,
           dt: 5,
-          features: ["Volume_uL"],
-          parameters: {}, // todo: don't actually get sent to the backend
+          features: [],
+          parameters: [], // todo: these don't actually get sent to the backend
         };
       },
     },
   },
+  mounted() {
+    this.handleAddFeature();
+  },
   methods: {
     hasParameterData(feature, parameter) {
+      console.log(`BasicConfig.hasParameterData(${feature}, ${parameter})`);
+
+      let has = false;
       if (_.has(this.config.parameters, feature)) {
-        return _.has(this.config.parameters[feature], parameter);
+        has = _.has(this.config.parameters[feature], parameter);
       }
+      console.log(has);
+      return has;
     },
     getConfig() {
+      console.log("BasicConfig.getconfig() -- this.config=");
+      console.log(this.config);
       return Object.assign(this.config, {
         [`${this.config.frame_interval_setting}`]: Number(
           this.config[`${this.config.frame_interval_setting}`]
@@ -259,21 +272,36 @@ export default {
     },
     handleRemoveFeature(index) {
       this.config.features.splice(index, 1);
+      this.validFeatures = this.config.features.length > 0;
     },
     handleAddFeature() {
-      this.config.features = [
-        ...this.config.features,
-        this.features.options[0],
+      const feature = this.features.options[0];
+
+      if (this.config.features === undefined) {
+        this.config.features = [];
+      }
+      if (this.config.parameters === undefined) {
+        this.config.parameters = [];
+      }
+
+      this.config.features = [...this.config.features, feature];
+      this.config.parameters = [
+        ...this.config.parameters,
+        JSON.parse(JSON.stringify(this.features.parameter_defaults[feature])),
       ];
+      this.validFeatures = this.config.features.length > 0;
       // console.log(this.config);
     },
-    selectFeature(feature) {
+    selectFeature(index, feature) {
       // console.log(`selectFeature(${feature})`);
       // console.log(this.features);
       if (this.features.options.includes(feature)) {
         // console.log("selecting feature");
         // console.log(feature);
-        this.config.feature = feature;
+        this.config.features[index] = feature;
+        this.config.parameters[index] = JSON.parse(
+          JSON.stringify(this.features.parameter_defaults[feature])
+        );
       }
     },
     selectVideoFile() {
@@ -302,40 +330,39 @@ export default {
         this.config.design_path = path;
       }
     },
-    async hasValidFiles() {
+    async isValid() {
       let video_ok = await this.checkVideoPath();
       let design_ok = await this.checkDesignPath();
-      return video_ok && design_ok;
+      this.validFeatures = this.config.features.length > 0;
+
+      console.log(`BasicConfig.isValid()`);
+
+      return video_ok && design_ok && this.validFeatures;
     },
     async checkVideoPath() {
       return check_video_path(this.config.video_path).then((ok) => {
         this.validVideo = ok;
-        this.invalidVideo = !ok;
         return ok;
       });
     },
     async checkDesignPath() {
       return check_design_path(this.config.design_path).then((ok) => {
         this.validDesign = ok;
-        this.invalidDesign = !ok;
         return ok;
       });
     },
   },
   watch: {
-    features() {
-      // for any features that we don't have values for, set defaults
-      for (let i = 0; i < features.options.length; i++) {
-        if (!(features.options[i] in this.config.parameters)) {
-          this.config.parameters = {
-            ...this.config.parameters,
-            [features.options[i]]:
-              features.parameter_defaults[features.options[i]],
-          };
+    config() {
+      console.log("BasicConfig.watch.config()");
+      for (let i = 0; i < this.config.features.length; i++) {
+        if (!this.config.parameters[i]) {
+          this.config.parameters[i] = JSON.parse(
+            JSON.stringify(
+              this.features.parameter_defaults[this.config.features[i]]
+            )
+          );
         }
-      }
-      if (this.features.options !== undefined) {
-        this.selectFeature(this.config.feature);
       }
     },
     frame_interval_settings() {
@@ -348,7 +375,7 @@ export default {
   },
   computed: {
     features() {
-      return this.$store.state.schemas.feature; // todo: replace with getter
+      return JSON.parse(JSON.stringify(this.$store.state.schemas.feature)); // todo: replace with getter
     },
     frame_interval_settings() {
       return this.$store.state.schemas.frame_interval_setting; // todo: replace with getter
@@ -387,10 +414,9 @@ export default {
   data() {
     return {
       showHeight: false,
-      validVideo: false,
-      invalidVideo: false,
-      validDesign: false,
-      invalidDesign: false,
+      validVideo: null,
+      validDesign: null,
+      validFeatures: null,
       video_path_options: [],
       design_path_options: [],
       frame_interval_setting_text: {
@@ -527,7 +553,17 @@ export default {
   &:hover * {
     color: #ffffff; /* todo: change to theme color */
   }
+  &.is-invalid {
+    background: theme-color("danger");
+    &:hover {
+      background: darken(theme-color("danger"), 5%);
+    }
+  }
+  &.is-invalid * {
+    color: #ffffff; /* todo: change to theme color */
+  }
 }
+
 .add-feature-text {
   color: transparent;
 }

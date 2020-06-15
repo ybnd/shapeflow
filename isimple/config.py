@@ -5,10 +5,10 @@ import json
 
 from pydantic import Field, validator
 
-from isimple.core.backend import BaseAnalyzerConfig, \
-    FeatureType
 from isimple.core.config import extend, ConfigType, \
     log, VERSION, CLASS, untag, BaseConfig
+from isimple.core.backend import BaseAnalyzerConfig, \
+    FeatureType, FeatureConfig
 from isimple.core import EnforcedStr
 from isimple.core.interface import FilterType, TransformType, TransformConfig, \
     FilterConfig, HandlerConfig
@@ -100,24 +100,48 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
     video: VideoFileHandlerConfig = Field(default_factory=VideoFileHandlerConfig)
     design: DesignFileHandlerConfig = Field(default_factory=DesignFileHandlerConfig)
     transform: TransformHandlerConfig = Field(default_factory=TransformHandlerConfig)
-    masks: Tuple[MaskConfig, ...] = Field(default_factory=tuple)  # todo: should be Dict[mask_name, MaskConfig]
+    masks: Tuple[MaskConfig, ...] = Field(default_factory=tuple)
 
-    features: Tuple[FeatureType, ...] = Field(default=())  # todo: should be Dict[feature_id, FeatureType]
-    parameters: Dict[FeatureType, Dict[str, Any]] = Field(default_factory=dict)  # todo: should be Dict[feature_id, FeatureConfig] -- can then 'merge' with VideoAnalyzerConfig.features
+    features: Tuple[FeatureType, ...] = Field(default=())
+    parameters: Tuple[FeatureConfig, ...] = Field(default=())
 
     @validator('masks', pre=True)
-    def _validate_masks(cls, value, values):
+    def _validate_masks(cls, value, values):  # todo: actually validate
         return value
 
+    @validator('features', pre=True)
+    def _validate_features(cls, value):
+        return tuple([
+            FeatureType(feature)
+            if not isinstance(feature, FeatureType) else feature
+            for feature in value
+        ])
+
     @validator('parameters', pre=True)
-    def _validate_parameters(cls, value, values):
-        return value
+    def _validate_parameters(cls, value, values):  # todo: actually validate
+        # todo: can we know for certain that values['features'] has already been validated?
+        parameters = []
+        for index, feature in enumerate(values['features']):
+            if index < len(value):
+                if isinstance(value[index], dict):
+                    # Resolve dict to FeatureConfig
+                    parameters.append(feature.get()._config_class(**value[index]))
+                elif not value[index]:
+                    # Resolve *empty* to default FeatureConfig silently
+                    parameters.append(feature.get()._config_class())
+                else:
+                    # Resolve anything else to default FeatureConfig and complain
+                    parameters.append(feature.get()._config_class())
+                    log.warning(f"{feature}: parameters should be specified as "
+                                f"a list of dict / array of object instead of "
+                                f"{value[index]} -- set to default")
+            else:
+                # Resolve not provided to default FeatureConfig silently
+                parameters.append(feature.get()._config_class())
+        return tuple(parameters)
 
     _validate_fis = validator('frame_interval_setting')(BaseConfig._resolve_enforcedstr)
 
-    @validator('features', pre=True)
-    def _validate_features(cls, value, values):
-        return value
 
 def load(path: str) -> VideoAnalyzerConfig:
     log.debug(f'Loading VideoAnalyzerConfig from {path}')
