@@ -19,7 +19,6 @@ class Volume_uL(MaskFunction):
     _unit = "µL"
     _description = "Volume ~ masked & filtered area multiplied by channel height"
 
-    _config: Volume_uL_Config
     _config_class = Volume_uL_Config
 
     def _function(self, frame: np.ndarray) -> float:

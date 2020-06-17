@@ -732,12 +732,12 @@ class MaskFunction(Feature):
 
     _feature_type: FeatureType
 
-    def __init__(self, mask: Mask, config: FeatureConfig):
+    def __init__(self, mask: Mask, global_config: FeatureConfig, config: Optional[FeatureConfig] = None):
         self.mask = mask
         self.filter = mask.filter
 
         super(MaskFunction, self).__init__(
-            (self.mask, self.filter), config
+            (self.mask, self.filter), global_config, config
         )
 
         self._feature_type = FeatureType(self.__class__.__name__)
@@ -964,19 +964,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
                 # Check for changes in features
                 if previous_features != self.config.features:
-                    # Add feature parameters to mask config
-                    for feature in self.config.features:  # todo: move down to Feature level
-                        if isinstance(feature, str):
-                            feature = FeatureType(feature)
-                        for mask in self.config.masks:
-
-
-                            f = feature.get()
-                            if f not in mask.parameters:
-                                mask.parameters.update({
-                                    feature: self.config.parameters[feature]
-                                })
-
                     if self.launched:
                         self._get_featuresets()
 

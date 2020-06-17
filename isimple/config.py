@@ -70,7 +70,7 @@ class MaskConfig(BaseConfig):
     skip: bool = Field(default=False)
     filter: FilterHandlerConfig = Field(default_factory=FilterHandlerConfig)
 
-    parameters: dict = Field(default_factory=dict)   # todo: this is basically deprecated
+    parameters: Tuple[Optional[FeatureConfig],...] = Field(default=())
 
     @property
     def ready(self):

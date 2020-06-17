@@ -214,15 +214,16 @@ class Feature(abc.ABC):  # todo: should probably use Config for parameters after
     _description: str = ''
     _elements: Tuple[Instance, ...] = ()
 
-    _config: FeatureConfig
+    _config: Optional[FeatureConfig]
+    _global_config: FeatureConfig
     _config_class: Type[FeatureConfig] = FeatureConfig
 
-    def __init__(self, elements: Tuple[Instance, ...], config: FeatureConfig):
-        self._name = '<unnamed feature>'
+    def __init__(self, elements: Tuple[Instance, ...], global_config: FeatureConfig, config: Optional[FeatureConfig] = None):
         self._skip = False
         self._ready = False
 
         self._elements = elements
+        self._global_config = global_config
         self._config = config
         self._color = HsvColor(h=0,s=200,v=255)  # start out as red
 
@@ -234,11 +235,6 @@ class Feature(abc.ABC):  # todo: should probably use Config for parameters after
         if state is not None:
             state = self.state(frame, state)
         return self.value(frame), state
-
-    @property
-    @abc.abstractmethod
-    def name(self) -> str:
-        raise NotImplementedError
 
     @classmethod
     def label(cls) -> str:
@@ -297,7 +293,10 @@ class Feature(abc.ABC):  # todo: should probably use Config for parameters after
 
     @property
     def config(self):
-        return self._config
+        if self._config is not None:
+            return self._config
+        else:
+            return self._global_config
 
 
 class FeatureSet(object):
