@@ -107,7 +107,37 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
 
     @validator('masks', pre=True)
     def _validate_masks(cls, value, values):  # todo: actually validate
-        return value
+        for mask in value:
+            # Resolve class
+            if isinstance(mask, dict):
+                mask = MaskConfig(**mask)
+            elif isinstance(mask, MaskConfig):
+                pass
+            else:
+                raise TypeError
+
+            # Resolve parameters
+            parameters = list(mask.parameters)
+
+            for index, (feature, config) in enumerate(zip(values['features'], values['parameters'])):
+                if index >= len(mask.parameters):
+                    parameters.append(None)
+                elif parameters[index] is None:
+                    pass
+                elif not parameters[index]:
+                    parameters[index] = None
+                else:
+                    if isinstance(parameters[index], dict):
+                        parameters[index] = feature._config_class()(
+                            **parameters[index]
+                        )
+                    else:
+                        raise ValueError(
+                            f"can not resolve parameters {parameters[index]}"
+                        )
+
+            mask.parameters = tuple(parameters)
+        return tuple(value)
 
     @validator('features', pre=True)
     def _validate_features(cls, value):
@@ -138,6 +168,7 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
             else:
                 # Resolve not provided to default FeatureConfig silently
                 parameters.append(feature.get()._config_class())
+
         return tuple(parameters)
 
     _validate_fis = validator('frame_interval_setting')(BaseConfig._resolve_enforcedstr)
