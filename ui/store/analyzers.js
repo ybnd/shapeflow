@@ -127,51 +127,51 @@ export const mutations = {
   },
 
   resetAnalyzerResult(state, { id, result_metadata }) {
-    try {
-      assert(!(id === undefined), "no id provided");
-      assert(!(result_metadata === undefined), "no metadata provided");
-
-      state.result[id] = {};
-
-      for (const feature of state.config[id].features) {
-        state.result[id] = { ...state.result[id], [feature]: [] };
-        for (let m = 0; m < state.config[id].masks.length; m++) {
-          state.result[id][feature] = [
-            ...state.result[id][feature],
-            {
-              label: state.config[id].masks[m].name,
-              backgroundColor: result_metadata.colors[feature][m],
-              borderColor: result_metadata.colors[feature][m],
-              showLine: true,
-              data: [],
-            },
-          ];
-        }
-      }
-    } catch (err) {
-      console.warn(`resetAnalyzerResult failed: '${id}'`);
-      console.warn(err);
-    }
+    // try {
+    //   assert(!(id === undefined), "no id provided");
+    //   assert(!(result_metadata === undefined), "no metadata provided");
+    //
+    //   state.result[id] = {};
+    //
+    //   for (const feature of state.config[id].features) {
+    //     state.result[id] = { ...state.result[id], [feature]: [] };
+    //     for (let m = 0; m < state.config[id].masks.length; m++) {
+    //       state.result[id][feature] = [
+    //         ...state.result[id][feature],
+    //         {
+    //           label: state.config[id].masks[m].name,
+    //           backgroundColor: result_metadata.colors[feature][m],
+    //           borderColor: result_metadata.colors[feature][m],
+    //           showLine: true,
+    //           data: [],
+    //         },
+    //       ];
+    //     }
+    //   }
+    // } catch (err) {
+    //   console.warn(`resetAnalyzerResult failed: '${id}'`);
+    //   console.warn(err);
+    // }
   },
 
   updateAnalyzerResult(state, { id, result }) {
-    try {
-      assert(!(id === undefined), "no id provided");
-      assert(!(result === undefined), "no result");
-
-      for (const feature of state.config[id].features) {
-        for (let m = 0; m < state.config[id].masks.length; m++) {
-          state.result[id][feature][m].data = [
-            ...state.result[id][feature][m].data,
-            { x: result.t, y: result[feature][m] },
-          ];
-        }
-      }
-    } catch (err) {
-      console.warn(`updateAnalyzerResult failed: '${id}', result: `);
-      console.warn(result);
-      console.warn(err);
-    }
+    // try {
+    //   assert(!(id === undefined), "no id provided");
+    //   assert(!(result === undefined), "no result");
+    //
+    //   for (const feature of state.config[id].features) {
+    //     for (let m = 0; m < state.config[id].masks.length; m++) {
+    //       state.result[id][feature][m].data = [
+    //         ...state.result[id][feature][m].data,
+    //         { x: result.t, y: result[feature][m] },
+    //       ];
+    //     }
+    //   }
+    // } catch (err) {
+    //   console.warn(`updateAnalyzerResult failed: '${id}', result: `);
+    //   console.warn(result);
+    //   console.warn(err);
+    // }
   },
 
   dropAnalyzer(state, { id }) {

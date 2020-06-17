@@ -257,13 +257,13 @@ class VideoAnalysisModel(NoGetterModel):
 
             # Store results
             for k, df in self._analyzer.results.items():
-                # Add columns
+                # Add columnsfe
                 if not df.isnull().all().all():
                     model = self._db.add_results()  # todo: should have a _results: Dict[ <?>, ResultsModel] so these don't spawn new results each time
                     model.update({
                         'analysis': self['id'],
                         'feature': k,
-                        'data': df.to_json(orient='columns'),
+                        'data': df.to_json(orient='split'),
                     })
                     # Store timing info
                     t = self._analyzer.timing
@@ -278,7 +278,7 @@ class VideoAnalysisModel(NoGetterModel):
                     self.update({
                         'results': model['id']  # todo: what if a single analyzer produces multiple results?
                     })
-                    self._analyzer._new_results()
+                    # self._analyzer._new_results()
 
         self['modified'] = time.time()
         super().store(fields)

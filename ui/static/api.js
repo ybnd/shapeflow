@@ -340,6 +340,20 @@ export async function analyze(id) {
   });
 }
 
+export async function get_results(id) {
+  return axios.get(api(id, "call/get_results")).then((response) => {
+    if (response.status === 200) {
+      let results = response.data;
+      for (let feature in results) {
+        if (results.hasOwnProperty(feature)) {
+          results[feature] = JSON.parse(results[feature]);
+        }
+      }
+      return results;
+    }
+  });
+}
+
 export function get_log() {
   // todo: add link to where this was copied from!
   var xhr = new XMLHttpRequest();

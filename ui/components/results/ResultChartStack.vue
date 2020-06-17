@@ -5,7 +5,7 @@
     ref="container"
     :key="charts_key"
   >
-    <template v-for="(feature_data, feature, index) in result">
+    <template v-for="(feature_data, feature) in result">
       <div
         class="result"
         :class="result_class"
@@ -19,14 +19,14 @@
           :options="{
             ...options,
             legend: {
-              display: is_last(index),
+              // display: is_last(index),
               position: 'bottom',
             },
             scales: {
               xAxes: [
                 {
                   scaleLabel: {
-                    display: is_last(index),
+                    // display: is_last(index),
                     labelString: 'Time (s)',
                     fontStyle: 'bold',
                     fontSize: 14,
@@ -52,8 +52,17 @@
 </template>
 
 <script>
+import Vue from "vue";
+
+import AsyncComputed from "vue-async-computed";
+
+import { get_results, get_colors } from "../../static/api";
+import { col } from "../../static/util";
+
 import ResultChart from "../../components/results/ResultChart";
 import { events } from "../../static/events";
+
+Vue.use(AsyncComputed);
 
 export default {
   name: "ResultChartStack",
@@ -94,11 +103,87 @@ export default {
     name() {
       return this.$store.getters["analyzers/getName"](this.id);
     },
-    result() {
-      // Deep copy; vue-chartjs tries to modify data for some reason & vuex freaks out
-      return JSON.parse(
-        JSON.stringify(this.$store.getters["analyzers/getResult"](this.id))
-      );
+  },
+  asyncComputed: {
+    colors: {
+      get() {
+        return get_colors(this.id).then((colors) => {
+          return colors;
+        });
+      },
+      default: null,
+    },
+    result: {
+      async get() {
+        if (this.colors !== null) {
+          return get_results(this.id).then((results) => {
+            // backend returns results ~ pandas.DataFrame.to_json(orient='split')
+            // -> convert to
+            // {
+            //  feature:
+            //    [                           -> array of data / mask
+            //      {
+            //        ...metadata,
+            //        data: [{x:t y:mask}]    -> array of data points
+            //      }
+            //    ]
+            // }
+            console.log("ResultChartStack.result.get() -> results = ");
+            console.log(results);
+
+            let formatted_results = {};
+
+            for (const feature of Object.keys(results)) {
+              console.log(`feature = ${feature}`);
+              let feature_results = [];
+              if (results.hasOwnProperty(feature)) {
+                let masks = results[feature].columns.slice(1);
+
+                for (let m = 0; m < masks.length; m++) {
+                  let data = [];
+
+                  console.log(results[feature].data.length);
+
+                  for (let i = 0; i < results[feature].data.length; i++) {
+                    data = [
+                      ...data,
+                      {
+                        x: results[feature].data[i][0],
+                        y: results[feature].data[i][m + 1],
+                      },
+                    ];
+                  }
+
+                  feature_results = [
+                    ...feature_results,
+                    {
+                      label: masks[m],
+                      backgroundColor: this.colors[feature][m],
+                      borderColor: this.colors[feature][m],
+                      showLine: true,
+                      data: data,
+                    },
+                  ];
+                }
+              }
+              formatted_results = {
+                ...formatted_results,
+                [feature]: feature_results,
+              };
+            }
+
+            console.log(
+              "ResultChartStack.result.get() -> formatted_results = "
+            );
+            console.log(formatted_results);
+
+            return formatted_results;
+          });
+        } else {
+          return {};
+        }
+      },
+      default: {},
     },
   },
   data() {

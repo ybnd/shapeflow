@@ -920,19 +920,26 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         self._featuresets = {
             feature: FeatureSet(
                 tuple(
-                    feature.get()(mask, config) for mask in self.design.masks
+                    feature.get()(
+                        mask, global_config, mask.config.parameters[index]
+                    ) for mask in self.design.masks
                 ),
-            ) for feature, config in zip(
-                self.config.features,
-                self.config.parameters)
+            ) for index, (feature, global_config) in enumerate(
+                zip(
+                    self.config.features,
+                    self.config.parameters
+                )
+            )
         }
         self.get_colors()
-        self._new_results()
 
     def _new_results(self):
+        self.results = {}
         for fs, feature in zip(self._featuresets.values(), self.config.features):
             self.results[str(feature)] = pd.DataFrame(
-                [], columns=['time'] + [f.name for f in fs.features], index=list(self.frame_numbers())
+                [],
+                columns=['time'] + [f.name for f in fs.features],
+                index=list(self.frame_numbers())
             )
 
     @property
@@ -1014,7 +1021,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
     @backend.expose(backend.get_colors)  # todo: per feature in each feature set; maybe better as a dict instead of a list of tuples?
     def get_colors(self) -> Dict[str, Tuple[str, ...]]:
-        return {str(k):tuple([css_hex(c) for c in featureset.get_colors()]) for k, featureset in self._featuresets.items()}
+        return {str(k):tuple([css_hex(c) for c in featureset.resolve_colors()]) for k, featureset in self._featuresets.items()}
 
     def frame_numbers(self) -> Generator[int, None, None]:
         if self.config.frame_interval_setting == FrameIntervalSetting('Nf'):
@@ -1134,7 +1141,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             log.warning(message)
         return response
 
-
     @stream
     @backend.expose(backend.get_state_frame)
     def get_state_frame(self, frame_number: Optional[int] = None, featureset: Optional[int] = None) -> np.ndarray:
@@ -1191,8 +1197,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 )
                 values.append(value)
 
-            result.update({str(k): values})
-            self.results[str(k)].loc[frame_number] = [t] + values
+            result.update({k: values})
+            self.results[k].loc[frame_number] = [t] + values
 
         self.set_progress(frame_number / self.video.frame_count)
         self.event(AnalyzerEvent.RESULT, result)
@@ -1207,6 +1213,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             with self.lock(), self.time(f"Analyzing {self.id}", log):
                 self._get_featuresets()
                 self.commit()
+                self._new_results()
 
                 self.event(AnalyzerEvent.RMETAD, {'colors': self.get_colors()})
 
@@ -1221,6 +1228,13 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         if self._cancel.is_set():
             self.clear()
             self.set_state(AnalyzerState.CANCELED)
+
+    @backend.expose(backend.get_results)
+    def get_result(self) -> dict:
+        return {
+            str(feature):result.to_json(orient='split')
+            for feature,result in self.results.items()
+        }
 
     def load_config(self):
         """Load video analysis configuration from history database

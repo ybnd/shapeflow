@@ -22,6 +22,7 @@ class BackendRegistry(ImmutableRegistry):
     get_state = Endpoint(Callable[[], dict], stream_json)
     get_config = Endpoint(Callable[[], dict], stream_json)
     set_config = Endpoint(Callable[[dict], dict])
+    get_results = Endpoint(Callable[[], dict])
     get_relative_roi = Endpoint(Callable[[], dict])
     undo_config = Endpoint(Callable[[], dict])
     redo_config = Endpoint(Callable[[], dict])

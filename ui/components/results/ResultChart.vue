@@ -70,8 +70,6 @@ export default {
               // https://www.chartjs.org/docs/latest/configuration/tooltip.html
               var label = data.datasets[tooltipItem.datasetIndex].label || "";
 
-              console.log(data);
-
               if (label) {
                 label += ": ";
               }

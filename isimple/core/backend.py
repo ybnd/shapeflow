@@ -306,7 +306,7 @@ class FeatureSet(object):
     def __init__(self, features: Tuple[Feature, ...]):
         self._features = features
 
-    def get_colors(self) -> Tuple[HsvColor, ...]:
+    def resolve_colors(self) -> Tuple[HsvColor, ...]:
         guideline_colors = [f._guideline_color() for f in self._features]
 
         min_v = 20.0
