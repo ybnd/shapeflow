@@ -292,10 +292,10 @@ export default {
     "$route.query.id"() {
       console.log(`id has changed ${this.id}`);
 
-      this.$forceUpdate();
-
+      // this.$forceUpdate();
+      this.handleCleanUp();
       this.handleInit();
-      this.updateFrame(); // todo: this *tries* to update the moveable, but it grows for some reason :( / :)
+      this.updateFrame();
     },
   },
   computed: {
