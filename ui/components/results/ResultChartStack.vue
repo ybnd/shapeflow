@@ -58,6 +58,10 @@ import { events } from "../../static/events";
 export default {
   name: "ResultChartStack",
   props: {
+    id: {
+      type: String,
+      required: true,
+    },
     container_class: {
       type: String,
       default: "",
@@ -87,14 +91,14 @@ export default {
     },
   },
   computed: {
-    id() {
-      return this.$route.query.id;
-    },
     name() {
       return this.$store.getters["analyzers/getName"](this.id);
     },
     result() {
-      return this.$store.getters["analyzers/getResult"](this.id);
+      // Deep copy; vue-chartjs tries to modify data for some reason & vuex freaks out
+      return JSON.parse(
+        JSON.stringify(this.$store.getters["analyzers/getResult"](this.id))
+      );
     },
   },
   data() {

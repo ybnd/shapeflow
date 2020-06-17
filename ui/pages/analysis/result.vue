@@ -6,6 +6,8 @@
       </PageHeaderItem>
     </PageHeader>
     <ResultChartStack
+      :id="id"
+      :key="id"
       container_class="fullpage-result-container"
       result_class="fullpage-result"
     />
@@ -20,6 +22,11 @@ import PageHeaderItem from "../../components/header/PageHeaderItem";
 export default {
   name: "result",
   components: { PageHeader, PageHeaderItem, ResultChartStack },
+  computed: {
+    id() {
+      return this.$route.query.id;
+    },
+  },
 };
 </script>
 
