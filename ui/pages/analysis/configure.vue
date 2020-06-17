@@ -70,7 +70,7 @@
         </b-row>
       </b-card>
       <b-card class="basic-config isimple-form-section-full">
-        <BasicConfig ref="BasicConfig" :config="config" />
+        <BasicConfig ref="BasicConfig" :config="config" :static-paths="true" />
       </b-card>
       <template v-if="ui_schema && ui_schema.length > 0">
         <VueFormJsonSchema

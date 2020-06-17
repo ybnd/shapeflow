@@ -20,21 +20,24 @@
               @click="selectVideoFile"
               data-toggle="tooltip"
               title="Browse for a video file..."
+              :class="{ disabled: staticPaths }"
               ><i class="fa fa-file-video-o"></i
             ></b-button>
-            <b-dropdown
-              text=""
-              data-toggle="tooltip"
-              title="Recent video files"
-            >
-              <b-dropdown-item
-                v-for="path in video_path_options"
-                :key="`path-${path}`"
-                @click="selectVideoFileFromDropdown(path)"
+            <template v-if="!staticPaths">
+              <b-dropdown
+                text=""
+                data-toggle="tooltip"
+                title="Recent video files"
               >
-                {{ path }}
-              </b-dropdown-item>
-            </b-dropdown>
+                <b-dropdown-item
+                  v-for="path in video_path_options"
+                  :key="`path-${path}`"
+                  @click="selectVideoFileFromDropdown(path)"
+                >
+                  {{ path }}
+                </b-dropdown-item>
+              </b-dropdown>
+            </template>
           </b-input-group-prepend>
           <b-form-input
             v-bind:style="formStyle"
@@ -42,6 +45,7 @@
             type="text"
             v-model="config.video_path"
             class="path-form"
+            :readonly="staticPaths"
             v-bind:class="{
               'is-valid': validVideo === true,
               'is-invalid': validVideo === false,
@@ -58,27 +62,32 @@
               @click="selectDesignFile"
               data-toggle="tooltip"
               title="Browse for a design file..."
+              :class="{ disabled: staticPaths }"
               ><i class="fa fa-file-code-o"></i
             ></b-button>
-            <b-dropdown
-              text=""
-              data-toggle="tooltip"
-              title="Recent design files"
-            >
-              <b-dropdown-item
-                v-for="path in design_path_options"
-                :key="`path-${path}`"
-                @click="selectDesignFileFromDropdown(path)"
+            <template v-if="!staticPaths"
+              ><b-dropdown
+                text=""
+                data-toggle="tooltip"
+                title="Recent design files"
+                :class="{ disabled: staticPaths }"
               >
-                {{ path }}
-              </b-dropdown-item>
-            </b-dropdown>
+                <b-dropdown-item
+                  v-for="path in design_path_options"
+                  :key="`path-${path}`"
+                  @click="selectDesignFileFromDropdown(path)"
+                >
+                  {{ path }}
+                </b-dropdown-item>
+              </b-dropdown></template
+            >
           </b-input-group-prepend>
           <b-form-input
             v-bind:style="formStyle"
             ref="design_path"
             type="text"
             v-model="config.design_path"
+            :readonly="staticPaths"
             v-bind:class="{
               'is-valid': validDesign === true,
               'is-invalid': validDesign === false,
@@ -219,6 +228,10 @@ Vue.use(AsyncComputed);
 export default {
   name: "BasicConfig",
   props: {
+    staticPaths: {
+      type: Boolean,
+      default: false,
+    },
     formStyle: {
       type: Object,
       default() {
@@ -432,6 +445,10 @@ export default {
 @import "../../assets/scss/_bootstrap-variables";
 @import "../../assets/scss/_core-variables";
 @import "node_modules/bootstrap/scss/functions";
+
+.disabled {
+  pointer-events: none;
+}
 
 .input-group-text {
   border-radius: 0;
