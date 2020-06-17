@@ -956,6 +956,9 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 do_commit = False
                 log.debug(f"Setting VideoAnalyzerConfig to {config}")
 
+                previous_Nf = copy.copy(self.config.Nf)
+                previous_dt = copy.copy(self.config.dt)
+                previous_fis = copy.copy(self.config.frame_interval_setting)
                 previous_features = copy.deepcopy(self.config.features)  # todo: clean up
                 previous_video_path = copy.deepcopy(self.config.video_path)
                 previous_design_path = copy.deepcopy(self.config.design_path)
@@ -968,6 +971,16 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                     self.transform._config(**self.config.transform.to_dict())
                 if hasattr(self, 'design'):
                     self.design._config(**self.config.design.to_dict())
+
+                # Check for changes in frames
+                if hasattr(self, 'video'):
+                    if any([
+                        previous_Nf != self.config.Nf,
+                        previous_dt != self.config.dt,
+                        previous_fis != self.config.frame_interval_setting
+                    ]):
+                        self.video.set_requested_frames(list(self.frame_numbers()))
+                        do_commit = True
 
                 # Check for changes in features
                 if previous_features != self.config.features:
