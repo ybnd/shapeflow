@@ -698,17 +698,8 @@ class DesignFileHandler(CachingInstance):
     def shape(self):
         return self._shape
 
-    @backend.expose(backend.get_dpi)
-    def get_dpi(self) -> float:
-        return self.config.dpi
-
     def overlay(self) -> np.ndarray:
         return cv2.cvtColor(self._overlay, cv2.COLOR_BGR2HSV)
-
-    @backend.expose(backend.get_overlay_png)
-    def get_overlay_png(self) -> bytes:
-        _, buffer = cv2.imencode('.png', self._overlay.copy())
-        return buffer.tobytes()
 
     @backend.expose(backend.overlay_frame)
     def overlay_frame(self, frame: np.ndarray) -> np.ndarray:
@@ -878,11 +869,22 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         self.load_config()
 
         log.debug(f'{self.__class__.__name__}: launch nested instances.')
-        self.video = VideoFileHandler(self.config.video_path, self.config.video)
+        self.video = VideoFileHandler(
+            self.config.video_path,
+            self.config.video
+        )
         self.video.set_requested_frames(list(self.frame_numbers()))
 
-        self.design = DesignFileHandler(self.config.design_path, self.config.design, self.config.masks)
-        self.transform = TransformHandler(self.video.shape, self.design.shape, self.config.transform)
+        self.design = DesignFileHandler(
+            self.config.design_path,
+            self.config.design,
+            self.config.masks
+        )
+        self.transform = TransformHandler(
+            self.video.shape,
+            self.design.shape,
+            self.config.transform
+        )
         self.masks = self.design.masks
         self.filters = [mask.filter for mask in self.masks]
 
@@ -898,7 +900,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         backend.expose(backend.get_overlaid_frame)(self.get_frame_overlay)
         backend.expose(backend.get_state_frame)(self.get_state_frame)
         backend.expose(backend.get_colors)(self.get_colors)
-
+        backend.expose(backend.get_overlay_png)(self.get_overlay_png)
 
     @backend.expose(backend.cache)
     def cache(self) -> bool:
@@ -954,6 +956,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         with self.lock():
             if True:  # todo: sanity check
                 do_commit = False
+                do_relaunch = False
                 log.debug(f"Setting VideoAnalyzerConfig to {config}")
 
                 previous_Nf = copy.copy(self.config.Nf)
@@ -971,6 +974,15 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                     self.transform._config(**self.config.transform.to_dict())
                 if hasattr(self, 'design'):
                     self.design._config(**self.config.design.to_dict())
+
+                # Check for file changes
+                if self.launched and previous_video_path != self.config.video_path:
+                    do_commit = True
+                    do_relaunch = True
+
+                if self.launched and previous_design_path != self.config.design_path:
+                    do_commit = True
+                    do_relaunch = True
 
                 # Check for changes in frames
                 if hasattr(self, 'video'):
@@ -998,9 +1010,9 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                     self.estimate_transform()  # todo: self.config.bla.thing should be exactly self.bla.config.thing always
                     do_commit = True
 
-                # Check for file changes
-                if previous_video_path != self.config.video_path or previous_design_path != self.config.design_path:
-                    do_commit = True
+                if do_relaunch:
+                    self._launch()
+                    self._gather_instances()
 
                 if do_commit:
                     self.commit()  # todo: isimple.video doesn't know about isimple.history!
@@ -1184,6 +1196,11 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
         state[np.equal(state, 0)] = 255
         return cv2.cvtColor(state, cv2.COLOR_BGR2HSV)
+
+    @backend.expose(backend.get_overlay_png)
+    def get_overlay_png(self) -> bytes:
+        _, buffer = cv2.imencode('.png', self.design._overlay.copy())
+        return buffer.tobytes()
 
     @backend.expose(backend.get_mask_rects)
     def get_mask_rects(self) -> Dict[str, np.ndarray]:

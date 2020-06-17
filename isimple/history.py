@@ -236,13 +236,13 @@ class VideoAnalysisModel(NoGetterModel):
                 'description': self._analyzer.description,
             })
 
-            if self._analyzer.config.video_path and self._video is None:
+            if self._analyzer.config.video_path and (self._video is None or self._video['path'] != self._analyzer.config.video_path):
                 try:
                     self._video = self._db.add_file(self._analyzer.config.video_path, VideoFileModel, self, '_video')
                 except ValueError as e:
                     pass
 
-            if self._analyzer.config.design_path and self._design is None:
+            if self._analyzer.config.design_path and (self._design is None or self._design['path'] != self._analyzer.config.design_path):
                 try:
                     self._design = self._db.add_file(
                         self._analyzer.config.design_path, DesignFileModel, self, '_design')
