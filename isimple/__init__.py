@@ -80,6 +80,25 @@ class _Settings(BaseModel):
             for attribute, original in originals.items():
                 setattr(self, attribute, original)
 
+    @classmethod
+    def _validate_filepath(cls, value):
+        if not isinstance(value, Path):
+            value = Path(value)
+
+        if not value.exists() and not value.is_file():
+            value.touch()
+
+        return value
+
+    @classmethod
+    def _validate_directorypath(cls, value):
+        if not isinstance(value, Path):
+            value = Path(value)
+
+        if not value.exists() and not value.is_dir():
+            value.mkdir()
+
+        return value
 
 class FormatSettings(_Settings):
     datetime_format: str = Field(default='%Y/%m/%d %H:%M:%S.%f', description="date/time format")
@@ -113,6 +132,9 @@ class LogSettings(_Settings):  # todo: this class should track whether path exis
     lvl_console: LoggingLevel = Field(default=LoggingLevel.info, description="logging level (Python console)")
     lvl_file: LoggingLevel = Field(default=LoggingLevel.info, description="logging level (file)")
 
+    _validate_path = validator('path', allow_reuse=True)(_Settings._validate_filepath)
+    _validate_dir = validator('dir', allow_reuse=True)(_Settings._validate_directorypath)
+
 
 class CacheSettings(_Settings):  # todo: this class should track whether path exists
     dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'cache'), description="cache directory")
@@ -122,14 +144,20 @@ class CacheSettings(_Settings):  # todo: this class should track whether path ex
     resolve_frame_number: bool = Field(default=True, description="resolve to (nearest) cached frame numbers")
     block_timeout: float = Field(default=0.1, description="wait for blocked item (s)")
 
+    _validate_dir = validator('dir', allow_reuse=True)(_Settings._validate_directorypath)
+
 
 class RenderSettings(_Settings):  # todo: this class should track whether path exists
     dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'render'), description="render directory")
     keep: bool = Field(default=False, description="keep files after rendering")
 
+    _validate_dir = validator('dir', allow_reuse=True)(_Settings._validate_directorypath)
+
 
 class DatabaseSettings(_Settings):
     path: FilePath = Field(default=os.path.join(ROOTDIR, 'history.db'), description="database file")
+
+    _validate_path = validator('path', allow_reuse=True)(_Settings._validate_filepath)
 
 
 class ApplicationSettings(_Settings):
@@ -168,26 +196,9 @@ def _load_settings(path: str = _SETTINGS_FILE) -> Settings:  # todo: if there ar
     with open(path, 'r') as f:
         settings_yaml = yaml.safe_load(f)
 
-        def _from_dict():
-            try:
-                return Settings.from_dict(settings_yaml)
-            except ValidationError as e:  # todo: this is very messy
-                for error in e.raw_errors:
-                    assert isinstance(error, ErrorWrapper)
-                    if isinstance(error.exc, PathNotExistsError):
-                        errored_path: Path = Path(
-                            error.exc.path)  # type: ignore
-                        if e.model().fields[
-                            error._loc].type_ == DirectoryPath:  # type: ignore
-                            errored_path.mkdir()
-                        elif e.model().fields[
-                            error._loc].type_ == FilePath:  # type: ignore
-                            errored_path.touch()
-                return _from_dict()  # todo: should have a recursion limit of like 2
-
         # Get settings
         if settings_yaml is not None:
-            settings = _from_dict()
+            settings = Settings.from_dict(settings_yaml)
         else:
             settings = Settings()
 
