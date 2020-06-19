@@ -176,17 +176,14 @@ class Settings(_Settings):
 
     @classmethod
     def from_dict(cls, settings: dict):
-        for k in ('log', 'cache', 'render', 'format', 'db'):
+        for k in cls.__fields__.keys():
             if k not in settings:
                 settings.update({k:{}})
 
         return cls(
-            log=LogSettings(**settings['log']),
-            cache=CacheSettings(**settings['cache']),
-            render=RenderSettings(**settings['render']),
-            format=FormatSettings(**settings['format']),
-            db=DatabaseSettings(**settings['db']),
-        ) # type: ignore
+            **{field.name:field.type_(**settings[field.name])
+               for field in cls.__fields__.values()}
+        )
 
 
 global settings
