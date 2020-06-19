@@ -107,15 +107,15 @@ class LoggingLevel(str, Enum):
     vdebug = "vdebug"
 
 class LogSettings(_Settings):  # todo: this class should track whether path exists
-    path: FilePath = Field(default=Path(ROOTDIR, 'current.log'), description='running log file')
-    dir: DirectoryPath = Field(default=Path(ROOTDIR, 'log'), description='log file directory')
+    path: FilePath = Field(default=os.path.join(ROOTDIR, 'current.log'), description='running log file')
+    dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'log'), description='log file directory')
     keep: int = Field(default=16, description="# of log files to keep")
     lvl_console: LoggingLevel = Field(default=LoggingLevel.info, description="logging level (Python console)")
     lvl_file: LoggingLevel = Field(default=LoggingLevel.info, description="logging level (file)")
 
 
 class CacheSettings(_Settings):  # todo: this class should track whether path exists
-    dir: DirectoryPath = Field(default=Path(ROOTDIR, 'cache'), description="cache directory")
+    dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'cache'), description="cache directory")
     size_limit_gb: int = Field(default=4, description="cache size limit (GB)")
     do_cache: bool = Field(default=True, description="use the cache")
     do_background: bool = Field(default=True, description="cache in the background")
@@ -124,12 +124,12 @@ class CacheSettings(_Settings):  # todo: this class should track whether path ex
 
 
 class RenderSettings(_Settings):  # todo: this class should track whether path exists
-    dir: DirectoryPath = Field(default=Path(ROOTDIR, 'render'), description="render directory")
+    dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'render'), description="render directory")
     keep: bool = Field(default=False, description="keep files after rendering")
 
 
 class DatabaseSettings(_Settings):
-    path: FilePath = Field(default=Path(ROOTDIR, 'history.db'), description="database file")
+    path: FilePath = Field(default=os.path.join(ROOTDIR, 'history.db'), description="database file")
 
 
 class ApplicationSettings(_Settings):
