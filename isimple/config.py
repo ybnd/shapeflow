@@ -119,22 +119,23 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
             # Resolve parameters
             parameters = list(mask.parameters)
 
-            for index, (feature, config) in enumerate(zip(values['features'], values['parameters'])):
-                if index >= len(mask.parameters):
-                    parameters.append(None)
-                elif parameters[index] is None:
-                    pass
-                elif not parameters[index]:
-                    parameters[index] = None
-                else:
-                    if isinstance(parameters[index], dict):
-                        parameters[index] = feature._config_class()(
-                            **parameters[index]
-                        )
+            if 'features' in values and 'parameters' in values:
+                for index, (feature, config) in enumerate(zip(values['features'], values['parameters'])):
+                    if index >= len(mask.parameters):
+                        parameters.append(None)
+                    elif parameters[index] is None:
+                        pass
+                    elif not parameters[index]:
+                        parameters[index] = None
                     else:
-                        raise ValueError(
-                            f"can not resolve parameters {parameters[index]}"
-                        )
+                        if isinstance(parameters[index], dict):
+                            parameters[index] = feature._config_class()(
+                                **parameters[index]
+                            )
+                        else:
+                            raise ValueError(
+                                f"can not resolve parameters {parameters[index]}"
+                            )
 
             mask.parameters = tuple(parameters)
         return tuple(value)
