@@ -370,8 +370,8 @@ class FeatureType(Factory):  # todo: nest in Feature?
                 f"This is very weird and shouldn't happen, really."
             )
 
-    def schema(self) -> dict:
-        return self.get().schema()
+    def config_schema(self) -> dict:
+        return self.get().config_schema()
 
 
 class BaseAnalyzerConfig(BaseConfig):
@@ -742,5 +742,5 @@ class AnalyzerType(Factory):
         assert issubclass(t, self._type)
         return t
 
-    def schema(self) -> dict:
+    def config_schema(self) -> dict:
         return self.get().config_class()().schema()

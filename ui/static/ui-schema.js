@@ -103,7 +103,7 @@ const getComponent = {
     };
   },
   ARRAY(title, item_type, items) {
-    console.log(`ARRAY() of type=${item_type}`);
+    // console.log(`ARRAY() of type=${item_type}`);
 
     return {
       component: "b-card",
@@ -123,7 +123,7 @@ const getComponent = {
     };
   },
   FIELD(title, type, model, options) {
-    console.log(`FIELD() for type=${type}`);
+    // console.log(`FIELD() for type=${type}`);
     return {
       component: "b-row",
       fieldOptions: {
@@ -256,6 +256,62 @@ const Hardcoded = {
   },
 };
 
+const Implementations = {
+  "#/definitions/FeatureConfig"(title, model, schema, data, skip, order) {
+    console.log("FeatureConfig is here");
+    console.log(`title=${title}`);
+    console.log(`model=${model}`);
+    console.log("data=");
+    console.log(data);
+  },
+  "#/definitions/TransformConfig"(title, model, schema, data, skip, order) {
+    console.log("TransformConfig is here");
+    console.log(`title=${title}`);
+    console.log(`model=${model}`);
+    console.log("data=");
+    console.log(data);
+
+    const type_model = [...model.split(".").slice(0, -1), "type"].join(".");
+    console.log(`type_model=${type_model}`);
+
+    const type = _.get(data, type_model);
+    console.log(`type=${type}`);
+
+    const data_schema = schema.implementations.TransformConfig[type];
+    console.log("data_schema=");
+    console.log(data_schema);
+
+    const ui_schema = UiSchema(schema, data, skip, order, model, data_schema);
+    console.log("ui_schema=");
+    console.log(ui_schema);
+
+    return ui_schema;
+  },
+  "#/definitions/FilterConfig"(title, model, schema, data, skip, order) {
+    console.log("FilterConfig is here");
+    console.log(`title=${title}`);
+    console.log(`model=${model}`);
+    console.log("data=");
+    console.log(data);
+
+    const type_model = [...model.split(".").slice(0, -1), "type"].join(".");
+    console.log(`type_model=${type_model}`);
+
+    const type = _.get(data, type_model);
+    console.log(`type=${type}`);
+
+    const data_schema = schema.implementations.FilterConfig[type];
+    console.log("data_schema=");
+    console.log(data_schema);
+
+    const ui_schema = UiSchema(schema, data, skip, order, model, data_schema);
+    console.log("ui_schema=");
+    console.log(ui_schema);
+
+    return ui_schema;
+  },
+};
+
 function getReference(property_schema) {
   if (property_schema.hasOwnProperty("$ref")) {
     return property_schema.$ref;
@@ -280,18 +336,18 @@ function _handle_property(
     const model = context ? `${context}.${property}` : property;
     const value = _.get(data, model, undefined);
 
-    console.log(`model = ${model}`);
+    // console.log(`model = ${model}`);
 
     if (skip.includes(model)) {
-      console.log(`skipping ${model}`);
+      // console.log(`skipping ${model}`);
     } else {
-      console.log(`property ${property}`);
-      console.log(subschema.properties[property]);
+      // console.log(`property ${property}`);
+      // console.log(subschema.properties[property]);
 
       // Check for reference & definition, recurse if found
       const reference = getReference(subschema.properties[property]);
 
-      console.log(reference);
+      // console.log(reference);
 
       if (reference) {
         const definition = pointer.get(schema, reference.slice(1));
@@ -299,11 +355,26 @@ function _handle_property(
         if (Hardcoded.hasOwnProperty(reference)) {
           // todo: handle 'hardcoded' definitions here (for common definitions, e.g. Roi, Color, ...)
 
-          console.log(`HARDCODED DEFINITION -> ${reference}`);
-          console.log("properties=");
-          console.log(Object.keys(definition.properties));
+          // console.log(`HARDCODED DEFINITION -> ${reference}`);
+          // console.log("properties=");
+          // console.log(Object.keys(definition.properties));
 
           ui_schema = [...ui_schema, Hardcoded[reference](property, model)];
+        } else if (Implementations.hasOwnProperty(reference)) {
+          ui_schema = [
+            ...ui_schema,
+            getComponent.NESTED_CATEGORY(
+              property,
+              Implementations[reference](
+                property,
+                model,
+                schema,
+                data,
+                skip,
+                order
+              )
+            ),
+          ];
         } else {
           const children = UiSchema(
             schema,
@@ -314,9 +385,9 @@ function _handle_property(
             definition
           );
 
-          console.log(property);
-          console.log("children=");
-          console.log(children);
+          // console.log(property);
+          // console.log("children=");
+          // console.log(children);
 
           if (children.length > 0) {
             if (context) {
@@ -423,18 +494,18 @@ export function UiSchema(
   skip = [],
   order = {},
   context = undefined,
-  subschema
+  subschema = undefined
 ) {
-  console.log("ui-schema.UiSchema()");
+  // console.log("ui-schema.UiSchema()");
 
-  console.log("schema=");
-  console.log(schema);
+  // console.log("schema=");
+  // console.log(schema);
 
-  console.log("skip=");
-  console.log(skip);
+  // console.log("skip=");
+  // console.log(skip);
 
-  console.log("context=");
-  console.log(context);
+  // console.log("context=");
+  // console.log(context);
 
   try {
     assert(schema !== undefined);
@@ -450,11 +521,11 @@ export function UiSchema(
 
     let ui_schema = [];
 
-    console.log("We've got properties in this order: ");
-    console.log(subschema.properties);
+    // console.log("We've got properties in this order: ");
+    // console.log(subschema.properties);
 
-    console.log("Order for this context is: ");
-    console.log(order[context]);
+    // console.log("Order for this context is: ");
+    // console.log(order[context]);
 
     let properties = [];
     if (order[context]) {

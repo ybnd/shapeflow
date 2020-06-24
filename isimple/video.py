@@ -526,6 +526,7 @@ class Mask(Instance):
 
     def set_filter(self, color: HsvColor):
         self.filter.set(color=color)
+        self.config.filter(**self.filter.config.to_dict())  # todo: otherwise, mask config is not updated!
 
     @backend.expose(backend.mask)
     def __call__(self, img: np.ndarray) -> np.ndarray:
@@ -951,6 +952,21 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         else:
             return -1.0
 
+    def _set_config(self, config: dict):
+        self._config(**config)
+
+        # todo: would be better if nested instance config was *referencing* global config
+        if hasattr(self, 'video'):
+            self.video._config(**self.config.video.to_dict())
+        if hasattr(self, 'design'):
+            self.design._config(**self.config.design.to_dict())
+        if hasattr(self, 'transform'):
+            self.transform._config(**self.config.transform.to_dict())
+        if hasattr(self, 'masks'):
+            for mask, mask_config in zip(self.masks, self.config.masks):
+                mask._config(**mask_config.to_dict())
+                mask.filter._config(**mask_config.filter.to_dict())
+
     @backend.expose(backend.set_config)
     def set_config(self, config: dict) -> dict:
         with self.lock():
@@ -968,7 +984,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 previous_flip = copy.deepcopy(self.config.transform.flip)
                 previous_turn = copy.deepcopy(self.config.transform.turn)
 
-                self._config(**config)
+                self._set_config(config)
 
                 if hasattr(self, 'transform'):
                     self.transform._config(**self.config.transform.to_dict())
@@ -1014,7 +1030,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                     self._launch()
                     self._gather_instances()
 
-                if do_commit:
+                if do_commit:  # todo: should probably commit *before* re-launching
                     self.commit()  # todo: isimple.video doesn't know about isimple.history!
 
                 # Check for state transitions
@@ -1295,7 +1311,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                     )
                 video.remove()
 
-                self._config(**config)
+                self._set_config(config)
 
                 log.info(f'config ~ database: {config}')
                 log.info(f'loaded as {self.config}')

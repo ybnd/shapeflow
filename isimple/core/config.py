@@ -77,6 +77,10 @@ class Factory(EnforcedStr):  # todo: add a _class & issubclass check
             raise TypeError(f"Attempting to extend Factory '{cls.__name__}' "
                             f"with incompatible class {extension.__name__}")
 
+    @abc.abstractmethod
+    def config_schema(self) -> dict:
+        raise NotImplementedError
+
 
 class extend(object):  # todo: can this be a function instead? look at the @dataclass decorator, something weird is going on there with * and /
     _factory: Type[Factory]
@@ -247,7 +251,7 @@ class ConfigType(Factory):
                 f"This is very weird and shouldn't happen, really."
             )
 
-    def schema(self) -> dict:
+    def config_schema(self) -> dict:
         return self.get().schema()
 
 
@@ -259,7 +263,7 @@ class Configurable(object):
         return cls._config_class
 
     @classmethod
-    def schema(cls):
+    def config_schema(cls):
         return cls.config_class().schema()
 
 

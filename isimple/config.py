@@ -87,7 +87,7 @@ class DesignFileHandlerConfig(BaseConfig):
     """Design file"""
     dpi: int = Field(default=400)
 
-    overlay_alpha: float = Field(default=0.1)  # todo: more of a application setting
+    overlay_alpha: float = Field(default=0.1)  # todo: more of a application setting; has no direct effect on the output
     smoothing: int = Field(default=7)
 
 
@@ -106,27 +106,25 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
     features: Tuple[FeatureType, ...] = Field(default=())
     parameters: Tuple[FeatureConfig, ...] = Field(default=())
 
-    class Config:
-        @staticmethod
-        def schema_extra(schema, model) -> None:
-            schema.update({'implementations': {
-                'FeatureType': {
-                    feature: FeatureType(feature).schema()
-                    for feature in FeatureType().options
-                },
-                'TransformType': {
-                    transform: TransformType(transform).schema()
-                    for transform in TransformType().options
-                },
-                'FilterType': {
-                    filter: FilterType(filter).schema()
-                    for filter in FilterType().options
-                },
-            }})
-
     @classmethod
     def schema(cls, by_alias: bool = True) -> Dict[str, Any]:
         schema = super().schema(by_alias)
+
+        # add implementation schemas to schema
+        schema.update({'implementations': {
+            'FeatureConfig': {
+                feature: FeatureType(feature).config_schema()
+                for feature in FeatureType().options
+            },
+            'TransformConfig': {
+                transform: TransformType(transform).config_schema()
+                for transform in TransformType().options
+            },
+            'FilterConfig': {
+                filter: FilterType(filter).config_schema()
+                for filter in FilterType().options
+            },
+        }})
 
         # definitions in schema['implementations'] to top-level
         for category in schema['implementations'].values():
@@ -161,7 +159,7 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
                         parameters[index] = None
                     else:
                         if isinstance(parameters[index], dict):
-                            parameters[index] = feature._config_class()(
+                            parameters[index] = feature.config_class()(
                                 **parameters[index]
                             )
                         else:

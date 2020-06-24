@@ -26,8 +26,8 @@ class InterfaceFactory(Factory):
                 f"This is very weird and shouldn't happen, really."
             )
 
-    def schema(self) -> dict:
-        return self.get().schema()
+    def config_schema(self) -> dict:
+        return self.get().config_schema()
 
 
 class HandlerConfig(BaseConfig, abc.ABC):
