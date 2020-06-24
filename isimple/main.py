@@ -248,7 +248,7 @@ class Main(isimple.core.Lockable):
                 )
             elif for_type == "config":
                 return respond(
-                    backend.AnalyzerType().get()._config_class.schema()  # todo: { AnalyzerType:<schema> }
+                    backend.AnalyzerType().schema()  # todo: { AnalyzerType:<schema> }
                 )
             else:
                 raise ValueError(f"No options for '{for_type}'")

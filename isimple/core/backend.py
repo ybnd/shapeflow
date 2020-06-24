@@ -202,7 +202,7 @@ class FeatureConfig(BaseConfig, abc.ABC):
     pass
 
 
-class Feature(abc.ABC):  # todo: should probably use Config for parameters after all :)
+class Feature(abc.ABC, Configurable):  # todo: should probably use Config for parameters after all :)
     """A feature implements interactions between BackendElements to
         produce a certain value
     """
@@ -369,6 +369,9 @@ class FeatureType(Factory):  # todo: nest in Feature?
                 f"'{self.__class__.__name__}' tried to return an unexpected type '{feature}'. "
                 f"This is very weird and shouldn't happen, really."
             )
+
+    def schema(self) -> dict:
+        return self.get().schema()
 
 
 class BaseAnalyzerConfig(BaseConfig):
@@ -738,3 +741,6 @@ class AnalyzerType(Factory):
         t = super().get()
         assert issubclass(t, self._type)
         return t
+
+    def schema(self) -> dict:
+        return self.get().config_class()().schema()

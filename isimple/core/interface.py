@@ -26,6 +26,9 @@ class InterfaceFactory(Factory):
                 f"This is very weird and shouldn't happen, really."
             )
 
+    def schema(self) -> dict:
+        return self.get().schema()
+
 
 class HandlerConfig(BaseConfig, abc.ABC):
     type: InterfaceFactory
@@ -109,20 +112,7 @@ class FilterInterface(Configurable, abc.ABC):
 
 class FilterType(InterfaceFactory):
     _type = FilterInterface
-
-    def get(self) -> Type[FilterInterface]:
-        filter = super().get()
-        if issubclass(filter, FilterInterface):
-            return filter
-        else:
-            raise TypeError(
-                f"'{self.__class__.__name__}' tried to return an unexpected type '{filter}'. "
-                f"This is very weird and shouldn't happen, really."
-            )
-
-    def config_class(self) -> Type[FilterConfig]:
-        return self.get().config_class()
-
+    _mapping: Dict[str, Type[Configurable]] = {}
 
 
 class TransformType(InterfaceFactory):

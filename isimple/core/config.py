@@ -247,6 +247,9 @@ class ConfigType(Factory):
                 f"This is very weird and shouldn't happen, really."
             )
 
+    def schema(self) -> dict:
+        return self.get().schema()
+
 
 class Configurable(object):
     _config_class: Type[BaseConfig]
@@ -254,6 +257,10 @@ class Configurable(object):
     @classmethod
     def config_class(cls):
         return cls._config_class
+
+    @classmethod
+    def schema(cls):
+        return cls.config_class().schema()
 
 
 class Instance(Configurable):

@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Dict, Any
+from typing import Optional, Tuple, Dict, Any, Type
 
 import yaml
 import json
@@ -105,6 +105,36 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
 
     features: Tuple[FeatureType, ...] = Field(default=())
     parameters: Tuple[FeatureConfig, ...] = Field(default=())
+
+    class Config:
+        @staticmethod
+        def schema_extra(schema, model) -> None:
+            schema.update({'implementations': {
+                'FeatureType': {
+                    feature: FeatureType(feature).schema()
+                    for feature in FeatureType().options
+                },
+                'TransformType': {
+                    transform: TransformType(transform).schema()
+                    for transform in TransformType().options
+                },
+                'FilterType': {
+                    filter: FilterType(filter).schema()
+                    for filter in FilterType().options
+                },
+            }})
+
+    def schema(self, by_alias: bool = True) -> dict:
+        schema = super().schema(by_alias)
+
+        # definitions in schema['implementations'] to top-level
+        for category in schema['implementations'].values():
+            for implementation in category.values():
+                if 'definitions' in implementation:
+                    schema['definitions'].update(implementation.pop('definitions'))
+
+        return schema
+
 
     @validator('masks', pre=True)
     def _validate_masks(cls, value, values):  # todo: actually validate
