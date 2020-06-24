@@ -3,7 +3,7 @@ import cv2
 
 from typing import Tuple, Union
 
-from isimple.maths.coordinates import Coo
+from isimple.maths.coordinates import Coo, ShapeCoo
 from isimple.util import timed
 
 
@@ -52,7 +52,7 @@ def crop_mask(mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray, Tuple[int, int]
         (int((row_0+row_1-1)/2), int((col_0+col_1-1)/2))
 
 
-def rect_contains(rect: np.ndarray, point: Coo) -> bool:
+def rect_contains(rect: np.ndarray, point: ShapeCoo) -> bool:
     """Check whether `point` is in `rect`
     :param rect: an 'array rectangle': [first_row, last_row, first_column, last_column]
     :param point: a coordinate as (row, column)

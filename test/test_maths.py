@@ -263,33 +263,33 @@ class colorTest(unittest.TestCase):
 
 
 class coordinateTest(unittest.TestCase):
-    co1 = Coo(x=0.101, y=0.199, shape=(150,250))
-    co2 = Coo(x=0.301, y=0.299, shape=(300,300))
+    co1 = ShapeCoo(x=0.101, y=0.199, shape=(150,250))
+    co2 = ShapeCoo(x=0.301, y=0.299, shape=(300,300))
 
     def test_equality(self):
         self.assertEqual(
             self.co1,
-            Coo(x=0.101, y=0.199, shape=(150,250))
+            ShapeCoo(x=0.101, y=0.199, shape=(150,250))
         )
         self.assertEqual(
             self.co2,
-            Coo(x=0.301, y=0.299, shape=(300, 300))
+            ShapeCoo(x=0.301, y=0.299, shape=(300, 300))
         )
         self.assertNotEqual(
             self.co2,
-            Coo(x=0.6, y=0.299, shape=(300,300))
+            ShapeCoo(x=0.6, y=0.299, shape=(300,300))
         )
         self.assertNotEqual(
             self.co2,
-            Coo(x=0.301, y=0.6, shape=(300, 300))
+            ShapeCoo(x=0.301, y=0.6, shape=(300, 300))
         )
         self.assertNotEqual(
             self.co2,
-            Coo(x=0.301, y=0.299, shape=(301, 300))
+            ShapeCoo(x=0.301, y=0.299, shape=(301, 300))
         )
         self.assertNotEqual(
             self.co2,
-            Coo(x=0.301, y=0.299, shape=(300, 299))
+            ShapeCoo(x=0.301, y=0.299, shape=(300, 299))
         )
 
     def test_abs(self):

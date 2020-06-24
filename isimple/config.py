@@ -37,6 +37,7 @@ class VideoFileHandlerConfig(BaseConfig):
 
 
 class FlipConfig(BaseConfig):
+    """Flip"""
     vertical: bool = Field(default=False)
     horizontal: bool = Field(default=False)
 

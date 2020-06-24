@@ -26,7 +26,7 @@ from isimple.core.streaming import stream, streams
 from isimple.maths.colors import HsvColor, BgrColor, convert, css_hex
 from isimple.maths.images import to_mask, crop_mask, ckernel, \
     overlay, rect_contains
-from isimple.maths.coordinates import Coo, Roi
+from isimple.maths.coordinates import ShapeCoo, Roi
 from isimple.util import frame_number_iterator
 
 log = get_logger(__name__)
@@ -411,7 +411,7 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
         """
         return self._implementation.transform(self._matrix, img, self._design_shape)
 
-    def coordinate(self, coordinate: Coo) -> Coo:
+    def coordinate(self, coordinate: ShapeCoo) -> ShapeCoo:
         """Transform a design coordinate to a video coordinate
         """
         og_co = coordinate.copy()
@@ -543,7 +543,7 @@ class Mask(Instance):
         """
         return img[self.rows, self.cols]
 
-    def contains(self, coordinate: Coo) -> bool:
+    def contains(self, coordinate: ShapeCoo) -> bool:
         if rect_contains(self.rect, coordinate):
             return bool(
                 self.part[coordinate.idx[0] - self.rect[0], coordinate.idx[1] - self.rect[2]]
@@ -1123,7 +1123,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     def set_filter_click(self, relative_x: float, relative_y: float) -> dict:
         response = {}
 
-        click = Coo(
+        click = ShapeCoo(
             x = relative_x,
             y = relative_y,
             shape = self.design.shape[::-1]  # todo: ugh

@@ -1,5 +1,6 @@
 import assert from "assert";
 import pointer from "json-pointer";
+import _ from "lodash";
 
 const InputComponent = {
   // todo: fill out with fitting Bootstrap components
@@ -35,13 +36,13 @@ const InputComponent = {
       },
     };
   },
-  float() {
+  float({ step }) {
     return {
       component: "b-form-input",
       fieldOptions: {
         attrs: {
           type: "number",
-          step: 0.1,
+          step: step,
         },
         on: { input: (value) => parseInt(value) },
         class: "isimple-form-field-input",
@@ -155,24 +156,113 @@ const getComponent = {
   },
 };
 
+const Hardcoded = {
+  "#/definitions/Coo"(title, model) {
+    return {
+      component: "b-row",
+      fieldOptions: {
+        class: "isimple-form-row",
+      },
+      children: [
+        {
+          component: "b-input-group",
+          fieldOptions: { class: "isimple-form-group" },
+          children: [
+            {
+              component: "b-input-group-text",
+              fieldOptions: {
+                class: "isimple-form-field-text",
+                domProps: { innerHTML: `${title} (x,y)` },
+              },
+            },
+            {
+              ...InputComponent.float({ step: 1e-24 }),
+              model: [model, "x"].join("."),
+            },
+            {
+              ...InputComponent.float({ step: 1e-24 }),
+              model: [model, "y"].join("."),
+            },
+          ],
+        },
+      ],
+    };
+  },
+  "#/definitions/HsvColor"(title, model) {
+    return {
+      component: "b-row",
+      fieldOptions: {
+        class: "isimple-form-row",
+      },
+      children: [
+        {
+          component: "b-input-group",
+          fieldOptions: { class: "isimple-form-group" },
+          children: [
+            {
+              component: "b-input-group-text",
+              fieldOptions: {
+                class: "isimple-form-field-text",
+                domProps: { innerHTML: `${title} (h,s,v)` },
+              },
+            },
+            {
+              ...InputComponent.integer(),
+              model: [model, "h"].join("."),
+            },
+            {
+              ...InputComponent.integer(),
+              model: [model, "s"].join("."),
+            },
+            {
+              ...InputComponent.integer(),
+              model: [model, "v"].join("."),
+            },
+          ],
+        },
+      ],
+    };
+  },
+  "#/definitions/FlipConfig"(title, model) {
+    return {
+      component: "b-row",
+      fieldOptions: {
+        class: "isimple-form-row",
+      },
+      children: [
+        {
+          component: "b-input-group",
+          fieldOptions: { class: "isimple-form-group" },
+          children: [
+            {
+              component: "b-input-group-text",
+              fieldOptions: {
+                class: "isimple-form-field-text",
+                domProps: { innerHTML: `${title} horizontally/vertically` },
+              },
+            },
+            {
+              ...InputComponent.boolean(),
+              model: [model, "horizontal"].join("."),
+            },
+            {
+              ...InputComponent.boolean(),
+              model: [model, "vertical"].join("."),
+            },
+          ],
+        },
+      ],
+    };
+  },
+};
+
 function getReference(property_schema) {
-  if (property_schema.hasOwnProperty("allOf")) {
+  if (property_schema.hasOwnProperty("$ref")) {
+    return property_schema.$ref;
+  } else if (property_schema.hasOwnProperty("allOf")) {
     return property_schema.allOf[0].$ref;
   } else {
     return undefined;
-  }
-}
-
-function getModelValue(data, model = "") {
-  if (model) {
-    let value = data;
-    const attrs = model.split(".");
-    for (let i = 0; i < attrs.length; i++) {
-      value = value[attrs[i]]; // todo: this may be be a VueX no-no
-    }
-    return value;
-  } else {
-    return data;
   }
 }
 
@@ -188,6 +278,7 @@ function _handle_property(
 ) {
   if (subschema.properties.hasOwnProperty(property)) {
     const model = context ? `${context}.${property}` : property;
+    const value = _.get(data, model, undefined);
 
     console.log(`model = ${model}`);
 
@@ -200,65 +291,88 @@ function _handle_property(
       // Check for reference & definition, recurse if found
       const reference = getReference(subschema.properties[property]);
 
-      const title =
-        subschema.properties[property].description ||
-        subschema.properties[property].title.toLowerCase();
+      console.log(reference);
 
       if (reference) {
         const definition = pointer.get(schema, reference.slice(1));
-        const children = UiSchema(
-          schema,
-          data,
-          skip,
-          order,
-          property,
-          definition
-        );
 
-        if (children.length > 0) {
-          if (context) {
-            ui_schema = [
-              ...ui_schema,
-              getComponent.NESTED_CATEGORY(title, children),
-            ];
-          } else {
-            ui_schema = [...ui_schema, getComponent.CATEGORY(title, children)];
+        if (Hardcoded.hasOwnProperty(reference)) {
+          // todo: handle 'hardcoded' definitions here (for common definitions, e.g. Roi, Color, ...)
+
+          console.log(`HARDCODED DEFINITION -> ${reference}`);
+          console.log("properties=");
+          console.log(Object.keys(definition.properties));
+
+          ui_schema = [...ui_schema, Hardcoded[reference](property, model)];
+        } else {
+          const children = UiSchema(
+            schema,
+            data,
+            skip + [[model, "name"].join(".")],
+            order,
+            context !== undefined ? [context, property].join(".") : property,
+            definition
+          );
+
+          console.log(property);
+          console.log("children=");
+          console.log(children);
+
+          if (children.length > 0) {
+            if (context) {
+              ui_schema = [
+                ...ui_schema,
+                getComponent.NESTED_CATEGORY(property, children),
+              ];
+            } else {
+              ui_schema = [
+                ...ui_schema,
+                getComponent.CATEGORY(property, children),
+              ];
+            }
           }
         }
       } else {
+        const title =
+          subschema.properties[property].description ||
+          subschema.properties[property].title.toLowerCase();
+
         const type = subschema.properties[property].enum
           ? "enum"
           : subschema.properties[property].type;
 
         if (type === "array") {
           const item_reference = subschema.properties[property].items.$ref;
+
           if (item_reference) {
             const item_definition = pointer.get(
               schema,
               item_reference.slice(1)
             );
 
-            for (let i = 0; i < getModelValue(data, model).length; i++) {
-              const item_schema = UiSchema(
-                schema,
-                data,
-                skip,
-                order,
-                `${model}[${i}]`,
-                item_definition
-              );
+            if (value !== undefined) {
+              for (let i = 0; i < value.length; i++) {
+                const item_schema = UiSchema(
+                  schema,
+                  data,
+                  skip,
+                  order,
+                  `${model}[${i}]`,
+                  item_definition
+                );
 
-              if (item_schema.length > 0) {
-                if (context) {
-                  ui_schema = [
-                    ...ui_schema,
-                    getComponent.NESTED_CATEGORY(title, item_schema), // todo: not writing model!
-                  ];
-                } else {
-                  ui_schema = [
-                    ...ui_schema,
-                    getComponent.CATEGORY(title, item_schema),
-                  ];
+                if (item_schema.length > 0) {
+                  if (context) {
+                    ui_schema = [
+                      ...ui_schema,
+                      getComponent.NESTED_CATEGORY(title, item_schema), // todo: not writing model!
+                    ];
+                  } else {
+                    ui_schema = [
+                      ...ui_schema,
+                      getComponent.CATEGORY(title, item_schema),
+                    ];
+                  }
                 }
               }
             }
@@ -266,15 +380,18 @@ function _handle_property(
             const item_type = subschema.properties[property].items;
 
             let items = [];
-            for (let i = 0; i < getModelValue(data, model).length; i++) {
-              const item_model = `${model}.${i}`; // todo: probably won't work
-              items = [
-                ...items,
-                getComponent.FIELD("", item_type[i].type, item_model, {
-                  enum_options: item_type[i].enum,
-                  format: item_type[i].format,
-                }),
-              ];
+
+            if (value !== undefined) {
+              for (let i = 0; i < value.length; i++) {
+                const item_model = `${model}.${i}`; // todo: probably won't work
+                items = [
+                  ...items,
+                  getComponent.FIELD("", item_type[i].type, item_model, {
+                    enum_options: item_type[i].enum,
+                    format: item_type[i].format,
+                  }),
+                ];
+              }
             }
 
             ui_schema = [
@@ -305,7 +422,7 @@ export function UiSchema(
   data,
   skip = [],
   order = {},
-  context = "",
+  context = undefined,
   subschema
 ) {
   console.log("ui-schema.UiSchema()");
@@ -316,11 +433,14 @@ export function UiSchema(
   console.log("skip=");
   console.log(skip);
 
+  console.log("context=");
+  console.log(context);
+
   try {
     assert(schema !== undefined);
     assert(schema.properties !== undefined);
 
-    if (context !== "") {
+    if (context !== undefined) {
       assert(subschema !== undefined);
       const subdata = data[context];
     } else {

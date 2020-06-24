@@ -4,10 +4,11 @@
 
 $form-field-height: 30px;
 $form-gap: 4px;
+$scrollbar-width: 12px;
 
 $fit-width: calc(100% + 3*#{$form-gap});
-$half-width: calc((100vw - #{$sidebar-width} - 3 * #{$form-gap})/2);
-$full-width: calc(100vw - #{$sidebar-width} - 2 * #{$form-gap});
+$half-width: calc((100vw - #{$sidebar-width} - 3 * #{$form-gap})/2 - #{$scrollbar-width}/2 );
+$full-width: calc(100vw - #{$sidebar-width} - 2 * #{$form-gap} - #{$scrollbar-width});
 
 .isimple-form-section {
   border-radius: 0;
@@ -61,6 +62,10 @@ $full-width: calc(100vw - #{$sidebar-width} - 2 * #{$form-gap});
 
 .isimple-form-group {
   flex-grow: 0;
+}
+
+.isimple-form-gap {
+  width: $form-gap;
 }
 
 .isimple-form-field-text {

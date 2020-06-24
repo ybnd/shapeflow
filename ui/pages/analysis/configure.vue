@@ -77,6 +77,7 @@
           :options="{
             validate: false,
             validateOnLoad: false,
+            showValidationErrors: false,
             ajv: {
               options: {
                 validateSchema: false,
@@ -228,11 +229,11 @@ export default {
   max-width: calc(100vw - #{$sidebar-width});
   max-height: calc(100vh - #{$header-height});
   height: calc(100vh - #{$header-height});
-  -ms-overflow-style: none; /* IE 11 */
-  scrollbar-width: none; /* Firefox 64 */
+  /*-ms-overflow-style: none; !* IE 11 *!*/
+  /*scrollbar-width: none; !* Firefox 64 *!*/
 }
 
-$description-height: 128px;
+$description-height: 64px;
 
 .description-row {
   height: calc(#{$description-height});
