@@ -20,8 +20,8 @@ $item-height: calc(#{$header-height - 8px});
 .page-header-item {
   flex: 0 1 auto;
 
-  padding-top: 4px;
-  padding-bottom: 4px;
+  margin-top: 4px;
+  margin-bottom: 4px;
 
   background: $gray-200;
   display: flex;

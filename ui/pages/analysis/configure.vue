@@ -30,12 +30,8 @@
         </b-button>
       </PageHeaderItem>
       <PageHeaderItem>
-        <PageHeaderItem>
-          <b-button @click="handleGetConfig">Get configuration</b-button>
-        </PageHeaderItem>
-        <PageHeaderItem>
-          <b-button @click="handleSetConfig">Set configuration</b-button>
-        </PageHeaderItem>
+        <b-button @click="handleGetConfig">Get configuration</b-button>
+        <b-button @click="handleSetConfig">Set configuration</b-button>
       </PageHeaderItem>
       <PageHeaderItem>
         <b-button @click="undefined">Export</b-button>
@@ -153,6 +149,7 @@ export default {
                 "design_path",
                 "features",
                 "parameters",
+                // these should be handled separately
                 "name",
                 "description",
               ],
