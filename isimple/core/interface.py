@@ -6,7 +6,7 @@ import numpy as np
 from isimple import get_logger
 from isimple.core.config import BaseConfig, Configurable, Factory
 from isimple.maths.colors import HsvColor
-from isimple.maths.coordinates import Coo, Roi
+from isimple.maths.coordinates import ShapeCoo, Roi
 
 from pydantic import validator
 
@@ -78,7 +78,7 @@ class TransformInterface(Configurable, abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def coordinate(self, transform: np.ndarray, coordinate: Coo, shape: Tuple[int, int]) -> Coo:
+    def coordinate(self, transform: np.ndarray, coordinate: ShapeCoo, shape: Tuple[int, int]) -> ShapeCoo:
         raise NotImplementedError
 
 

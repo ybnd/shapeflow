@@ -8,7 +8,7 @@ from isimple.config import extend, ConfigType, Field
 
 from isimple.core.interface import TransformConfig, TransformInterface, TransformType
 
-from isimple.maths.coordinates import Coo, Roi
+from isimple.maths.coordinates import ShapeCoo, Roi
 
 log = get_logger(__name__)
 
@@ -60,6 +60,6 @@ class PerspectiveTransform(TransformInterface):
             borderValue=(255,255,255),  # makes the border white instead of black ~https://stackoverflow.com/questions/30227979/
         )
 
-    def coordinate(self, inverse: np.ndarray, coordinate: Coo, shape: Tuple[int, int]) -> Coo:
+    def coordinate(self, inverse: np.ndarray, coordinate: ShapeCoo, shape: Tuple[int, int]) -> ShapeCoo:
         coordinate.transform(inverse, shape)
         return coordinate
