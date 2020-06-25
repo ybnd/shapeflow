@@ -124,7 +124,8 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
                 },
             }})
 
-    def schema(self, by_alias: bool = True) -> dict:
+    @classmethod
+    def schema(cls, by_alias: bool = True) -> Dict[str, Any]:
         schema = super().schema(by_alias)
 
         # definitions in schema['implementations'] to top-level
