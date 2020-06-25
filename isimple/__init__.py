@@ -132,8 +132,8 @@ class LogSettings(_Settings):  # todo: this class should track whether path exis
     lvl_console: LoggingLevel = Field(default=LoggingLevel.info, description="logging level (Python console)")
     lvl_file: LoggingLevel = Field(default=LoggingLevel.info, description="logging level (file)")
 
-    _validate_path = validator('path', allow_reuse=True)(_Settings._validate_filepath)
-    _validate_dir = validator('dir', allow_reuse=True)(_Settings._validate_directorypath)
+    _validate_path = validator('path', allow_reuse=True, pre=True)(_Settings._validate_filepath)
+    _validate_dir = validator('dir', allow_reuse=True, pre=True)(_Settings._validate_directorypath)
 
 
 class CacheSettings(_Settings):  # todo: this class should track whether path exists
@@ -144,20 +144,20 @@ class CacheSettings(_Settings):  # todo: this class should track whether path ex
     resolve_frame_number: bool = Field(default=True, description="resolve to (nearest) cached frame numbers")
     block_timeout: float = Field(default=0.1, description="wait for blocked item (s)")
 
-    _validate_dir = validator('dir', allow_reuse=True)(_Settings._validate_directorypath)
+    _validate_dir = validator('dir', allow_reuse=True, pre=True)(_Settings._validate_directorypath)
 
 
 class RenderSettings(_Settings):  # todo: this class should track whether path exists
     dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'render'), description="render directory")
     keep: bool = Field(default=False, description="keep files after rendering")
 
-    _validate_dir = validator('dir', allow_reuse=True)(_Settings._validate_directorypath)
+    _validate_dir = validator('dir', allow_reuse=True, pre=True)(_Settings._validate_directorypath)
 
 
 class DatabaseSettings(_Settings):
     path: FilePath = Field(default=os.path.join(ROOTDIR, 'history.db'), description="database file")
 
-    _validate_path = validator('path', allow_reuse=True)(_Settings._validate_filepath)
+    _validate_path = validator('path', allow_reuse=True, pre=True)(_Settings._validate_filepath)
 
 
 class ApplicationSettings(_Settings):
