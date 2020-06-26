@@ -42,12 +42,22 @@ class HsvRangeFilter(FilterInterface):
         return filter
 
     def mean_color(self, filter: HsvRangeFilterConfig) -> HsvColor:
-        # todo: S and V are arbitrary for now
+        # S and V are arbitrary but work relatively well
+        # for both overlay & plot colors
         return HsvColor(h=filter.color.h, s=255, v=200)
 
     def filter(self, filter: HsvRangeFilterConfig, img: np.ndarray) -> np.ndarray:
-        c0 = np.float32(filter.c0.list)
-        c1 = np.float32(filter.c1.list)  # todo: doesn't work after pydantic colors :(
-        return cv2.inRange(
-            img, c0, c1, img
-        )
+        if filter.c0.h > filter.c1.h:
+            # handle hue wrapping situation with two ranges
+            c0_a = np.float32(filter.c0.list)
+            c1_a = np.float32([179] + filter.c1.list[1:])
+            c0_b = np.float32([0] + filter.c0.list[1:])
+            c1_b = np.float32(filter.c1.list)
+
+            return cv2.inRange(img, c0_a, c1_a, img) \
+                   + cv2.inRange(img, c0_b, c1_b, img)
+        else:
+            c0 = np.float32(filter.c0.list)
+            c1 = np.float32(filter.c1.list)
+
+            return cv2.inRange(img, c0, c1, img)
