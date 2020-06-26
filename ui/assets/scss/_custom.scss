@@ -7,8 +7,8 @@ $form-gap: 4px;
 $scrollbar-width: 12px;
 
 $fit-width: calc(100% + 3*#{$form-gap});
-$half-width: calc((100vw - #{$sidebar-width} - 3 * #{$form-gap})/2 - #{$scrollbar-width}/2 );
-$full-width: calc(100vw - #{$sidebar-width} - 2 * #{$form-gap} - #{$scrollbar-width});
+$half-width: calc((100vw - #{$sidebar-width} - 3 * #{$form-gap})/2);
+$full-width: calc(100vw - #{$sidebar-width} - 2 * #{$form-gap});
 
 .isimple-form-section {
   border-radius: 0;

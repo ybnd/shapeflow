@@ -34,7 +34,9 @@
         <b-button @click="handleSetConfig">Set configuration</b-button>
       </PageHeaderItem>
       <PageHeaderItem>
-        <b-button @click="undefined">Export</b-button>
+        <b-button @click="toggleEditJson">{{
+          edit_json ? "Hide JSON" : "Edit JSON"
+        }}</b-button>
       </PageHeaderItem>
     </PageHeader>
     <div class="scrollable">
@@ -46,7 +48,8 @@
             >
             <b-form-input
               class="isimple-form-field-text"
-              v-model="config.name"
+              v-model.lazy="config.name"
+              @change="handleSetConfig"
             ></b-form-input>
           </b-input-group>
         </b-row>
@@ -60,32 +63,33 @@
             <!--todo: not flushed properly when switching analyzers-->
             <b-form-textarea
               class="isimple-form-field-text description-box"
-              v-model="config.description"
+              v-model.lazy="config.description"
+              @change="handleSetConfig"
             ></b-form-textarea>
           </b-input-group>
         </b-row>
       </b-card>
       <b-card class="basic-config isimple-form-section-full">
-        <BasicConfig ref="BasicConfig" :config="config" :static-paths="true" />
-      </b-card>
-      <template v-if="ui_schema && ui_schema.length > 0">
-        <VueFormJsonSchema
-          v-model="config"
-          class="config-form-container"
-          :schema="schema"
-          :ui-schema="ui_schema"
-          :options="{
-            validate: false,
-            validateOnLoad: false,
-            showValidationErrors: false,
-            ajv: {
-              options: {
-                validateSchema: false,
-              },
-            },
-          }"
+        <BasicConfig
+          ref="BasicConfig"
+          :config="config"
+          :static-paths="true"
+          @change="handleSetConfig"
         />
-      </template>
+      </b-card>
+      <b-collapse
+        id="advanced-settings"
+        class="advanced-config-collapse"
+        :visible="edit_json"
+      >
+        <b-form-textarea
+          class="isimple-form-field-text advanced-config-box"
+          spellcheck="false"
+          v-model.lazy="config_json"
+          @change="handleChangeJson"
+          style="font-family: monospace;"
+        />
+      </b-collapse>
     </div>
   </div>
 </template>
@@ -97,9 +101,6 @@ import BasicConfig from "../../components/config/BasicConfig";
 
 import { UiSchema } from "../../static/ui-schema";
 
-import VueFormJsonSchema from "vue-form-json-schema";
-import Ajv from "ajv";
-
 import _ from "lodash";
 
 import VueHotkey from "v-hotkey";
@@ -107,14 +108,19 @@ import Vue from "vue";
 
 import AsyncComputed from "vue-async-computed";
 
+import beautify from "json-beautify";
+
 Vue.use(VueHotkey);
 Vue.use(AsyncComputed);
 
 export default {
   name: "dashboard",
-  components: { PageHeader, PageHeaderItem, BasicConfig, VueFormJsonSchema },
+  components: {
+    PageHeader,
+    PageHeaderItem,
+    BasicConfig,
+  },
   beforeMount() {
-    this.ajv = new Ajv();
     this.initConfig();
   },
   methods: {
@@ -137,36 +143,60 @@ export default {
           this.config = _.cloneDeep(
             this.$store.getters["analyzers/getAnalyzerConfig"](this.id)
           );
-          if (this.schema) {
-            this.ui_schema = UiSchema(
-              this.schema,
-              this.config,
-              [
-                // these should be handled ~ BasicConfig
-                "frame_interval_setting",
-                "Nf",
-                "dt",
-                "video_path",
-                "design_path",
-                "features",
-                "parameters",
-                // these should be handled separately
-                "name",
-                "description",
-              ],
-              { "": ["design", "transform"] }
-            );
-            console.log("ui_schema=");
-            console.log(this.ui_schema);
-          }
+          this.config_json = beautify(this.config, null, 2, 120);
+          // if (this.schema) {
+          //   this.ui_schema = UiSchema(
+          //     this.schema,
+          //     this.config,
+          //     [
+          //       // these should be handled ~ BasicConfig
+          //       "frame_interval_setting",
+          //       "Nf",
+          //       "dt",
+          //       "video_path",
+          //       "design_path",
+          //       "features",
+          //       "parameters",
+          //       // these should be handled separately
+          //       "name",
+          //       "description",
+          //     ],
+          //     { "": ["design", "transform"] }
+          //   );
+          //   console.log("ui_schema=");
+          //   console.log(this.ui_schema);
+          // }
         });
     },
     handleSetConfig() {
       // send config to backend
-      this.$store.dispatch("analyzers/set_config", {
-        id: this.id,
-        config: this.config,
-      });
+      this.$store
+        .dispatch("analyzers/set_config", {
+          id: this.id,
+          config: this.config,
+        })
+        .then(() => {
+          this.config = _.cloneDeep(
+            this.$store.getters["analyzers/getAnalyzerConfig"](this.id)
+          );
+          this.config_json = beautify(this.config, null, 2, 120);
+        });
+    },
+    toggleEditJson() {
+      this.edit_json = !this.edit_json;
+    },
+    handleChangeJson() {
+      this.$store
+        .dispatch("analyzers/set_config", {
+          id: this.id,
+          config: JSON.parse(this.config_json),
+        })
+        .then(() => {
+          this.config = _.cloneDeep(
+            this.$store.getters["analyzers/getAnalyzerConfig"](this.id)
+          );
+          this.config_json = beautify(this.config, null, 2, 120);
+        });
     },
   },
   computed: {
@@ -185,12 +215,9 @@ export default {
   },
   data() {
     return {
-      avj: undefined,
-      config: {
-        name: "",
-        description: "",
-      },
-      ui_schema: undefined,
+      config: {},
+      config_json: undefined,
+      edit_json: false,
     };
   },
 };
@@ -224,8 +251,8 @@ export default {
 }
 
 .scrollable {
-  overflow-x: hidden;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   max-width: calc(100vw - #{$sidebar-width});
   max-height: calc(100vh - #{$header-height});
   height: calc(100vh - #{$header-height});
@@ -240,6 +267,25 @@ $description-height: 64px;
 }
 .description-box {
   height: $description-height;
+}
+.advanced-config-box {
+  display: flex;
+  flex-shrink: 1;
+  flex-grow: 1;
+}
+
+.advanced-config-card {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 1;
+  flex-grow: 1;
+}
+.advanced-config-collapse {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  flex-grow: 1;
+  margin: 4px;
 }
 
 .description-label-row {

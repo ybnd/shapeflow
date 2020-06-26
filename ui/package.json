@@ -31,6 +31,7 @@
     "file-exists": "^5.0.1",
     "font-awesome": "^4.7.0",
     "jquery": "^1.12.4",
+    "json-beautify": "^1.1.1",
     "json-pointer": "^0.6.0",
     "lodash": "^4.17.15",
     "mathjs": "^6.6.5",

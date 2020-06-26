@@ -50,6 +50,7 @@
               'is-valid': validVideo === true,
               'is-invalid': validVideo === false,
             }"
+            @change="emitChange"
           ></b-form-input>
         </b-input-group>
       </b-form-group>
@@ -92,6 +93,7 @@
               'is-valid': validDesign === true,
               'is-invalid': validDesign === false,
             }"
+            @change="emitChange"
           ></b-form-input>
         </b-input-group>
       </b-form-group>
@@ -124,6 +126,7 @@
             type="text"
             v-model="config[`${config.frame_interval_setting}`]"
             class="config-form"
+            @change="emitChange"
           ></b-form-input>
         </b-input-group>
       </b-form-group>
@@ -168,6 +171,7 @@
                     class="config-form"
                     v-model="config.parameters[index][parameter]"
                     v-bind:key="`form-field-${index}-${parameter}`"
+                    @change="emitChange"
                   >
                   </b-form-input>
                 </template>
@@ -257,6 +261,9 @@ export default {
     this.handleAddFeature();
   },
   methods: {
+    emitChange() {
+      this.$emit("change");
+    },
     hasParameterData(feature, parameter) {
       console.log(`BasicConfig.hasParameterData(${feature}, ${parameter})`);
 
@@ -282,10 +289,12 @@ export default {
         // console.log(setting);
         this.config.frame_interval_setting = setting;
       }
+      this.emitChange();
     },
     handleRemoveFeature(index) {
       this.config.features.splice(index, 1);
       this.validFeatures = this.config.features.length > 0;
+      this.emitChange();
     },
     handleAddFeature() {
       const feature = this.features.options[0];
@@ -304,6 +313,7 @@ export default {
       ];
       this.validFeatures = this.config.features.length > 0;
       // console.log(this.config);
+      this.emitChange();
     },
     selectFeature(index, feature) {
       // console.log(`selectFeature(${feature})`);
@@ -316,6 +326,7 @@ export default {
           JSON.stringify(this.features.parameter_defaults[feature])
         );
       }
+      this.emitChange();
     },
     selectVideoFile() {
       select_video_path().then((path) => {
