@@ -164,6 +164,7 @@ class ApplicationSettings(_Settings):
     save_state: bool = Field(default=True, description="save application state")
     load_state: bool = Field(default=False, description="load application state on start")
     recent_files: int = Field(default=16, description="# of recent files to fetch")
+    edit_json: bool = Field(default=False, description="show JSON configuration editor by default")
 
 
 class Settings(_Settings):

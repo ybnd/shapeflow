@@ -81,31 +81,30 @@ export default {
     PageHeaderSeek,
     VueFormJsonSchema,
   },
-  beforeMount() {
-    get_settings().then((settings) => {
-      console.log(`settings.get_settings(): settings=`);
-      console.log(settings);
-      this.settings = settings;
-    });
-    settings_schema().then((schema) => {
-      console.log(`settings.settings_schema(): schema=`);
-      console.log(schema);
+  mounted() {
+    if (this.$store.getters["settings/isUndefined"]) {
+      this.$store.dispatch("settings/sync").then(() => {
+        // workaround to (re)load frontend on the settings page
+        // => settings/sync action called in layouts/default is not resolved yet
+        this.settings = this.$store.getters["settings/getSettings"];
+        this.schema = this.$store.getters["settings/getSchema"];
 
-      this.schema = schema;
-      this.ui_schema = UiSchema(schema, {});
-    });
+        this.ui_schema = UiSchema(this.schema, {});
+      });
+    } else {
+      this.settings = this.$store.getters["settings/getSettings"];
+      this.schema = this.$store.getters["settings/getSchema"];
+
+      this.ui_schema = UiSchema(this.schema, {});
+    }
   },
   methods: {
     setSettings() {
-      console.log("try to set settings");
-      console.log(this.settings);
-
-      set_settings(this.settings).then((settings) => {
-        this.settings = settings;
-      });
-
-      console.log("got back settings");
-      console.log(this.settings);
+      this.$store
+        .dispatch("settings/set", { settings: this.settings })
+        .then((settings) => {
+          this.settings = settings;
+        });
     },
     clearCache() {
       clear_cache();

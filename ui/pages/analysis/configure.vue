@@ -130,6 +130,9 @@ export default {
       if (this.$store.getters["analyzers/getIndex"](this.id) === -1) {
         this.$router.push(`/`);
       } else {
+        this.edit_json = this.$store.getters[
+          "settings/getSettings"
+        ].app.edit_json;
         this.handleGetConfig();
       }
     },
