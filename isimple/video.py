@@ -985,6 +985,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 previous_design_path = copy.deepcopy(self.config.design_path)
                 previous_flip = copy.deepcopy(self.config.transform.flip)
                 previous_turn = copy.deepcopy(self.config.transform.turn)
+                previous_roi = copy.deepcopy(self.config.transform.roi)
 
                 self._set_config(config)
 
@@ -1024,7 +1025,9 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                     self._get_featuresets()
 
                 # Check for ROI adjustments
-                if previous_flip != self.config.transform.flip or previous_turn != self.config.transform.turn:
+                if previous_flip != self.config.transform.flip \
+                        or previous_turn != self.config.transform.turn \
+                        or previous_roi != self.config.transform.roi:
                     self.estimate_transform()  # todo: self.config.bla.thing should be exactly self.bla.config.thing always
                     do_commit = True
 
