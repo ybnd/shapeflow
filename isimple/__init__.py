@@ -22,14 +22,8 @@ from pydantic.errors import PathNotExistsError, PathNotADirectoryError, PathNotA
 
 import diskcache
 
-print('loading library')
-
-
 # Library version
 __version__: str = '0.3.13'
-
-VDEBUG = 9
-logging.addLevelName(VDEBUG, "VDEBUG")
 
 # Get root directory
 _user_dir = str(pathlib.Path.home())  # todo: where is this on Windows?
@@ -105,6 +99,10 @@ class FormatSettings(_Settings):
     datetime_format_fs: str = Field(default='%Y-%m-%d_%H-%M-%S_%f', description="file system date/time format")
 
 
+VDEBUG = 9
+logging.addLevelName(VDEBUG, "VDEBUG")
+
+
 _levels: dict = defaultdict(default_factory=lambda: logging.INFO)
 _levels.update({
     'critical': logging.CRITICAL,
@@ -125,7 +123,7 @@ class LoggingLevel(str, Enum):
     debug = "debug"
     vdebug = "vdebug"
 
-class LogSettings(_Settings):  # todo: this class should track whether path exists
+class LogSettings(_Settings):
     path: FilePath = Field(default=os.path.join(ROOTDIR, 'current.log'), description='running log file')
     dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'log'), description='log file directory')
     keep: int = Field(default=16, description="# of log files to keep")
@@ -136,7 +134,7 @@ class LogSettings(_Settings):  # todo: this class should track whether path exis
     _validate_dir = validator('dir', allow_reuse=True, pre=True)(_Settings._validate_directorypath)
 
 
-class CacheSettings(_Settings):  # todo: this class should track whether path exists
+class CacheSettings(_Settings):
     dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'cache'), description="cache directory")
     size_limit_gb: int = Field(default=4, description="cache size limit (GB)")
     do_cache: bool = Field(default=True, description="use the cache")
@@ -147,7 +145,7 @@ class CacheSettings(_Settings):  # todo: this class should track whether path ex
     _validate_dir = validator('dir', allow_reuse=True, pre=True)(_Settings._validate_directorypath)
 
 
-class RenderSettings(_Settings):  # todo: this class should track whether path exists
+class RenderSettings(_Settings):
     dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'render'), description="render directory")
     keep: bool = Field(default=False, description="keep files after rendering")
 
@@ -232,7 +230,6 @@ else:
 
 
 save_settings(settings)
-# cache = diskcache.Cache(settings.cache.dir, settings.cache.size_limit_gb * 1e9) # todo: size limit should be in settings.cache
 
 
 def update_settings(new_settings: dict):
@@ -280,7 +277,7 @@ class Logger(logging.Logger):
 _console_handler = logging.StreamHandler()
 _console_handler.setLevel(_levels[settings.log.lvl_console])
 
-_file_handler = logging.FileHandler(settings.log.path)
+_file_handler = logging.FileHandler(str(settings.log.path))
 _file_handler.setLevel(_levels[settings.log.lvl_file])
 
 _formatter = logging.Formatter(
@@ -297,15 +294,15 @@ waitress.propagate = False
 
 def get_cache(settings: Settings = settings) -> diskcache.Cache:
     return diskcache.Cache(
-        directory=settings.cache.dir,
+        directory=str(settings.cache.dir),
         size_limit=settings.cache.size_limit_gb * 1e9
     )
 
 
-cache = get_cache()  # todo: why is this required?
+# cache = get_cache()  # todo: why is this required?
 
 
-def get_logger(name: str = __name__, settings: LogSettings = settings.log) -> Logger:
+def get_logger(name: str, settings: LogSettings = settings.log) -> Logger:
     if settings is None:
         settings = LogSettings()
 
@@ -319,3 +316,8 @@ def get_logger(name: str = __name__, settings: LogSettings = settings.log) -> Lo
 
     log.vdebug(f'new logger')
     return log
+
+
+log = get_logger(__name__)
+log.info(f"v{__version__}")
+log.debug(f"settings: {settings.dict()}")

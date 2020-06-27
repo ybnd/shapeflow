@@ -54,7 +54,6 @@ class BaseStreamer(abc.ABC):
         else:
             log.warning(f"{self.__class__.__name__}: skipping invalid value")
 
-    @logged
     def stream(self) -> Generator[Any, None, None]:
         self._stop.clear()
 
