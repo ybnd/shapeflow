@@ -602,9 +602,7 @@ export default {
   z-index: -100;
   pointer-events: none;
   display: block;
-  max-width: calc(
-    100vw - #{$sidebar-width}
-  ); /* todo: handle actual width! (import assets/scss/core/_variables -> doesn't compile) */
+  max-width: calc(100vw - #{$sidebar-width});
   max-height: calc(100vh - #{$header-height});
   width: auto;
   height: auto;
