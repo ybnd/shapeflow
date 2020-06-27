@@ -432,6 +432,7 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     _progress: float
 
     _cancel: threading.Event
+    _error: threading.Event
 
     results: Dict[str, pd.DataFrame]
 
@@ -578,6 +579,10 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     def cancel(self) -> None:
         super().cancel()
         self.set_state(AnalyzerState.CANCELED)
+
+    def error(self) -> None:
+        super().error()
+        self.set_state(AnalyzerState.ERROR)
 
     def set_progress(self, progress: float, push: bool = True):
         self._progress = progress

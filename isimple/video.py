@@ -1233,29 +1233,33 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         """
         log.debug(f"Calculating for frame {frame_number}")
 
-        t = self.video.get_time(frame_number)
-        raw_frame = self.video.read_frame(frame_number)
-        frame = self.transform(raw_frame)
+        try:
+            t = self.video.get_time(frame_number)
+            raw_frame = self.video.read_frame(frame_number)
+            frame = self.transform(raw_frame)
 
-        result = {'t': t}
+            result = {'t': t}
 
-        for k,fs in self._featuresets.items():
-            values = []
+            for k,fs in self._featuresets.items():
+                values = []
 
-            for feature in fs._features:  # todo: make featureset iterable maybe?
-                value, state = feature.calculate(
-                    frame.copy(),  # don't overwrite self.frame ~ cv2 dst parameter  # todo: better to let OpenCV handle copying, or not?
-                )
-                values.append(value)
+                for feature in fs._features:  # todo: make featureset iterable maybe?
+                    value, state = feature.calculate(
+                        frame.copy(),  # don't overwrite self.frame ~ cv2 dst parameter  # todo: better to let OpenCV handle copying, or not?
+                    )
+                    values.append(value)
 
-            result.update({k: values})
-            self.results[k].loc[frame_number] = [t] + values
+                result.update({k: values})
+                self.results[k].loc[frame_number] = [t] + values
 
-        self.set_progress(frame_number / self.video.frame_count)
-        self.event(AnalyzerEvent.RESULT, result)
+            self.set_progress(frame_number / self.video.frame_count)
+            self.event(AnalyzerEvent.RESULT, result)
+        except cv2.error as e:
+            log.error(str(e))
+            self._error.set()
 
     def analyze(self):
-        with self.busy_context(AnalyzerState.ANALYZING, AnalyzerState.DONE):  # todo: what happens if error occurs within this context?
+        with self.busy_context(AnalyzerState.ANALYZING, AnalyzerState.DONE):
             assert isinstance(self._cancel, threading.Event)
 
             if self.model is None:
@@ -1269,7 +1273,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 self.event(AnalyzerEvent.RMETAD, {'colors': self.get_colors()})
 
                 for fn in self.frame_numbers():
-                    if not self._cancel.is_set():
+                    if not self.canceled and not self.errored:
                         self.calculate(fn)
                     else:
                         break
@@ -1277,9 +1281,13 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             self.commit()
             self.export()
 
-        if self._cancel.is_set():
-            self.clear()
+        if self.canceled:
+            self.clear_cancel()
             self.set_state(AnalyzerState.CANCELED)
+
+        if self.errored:
+            self.clear_error()
+            self.set_state(AnalyzerState.ERROR)
 
     def export(self):
         """Export video analysis results & metadata to .xlsx"""

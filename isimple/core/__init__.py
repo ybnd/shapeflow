@@ -239,10 +239,12 @@ class ImmutableRegistry(EndpointRegistry):
 class Lockable(abc.ABC):
     _lock: threading.Lock
     _cancel: threading.Event
+    _error: threading.Event
 
     def __init__(self):
         self._lock = threading.Lock()
         self._cancel = threading.Event()
+        self._error = threading.Event()
 
     @contextmanager
     def lock(self):
@@ -259,8 +261,22 @@ class Lockable(abc.ABC):
     def cancel(self):
         self._cancel.set()
 
-    def clear(self):  # todo: wording
+    def error(self):
+        self._error.set()
+
+    @property
+    def canceled(self) -> bool:
+        return self._cancel.is_set()
+
+    @property
+    def errored(self) -> bool:
+        return self._error.is_set()
+
+    def clear_cancel(self):
         self._cancel.clear()
+
+    def clear_error(self):
+        self._error.clear()
 
 
 class RootInstance(Lockable):
