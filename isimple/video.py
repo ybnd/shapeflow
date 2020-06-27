@@ -200,6 +200,8 @@ class VideoFileHandler(CachingInstance, Lockable):
             if ret:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV, frame)
                 return frame
+            else:
+                log.warning(f"could not read {self.path} frame {self.frame_number}")
 
     @backend.expose(backend.get_time)
     def get_time(self, frame_number: int = None) -> float:
@@ -1231,29 +1233,33 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     def calculate(self, frame_number: int):
         """Return a state image for each FeatureSet
         """
-        log.debug(f"Calculating for frame {frame_number}")
+        log.debug(f"calculating features for frame {frame_number}")
 
         try:
             t = self.video.get_time(frame_number)
             raw_frame = self.video.read_frame(frame_number)
-            frame = self.transform(raw_frame)
 
-            result = {'t': t}
+            if raw_frame is not None:
+                frame = self.transform(raw_frame)
+                result = {'t': t}
 
-            for k,fs in self._featuresets.items():
-                values = []
+                for k,fs in self._featuresets.items():
+                    values = []
 
-                for feature in fs._features:  # todo: make featureset iterable maybe?
-                    value, state = feature.calculate(
-                        frame.copy(),  # don't overwrite self.frame ~ cv2 dst parameter  # todo: better to let OpenCV handle copying, or not?
-                    )
-                    values.append(value)
+                    for feature in fs._features:  # todo: make featureset iterable maybe?
+                        value, state = feature.calculate(
+                            frame.copy(),  # don't overwrite self.frame ~ cv2 dst parameter  # todo: better to let OpenCV handle copying, or not?
+                        )
+                        values.append(value)
 
-                result.update({k: values})
-                self.results[k].loc[frame_number] = [t] + values
+                    result.update({k: values})
+                    self.results[k].loc[frame_number] = [t] + values
 
-            self.set_progress(frame_number / self.video.frame_count)
-            self.event(AnalyzerEvent.RESULT, result)
+                self.set_progress(frame_number / self.video.frame_count)
+                self.event(AnalyzerEvent.RESULT, result)
+            else:
+                log.warning(f"skipping unreadable frame {frame_number}")
+
         except cv2.error as e:
             log.error(str(e))
             self._error.set()

@@ -381,7 +381,7 @@ class BaseAnalyzerConfig(BaseConfig):
     description: Optional[str] = Field(default=None)
 
 
-class AnalyzerEvent(Enum):
+class AnalyzerEvent(Enum):  # todo: make a 'toast' event -> frontend shows a message (e.g. warnings)
     STATUS = 'status'
     CONFIG = 'config'
     RESULT = 'result'
