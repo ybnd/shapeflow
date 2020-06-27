@@ -178,14 +178,15 @@ export const mutations = {
     try {
       assert(!(id === undefined), "no id provided");
 
-      state.source[id].status.close();
-      state.source[id].config.close();
-
-      delete state.status[id];
-      delete state.config[id];
-      delete state.source[id];
-    } catch {
-      `dropAnalyzer failed: '${id}'`;
+      if (id in state.status) {
+        delete state.status[id];
+      }
+      if (id in state.config) {
+        delete state.config[id];
+      }
+    } catch (err) {
+      console.warn(`dropAnalyzer failed: '${id}'`);
+      console.warn(err);
     }
   },
   addToQueue(state, { id }) {
@@ -194,18 +195,20 @@ export const mutations = {
       if (!state.queue.includes(id)) {
         state.queue = [...state.queue, id];
       }
-    } catch {
+    } catch (err) {
       console.warn(`addToQueue failed: '${id}'`);
+      console.warn(err);
     }
   },
   dropFromQueue(state, { id }) {
     try {
       assert(!(id === undefined), "no id provided");
       if (state.queue.includes(id)) {
-        Vue.set(state, "queue", state.queue.splice(state.queue.indexOf(id, 1))); // todo: probably wrong
+        state.queue.splice(state.queue.indexOf(id, 1));
       }
-    } catch {
+    } catch (err) {
       console.warn(`dropFromQueue failed: '${id}'`);
+      console.warn(err);
     }
   },
   clearQueue(state) {
@@ -362,10 +365,10 @@ export const actions = {
 
       return await get_app_state().then((app_state) => {
         // console.log(`action: analyzers.sync -- callback ~ api.get_app_state`);
-        // unqueue dead ids
 
         commit("setQueueState", { queue_state: app_state.q_state });
 
+        // unqueue old ids
         let q = getters["getQueue"];
         if (q.length > 0) {
           for (let i = 0; i < q.length; i++) {

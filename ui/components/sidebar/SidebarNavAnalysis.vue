@@ -1,5 +1,5 @@
 <template>
-  <div class="nav-item nav-dropdown" :ref="ref">
+  <div class="nav-item nav-dropdown" :ref="ref" v-if="status !== undefined">
     <div
       class="nav-link nav-dropdown-toggle"
       @click="handleDropdownClick"
@@ -181,7 +181,12 @@ export default {
   },
   computed: {
     name() {
-      return this.$store.getters["analyzers/getName"](this.id);
+      try {
+        return this.$store.getters["analyzers/getName"](this.id);
+      } catch (err) {
+        console.log(`no such analyzer: ${this.id}`);
+        return "";
+      }
     },
     ref() {
       return `dropdown-${this.id}`;
@@ -206,7 +211,12 @@ export default {
       };
     },
     status() {
-      return this.$store.getters["analyzers/getAnalyzerStatus"](this.id);
+      try {
+        return this.$store.getters["analyzers/getAnalyzerStatus"](this.id);
+      } catch (err) {
+        console.log(`no such analyzer: ${this.id}`);
+        return undefined;
+      }
     },
   },
   data() {
