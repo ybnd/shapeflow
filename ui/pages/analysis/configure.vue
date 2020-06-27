@@ -102,6 +102,8 @@ import BasicConfig from "../../components/config/BasicConfig";
 
 import { UiSchema } from "../../static/ui-schema";
 
+import { events } from "../../static/events";
+
 import _ from "lodash";
 
 import VueHotkey from "v-hotkey";
@@ -122,21 +124,28 @@ export default {
     BasicConfig,
   },
   beforeMount() {
-    this.initConfig();
+    this.handleInit();
+  },
+  beforeDestroy() {
+    this.handleCleanUp();
   },
   methods: {
     undoConfig() {},
     redoConfig() {},
-    initConfig() {
+    handleInit() {
+      this.previous_id = this.id;
+
       if (this.$store.getters["analyzers/getIndex"](this.id) === -1) {
         this.$router.push(`/`);
       } else {
+        this.$root.$emit(events.sidebar.open(this.id));
         this.edit_json = this.$store.getters[
           "settings/getSettings"
         ].app.edit_json;
         this.handleGetConfig();
       }
     },
+    handleCleanUp() {},
     handleGetConfig() {
       // request config from backend
       this.$store
@@ -201,6 +210,15 @@ export default {
           );
           this.config_json = beautify(this.config, null, 2, 120);
         });
+    },
+  },
+  watch: {
+    "$route.query.id"() {
+      console.log(`id has changed ${this.id}`);
+
+      // this.$forceUpdate();
+      this.handleCleanUp();
+      this.handleInit();
     },
   },
   computed: {
