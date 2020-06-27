@@ -99,7 +99,7 @@
         name="Results"
         icon="icon-graph"
         :id="link.result"
-        :disabled="![ast.DONE, ast.CANCELED].includes(status.state)"
+        :disabled="![ast.DONE, ast.CANCELED, ast.ERROR].includes(status.state)"
       />
       <SidebarNavAnalysisLink
         name="Remove"
