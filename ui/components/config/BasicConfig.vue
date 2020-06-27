@@ -258,7 +258,7 @@ export default {
     },
   },
   mounted() {
-    if (this.config.features.length === 0) {
+    if ("features" in this.config && this.config.features.length === 0) {
       this.handleAddFeature();
     }
   },

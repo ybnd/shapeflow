@@ -197,9 +197,7 @@ export default {
         get_relative_roi(this.id).then((roi) => {
           this.setRoi(roi);
           this.$root.$emit(events.seek.reset(this.id)); // todo: this doesn't trigger the stream for some reason
-          // this.$store.dispatch("analyzers/get_config", { id: this.id }); // todo: why?
         });
-        this.handleUpdate();
       }
     },
     handleCleanUp() {
@@ -269,14 +267,23 @@ export default {
               console.log("setRoi() -- moveable should be exist & accessible");
               this.align.roi = roi;
               this.resolveTransform();
-              this.handleUpdate();
+
+              // don't update if this.align.roi hasn't changed
+              if (
+                !_.isEqual(
+                  this.align.roi,
+                  this.$store.getters["analyzers/getAnalyzerConfig"](this.id)
+                    .transform.roi
+                )
+              ) {
+                this.handleUpdate();
+              }
             });
           }
         } else {
           console.log("is invalid");
           console.warn("SHOULD ALLOW USER TO DRAW A RECTANGLE");
           this.handleHideMoveable();
-          // this.align.roi = default_relative_coords;
         }
       }
     },
