@@ -81,6 +81,7 @@
         id="advanced-settings"
         class="advanced-config-collapse"
         :visible="edit_json"
+        v-if="edit_json"
       >
         <b-form-textarea
           class="isimple-form-field-text advanced-config-box"
