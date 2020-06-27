@@ -34,6 +34,7 @@
                   ticks: {
                     stepSize: 60,
                     userCallback: formatTick,
+                    max: maxX,
                   },
                 },
               ],
@@ -110,6 +111,12 @@ export default {
   computed: {
     name() {
       return this.$store.getters["analyzers/getName"](this.id);
+    },
+    maxX() {
+      console.log("maxX");
+      return this.result[Object.keys(this.result)[0]][0].data[
+        this.result[Object.keys(this.result)[0]][0].data.length - 1
+      ].x;
     },
   },
   asyncComputed: {

@@ -96,7 +96,7 @@ class _Settings(BaseModel):
 
 class FormatSettings(_Settings):
     datetime_format: str = Field(default='%Y/%m/%d %H:%M:%S.%f', description="date/time format")
-    datetime_format_fs: str = Field(default='%Y-%m-%d_%H-%M-%S_%f', description="file system date/time format")
+    datetime_format_fs: str = Field(default='%Y-%m-%d_%H-%M-%S', description="file system date/time format")
 
 
 VDEBUG = 9
@@ -158,11 +158,22 @@ class DatabaseSettings(_Settings):
     _validate_path = validator('path', allow_reuse=True, pre=True)(_Settings._validate_filepath)
 
 
+class ResultSaveMode(str, Enum):
+    skip = "skip"
+    next_to_video = "next to video file"
+    next_to_design = "next to design file"
+    directory = "in result directory"
+
+
 class ApplicationSettings(_Settings):
     save_state: bool = Field(default=True, description="save application state")
     load_state: bool = Field(default=False, description="load application state on start")
     recent_files: int = Field(default=16, description="# of recent files to fetch")
     edit_json: bool = Field(default=False, description="show JSON configuration editor by default")
+    save_result: ResultSaveMode = Field(default= ResultSaveMode.next_to_video, description="result save mode")
+    result_dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'results'), description="result directory")
+
+    _validate_dir = validator('result_dir', allow_reuse=True, pre=True)(_Settings._validate_directorypath)
 
 
 class Settings(_Settings):
