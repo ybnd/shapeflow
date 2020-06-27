@@ -1,5 +1,6 @@
 <script>
 import { Scatter, mixins } from "vue-chartjs";
+import { seconds2timestr } from "../../static/util";
 
 export default {
   name: "ResultChart",
@@ -73,8 +74,8 @@ export default {
               if (label) {
                 label += ": ";
               }
-              label += Math.round(tooltipItem.xLabel * 100) / 100;
-              label += " s, ";
+              label += seconds2timestr(tooltipItem.xLabel);
+              label += " ➔ ";
               label += Math.round(tooltipItem.yLabel * 100) / 100;
               label += " ";
               label += data.unit;

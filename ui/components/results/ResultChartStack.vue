@@ -31,6 +31,10 @@
                     fontStyle: 'bold',
                     fontSize: 14,
                   },
+                  ticks: {
+                    stepSize: 60,
+                    userCallback: formatTick,
+                  },
                 },
               ],
               yAxes: [
@@ -61,6 +65,7 @@ import { col } from "../../static/util";
 
 import ResultChart from "../../components/results/ResultChart";
 import { events } from "../../static/events";
+import { seconds2timestr } from "../../static/util";
 
 Vue.use(AsyncComputed);
 
@@ -97,6 +102,9 @@ export default {
     },
     updateChartsKey() {
       this.charts_key = Date.now();
+    },
+    formatTick(tick) {
+      return seconds2timestr(tick);
     },
   },
   computed: {
