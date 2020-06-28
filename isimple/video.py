@@ -15,7 +15,7 @@ from isimple import get_logger, settings, ResultSaveMode
 from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     FilterHandlerConfig, MaskConfig, \
     DesignFileHandlerConfig, VideoAnalyzerConfig, dump, \
-    FrameIntervalSetting, BaseAnalyzerConfig
+    FrameIntervalSetting, BaseAnalyzerConfig, FlipConfig
 from isimple.core import Lockable
 from isimple.core.backend import Instance, CachingInstance, \
     Handler, BaseVideoAnalyzer, BackendSetupError, AnalyzerType, Feature, \
@@ -395,7 +395,7 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
 
     @backend.expose(backend.clear_roi)
     def clear(self) -> None:
-        self.config(roi=None, flip=(False, False))
+        self.config(roi=None, flip=FlipConfig())
         self.set(None)
 
         streams.update()
