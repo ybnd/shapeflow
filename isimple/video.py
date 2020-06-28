@@ -407,7 +407,6 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
         else:
             return None
 
-    @backend.expose(backend.transform)
     def __call__(self, img: np.ndarray) -> np.ndarray:
         """Transform a frame.
             Writes to the provided variable!
@@ -448,7 +447,6 @@ class FilterHandler(Instance, Handler):
     def implementation(self):
         return self._implementation
 
-    @backend.expose(backend.get_filter_mean_color)
     def mean_color(self) -> HsvColor:
         return self.implementation.mean_color(self.config.data)
 
@@ -473,10 +471,8 @@ class FilterHandler(Instance, Handler):
 
         return implementation
 
-    @backend.expose(backend.filter)
     def __call__(self, frame: np.ndarray) -> np.ndarray:
         return self.implementation.filter(self.config.data, frame)
-
 
 
 class Mask(Instance):
@@ -532,7 +528,6 @@ class Mask(Instance):
         self.filter.set(color=color)
         self.config.filter(**self.filter.config.to_dict())  # todo: otherwise, mask config is not updated!
 
-    @backend.expose(backend.mask)
     def __call__(self, img: np.ndarray) -> np.ndarray:
         """Mask an image.
             Writes to the provided variable!
@@ -706,7 +701,6 @@ class DesignFileHandler(CachingInstance):
     def overlay(self) -> np.ndarray:
         return cv2.cvtColor(self._overlay, cv2.COLOR_BGR2HSV)
 
-    @backend.expose(backend.overlay_frame)
     def overlay_frame(self, frame: np.ndarray) -> np.ndarray:
         frame = cv2.cvtColor(frame, cv2.COLOR_HSV2BGR)
         frame = overlay(frame, self._overlay, self.config.overlay_alpha)
@@ -716,10 +710,6 @@ class DesignFileHandler(CachingInstance):
     @property
     def masks(self):
         return self._masks
-
-    @backend.expose(backend.get_mask_names)
-    def get_mask_names(self) -> tuple:
-        return tuple(mask.name for mask in self._masks)
 
 
 class MaskFunction(Feature):
@@ -899,20 +889,11 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         # Initialize FeatureSets
         self._get_featuresets()
 
-        # todo: add some stuff to do this automagically
-        backend.expose(backend.get_frame)(self.get_transformed_frame)
-        backend.expose(backend.get_inverse_overlaid_frame)(self.get_inverse_overlaid_frame)
-        backend.expose(backend.get_overlaid_frame)(self.get_frame_overlay)
-        backend.expose(backend.get_state_frame)(self.get_state_frame)
-        backend.expose(backend.get_colors)(self.get_colors)
-        backend.expose(backend.get_overlay_png)(self.get_overlay_png)
-
     @backend.expose(backend.cache)
     def cache(self) -> bool:
         with self.busy_context(AnalyzerState.CACHING):
             self.video.cache_frames(self.set_progress, self.set_state)
             return True
-
 
     def _get_featuresets(self):
         features = []
@@ -1033,12 +1014,12 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                     self.estimate_transform()  # todo: self.config.bla.thing should be exactly self.bla.config.thing always
                     do_commit = True
 
+                if do_commit:  # todo: should probably commit *before* re-launching
+                    self.commit()  # todo: isimple.video doesn't know about isimple.history!
+
                 if do_relaunch:
                     self._launch()
                     self._gather_instances()
-
-                if do_commit:  # todo: should probably commit *before* re-launching
-                    self.commit()  # todo: isimple.video doesn't know about isimple.history!
 
                 # Check for state transitions
                 self.state_transition(push=True)
@@ -1046,7 +1027,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 config = self.get_config()
 
                 # Push config event
-                self.event(AnalyzerEvent.CONFIG, config)  # todo category should be ~ Enum
+                self.event(AnalyzerEvent.CONFIG, config)
 
                 # Push streams
                 streams.update()
@@ -1054,7 +1035,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 return config
 
     @stream
-    @backend.expose(backend.get_frame)  # todo: would like to have some kind of 'deferred expose' decorator?
+    @backend.expose(backend.get_frame)
     def get_transformed_frame(self, frame_number: Optional[int] = None) -> np.ndarray:
         return self.transform(self.video.read_frame(frame_number))
 

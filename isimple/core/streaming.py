@@ -336,7 +336,7 @@ class StreamHandler(Lockable):
 streams = StreamHandler()
 
 
-def stream(method):  # todo: check method._endpoint._streaming & select Streamer implementation?
+def stream(method):
     """Decorator for streaming methods.
         To stream frames, the wrapped method should be registered
          in the global StreamHandler `streams`.
