@@ -168,9 +168,10 @@ class ResultSaveMode(str, Enum):
 class ApplicationSettings(_Settings):
     save_state: bool = Field(default=True, description="save application state")
     load_state: bool = Field(default=False, description="load application state on start")
+    state_path: FilePath = Field(default=os.path.join(ROOTDIR, 'state'), description="application state file")
     recent_files: int = Field(default=16, description="# of recent files to fetch")
     edit_json: bool = Field(default=False, description="show JSON configuration editor by default")
-    save_result: ResultSaveMode = Field(default= ResultSaveMode.next_to_video, description="result save mode")
+    save_result: ResultSaveMode = Field(default=ResultSaveMode.next_to_video, description="result save mode")
     result_dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'results'), description="result directory")
 
     _validate_dir = validator('result_dir', allow_reuse=True, pre=True)(_Settings._validate_directorypath)

@@ -484,12 +484,12 @@ class Main(isimple.core.Lockable):
                 time.sleep(self._timeout_loop)
         except KeyboardInterrupt:
             log.info('interrupted by user')
-        log.info('Main.serve() stopped.')
         self._done.set()
 
         self.save_state()
         streaming.streams.stop()
 
+        log.info('Main.serve() stopped.')
         self._server.stop()
 
     def add_instance(self, type: video.AnalyzerType = None) -> str:
@@ -575,7 +575,7 @@ class Main(isimple.core.Lockable):
                 if not root.done
             }
 
-            with open(os.path.join(isimple.ROOTDIR, 'state'), 'wb') as f:
+            with open(isimple.settings.app.state_path, 'wb') as f:
                 pickle.dump(s, f)
 
     def load_state(self):
@@ -585,7 +585,7 @@ class Main(isimple.core.Lockable):
                 # todo: check if instances retain reference to self._eventstreamer!
 
                 try:
-                    with open(os.path.join(isimple.ROOTDIR, 'state'), 'rb') as f:
+                    with open(isimple.settings.app.state_path, 'rb') as f:
                         S = pickle.load(f)
 
                     for id,model_id in S.items():
