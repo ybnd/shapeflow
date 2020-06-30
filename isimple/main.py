@@ -463,6 +463,8 @@ class Main(isimple.core.Lockable):
 
     def serve(self, host, port):
         # Don't show waitress console output (server URL)
+        log.info(f"serving on {host}:{port}")
+
         with util.suppress_stdout():
             self._server = ServerThread(self._app, host, port)
             self._server.start()
