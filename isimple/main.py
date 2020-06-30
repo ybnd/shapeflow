@@ -608,6 +608,8 @@ class Main(isimple.core.Lockable):
 
                 except FileNotFoundError:
                     pass
+                except EOFError:
+                    pass
 
     def get_schemas(self, id: str) -> Optional[dict]:
         if self.valid(id):
