@@ -3,6 +3,7 @@ import unittest
 from contextlib import contextmanager
 
 import time
+import json
 import subprocess
 
 from isimple import settings, ROOTDIR, save_settings
@@ -27,9 +28,13 @@ def get(url):
     return response
 
 
-def post(url):
-    with subprocess.Popen(['curl', '-X', 'POST', url], stdout=subprocess.PIPE) as p:
-        response, error = p.communicate()
+def post(url, data=None):
+    if data is None:
+        with subprocess.Popen(['curl', '-X', 'POST', url], stdout=subprocess.PIPE) as p:
+            response, error = p.communicate()
+    else:
+        with subprocess.Popen(['curl', '-X', 'POST', url, '--header', "Content-Type: application/json", '--data', data], stdout=subprocess.PIPE) as p:
+            response, error = p.communicate()
     return response
 
 
@@ -68,6 +73,11 @@ def override_settings():
 
 class ServerTest(unittest.TestCase):
     def setUp(self) -> None:
+        r = post(api('quit'))
+        if r:
+            time.sleep(5)
+
+    def tearDown(self) -> None:
         r = post(api('quit'))
         if r:
             time.sleep(5)
@@ -128,7 +138,7 @@ class ServerTest(unittest.TestCase):
             time.sleep(10)
             self.assertNotEqual(b'', get(api('ping')))
 
-    def test_restart(self):
+    def test_set_settings_restart(self):
         with override_settings():
             # Start server & wait a bit
             p = start_server()
@@ -138,16 +148,25 @@ class ServerTest(unittest.TestCase):
             self.assertNotEqual(b'', get(api('ping')))
 
             first_pid = get(api('pid_hash'))
+            first_settings = json.loads(get(api('get_settings')))
 
-            # Post restart trigger & wait a bit
-            post(api('restart'))
+            # Post set_settings trigger & wait a bit
+            post(api('set_settings'), data=json.dumps({'settings': {'log': {'keep': 0}}}))
             time.sleep(10)
 
             # Server is up on the same address, some response
             self.assertNotEqual(b'', get(api('ping')))
+            second_settings = json.loads(get(api('get_settings')))
 
             # Server is on a different PID
             self.assertNotEqual(first_pid, get(api('pid_hash')))
+
+            # second_settings.log.keep == 0
+            self.assertEqual(0, second_settings['log']['keep'])
+
+            # Set settings gack to first_settings
+            post(api('set_settings'), data=json.dumps({'settings': first_settings}))
+            time.sleep(10)
 
 if __name__ == '__main__':
     unittest.main()
