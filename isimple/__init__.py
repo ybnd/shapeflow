@@ -175,6 +175,7 @@ class ApplicationSettings(_Settings):
     result_dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'results'), description="result directory")
 
     _validate_dir = validator('result_dir', allow_reuse=True, pre=True)(_Settings._validate_directorypath)
+    _validate_state_path = validator('state_path', allow_reuse=True, pre=True)(_Settings._validate_filepath)
 
 
 class Settings(_Settings):
