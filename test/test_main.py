@@ -8,6 +8,7 @@ import subprocess
 from isimple import settings, ROOTDIR, save_settings
 
 
+@unittest.skip("placeholder")
 class MainTest(unittest.TestCase):
     """Test Main methods -- global"""
     def test_serve(self):
@@ -26,6 +27,7 @@ class MainTest(unittest.TestCase):
         raise NotImplementedError
 
 
+@unittest.skip("placeholder")
 class MainAnalyzerTest(unittest.TestCase):
     """Test Main methods -- VideoAnalyzer interaction"""
     def test_call_endpoints(self):
