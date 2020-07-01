@@ -17,7 +17,6 @@ parser.add_argument('--open', action='store_true')
 if __name__ == '__main__':
     args = parser.parse_args()
 
-
     def in_use() -> bool:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             return s.connect_ex((args.host, args.port)) == 0
@@ -42,3 +41,5 @@ if __name__ == '__main__':
 
     main = Main()
     main.serve(host=args.host, port=args.port)
+
+    log.info('stopped')

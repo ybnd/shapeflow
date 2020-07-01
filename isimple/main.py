@@ -509,7 +509,6 @@ class Main(isimple.core.Lockable):
         streaming.streams.stop()
 
         log.info('Main.serve() stopped.')
-        self._server.stop()
 
     def add_instance(self, type: video.AnalyzerType = None) -> str:
         with self.lock():
