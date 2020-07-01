@@ -40,12 +40,14 @@ def respond(*args) -> str:
     return jsonify(*args)
 
 
-def restart_server():
+def restart_server(host: str, port: int):
     log.info('restarting server...')
 
-    subprocess.Popen('sleep 1; python .venv.py .server.py', shell=True,
-                     cwd=os.path.dirname(
-                         os.path.dirname(os.path.abspath(__file__))))
+    subprocess.Popen(
+        f'sleep 1; python .venv.py .server.py --host {host} --port {port}',
+        shell=True,
+         cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    )
 
 
 class ServerThread(Thread, metaclass=util.Singleton):
@@ -111,6 +113,9 @@ class Main(isimple.core.Lockable):
     _pause_q: Event
     _stop_q: Event
 
+    _host: str
+    _port: int
+
 
     def __init__(self):
         super().__init__()
@@ -143,6 +148,17 @@ class Main(isimple.core.Lockable):
                 self._unload.clear()
                 self._ping.set()
 
+        @app.route('/api/ping', methods=['GET'])
+        def ping():
+            log.debug('received ping')
+            active()
+            return respond(True)
+
+        @app.route('/api/pid_hash', methods=['GET'])
+        def get_pid_hash():
+            import hashlib
+            return hashlib.sha1(bytes(os.getpid())).hexdigest() + '\n'
+
         @app.route('/api/unload', methods=['POST'])
         def unload():
             self.save_state()
@@ -161,7 +177,7 @@ class Main(isimple.core.Lockable):
             while not self._done.is_set():
                 pass
 
-            restart_server()
+            restart_server(self._host, self._port)
 
             return respond(True)
 
@@ -463,6 +479,9 @@ class Main(isimple.core.Lockable):
 
     def serve(self, host, port):
         # Don't show waitress console output (server URL)
+        self._host = host
+        self._port = port
+
         log.info(f"serving on {host}:{port}")
 
         with util.suppress_stdout():
