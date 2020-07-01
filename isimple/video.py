@@ -644,7 +644,7 @@ class DesignFileHandler(CachingInstance):
         files.remove('overlay.png')
 
         # Catch file names of numbered layers
-        pattern = re.compile('(\d+)[?\-=_#/\\\ ]+([?\w\-=_#/\\\ ]+)')
+        pattern = re.compile(r'(\d+)[?\-=_#/\\\ ]+([?\w\-=_#/\\\ ]+)')
 
         sorted_files = []
         matched = {}

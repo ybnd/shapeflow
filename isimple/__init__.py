@@ -259,7 +259,7 @@ def update_settings(new_settings: dict):
 
 
 class Logger(logging.Logger):
-    _pattern = re.compile('(\n|\r|\t| [ ]+)')
+    _pattern = re.compile(r'(\n|\r|\t| [ ]+)')
 
     def debug(self, msg, *args, **kwargs):
         super().debug(self._remove_newlines(msg))
