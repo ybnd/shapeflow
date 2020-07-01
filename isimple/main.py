@@ -89,7 +89,7 @@ class Main(isimple.core.Lockable):
 
     _roots: Dict[str, backend.BaseVideoAnalyzer] = {}
     _models: Dict[str, history.VideoAnalysisModel] = {}
-    _history = history.History()
+    _history: history.History
 
     _server: ServerThread
 
@@ -118,6 +118,7 @@ class Main(isimple.core.Lockable):
 
 
     def __init__(self):
+        self._history = history.History()
         super().__init__()
         app = Flask(__name__, static_url_path='')
         app.config.from_object(__name__)
@@ -529,6 +530,7 @@ class Main(isimple.core.Lockable):
     def remove_instance(self, id: str) -> bool:
         with self.lock():
             if self.valid(id):
+                log.info(f"Removing '{id}'")
                 analyzer = self._roots.pop(id)
                 with analyzer.lock():
                     analyzer.commit()

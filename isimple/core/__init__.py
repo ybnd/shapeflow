@@ -41,7 +41,7 @@ class EnforcedStr(str):  # todo: should derive from enum.StrEnum instead
         if string is not None:
             if string not in self.options:
                 if string:
-                    log.debug(f"Illegal {self.__class__.__name__} '{string}', "
+                    log.warning(f"Illegal {self.__class__.__name__} '{string}', "
                                   f"should be one of {self.options}. "
                                   f"Defaulting to '{self.default}'.")
                 self._str = str(self.default)

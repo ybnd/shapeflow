@@ -40,6 +40,9 @@ if not os.path.isdir(ROOTDIR):
 
 
 class _Settings(BaseModel):
+    class Config:
+        validate_assignment = True
+
     def to_dict(self):
         d = {}
         for k,v in self.__dict__.items():
@@ -67,7 +70,8 @@ class _Settings(BaseModel):
         try:
             for attribute, value in overrides.items():
                 originals[attribute] = copy.deepcopy(
-                    getattr(self, attribute))
+                    getattr(self, attribute)
+                )
                 setattr(self, attribute, value)
             yield
         finally:

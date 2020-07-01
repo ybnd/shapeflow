@@ -1125,12 +1125,14 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
     @backend.expose(backend.set_filter_click)
     def set_filter_click(self, relative_x: float, relative_y: float) -> dict:
+        log.debug(f'set_filter_click @ ({relative_x}, {relative_y})')
+
         response = {}
 
         click = ShapeCoo(
             x = relative_x,
             y = relative_y,
-            shape = self.design.shape[::-1]  # todo: ugh
+            shape = self.design.shape[::-1]
         )
 
         hits = [mask for mask in self.masks if mask.contains(click)]
@@ -1138,7 +1140,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         if len(hits) == 1:
             hit = hits[0]
             frame = self.video.read_frame()
-            click = self.transform.coordinate(click)  # todo: transformation is fucked
+            click = self.transform.coordinate(click)
 
             color = HsvColor(*click.value(frame))
             log.debug(f"color @ {click.idx}: {color}")
@@ -1162,12 +1164,15 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
             streams.update()
             self.commit()
+
+            response['color'] = color.to_dict()
         elif len(hits) == 0:
             log.debug(f"no hit for {click.idx}")
         elif len(hits) > 1:
-            message = f"Multiple valid options: {[hit.name for hit in hits]}. Select a point where masks don't overlap."
-            response['message'] = message
-            log.warning(message)
+            response['message'] = f"Multiple valid options: " \
+                                  f"{[hit.name for hit in hits]}. " \
+                                  f"Select a point where masks don't overlap."
+            log.warning(response['message'])
         return response
 
     @stream
