@@ -171,7 +171,6 @@ class BaseConfig(BaseModel):
             raise NotImplementedError
 
     def __call__(self, **kwargs) -> None:
-        log.debug(f'{self}__call__{kwargs}')
         for kw, value in kwargs.items():
             setattr(self, kw, value)
 
