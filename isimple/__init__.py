@@ -131,8 +131,8 @@ class LogSettings(_Settings):
     path: FilePath = Field(default=os.path.join(ROOTDIR, 'current.log'), description='running log file')
     dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'log'), description='log file directory')
     keep: int = Field(default=16, description="# of log files to keep")
-    lvl_console: LoggingLevel = Field(default=LoggingLevel.info, description="logging level (Python console)")
-    lvl_file: LoggingLevel = Field(default=LoggingLevel.info, description="logging level (file)")
+    lvl_console: LoggingLevel = Field(default=LoggingLevel.debug, description="logging level (Python console)")
+    lvl_file: LoggingLevel = Field(default=LoggingLevel.debug, description="logging level (file)")
 
     _validate_path = validator('path', allow_reuse=True, pre=True)(_Settings._validate_filepath)
     _validate_dir = validator('dir', allow_reuse=True, pre=True)(_Settings._validate_directorypath)

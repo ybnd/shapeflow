@@ -170,7 +170,7 @@ class MainTest(unittest.TestCase):
             client.get('/api/ping')
             client.get('/api/ping')
 
-            time.sleep(5)
+            time.sleep(1)
 
             client.put('/api/stop_log')
 
