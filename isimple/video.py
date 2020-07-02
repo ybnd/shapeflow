@@ -338,14 +338,7 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
         if roi is not None:
             self.config(roi=roi)
 
-            roi(**{
-                k: {
-                'x': v['x'] * self._video_shape[0],
-                'y': v['y'] * self._video_shape[1]
-                } for k,v in roi.dict().items()
-            })
-
-            self.set(self._implementation.estimate(self.adjust(roi), self._design_shape))
+            self.set(self._implementation.estimate(self.adjust(roi), self._video_shape, self._design_shape))
             streams.update()
 
     def adjust(self, roi: Roi) -> Roi:
@@ -775,7 +768,6 @@ class MaskFunction(Feature):
                     np.ones((binary.shape[0], binary.shape[1], 3),
                             dtype=np.uint8),
                     convert(self.color, BgrColor).np3d
-                    # todo: update to isimple.maths.color
                 )
                 state[self.mask.rows, self.mask.cols, :] \
                     += cv2.bitwise_and(substate, substate, mask=binary)
@@ -1100,7 +1092,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             return None
 
     @backend.expose(backend.undo_config)
-    def undo_config(self) -> dict:
+    def undo_config(self) -> dict:  # todo: implement undo/redo context (e.g. transform, masks)
         from isimple.history import History
         _history = History()
 

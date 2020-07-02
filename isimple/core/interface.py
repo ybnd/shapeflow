@@ -62,15 +62,15 @@ class TransformInterface(Configurable, abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def from_coordinates(self, roi: Roi) -> np.ndarray:
+    def from_coordinates(self, roi: Roi, from_shape: tuple) -> np.ndarray:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def to_coordinates(self, shape: tuple) -> np.ndarray:
+    def to_coordinates(self, to_shape: tuple) -> np.ndarray:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def estimate(self, roi: Roi, shape: tuple) -> np.ndarray:
+    def estimate(self, roi: Roi, from_shape: tuple, to_shape: tuple) -> np.ndarray:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -90,7 +90,7 @@ class FilterConfig(BaseConfig):
         """Return true if filter can be applied ~ this configuration.
             Override for specific filter implementations
         """
-        return False
+        raise NotImplementedError
 
 
 class FilterInterface(Configurable, abc.ABC):
@@ -114,7 +114,27 @@ class FilterType(InterfaceFactory):
     _type = FilterInterface
     _mapping: Dict[str, Type[Configurable]] = {}
 
+    def get(self) -> Type[FilterInterface]:
+        interface = super().get()
+        if issubclass(interface, FilterInterface):
+            return interface
+        else:
+            raise TypeError(
+                f"'{self.__class__.__name__}' tried to return an unexpected type '{interface}'. "
+                f"This is very weird and shouldn't happen, really."
+            )
+
 
 class TransformType(InterfaceFactory):
     _type = TransformInterface
     _mapping: Dict[str, Type[Configurable]] = {}
+
+    def get(self) -> Type[TransformInterface]:
+        interface = super().get()
+        if issubclass(interface, TransformInterface):
+            return interface
+        else:
+            raise TypeError(
+                f"'{self.__class__.__name__}' tried to return an unexpected type '{interface}'. "
+                f"This is very weird and shouldn't happen, really."
+            )

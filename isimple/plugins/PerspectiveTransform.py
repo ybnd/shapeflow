@@ -24,35 +24,45 @@ class PerspectiveTransform(TransformInterface):
 
     def validate(self, matrix: Optional[np.ndarray]) -> bool:
         if matrix is not None:
-            return matrix.shape == (3, 3)
+            return matrix.shape == (3, 3) and np.isfinite(np.linalg.cond(matrix))
         else:
             return False
 
-    def from_coordinates(self, roi: Roi) -> np.ndarray:
+    def from_coordinates(self, roi: Roi, from_shape: tuple) -> np.ndarray:
         return np.float32(
-            [getattr(roi, corner).list
+            [[relative * total
+              for relative, total in zip(
+                    getattr(roi, corner).list, from_shape
+                )]
              for corner in ['BL', 'TL', 'TR', 'BR']]
         )
 
-    def to_coordinates(self, shape: tuple) -> np.ndarray:
+    def to_coordinates(self, to_shape: tuple) -> np.ndarray:
         return np.float32(
                 np.array(  # selection rectangle: bottom left to top right
                     [
-                        [0, shape[1]],          # BL: (x,y)
+                        [0, to_shape[1]],          # BL: (x,y)
                         [0, 0],                 # TL
-                        [shape[0], 0],          # TR
-                        [shape[0], shape[1]],   # BR
+                        [to_shape[0], 0],          # TR
+                        [to_shape[0], to_shape[1]],   # BR
                     ]
                 )
             )
 
-    def estimate(self, roi: Roi, shape: tuple) -> np.ndarray:
-        log.debug(f'Estimating transform ~ coordinates {roi} & shape {shape}')
+    def estimate(self, roi: Roi, from_shape: tuple, to_shape: tuple) -> np.ndarray:
+        log.debug(f'Estimating transform ~ coordinates {roi} & shape {to_shape}')
 
-        return cv2.getPerspectiveTransform(
-            self.from_coordinates(roi),
-            self.to_coordinates(shape)
+        matrix = cv2.getPerspectiveTransform(
+            self.from_coordinates(roi, from_shape),
+            self.to_coordinates(to_shape)
         )
+
+        if self.validate(matrix):
+            return matrix
+        else:
+            raise ValueError(
+                f'Cannot estimate a valid matrix from {roi} and {to_shape}'
+            )
 
     def transform(self, matrix: np.ndarray, img: np.ndarray, shape: tuple) -> np.ndarray:
         return cv2.warpPerspective(

@@ -16,4 +16,3 @@ class Area_mm2(MaskFunction):
 
     def _function(self, frame: np.ndarray) -> float:
         return self.pxsq2mmsq(area_pixelsum(frame))
-

@@ -410,7 +410,7 @@ class History(Database):
         return config
 
     def get_config_buffer(self, analysis: VideoAnalysisModel, next: bool = False) -> Optional[dict]:
-        """For a given VideoAnalysisModel, get the previous or next config
+        """For a given VideoAnalysisModel, get the previous or next config  todo: oscillates between 2 states
         """
         if analysis._config is None:
             analysis._config = self._fetch(
