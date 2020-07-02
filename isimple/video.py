@@ -843,14 +843,20 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     def has_results(self) -> bool:
         return hasattr(self, 'results')
 
-    def can_launch(self) -> bool:  # todo: endpoint?
-        if self.config.video_path is not None \
-                and self.config.design_path is not None:
-            # todo: push get_state streamer
-            return os.path.isfile(self.config.video_path) \
-                   and os.path.isfile(self.config.design_path)
-        else:
-            return False
+    def can_launch(self) -> bool:
+        video_ok = False
+        design_ok = False
+
+        if self.config.video_path is not None:
+            video_ok = os.path.isfile(self.config.video_path)
+            if not video_ok:
+                log.warning(f"invalid video file: {self.config.video_path}")
+        if self.config.design_path is not None:
+            design_ok = os.path.isfile(self.config.design_path)
+            if not video_ok:
+                log.warning(f"invalid design file: {self.config.design_path}")
+
+        return video_ok and design_ok
 
     def can_analyze(self) -> bool:  # todo: endpoint?
         return self.launched and all([mask.ready or mask.skip for mask in self.masks])
