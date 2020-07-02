@@ -1119,7 +1119,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     def set_filter_click(self, relative_x: float, relative_y: float) -> dict:
         log.debug(f'set_filter_click @ ({relative_x}, {relative_y})')
 
-        response = {}
+        response: Dict[str, Any] = {}
 
         click = ShapeCoo(
             x = relative_x,
