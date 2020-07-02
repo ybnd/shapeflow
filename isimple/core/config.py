@@ -172,7 +172,12 @@ class BaseConfig(BaseModel):
 
     def __call__(self, **kwargs) -> None:
         for kw, value in kwargs.items():
-            setattr(self, kw, value)
+            if isinstance(getattr(self, kw), BaseConfig) and isinstance(value, dict):
+                # If field is a BaseConfig instance, resolve in place
+                getattr(self, kw)(**value)
+            else:
+                # Otherwise, let the validators handle it
+                setattr(self, kw, value)
 
     @classmethod
     def _get_field_type(cls, attr):

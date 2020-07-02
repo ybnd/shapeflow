@@ -344,6 +344,9 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
     def adjust(self, roi: Roi) -> Roi:
         """Adjust ROI (90° turns & flips)
         """
+        # Don't adjust roi in config!
+        roi = copy.deepcopy(roi)
+
         # Flip
         if self.config.flip.vertical and not self.config.flip.horizontal:
             # Flip vertically
@@ -388,7 +391,7 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
 
     @backend.expose(backend.clear_roi)
     def clear(self) -> None:
-        self.config(roi=None, flip=FlipConfig())
+        self.config(roi=None, flip=FlipConfig(), turn=0)
         self.set(None)
 
         streams.update()
@@ -930,19 +933,20 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             return -1.0
 
     def _set_config(self, config: dict):
-        self._config(**config)
-
         # todo: would be better if nested instance config was *referencing* global config
-        if hasattr(self, 'video'):
-            self.video._config(**self.config.video.to_dict())
-        if hasattr(self, 'design'):
-            self.design._config(**self.config.design.to_dict())
-        if hasattr(self, 'transform'):
-            self.transform._config(**self.config.transform.to_dict())
-        if hasattr(self, 'masks'):
-            for mask, mask_config in zip(self.masks, self.config.masks):
-                mask._config(**mask_config.to_dict())
-                mask.filter._config(**mask_config.filter.to_dict())
+        if 'video' in config and hasattr(self, 'video'):
+            self.video._config(**config.pop('video'))
+        if 'design' in config and hasattr(self, 'design'):
+            self.design._config(**config.pop('design'))
+        if 'transform' in config and hasattr(self, 'transform'):
+            self.transform._config(**config.pop('transform'))
+        if 'masks' in config and hasattr(self, 'masks'):
+            for mask, mask_config in zip(self.masks, config.pop('masks')):
+                mask._config(**mask_config)
+                mask.filter._config(**mask_config['filter'])
+
+        self._config(**config)
+        self._gather_config()
 
     @backend.expose(backend.set_config)
     def set_config(self, config: dict) -> dict:

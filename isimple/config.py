@@ -147,24 +147,28 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
                 raise TypeError
 
             # Resolve parameters
-            parameters = list(mask.parameters)
+            parameters = []
 
             if 'features' in values and 'parameters' in values:
-                for index, (feature, config) in enumerate(zip(values['features'], values['parameters'])):
-                    if index >= len(mask.parameters):
+                for index, feature in enumerate(values['features']):
+                    if index >= len(mask.parameters) or mask.parameters[index] is None:
                         parameters.append(None)
-                    elif parameters[index] is None:
-                        pass
-                    elif not parameters[index]:
-                        parameters[index] = None
                     else:
-                        if isinstance(parameters[index], dict):
-                            parameters[index] = feature.config_class()(
-                                **parameters[index]
+                        if isinstance(mask.parameters[index], dict):
+                            parameters.append(
+                                feature.config_class()(
+                                    **mask.parameters[index]
+                                )
                             )
+                        elif isinstance(mask.parameters[index], FeatureConfig):
+                            parameters.append(
+                                mask.parameters[index]
+                            )
+                        elif mask.parameters[index] is None:
+                            parameters.append(None)
                         else:
                             raise ValueError(
-                                f"can not resolve parameters {parameters[index]}"
+                                f"can not resolve parameters {mask.parameters[index]}"
                             )
 
             mask.parameters = tuple(parameters)
@@ -181,26 +185,29 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
     @validator('parameters', pre=True)
     def _validate_parameters(cls, value, values):  # todo: actually validate
         # todo: can we know for certain that values['features'] has already been validated?
+
         parameters = []
         for index, feature in enumerate(values['features']):
             if index < len(value):
                 if isinstance(value[index], dict):
                     # Resolve dict to FeatureConfig
-                    parameters.append(feature.get()._config_class(**value[index]))
+                    parameters.append(
+                        feature.get()._config_class(**value[index]))
                 elif not value[index]:
                     # Resolve *empty* to default FeatureConfig silently
                     parameters.append(feature.get()._config_class())
                 else:
                     # Resolve anything else to default FeatureConfig and complain
                     parameters.append(feature.get()._config_class())
-                    log.warning(f"{feature}: parameters should be specified as "
-                                f"a list of dict / array of object instead of "
-                                f"{value[index]} -- set to default")
+                    log.warning(
+                        f"{feature}: parameters should be specified as "
+                        f"a list of dict / array of object instead of "
+                        f"{value[index]} -- set to default")
             else:
                 # Resolve not provided to default FeatureConfig silently
                 parameters.append(feature.get()._config_class())
-
         return tuple(parameters)
+
 
     _validate_fis = validator('frame_interval_setting')(BaseConfig._resolve_enforcedstr)
 
