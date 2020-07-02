@@ -4,7 +4,7 @@ import yaml
 
 from isimple.plugins.HsvRangeFilter import HsvRangeFilter
 from isimple.video import *
-from isimple.core.config import Factory, Field, BaseConfig, validator
+from isimple.core.config import Factory, Field, BaseConfig, validator, VERSION, CLASS
 from isimple.core import EnforcedStr
 from isimple.core.interface import FilterType
 
@@ -169,4 +169,20 @@ class VideoAnalyzerConfigTest(unittest.TestCase):
         with open(__OLD_CONFIG__, 'r') as f:
             old_config = yaml.safe_load(f)
 
-        normalized_config = normalize_config(old_config)
+        VideoAnalyzerConfig(**normalize_config(old_config))
+
+    def test_normalization_edge_cases(self):
+        self.assertEqual(
+            {},
+            normalize_config({})
+        )
+        self.assertRaises(
+            ValueError,
+            normalize_config, {'something': 'but no class/version info'}
+        )
+        self.assertRaises(
+            NotImplementedError,
+            normalize_config, {VERSION: '0.3', CLASS: 'Unknown'}
+        )
+
+

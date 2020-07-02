@@ -1,0 +1,98 @@
+Nf: 100
+design:
+  block_timeout: 1
+  cache_consumer: false
+  cache_dir: .cache
+  cache_size_limit: 4294967296
+  do_background: false
+  do_cache: true
+  dpi: 400
+  keep_renders: false
+  overlay_alpha: 0.1
+  render_dir: .render
+  smoothing: 7
+design_path: /home/ybnd/projects/200210 - isimple/shuttle.svg
+dt: 5
+features:
+- pixel sum
+frame_interval_setting: dt
+height: 0.153
+masks:
+- filter:
+    filter:
+      c0: (88, 128, 91)
+      c1: (108, 278, 241)
+      radius: (10, 75, 75)
+    type: hsv range
+  name: WLC_SIMPLE
+- filter:
+    filter:
+      c0: (87, 127, 113)
+      c1: (107, 277, 263)
+      radius: (10, 75, 75)
+    type: hsv range
+  name: PM_SIMPLE
+- filter:
+    filter:
+      c0: (7, -5, 97)
+      c1: (27, 145, 247)
+      radius: (10, 75, 75)
+    type: hsv range
+  name: push1
+- filter:
+    filter:
+      c0: (6, -10, 101)
+      c1: (26, 140, 251)
+      radius: (10, 75, 75)
+    type: hsv range
+  name: push2
+- filter:
+    filter:
+      c0: (88, 127, 92)
+      c1: (108, 277, 242)
+      radius: (10, 75, 75)
+    type: hsv range
+  name: WLC_iSIMPLE
+- filter:
+    filter:
+      c0: (88, 130, 103)
+      c1: (108, 280, 253)
+      radius: (10, 75, 75)
+    type: hsv range
+  name: PM_iSIMPLE
+- filter:
+    filter:
+      c0: (67, -2, 87)
+      c1: (87, 148, 237)
+      radius: (10, 75, 75)
+    type: hsv range
+  name: block
+- filter:
+    filter:
+      c0: (59, 4, 67)
+      c1: (79, 154, 217)
+      radius: (10, 75, 75)
+    type: hsv range
+  name: PM_block
+- filter:
+    filter:
+      c0: (155, 19, 92)
+      c1: (175, 169, 242)
+      radius: (10, 75, 75)
+    type: hsv range
+  name: SLC
+timestamp: 2020/03/01 10:08:38.071121
+transform:
+  coordinates: '[[1570.0, 262.5], [1573.75, 965.0], [448.75, 958.75], [440.0, 256.25]]'
+  matrix: '[[-1.0461618844575418, 0.0055844940451470855, 1641.0082289114896], [0.0058511635673441, -1.0532094421219398, 1007.1388429835641], [6.972764837383763e-08, -6.28971313927685e-06, 1.0]]'
+  type: perspective
+version: '0.2'
+video:
+  block_timeout: 1
+  cache_consumer: false
+  cache_dir: .cache
+  cache_size_limit: 4294967296
+  do_background: false
+  do_cache: true
+  do_resolve_frame_number: true
+video_path: /home/ybnd/projects/200210 - isimple/shuttle.mp4
