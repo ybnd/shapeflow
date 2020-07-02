@@ -14,6 +14,63 @@ from isimple.plugins import *
 from isimple.video import *
 
 
+class PluginRegistrationTest(unittest.TestCase):
+    def test_valid_extension(self):
+        @extend(TransformType)
+        class SomeTransform(TransformInterface):
+            _config_class = TransformConfig
+
+            def validate(self, matrix: Optional[np.ndarray]) -> bool:
+                return True
+
+            def from_coordinates(self, roi: Roi, from_shape: tuple) -> np.ndarray:
+                return np.array([])
+
+            def to_coordinates(self, to_shape: tuple) -> np.ndarray:
+                return np.array([])
+
+            def estimate(self, roi: Roi, from_shape: tuple, to_shape: tuple) -> np.ndarray:
+                return np.array([])
+
+            def transform(self, transform: np.ndarray, img: np.ndarray, shape: Tuple[int, int]) -> np.ndarray:
+                return np.array([])
+
+            def coordinate(self, transform: np.ndarray, coordinate: ShapeCoo, shape: Tuple[int, int]) -> ShapeCoo:
+                return coordinate
+
+        TransformType('SomeTransform').get()()
+
+    def test_abstract_extension(self):
+        @extend(TransformType)
+        class SomeTransform(TransformInterface):
+            pass
+
+        self.assertRaises(
+            TypeError,
+            FeatureType('SomeFeature').get()
+        )
+
+    def test_invalid_extension_type(self):
+        def _define_object_as_transform():
+            @extend(TransformType)
+            class SomeTransform(object):
+                pass
+
+        def _define_filter_as_transform():
+            @extend(TransformType)
+            class SomeTransform(FilterInterface):
+                pass
+
+        self.assertRaises(
+            TypeError,
+            _define_object_as_transform
+        )
+        self.assertRaises(
+            TypeError,
+            _define_filter_as_transform
+        )
+
+
 class BaseTransformTest(abc.ABC, unittest.TestCase):
     transform: TransformInterface
 

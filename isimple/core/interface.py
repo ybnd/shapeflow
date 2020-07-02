@@ -18,13 +18,8 @@ class InterfaceFactory(Factory):
 
     def get(self) -> Type[Configurable]:
         interface = super().get()
-        if issubclass(interface, Configurable):
-            return interface
-        else:
-            raise TypeError(
-                f"'{self.__class__.__name__}' tried to return an unexpected type '{interface}'. "
-                f"This is very weird and shouldn't happen, really."
-            )
+        assert issubclass(interface, Configurable)
+        return interface
 
     def config_schema(self) -> dict:
         return self.get().config_schema()
@@ -116,13 +111,8 @@ class FilterType(InterfaceFactory):
 
     def get(self) -> Type[FilterInterface]:
         interface = super().get()
-        if issubclass(interface, FilterInterface):
-            return interface
-        else:
-            raise TypeError(
-                f"'{self.__class__.__name__}' tried to return an unexpected type '{interface}'. "
-                f"This is very weird and shouldn't happen, really."
-            )
+        assert issubclass(interface, FilterInterface)
+        return interface
 
 
 class TransformType(InterfaceFactory):
@@ -131,10 +121,5 @@ class TransformType(InterfaceFactory):
 
     def get(self) -> Type[TransformInterface]:
         interface = super().get()
-        if issubclass(interface, TransformInterface):
-            return interface
-        else:
-            raise TypeError(
-                f"'{self.__class__.__name__}' tried to return an unexpected type '{interface}'. "
-                f"This is very weird and shouldn't happen, really."
-            )
+        assert issubclass(interface, TransformInterface)
+        return interface

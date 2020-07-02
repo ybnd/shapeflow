@@ -8,7 +8,7 @@ from isimple.core.config import Factory, Field, BaseConfig, validator, VERSION, 
 from isimple.core import EnforcedStr
 from isimple.core.interface import FilterType
 
-from isimple.config import normalize_config
+from isimple.config import normalize_config, ColorSpace
 
 __VIDEO__ = 'test.mp4'
 __DESIGN__ = 'test.svg'
@@ -19,14 +19,10 @@ if os.getcwd() == '/home/travis/build/ybnd/isimple':
     __DESIGN__ = 'test/' + __DESIGN__
 
 
-class ColorSpace(EnforcedStr):
-    _options = ['hsv', 'bgr', 'rgb']
-
-
 class EnforcedStrTest(unittest.TestCase):
     def test_definitions(self):
         ColorSpace('rgb')
-        FilterType('hsv range')
+        FilterType('HsvRangeFilter')
 
     def test_comparisons(self):
         self.assertEqual('hsv', ColorSpace('hsv'))
