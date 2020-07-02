@@ -23,7 +23,6 @@ import isimple.config
 import isimple.util as util
 import isimple.util.filedialog
 import isimple.core.backend as backend
-import isimple.core.schema as schema
 import isimple.core.streaming as streaming
 import isimple.history as history
 import isimple.video as video
@@ -332,11 +331,6 @@ class Main(isimple.core.Lockable):
                 bt = None
             return respond(self.add_instance(video.AnalyzerType(bt)))
 
-        @app.route('/api/<id>/call/get_schemas', methods=['GET'])
-        def get_schemas(id: str):
-            active()
-            return respond(self.get_schemas(id))
-
         @app.route('/api/<id>/launch', methods=['POST'])
         def launch(id: str):
             active()
@@ -630,17 +624,6 @@ class Main(isimple.core.Lockable):
                     pass
                 except EOFError:
                     pass
-
-    def get_schemas(self, id: str) -> Optional[dict]:
-        if self.valid(id):
-            log.debug(f"Providing schemas for '{id}'")
-            root = self._roots[id]
-            return {
-                    'config': schema.schema(root._config.__class__),
-                    'methods': {e.name:[schema.schema(m) for m in ms] for e,ms in root.instance_mapping.items()}
-            }
-        else:
-            return None
 
     def call(self, id: str, endpoint: str, data: dict = {}) -> Any:
         if self.valid(id):

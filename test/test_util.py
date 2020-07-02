@@ -5,7 +5,6 @@ import json
 
 from typing import _GenericAlias, Union, Tuple, List, Dict, Optional  #type: ignore
 
-from isimple.core.schema import get_config_schema, get_method_schema, schema
 from isimple.util.meta import resolve_type_to_most_specific
 from isimple.config import VideoAnalyzerConfig
 
@@ -44,29 +43,3 @@ class ResolveTypeTest(unittest.TestCase):
                 Tuple[List[Dict[str, Union[dict, str, int]]],...]
             )
         )
-
-
-class SchemaTest(unittest.TestCase):
-    def test_get_schema_schema(self):
-        s = VideoAnalyzerConfig.schema()
-
-    def test_get_method_schema(self):
-        def annotated_method(
-                arg1: int,
-                arg2: float,
-                arg3: Optional[bool] = False,
-                arg4: bool = None
-        ) -> list:
-            return []
-
-        def unannotated_method(
-                arg1,
-                arg2: float,
-                arg3: Optional[bool] = False,
-                arg4: bool = None
-        ) -> list:
-            return []
-
-        s = schema(annotated_method)
-
-        self.assertRaises(TypeError, get_method_schema, unannotated_method)
