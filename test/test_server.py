@@ -8,6 +8,8 @@ import subprocess
 
 from isimple import settings, ROOTDIR, save_settings
 
+raise unittest.SkipTest('takes too long')
+
 CACHE = os.path.join(ROOTDIR, 'test_main-cache')
 DB = os.path.join(ROOTDIR, 'test_main-history.db')
 STATE = os.path.join(ROOTDIR, 'test_main-state')
