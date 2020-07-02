@@ -170,7 +170,7 @@ class MainTest(unittest.TestCase):
             client.get('/api/ping')
             client.get('/api/ping')
 
-            time.sleep(1)
+            time.sleep(5)
 
             client.put('/api/stop_log')
 
@@ -501,18 +501,6 @@ class MainAnalyzerTest(unittest.TestCase):
                 kwargs={'data': json.dumps({'queue': [id1, id2, id3]})}
             )
             thread.start()
-            time.sleep(0.1)
-
-            # Check on state while running
-            app_state = json.loads(client.get('/api/app_state').data)
-            self.assertEqual(
-                1,  # QueueState.RUNNING
-                app_state['q_state']
-            )
-            self.assertLess(
-                0.0, # id1 should have made some progress at this point
-                app_state['status'][app_state['ids'].index(id1)]['progress']
-            )
 
             # Stop queue while not done yet
             client.post('/api/stop')
