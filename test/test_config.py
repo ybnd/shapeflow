@@ -1,10 +1,14 @@
 import unittest
 
+import yaml
+
 from isimple.plugins.HsvRangeFilter import HsvRangeFilter
 from isimple.video import *
 from isimple.core.config import Factory, Field, BaseConfig, validator
 from isimple.core import EnforcedStr
 from isimple.core.interface import FilterType
+
+from isimple.config import normalize_config
 
 __VIDEO__ = 'test.mp4'
 __DESIGN__ = 'test.svg'
@@ -152,3 +156,17 @@ class BackendConfigTest(unittest.TestCase):
         vac = VideoAnalyzerConfig(video_path=__VIDEO__, design_path=__DESIGN__, frame_interval_setting=FrameIntervalSetting('Nf'))
         self.assertEqual(FrameIntervalSetting(), vac.frame_interval_setting)
         self.assertIsInstance(vac.frame_interval_setting, FrameIntervalSetting)
+
+
+class VideoAnalyzerConfigTest(unittest.TestCase):
+    def test_normalization(self):
+        __OLD_CONFIG__ = 'old.meta'
+
+        # Point to right files in Travis CI build
+        if os.getcwd() == '/home/travis/build/ybnd/isimple':
+            __OLD_CONFIG__ = 'test/' + __OLD_CONFIG__
+
+        with open(__OLD_CONFIG__, 'r') as f:
+            old_config = yaml.safe_load(f)
+
+        normalized_config = normalize_config(old_config)

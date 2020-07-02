@@ -271,14 +271,11 @@ def normalize_config(d: dict) -> dict:
             from ast import literal_eval as make_tuple  # todo: this is unsafe!
             for m in d['masks']:
                 if 'c0' in m['filter']['data']:
-                    m['filter']['data']['c0'] = str(
-                        HsvColor(*make_tuple(m['filter']['data']['c0'])))
+                    m['filter']['data']['c0'] = HsvColor(*make_tuple(m['filter']['data']['c0']))
                 if 'c1' in m['filter']['data']:
-                    m['filter']['data']['c1'] = str(
-                        HsvColor(*make_tuple(m['filter']['data']['c1'])))
+                    m['filter']['data']['c1'] = HsvColor(*make_tuple(m['filter']['data']['c1']))
                 if 'radius' in m['filter']['data']:
-                    m['filter']['data']['radius'] = str(
-                        HsvColor(*make_tuple(m['filter']['data']['radius'])))
+                    m['filter']['data']['radius'] = HsvColor(*make_tuple(m['filter']['data']['radius']))
         if before_version(d[VERSION], '0.3.1'):
             normalizing_to('0.3.1')
             # Rename TransformHandlerConfig 'coordinates' to 'roi'
@@ -319,7 +316,7 @@ def normalize_config(d: dict) -> dict:
                 for m in d['masks']:
                     m['skip'] = False
                     try:
-                        m['ready'] = not (m['filter']['data']['c0'] == 'HsvColor(h=0, s=0, v=0')
+                        m['ready'] = m['filter']['data']['c0'] != HsvColor()
                     except KeyError:
                         m['ready'] = False
         if before_version(d[VERSION], '0.3.7'):
@@ -327,10 +324,10 @@ def normalize_config(d: dict) -> dict:
             # remove DesignFileHandlerConfig.keep_renders & VideoFileHandlerConfig.do_resolve_frame_number
             if 'video' in d:
                 if 'do_resolve_frame_number' in d['video']:
-                    d.pop('do_resolve_frame_number')
+                    d['video'].pop('do_resolve_frame_number')
             if 'design' in d:
                 if 'keep_renders' in d['design']:
-                    d.pop('keep_renders')
+                    d['design'].pop('keep_renders')
         if before_version(d[VERSION], '0.3.8'):
             normalizing_to('0.3.8')
             # remove CachingInstance.cache_consumer
