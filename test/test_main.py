@@ -12,6 +12,14 @@ from threading import Thread
 HOST = "127.0.0.1"
 PORT = str(7845)
 
+__VIDEO__ = 'test.mp4'
+__DESIGN__ = 'test.svg'
+
+# Point to right files in Travis CI build
+if os.getcwd() == '/home/travis/build/ybnd/isimple':
+    __VIDEO__ = 'test/' + __VIDEO__
+    __DESIGN__ = 'test/' + __DESIGN__
+
 
 @contextmanager
 def application(keep: bool = False):
@@ -96,7 +104,7 @@ class MainTest(unittest.TestCase):
                 json.loads(
                     client.put(
                         '/api/check_design_path',
-                        data=json.dumps({"design_path": "test.svg"})
+                        data=json.dumps({"design_path": __DESIGN__})
                     ).data
                 )
             )
@@ -105,7 +113,7 @@ class MainTest(unittest.TestCase):
                 json.loads(
                     client.put(
                         '/api/check_video_path',
-                        data=json.dumps({"video_path": "test.mp4"})
+                        data=json.dumps({"video_path": __VIDEO__})
                     ).data
                 )
             )
@@ -116,7 +124,7 @@ class MainTest(unittest.TestCase):
                 json.loads(
                     client.put(
                         '/api/check_design_path',
-                        data=json.dumps({"design_path": "test.mp4"})
+                        data=json.dumps({"design_path": __VIDEO__})
                     ).data
                 )
             )
@@ -125,7 +133,7 @@ class MainTest(unittest.TestCase):
                 json.loads(
                     client.put(
                         '/api/check_video_path',
-                        data=json.dumps({"video_path": "test.svg"})
+                        data=json.dumps({"video_path": __DESIGN__})
                     ).data
                 )
             )
@@ -177,8 +185,8 @@ class MainAnalyzerTest(unittest.TestCase):
     """Test Main methods -- VideoAnalyzer interaction"""
 
     CONFIG = {
-        "video_path": "test.mp4",
-        "design_path": "test.svg",
+        "video_path": __VIDEO__,
+        "design_path": __DESIGN__,
         "features": [''],
         "parameters": [None],  # todo: parameters should be resolved to the same length as features, for now _get_featuresets() fails ~ zip(features, parameters)
         "frame_interval_setting": 'Nf',
