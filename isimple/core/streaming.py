@@ -38,9 +38,6 @@ class BaseStreamer(abc.ABC):
     _content_type: Optional[bytes] = None
     _mime_type: Optional[str] = None
 
-    _opener: Optional[bytes] = None
-    _closer: Optional[bytes] = None
-
     _double_yield: bool = False
 
     def __init__(self):
@@ -57,9 +54,6 @@ class BaseStreamer(abc.ABC):
     def stream(self) -> Generator[Any, None, None]:
         self._stop.clear()
 
-        if self.opener is not None:
-            yield self.opener
-
         while not self._stop.is_set():
             if not self._queue.empty():
                 value = self._queue.get()
@@ -75,17 +69,6 @@ class BaseStreamer(abc.ABC):
                     continue
             else:
                 time.sleep(self._empty_queue_timeout)
-
-        if self.closer is not None:
-            yield self.closer
-
-    @property
-    def opener(self) -> Optional[bytes]:
-        return self._opener
-
-    @property
-    def closer(self) -> Optional[bytes]:
-        return self._closer
 
     def stop(self):
         self._stop.set()
@@ -186,37 +169,6 @@ class JpegStreamer(FrameStreamer):  # todo: configure quality in settings
         (success, encoded_frame) = cv2.imencode(
             ".jpg", cv2.cvtColor(frame, cv2.COLOR_HSV2BGR),
             params = [cv2.IMWRITE_JPEG_QUALITY, 85]
-        )
-
-        if success:
-            return encoded_frame
-        else:
-            return None
-
-
-class BmpStreamer(FrameStreamer):  # todo: configure quality in settings
-    _content_type = b"image/jpeg"
-
-    def _encode(self, frame: np.ndarray) -> Optional[bytes]:
-        # Assuming HSV input frame, cv2.imencode works with BGR
-        (success, encoded_frame) = cv2.imencode(
-            ".bmp", cv2.cvtColor(frame, cv2.COLOR_HSV2BGR),
-        )
-
-        if success:
-            return encoded_frame
-        else:
-            return None
-
-
-class PngStreamer(FrameStreamer):   # todo: configure quality in settings
-    _content_type = b"image/png"
-
-    def _encode(self, frame: np.ndarray) -> Optional[bytes]:
-        # Assume HSV input frame, cv2.imencode works with BGR
-        (success, encoded_frame) = cv2.imencode(
-            ".png", cv2.cvtColor(frame, cv2.COLOR_HSV2BGR),
-            params = [cv2.IMWRITE_PNG_COMPRESSION, 10]
         )
 
         if success:
@@ -350,7 +302,7 @@ def stream(method):
         streams.push(
             instance = args[0],
             method = unbind(method),
-            data= data
+            data = data
         )
         return data
 
