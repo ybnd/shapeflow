@@ -175,7 +175,11 @@ class AnalysisModel(BaseAnalysisModel):
 
             with self.session() as s:
                 if self._analyzer.config.name is not None:
-                    self.name = self._analyzer.config.name
+                    if not self._analyzer.config.name.strip():
+                        self._analyzer.config.name = f"#{self.id}"
+                    else:
+                        self.name = self._analyzer.config.name.strip()
+                        self._analyzer.config.name = self.name
                 if self._analyzer.config.description is not None:
                     self.description = self._analyzer.config.description
 
