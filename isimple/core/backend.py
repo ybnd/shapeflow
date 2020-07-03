@@ -641,10 +641,6 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     def push_status(self):
         self.event(AnalyzerEvent.STATUS, self.status())
 
-    @abc.abstractmethod
-    @backend.expose(backend.set_config)
-    def set_config(self, config: dict) -> dict:
-        raise NotImplementedError
 
     @backend.expose(backend.get_config)
     def get_config(self, do_tag=False) -> dict:
@@ -652,6 +648,7 @@ class BaseVideoAnalyzer(Instance, RootInstance):
         config = self.config.to_dict(do_tag)
         return config
 
+    @abc.abstractmethod
     @backend.expose(backend.set_config)
     def set_config(self, config: dict, silent: bool = False) -> dict:
         raise NotImplementedError
