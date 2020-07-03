@@ -3,7 +3,7 @@ import multiprocessing
 import os
 import time
 from contextlib import contextmanager
-from typing import Optional, List, Type, Any
+from typing import Optional, List, Type, Any, Tuple
 import datetime
 
 from sqlalchemy.ext.declarative import declarative_base
@@ -33,7 +33,6 @@ class SessionWrapper(object):
             session.commit()
         except:
             session.rollback()
-            rais
         finally:
             session.close()
 

@@ -115,51 +115,74 @@ class AnalysisModel(BaseAnalysisModel):
 
         return model
 
+    def _resolve_files(self):
+        if self._analyzer.config.video_path and (
+                self._video is None or self._video.get('path') != self._analyzer.config.video_path):
+            try:
+                self._video = self._add_video(
+                    path=self._analyzer.config.video_path)
+            except ValueError as e:
+                pass
+
+        if self._analyzer.config.design_path and (
+                self._design is None or self._design.get('path') != self._analyzer.config.design_path):
+            try:
+                self._design = self._add_design(
+                    path=self._analyzer.config.design_path)
+            except ValueError as e:
+                pass
+
+        if self._video is not None:
+            self._video = self._video.resolve()
+
+        if self._design is not None:
+            self._design = self._design.resolve()
+
+        with self.session() as s:
+            if self._video is not None:
+                self.video = self._video.id
+            if self._design is not None:
+                self.design = self._design.id
+
+    def _add_config(self, json: str) -> Optional[ConfigModel]:
+        with self.session():
+            video = self.video
+            design = self.design
+            analysis = self.id
+
+        if video is not None or design is not None:
+            model = ConfigModel(
+                video=video, design=design, analysis=analysis,
+                json = json,
+                added=datetime.datetime.now(),
+            )
+            model.connect(self)
+            return model
+        else:
+            return None
+
     def store(self):
         self._resolve_attributes()
         if self._analyzer is not None:
-            if self._analyzer.config.video_path and (self._video is None or self._video.get('path') != self._analyzer.config.video_path):
-                try:
-                    self._video = self._add_video(path=self._analyzer.config.video_path)
-                except ValueError as e:
-                    pass
+            config_json = json.dumps(self._analyzer.get_config(do_tag=True))
+            self._resolve_files()
 
-            if self._analyzer.config.design_path and (self._design is None or self._design.get('path') != self._analyzer.config.design_path):
-                try:
-                    self._design = self._add_design(path=self._analyzer.config.design_path)
-                except ValueError as e:
-                    pass
-
-            if self._video is not None:
-                self._video = self._video.resolve()
-
-            if self._design is not None:
-                self._design = self._design.resolve()
+            if self._config is None:
+                self._config = self._add_config(json=config_json)
+            else:
+                if config_json != self._config.get('json'):
+                    self._config = self._add_config(json=config_json)
 
             with self.session() as s:
-                if self._video is not None:
-                    self.video = self._video.id
-                if self._design is not None:
-                    self.design = self._design.id
-
-                s.commit()
-
                 if self._analyzer.config.name is not None:
                     self.name = self._analyzer.config.name
                 if self._analyzer.config.description is not None:
                     self.description = self._analyzer.config.description
 
-                self._config = ConfigModel(
-                    video=self.video, design=self.design, analysis=self.id,
-                    json=json.dumps(
-                        self._analyzer.get_config(do_tag=True)),
-                    added=datetime.datetime.now(), modified=datetime.datetime.now()
-                )
-                self._config.connect(self)
-                s.add(self._config)
                 s.commit()
 
-                self.config = self._config.id
+                if self._config is not None:
+                    self.config = self._config.id
 
                 # Store results
                 for k, df in self._analyzer.results.items():
@@ -255,18 +278,6 @@ class AnalysisModel(BaseAnalysisModel):
                 assert isinstance(self.added, datetime.datetime)
                 return self.added
 
-    def _modified(self) -> datetime.datetime:
-        if self._config is None:
-            self._config = self._fetch_latest_config()
-
-        with self.session() as s:
-            if self._config is not None:
-                assert isinstance(self._config.modified, datetime.datetime)
-                return self._config.modified
-            else:
-                assert isinstance(self.modified, datetime.datetime)
-                return self.modified
-
     def _step_config(self, filter, order) -> Optional[dict]:
         with self.session() as s:
             q = list(
@@ -276,9 +287,11 @@ class AnalysisModel(BaseAnalysisModel):
                 filter(filter).\
                 order_by(order)
             )
+
             if len(q) > 0:
                 self._config = q[0]
                 s.add(self._config)
+                self._config.connect(self)
                 assert isinstance(self._config, ConfigModel)
                 assert isinstance(self._config.json, str)
                 return normalize_config(json.loads(self._config.json))
@@ -286,16 +299,16 @@ class AnalysisModel(BaseAnalysisModel):
 
     def undo_config(self, context: str = None):
         config = self._step_config(
-            ConfigModel.modified < self._modified(),  # todo: or maybe ~ added instead
-            ConfigModel.modified.desc()
+            ConfigModel.added < self._added(),  # todo: or maybe ~ added instead
+            ConfigModel.added.desc()
         )
         if self._analyzer is not None:
             self._analyzer.set_config(config=config, silent=True)
 
     def redo_config(self, context: str = None):
         config = self._step_config(
-            ConfigModel.modified > self._modified(),  # todo: or maybe ~ added instead
-            ConfigModel.modified
+            ConfigModel.added > self._added(),  # todo: or maybe ~ added instead
+            ConfigModel.added
         )
         if self._analyzer is not None:
             self._analyzer.set_config(config=config, silent=True)

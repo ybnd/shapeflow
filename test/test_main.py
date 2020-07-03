@@ -199,32 +199,6 @@ class MainAnalyzerTest(unittest.TestCase):
         'TR': {'x': 0.2328, 'y': 0.8944},
         'BR': {'x': 0.2313, 'y': 0.2361}
     }
-    ROI_SEQUENCE = [
-        {
-            'BL': {'x': 0.1, 'y': 0.2389},
-            'TL': {'x': 0.8141, 'y': 0.8917},
-            'TR': {'x': 0.2328, 'y': 0.8944},
-            'BR': {'x': 0.2313, 'y': 0.2361}
-        },
-        {
-            'BL': {'x': 0.2, 'y': 0.2389},
-            'TL': {'x': 0.8141, 'y': 0.8917},
-            'TR': {'x': 0.2328, 'y': 0.8944},
-            'BR': {'x': 0.2313, 'y': 0.2361}
-        },
-        {
-            'BL': {'x': 0.3, 'y': 0.2389},
-            'TL': {'x': 0.8141, 'y': 0.8917},
-            'TR': {'x': 0.2328, 'y': 0.8944},
-            'BR': {'x': 0.2313, 'y': 0.2361}
-        },
-        {
-            'BL': {'x': 0.4, 'y': 0.2389},
-            'TL': {'x': 0.8141, 'y': 0.8917},
-            'TR': {'x': 0.2328, 'y': 0.8944},
-            'BR': {'x': 0.2313, 'y': 0.2361}
-        },
-    ]
     HIT_FRAME = 16
     TRUE_HITS = [
         # (relative_x, relative_y)
@@ -415,9 +389,36 @@ class MainAnalyzerTest(unittest.TestCase):
                 ).data)['transform']['roi']
             )
 
-    @unittest.skip('to be fixed!')
+    # @unittest.skip('to be fixed!')
     def test_analyzer_undo_redo_roi(self):
         with application() as (server, client, settings):
+            ROI_SEQUENCE = [
+                {
+                    'BL': {'x': 0.1, 'y': 0.2389},
+                    'TL': {'x': 0.8141, 'y': 0.8917},
+                    'TR': {'x': 0.2328, 'y': 0.8944},
+                    'BR': {'x': 0.2313, 'y': 0.2361}
+                },
+                {
+                    'BL': {'x': 0.2, 'y': 0.2389},
+                    'TL': {'x': 0.8141, 'y': 0.8917},
+                    'TR': {'x': 0.2328, 'y': 0.8944},
+                    'BR': {'x': 0.2313, 'y': 0.2361}
+                },
+                {
+                    'BL': {'x': 0.3, 'y': 0.2389},
+                    'TL': {'x': 0.8141, 'y': 0.8917},
+                    'TR': {'x': 0.2328, 'y': 0.8944},
+                    'BR': {'x': 0.2313, 'y': 0.2361}
+                },
+                {
+                    'BL': {'x': 0.4, 'y': 0.2389},
+                    'TL': {'x': 0.8141, 'y': 0.8917},
+                    'TR': {'x': 0.2328, 'y': 0.8944},
+                    'BR': {'x': 0.2313, 'y': 0.2361}
+                },
+            ]
+
             id = json.loads(client.post('/api/init').data)
             client.post(
                 f'/api/{id}/call/set_config',
@@ -425,14 +426,14 @@ class MainAnalyzerTest(unittest.TestCase):
             )
             client.post(f'/api/{id}/launch')
 
-            for ROI in self.ROI_SEQUENCE:
+            for ROI in ROI_SEQUENCE:
                 client.post(
                     f'/api/{id}/call/estimate_transform',
                     data=json.dumps({"roi": ROI})
                 )
                 # client.post(f'/api/{id}/call/commit')
 
-            for ROI in self.ROI_SEQUENCE[::-1]:
+            for ROI in ROI_SEQUENCE[::-1]:
                 self.assertEqual(
                     ROI,
                     json.loads(
@@ -441,14 +442,14 @@ class MainAnalyzerTest(unittest.TestCase):
                 )
                 client.post(f'/api/{id}/call/undo_config')
 
-            for ROI in self.ROI_SEQUENCE:
+            for ROI in ROI_SEQUENCE:
+                client.post(f'/api/{id}/call/redo_config')
                 self.assertEqual(
                     ROI,
                     json.loads(
                         client.get(f'/api/{id}/call/get_config'
                     ).data)['transform']['roi']
                 )
-                client.post(f'/api/{id}/call/redo_config')
 
     def test_analyzers_queue_ops(self):
         with application() as (server, client, settings):

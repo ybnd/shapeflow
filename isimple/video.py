@@ -1015,7 +1015,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                     self.estimate_transform()  # todo: self.config.bla.thing should be exactly self.bla.config.thing always
                     do_commit = True
 
-                if do_commit and not silent:
+                if do_commit and not silent:  # todo: better config handling in AnalysisMdoel.store() instead!
                     self.commit()
 
                 if do_relaunch:
