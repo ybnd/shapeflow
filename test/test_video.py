@@ -63,10 +63,11 @@ for frame_number in FRAMES:
     TEST_TRANSFORMED_FRAME_HSV[frame_number] = cv2.warpPerspective(frame_hsv, TRANSFORM, dsize, borderValue=(255,255,255))
 
 # Clear cache
-vi = VideoFileHandler(__VIDEO__)
-with vi.caching():
-    assert vi._cache is not None
-    vi._cache.clear()
+with settings.cache.override({'do_cache': True}):
+    vi = VideoFileHandler(__VIDEO__)
+    with vi.caching():
+        assert vi._cache is not None
+        vi._cache.clear()
 
 
 class FrameTest(unittest.TestCase):
@@ -90,36 +91,38 @@ class VideoInterfaceTest(FrameTest):
         )
 
     def test_get_frame(self):
-        with VideoFileHandler(__VIDEO__) as vi:
-            for frame_number, frame in TEST_FRAME_HSV.items():
-                self.assertTrue(
-                    np.equal(
-                        frame, vi.read_frame(frame_number)
-                    ).all()
-                )
-                self.assertFrameInCache(vi, frame_number)
+        with settings.cache.override({'do_cache': True}):
+            with VideoFileHandler(__VIDEO__) as vi:
+                for frame_number, frame in TEST_FRAME_HSV.items():
+                    self.assertTrue(
+                        np.equal(
+                            frame, vi.read_frame(frame_number)
+                        ).all()
+                    )
+                    self.assertFrameInCache(vi, frame_number)
 
     def test_get_cached_frame(self):
-        with VideoFileHandler(__VIDEO__) as vi:
-            for frame_number in TEST_FRAME_HSV.keys():
-                # Read frames, which are cached
-                self.assertEqualArray(
-                    TEST_FRAME_HSV[frame_number],
-                    vi.read_frame(frame_number)
-                )
-                self.assertFrameInCache(vi, frame_number)
+        with settings.cache.override({'do_cache': True}):
+            with VideoFileHandler(__VIDEO__) as vi:
+                for frame_number in TEST_FRAME_HSV.keys():
+                    # Read frames, which are cached
+                    self.assertEqualArray(
+                        TEST_FRAME_HSV[frame_number],
+                        vi.read_frame(frame_number)
+                    )
+                    self.assertFrameInCache(vi, frame_number)
 
 
-            # Disconnect VideoInterface from OpenCV capture
-            #  to ensure frames are read from cache
-            vi._capture = None
+                # Disconnect VideoInterface from OpenCV capture
+                #  to ensure frames are read from cache
+                vi._capture = None
 
-            # Read frames
-            for frame_number, frame in TEST_FRAME_HSV.items():
-                self.assertFrameInCache(vi, frame_number)
-                self.assertEqualArray(
-                        frame, vi.read_frame(frame_number)
-                )
+                # Read frames
+                for frame_number, frame in TEST_FRAME_HSV.items():
+                    self.assertFrameInCache(vi, frame_number)
+                    self.assertEqualArray(
+                            frame, vi.read_frame(frame_number)
+                    )
 
     def test_get_cached_frame_threaded(self):
         __INTERVAL__ = 0.1
@@ -262,7 +265,6 @@ class VideoAnalyzerTest(FrameTest):
     def test_context(self):  # todo: don't need the design to load here
         # Don't overwrite self.config
         config = deepcopy(self.config)
-        og_cache = deepcopy(settings.cache)
 
         with settings.cache.override(
                 {"do_cache": False, "do_background": False}):
@@ -295,15 +297,6 @@ class VideoAnalyzerTest(FrameTest):
             with va.caching():
                 self.assertNotEqual(None, va.video._cache)
             self.assertEqual(None, va.video._cache)
-
-        # By default, main-thread caching is enabled
-        va = VideoAnalyzer(VideoAnalyzerConfig(video_path=__VIDEO__, design_path=__DESIGN__))
-        va.launch()
-
-        self.assertEqual(None, va.video._cache)
-        with va.caching():
-            self.assertNotEqual(None, va.video._cache)
-        self.assertEqual(None, va.video._cache)
 
     def test_get_frame(self):
         config = deepcopy(self.config)
