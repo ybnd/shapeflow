@@ -294,9 +294,9 @@ class AnalysisModel(BaseAnalysisModel):
 
             if len(q) > 0:
                 self._config = q[0]
+                assert isinstance(self._config, ConfigModel)
                 s.add(self._config)
                 self._config.connect(self)
-                assert isinstance(self._config, ConfigModel)
                 assert isinstance(self._config.json, str)
                 return normalize_config(json.loads(self._config.json))
         return None
