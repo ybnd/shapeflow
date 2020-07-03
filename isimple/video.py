@@ -954,8 +954,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         self._config(**config)
         self._gather_config()
 
-    @backend.expose(backend.set_config)
-    def set_config(self, config: dict) -> dict:
+    def set_config(self, config: dict, silent: bool = False) -> dict:
         with self.lock():
             if True:  # todo: sanity check
                 do_commit = False
@@ -1016,8 +1015,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                     self.estimate_transform()  # todo: self.config.bla.thing should be exactly self.bla.config.thing always
                     do_commit = True
 
-                if do_commit:  # todo: should probably commit *before* re-launching
-                    self.commit()  # todo: isimple.video doesn't know about isimple.history!
+                if do_commit and not silent:
+                    self.commit()
 
                 if do_relaunch:
                     self._launch()
@@ -1103,26 +1102,12 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
     @backend.expose(backend.undo_config)
     def undo_config(self) -> dict:  # todo: implement undo/redo context (e.g. transform, masks)
-        from isimple.history import History
-        _history = History()
-
-        self.commit()
-        config = _history.get_config_buffer(self.model, next=False)
-        if config is not None:
-            self.set_config(config)
-
+        self.model.undo_config()
         return self.get_config()
 
     @backend.expose(backend.redo_config)
     def redo_config(self) -> dict:
-        from isimple.history import History
-        _history = History()
-
-        self.commit()
-        config = _history.get_config_buffer(self.model, next=True)
-        if config is not None:
-            self.set_config(config)
-
+        self.model.redo_config()
         return self.get_config()
 
     @backend.expose(backend.set_filter_click)
@@ -1326,34 +1311,17 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             log.debug('loading config from database...')
             include = ['video', 'design', 'transform', 'masks']
 
-            from isimple.history import History, VideoFileModel, DesignFileModel  # todo: fix history / video circular dependency
-            _history = History()
-
-            if self.config.video_path is not None and os.path.isfile(self.config.video_path):
-                video = _history.add_file(self.config.video_path, VideoFileModel)
-                if self.config.design_path is not None and os.path.isfile(self.config.design_path):
-                    design = _history.add_file(self.config.design_path, DesignFileModel)
-                    config = _history.get_config(
-                        self.model,
-                        video,
-                        design,
-                        include = include
-                    )
-                    design.remove()
-                else:
-                    config = _history.get_config(
-                        self.model,
-                        video,
-                        include=include
-                    )
-                video.remove()
-
+            config = self.model.load_config(
+                include=include
+            )
+            if config is not None:
                 self._set_config(config)
+                self.commit()
 
                 log.info(f'config ~ database: {config}')
                 log.info(f'loaded as {self.config}')
             else:
-                log.warning('could not load config - no video path!')
+                log.warning('could not load config')
 
 
     @property  # todo: this was deprecated, right?

@@ -24,7 +24,7 @@ import isimple.util as util
 import isimple.util.filedialog
 import isimple.core.backend as backend
 import isimple.core.streaming as streaming
-import isimple.history as history
+import isimple.db as db
 import isimple.video as video
 import isimple.plugins as plugins
 
@@ -87,8 +87,8 @@ class Main(isimple.core.Lockable):
     _app: Flask
 
     _roots: Dict[str, backend.BaseVideoAnalyzer] = {}
-    _models: Dict[str, history.VideoAnalysisModel] = {}
-    _history: history.History
+    _models: Dict[str, db.AnalysisModel] = {}
+    _history: db.History
 
     _server: ServerThread
 
@@ -103,8 +103,6 @@ class Main(isimple.core.Lockable):
     _timeout_loop = 0.1  # todo: load from settings.yaml
 
     _stop_log: Event
-    _latest: List[history.VideoAnalysisModel]
-    _latest_configs: List[dict]
 
     _eventstreamer = streaming.EventStreamer()
 
@@ -117,7 +115,7 @@ class Main(isimple.core.Lockable):
 
 
     def __init__(self):
-        self._history = history.History()
+        self._history = db.History()
         super().__init__()
         app = Flask(__name__, static_url_path='')
         app.config.from_object(__name__)
@@ -254,14 +252,8 @@ class Main(isimple.core.Lockable):
                     'options': video.TransformType().options,
                     'descriptions': video.TransformType().descriptions
                 })
-            elif for_type == "video_path":
-                return respond(
-                    list(set(self._history.fetch_recent_paths(history.VideoFileModel)))
-                )
-            elif for_type == "design_path":
-                return respond(
-                    list(set(self._history.fetch_recent_paths(history.DesignFileModel)))
-                )
+            elif for_type == "paths":
+                return respond(self._history.fetch_paths())
             elif for_type == "config":
                 return respond(
                     backend.AnalyzerType().config_schema()  # todo: { AnalyzerType:<schema> }
@@ -335,6 +327,14 @@ class Main(isimple.core.Lockable):
         def launch(id: str):
             active()
             return respond(self.call(id, 'launch', {}))
+
+        @app.route('/api/<id>/undo/<context>', methods=['POST'])
+        def undo(id: str, context: str = None):
+            return respond(self.shift_config(id, 'undo', context))
+
+        @app.route('/api/<id>/redo/<context>', methods=['POST'])
+        def redo(id: str, context: str = None):
+            return respond(self.shift_config(id, 'redo', context))
 
         @app.route('/api/<id>/can_launch', methods=['GET'])
         def can_launch(id: str):
@@ -516,7 +516,7 @@ class Main(isimple.core.Lockable):
             log.info(f"Adding {{'{analyzer.id}': {analyzer}}}")
             self._roots[analyzer.id] = analyzer
             assert isinstance(analyzer, video.VideoAnalyzer)
-            self._history.add_analysis(analyzer)
+            self._models[analyzer.id] = self._history.add_analysis(analyzer)
 
         self.save_state()
         return analyzer.id
@@ -532,7 +532,29 @@ class Main(isimple.core.Lockable):
                     self.save_state()
                     return True
             else:
-                return False
+                raise ValueError
+
+    def shift_config(self, id: str, shift: str, context: str = None) -> dict:
+        if self.valid(id):
+            analyzer = self._roots[id]
+            model = self._models[id]
+
+            analyzer.commit()
+
+            if shift == 'undo':
+                config = model.undo_config(context)
+            elif shift == 'redo':
+                config = model.redo_config(context)
+            else:
+                raise ValueError(f"shift must be 'undo' or 'redo', "
+                                 f"got '{shift}' instead.")
+
+            if config is not None:
+                analyzer.set_config(**config)
+
+            return analyzer.get_config()
+        else:
+            raise ValueError
 
     def q_start(self, q: List[str]) -> bool:
         if self._q_state == QueueState.STOPPED:
@@ -584,7 +606,7 @@ class Main(isimple.core.Lockable):
             self.commit()
 
             s = {
-                id:root.model.id
+                id: root.model.get('id')
                 for id,root in self._roots.items()
                 if not root.done
             }
@@ -607,25 +629,26 @@ class Main(isimple.core.Lockable):
                         assert isinstance(model_id, int)
 
                         model = self._history.fetch_analysis(model_id)
+                        model.connect(self._history)
 
                         if model is not None:
-                            analyzer = video.init(isimple.config.loads(model.config))
+                            analyzer = video.init(isimple.config.loads(model.get_config_json()))
                             analyzer._set_id(id)
                             analyzer.set_eventstreamer(self._eventstreamer)
 
                             analyzer.launch()
 
                             self._roots[id] = analyzer
-
-                            assert isinstance(analyzer, video.VideoAnalyzer)
-                            self._history.add_analysis(analyzer, model)
+                            self._models[id] = self._history.add_analysis(analyzer, model)
 
                 except FileNotFoundError:
                     pass
                 except EOFError:
                     pass
 
-    def call(self, id: str, endpoint: str, data: dict = {}) -> Any:
+    def call(self, id: str, endpoint: str, data: dict = None) -> Any:
+        if data is None:
+            data = {}
         if self.valid(id):
             t0 = time.time()
             log.debug(f"{self._roots[id]}: call '{endpoint}'")

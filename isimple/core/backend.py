@@ -22,6 +22,7 @@ from isimple.core import RootException, SetupError, RootInstance
 from isimple.maths.colors import HsvColor
 from isimple.util.meta import describe_function
 from isimple.util import Timer, Timing, hash_file, timed
+from isimple.core.db import DbModel
 from isimple.core.config import Factory, untag, BaseConfig, Instance, Configurable
 from isimple.core.streaming import stream, streams, EventStreamer
 
@@ -443,7 +444,7 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     _video_hash: Optional[str]
     _design_hash: Optional[str]
 
-    _model: Optional[object]
+    _model: Optional[DbModel]
     _eventstreamer: Optional[EventStreamer]
 
     def __init__(self, config: BaseAnalyzerConfig = None, eventstreamer: EventStreamer = None):
@@ -463,10 +464,10 @@ class BaseVideoAnalyzer(Instance, RootInstance):
         self._progress = 0.0
         self._model = None
 
-    def set_model(self, model):
+    def set_model(self, model: DbModel):
         self._model = model
-        if self.config.name is None:
-            self.config(name=f"#{self.model['id']}")
+        if self.config.name is None:  # todo: move to AnalysisModel instead
+            self.config(name=self.model.get_name())
 
     @property
     def model(self):
@@ -496,8 +497,7 @@ class BaseVideoAnalyzer(Instance, RootInstance):
         """
         if self._model is not None:
             log.debug(f"committing {self.id}")
-            self._model.store()  # type: ignore
-            # todo: solve circular dependency
+            self._model.store()
             return True
         else:
             return False
@@ -641,11 +641,20 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     def push_status(self):
         self.event(AnalyzerEvent.STATUS, self.status())
 
+    @abc.abstractmethod
+    @backend.expose(backend.set_config)
+    def set_config(self, config: dict) -> dict:
+        raise NotImplementedError
+
     @backend.expose(backend.get_config)
     def get_config(self, do_tag=False) -> dict:
         self._gather_config()
         config = self.config.to_dict(do_tag)
         return config
+
+    @backend.expose(backend.set_config)
+    def set_config(self, config: dict, silent: bool = False) -> dict:
+        raise NotImplementedError
 
     @abc.abstractmethod
     def _gather_config(self):

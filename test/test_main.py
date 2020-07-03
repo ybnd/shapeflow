@@ -52,10 +52,10 @@ def application(keep: bool = False):
 
             # import from isimple.main here -> current settings are respected
             import isimple.main
-            import isimple.history
+            import isimple.db
 
             main = isimple.main.Main()
-            main._history = isimple.history.History()
+            main._history = isimple.db.History(settings.db.path)
             main._app.testing = True
             client = main._app.test_client()
 
@@ -69,6 +69,7 @@ def application(keep: bool = False):
             client.post(f'/api/{id}/remove')
 
         del main
+        del settings
         _clear()
 
 
@@ -79,7 +80,7 @@ class MainTest(unittest.TestCase):
             # Test 'legal' options
             for for_type in ['state', 'analyzer', 'feature',
                              'frame_interval_setting', 'filter', 'transform',
-                             'video_path', 'design_path', 'config']:
+                             'paths', 'config']:
                 r = client.get(f'/api/options/{for_type}')
                 self.assertEqual(200, r.status_code)
                 self.assertLess(0, len(r.data))
@@ -266,6 +267,10 @@ class MainAnalyzerTest(unittest.TestCase):
             self.assertTrue(
                 json.loads(client.post(f'/api/{id}/launch').data)
             )
+            client.post(
+                f'/api/{id}/call/set_config',
+                data=json.dumps({"config": {"transform": {"roi": None}}})
+            )
 
             # Can't analyze yet since transform.roi is not set
             self.assertRaises(AttributeError, client.post, f'/api/{id}/call/analyze')
@@ -425,7 +430,7 @@ class MainAnalyzerTest(unittest.TestCase):
                     f'/api/{id}/call/estimate_transform',
                     data=json.dumps({"roi": ROI})
                 )
-                client.post(f'/api/{id}/call/commit')
+                # client.post(f'/api/{id}/call/commit')
 
             for ROI in self.ROI_SEQUENCE[::-1]:
                 self.assertEqual(

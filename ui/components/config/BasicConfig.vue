@@ -408,33 +408,25 @@ export default {
     },
   },
   asyncComputed: {
-    video_path_options: {
+    path_options: {
       async get() {
-        return get_options("video_path").then((options) => {
+        return get_options("paths").then((options) => {
           // console.log(options);
 
           if (!this.config.video_path) {
-            this.config.video_path = options[0];
+            this.config.video_path = options.video_path[0];
           }
-
-          return options;
-        });
-      },
-      default: [],
-    },
-    design_path_options: {
-      async get() {
-        return get_options("design_path").then((options) => {
-          // console.log(options);
-
           if (!this.config.design_path) {
-            this.config.design_path = options[0];
+            this.config.design_path = options.design_path[0];
           }
 
           return options;
         });
       },
-      default: [],
+      default: {
+        video_path: [],
+        design_path: [],
+      },
     },
   },
   data() {
