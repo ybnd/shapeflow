@@ -4,7 +4,6 @@
 [![codecov](https://codecov.io/gh/ybnd/isimple/branch/develop/graph/badge.svg)](https://codecov.io/gh/ybnd/isimple)
 
 
-
 ### Installation  
 
 0. Install [Python 3](https://www.python.org/downloads/) and [Git](https://git-scm.com/downloads) (or from the KUL Software Center)
@@ -15,12 +14,23 @@
 
 ### Usage
 
-Run `video_gui.py`.
+0. Run `app.py`.
 
-### Contributing
+1. The server will start up and the application should open in a new browser window/tab.
 
-If you intend to contribute, please do so on a separate branch and make sure you add any new requirements to [requirements.txt](requirements.txt).
-For questions & comments, please contact me.
+2. After closing this window/tab, the server will shut down automatically. The application's state is saved, so you shouldn't lose any work.
+
+3. If another instance of the server is already running when `app.py` is run, it will be shut down and replaced with a new instance at the same address.
+
+### Troubleshooting
+
+> The application is unresponsive
+- The server may have crashed, run `app.py` again.
+
+> The images on the align/filter page don't load properly
+- Seek around the video to refresh the images
+- Move to a different page and back
+- Refresh
 
 ### Licensing
 
