@@ -961,6 +961,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 do_relaunch = False
                 log.debug(f"Setting VideoAnalyzerConfig to {config}")
 
+                previous_name = copy.copy(self.config.name)
+                previous_desc = copy.copy(self.config.description)
                 previous_Nf = copy.copy(self.config.Nf)
                 previous_dt = copy.copy(self.config.dt)
                 previous_fis = copy.copy(self.config.frame_interval_setting)
@@ -986,6 +988,12 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 if self.launched and previous_design_path != self.config.design_path:
                     do_commit = True
                     do_relaunch = True
+
+                # Check for name/description changes
+                if self.config.name != previous_name:
+                    do_commit = True
+                if self.config.description != previous_desc:
+                    do_commit = True
 
                 # Check for changes in frames
                 if hasattr(self, 'video'):
