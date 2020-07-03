@@ -328,14 +328,6 @@ class Main(isimple.core.Lockable):
             active()
             return respond(self.call(id, 'launch', {}))
 
-        @app.route('/api/<id>/undo/<context>', methods=['POST'])
-        def undo(id: str, context: str = None):
-            return respond(self.shift_config(id, 'undo', context))
-
-        @app.route('/api/<id>/redo/<context>', methods=['POST'])
-        def redo(id: str, context: str = None):
-            return respond(self.shift_config(id, 'redo', context))
-
         @app.route('/api/<id>/can_launch', methods=['GET'])
         def can_launch(id: str):
             return respond(self.call(id, 'can_launch', {}))
@@ -533,28 +525,6 @@ class Main(isimple.core.Lockable):
                     return True
             else:
                 raise ValueError
-
-    def shift_config(self, id: str, shift: str, context: str = None) -> dict:
-        if self.valid(id):
-            analyzer = self._roots[id]
-            model = self._models[id]
-
-            analyzer.commit()
-
-            if shift == 'undo':
-                config = model.undo_config(context)
-            elif shift == 'redo':
-                config = model.redo_config(context)
-            else:
-                raise ValueError(f"shift must be 'undo' or 'redo', "
-                                 f"got '{shift}' instead.")
-
-            if config is not None:
-                analyzer.set_config(**config)
-
-            return analyzer.get_config()
-        else:
-            raise ValueError
 
     def q_start(self, q: List[str]) -> bool:
         if self._q_state == QueueState.STOPPED:
