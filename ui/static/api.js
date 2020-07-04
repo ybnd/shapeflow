@@ -39,8 +39,14 @@ export const endpoints = {
 };
 
 export function ping() {
-  // todo: deprecated, just ping with get_app_state()
-  axios.get(api("ping"));
+  return axios
+    .get(api("ping"))
+    .then((response) => {
+      return response.status === 200;
+    })
+    .catch((error) => {
+      return false;
+    });
 }
 
 export function unload() {

@@ -22,6 +22,7 @@ const CATEGORY_COMMIT = {
 
 export const state = () => {
   return {
+    last_heard_from_backend: null,
     queue: [], // array of analyzer ids (uuid strings)
     queue_state: 0,
     status: {}, // id: analyzer status object
@@ -32,6 +33,9 @@ export const state = () => {
 };
 
 export const mutations = {
+  backendIsUp(state) {
+    state.last_heard_from_backend = Date.now();
+  },
   setSource(state, { source }) {
     try {
       assert(!(source === undefined), "no source provided");
@@ -53,7 +57,6 @@ export const mutations = {
       console.warn(err);
     }
   },
-
   setQueueState(state, { queue_state }) {
     try {
       assert(!(queue_state === undefined), "no queue_state provided");
@@ -64,7 +67,6 @@ export const mutations = {
       console.warn(err);
     }
   },
-
   addAnalyzer(state, { id }) {
     try {
       assert(!(id === undefined), "no id provided");
@@ -220,6 +222,9 @@ export const mutations = {
 };
 
 export const getters = {
+  getLastBackendContact: (state) => {
+    return state.last_heard_from_backend;
+  },
   getQueue: (state) => {
     // Clone instead of returning reference
     return [...state.queue];
@@ -291,6 +296,7 @@ export const actions = {
     }
     commit("setSource", {
       source: events(function (message) {
+        commit("backendIsUp");
         try {
           let event = JSON.parse(message.data);
 
@@ -326,6 +332,7 @@ export const actions = {
   async init({ commit, dispatch }, { config = {} }) {
     // console.log(`action: analyzers.init`);
     return init().then((id) => {
+      commit("backendIsUp");
       // console.log(`action: analyzers.init -- callback ~ api.init (id=${id})`);
       return dispatch("queue", { id: id }).then(() => {
         // console.log(
@@ -337,6 +344,7 @@ export const actions = {
             //   `action: analyzers.init -- callback ~ analyzers.set_config (id=${id})`
             // );
             return launch(id).then((ok) => {
+              commit("backendIsUp");
               // console.log(
               //   `action: analyzers.init -- callback ~ api.launch (id=${id})`
               // );
@@ -364,6 +372,7 @@ export const actions = {
       }
 
       return await get_app_state().then((app_state) => {
+        commit("backendIsUp");
         // console.log(`action: analyzers.sync -- callback ~ api.get_app_state`);
 
         commit("setQueueState", { queue_state: app_state.q_state });
@@ -409,6 +418,7 @@ export const actions = {
       // console.log(`action: analyzers.get_config (id=${id})`);
 
       return get_config(id).then((config) => {
+        commit("backendIsUp");
         // console.log(
         //   `action: analyzers.get_config -- callback ~ api.get_config (id=${id})`
         // );
@@ -430,6 +440,7 @@ export const actions = {
       // console.log(`action: analyzers.get_status (id=${id})`);
 
       return get_status(id).then((status) => {
+        commit("backendIsUp");
         // console.log(
         //   `action: analyzers.get_status -- callback ~ api.get_status (id=${id})`
         // );
@@ -448,6 +459,7 @@ export const actions = {
       // console.log(`action: analyzers.set_config (id=${id})`);
 
       return set_config(id, config).then((config) => {
+        commit("backendIsUp");
         // console.log(
         //   `action: analyzers.set_config -- callback ~ api.set_config (id=${id})`
         // );
@@ -481,6 +493,7 @@ export const actions = {
       }
 
       set_config(id, config).then((config) => {
+        commit("backendIsUp");
         // console.log(
         //   `action: analyzers.set_config -- callback ~ api.set_config (id=${id})`
         // );
