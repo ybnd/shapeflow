@@ -599,9 +599,9 @@ class Main(isimple.core.Lockable):
                         assert isinstance(model_id, int)
 
                         model = self._history.fetch_analysis(model_id)
-                        model.connect(self._history)
-
+                        
                         if model is not None:
+                            model.connect(self._history)
                             analyzer = video.init(isimple.config.loads(model.get_config_json()))
                             analyzer._set_id(id)
                             analyzer.set_eventstreamer(self._eventstreamer)
