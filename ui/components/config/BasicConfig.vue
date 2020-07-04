@@ -133,12 +133,9 @@
     </b-row>
 
     <template v-for="(feature, index) in config.features">
-      <b-row class="feature-row" v-bind:key="`row-${index}`">
-        <b-col class="feature-col" v-bind:key="`feature-col-${index}`">
-          <b-form-row
-            class="feature-row"
-            v-bind:key="`feature-col-row-${index}`"
-          >
+      <b-row class="feature-row" :key="`row-${index}`">
+        <b-col class="feature-col" :key="`feature-col-${index}`">
+          <b-form-row class="feature-row" :key="`feature-col-row-${index}`">
             <b-input-group
               ><b-input-group-text class="leftmost-text">
                 <template v-if="index === 0"> <b>Features</b></template>
@@ -146,9 +143,9 @@
               </b-input-group-text>
               <b-form-select
                 ref="feature_setting"
-                v-bind:key="`form-feature-${feature}`"
+                :key="`form-feature-${feature}`"
                 v-model="config.features[index]"
-                @change="selectFeature(index, feature)"
+                @input="selectFeature(index)"
                 :plain="false"
                 :options="features.options"
                 class="feature-selector"
@@ -156,13 +153,15 @@
           </b-form-row>
         </b-col>
 
-        <b-col class="par-col" v-bind:key="`par-col-${feature}`">
-          <b-form-row class="feature-row" v-bind:key="`par-col-row-${feature}`"
+        <b-col class="par-col" :key="`par-col-${feature}`">
+          <b-form-row class="feature-row" :key="`par-col-row-${feature}`"
             ><b-form-group>
-              <b-input-group>
-                <template v-for="parameter in features.parameters[feature]">
+              <b-input-group :key="`par-input-group-row-${feature}`">
+                <template
+                  v-for="(value, parameter) in config.parameters[index]"
+                >
                   <b-input-group-text
-                    v-bind:key="`form-text-${index}-${parameter}`"
+                    :key="`form-text-${feature}-${parameter}`"
                   >
                     {{ features.parameter_descriptions[feature][parameter] }}
                   </b-input-group-text>
@@ -170,7 +169,7 @@
                     type="text"
                     class="config-form"
                     v-model="config.parameters[index][parameter]"
-                    v-bind:key="`form-field-${index}-${parameter}`"
+                    :key="`form-field-${feature}-${parameter}`"
                     @change="emitChange"
                   >
                   </b-form-input>
@@ -309,21 +308,24 @@ export default {
       }
 
       this.config.features = [...this.config.features, feature];
+
       this.config.parameters = [
         ...this.config.parameters,
         JSON.parse(JSON.stringify(this.features.parameter_defaults[feature])),
       ];
+
       this.validFeatures = this.config.features.length > 0;
       // console.log(this.config);
       this.emitChange();
     },
-    selectFeature(index, feature) {
-      // console.log(`selectFeature(${feature})`);
-      // console.log(this.features);
+    selectFeature(index) {
+      let feature = this.config.features[index];
+
+      console.log(`selectFeature(${index}) -> feature = ${feature}`);
+
       if (this.features.options.includes(feature)) {
         // console.log("selecting feature");
         // console.log(feature);
-        this.config.features[index] = feature;
         this.config.parameters[index] = JSON.parse(
           JSON.stringify(this.features.parameter_defaults[feature])
         );
@@ -369,10 +371,10 @@ export default {
       }
       this.validFeatures = this.config.features.length > 0;
 
-      console.log(`BasicConfig.isValid()`);
-      console.log(`this.validVideo = ${this.validVideo}`);
-      console.log(`this.validDesign = ${this.validVideo}`);
-      console.log(`this.validFeatures = ${this.validVideo}`);
+      // console.log(`BasicConfig.isValid()`);
+      // console.log(`this.validVideo = ${this.validVideo}`);
+      // console.log(`this.validDesign = ${this.validVideo}`);
+      // console.log(`this.validFeatures = ${this.validVideo}`);
       return this.validVideo && this.validDesign && this.validFeatures;
     },
     async checkVideoPath() {
@@ -390,7 +392,7 @@ export default {
   },
   watch: {
     config() {
-      console.log("BasicConfig.watch.config()");
+      // console.log("BasicConfig.watch.config()");
       for (let i = 0; i < this.config.features.length; i++) {
         if (!this.config.parameters[i]) {
           this.config.parameters[i] = JSON.parse(
@@ -421,8 +423,6 @@ export default {
     path_options: {
       async get() {
         return get_options("paths").then((options) => {
-          // console.log(options);
-
           if (!this.config.video_path) {
             this.config.video_path = options.video_path[0];
             this.checkVideoPath();
@@ -431,9 +431,6 @@ export default {
             this.config.design_path = options.design_path[0];
             this.checkDesignPath();
           }
-
-          console.log(options);
-
           return options;
         });
       },
