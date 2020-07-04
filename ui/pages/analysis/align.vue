@@ -241,12 +241,12 @@ export default {
       commit(this.previous_id);
     },
     handleUndoAlignment() {
-      undo_config(this.id).then((config) => {
+      undo_config(this.id, "transform").then((config) => {
         this.setRoi(config.transform.roi);
       });
     },
     handleRedoAlignment() {
-      redo_config(this.id).then((config) => {
+      redo_config(this.id, "transform").then((config) => {
         this.setRoi(config.transform.roi);
       });
     },

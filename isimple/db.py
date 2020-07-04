@@ -71,6 +71,7 @@ class AnalysisModel(BaseAnalysisModel):
     _video: Optional[VideoFileModel]
     _design: Optional[DesignFileModel]
     _config: Optional[ConfigModel]
+    _added_by_context: Dict[str, datetime.datetime]
 
     id = Column(Integer, primary_key=True)
 
@@ -270,19 +271,24 @@ class AnalysisModel(BaseAnalysisModel):
                 order_by(ConfigModel.added.desc()). \
                 first()  # todo: check if ordering by datetime works properly
 
-    def _added(self) -> datetime.datetime:
+    def _added(self, context: str = None) -> datetime.datetime:
         if self._config is None:
             self._config = self._fetch_latest_config()
+        if not hasattr(self, '_added_by_context'):
+            self._added_by_context = {}
 
         with self.session() as s:
-            if self._config is not None:
-                assert isinstance(self._config.added, datetime.datetime)
-                return self._config.added
+            if context not in self._added_by_context:
+                if self._config is not None:
+                    assert isinstance(self._config.added, datetime.datetime)
+                    return self._config.added
+                else:
+                    assert isinstance(self.added, datetime.datetime)
+                    return self.added
             else:
-                assert isinstance(self.added, datetime.datetime)
-                return self.added
+                return self._added_by_context[context]
 
-    def _step_config(self, filter, order) -> Optional[dict]:
+    def _step_config(self, filter, order, context: str = None) -> Optional[dict]:
         with self.session() as s:
             q = list(
                 s.query(ConfigModel).\
@@ -292,30 +298,42 @@ class AnalysisModel(BaseAnalysisModel):
                 order_by(order)
             )
 
-            if len(q) > 0:
-                self._config = q[0]
-                assert isinstance(self._config, ConfigModel)
-                s.add(self._config)
-                self._config.connect(self)
-                assert isinstance(self._config.json, str)
-                return normalize_config(json.loads(self._config.json))
+            for match in q:
+                assert isinstance(match, ConfigModel)
+                assert isinstance(match.json, str)  # todo: fail more gracefully if json is empty; skip & remove from database
+                config = normalize_config(json.loads(match.json))
+
+                if context is None:
+                    self._config = match
+                    self._config.connect(self)
+                    s.add(self._config)
+                    return config
+                else:
+                    assert self._analyzer is not None
+                    if context in config and config[context] != self._analyzer.config.to_dict()[context]:
+                        self._config = None
+                        assert isinstance(match.added, datetime.datetime)
+                        self._added_by_context[context] = match.added
+                        return {context: config[context]}
         return None
 
     def undo_config(self, context: str = None):
         config = self._step_config(
-            ConfigModel.added < self._added(),  # todo: or maybe ~ added instead
-            ConfigModel.added.desc()
+            ConfigModel.added < self._added(context),
+            ConfigModel.added.desc(),
+            context
         )
-        if self._analyzer is not None:
-            self._analyzer.set_config(config=config, silent=True)
+        if self._analyzer is not None and config is not None:
+            self._analyzer.set_config(config=config, silent=(context is None))
 
     def redo_config(self, context: str = None):
         config = self._step_config(
-            ConfigModel.added > self._added(),  # todo: or maybe ~ added instead
-            ConfigModel.added
+            ConfigModel.added > self._added(context),
+            ConfigModel.added,
+            context
         )
-        if self._analyzer is not None:
-            self._analyzer.set_config(config=config, silent=True)
+        if self._analyzer is not None and config is not None:
+            self._analyzer.set_config(config=config, silent=(context is None))
 
 class History(SessionWrapper):
     def __init__(self, path: Path = None):

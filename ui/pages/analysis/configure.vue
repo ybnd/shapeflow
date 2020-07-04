@@ -100,6 +100,8 @@ import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
 import BasicConfig from "../../components/config/BasicConfig";
 
+import { undo_config, redo_config } from "../../static/api";
+
 import { UiSchema } from "../../static/ui-schema";
 
 import { events } from "../../static/events";
@@ -130,8 +132,12 @@ export default {
     this.handleCleanUp();
   },
   methods: {
-    undoConfig() {},
-    redoConfig() {},
+    undoConfig() {
+      undo_config(this.id).then(this.handleGetConfig());
+    },
+    redoConfig() {
+      redo_config(this.id).then(this.handleGetConfig());
+    },
     handleInit() {
       this.previous_id = this.id;
 

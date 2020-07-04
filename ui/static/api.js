@@ -289,24 +289,28 @@ export async function clear_roi(id) {
   });
 }
 
-export async function undo_config(id) {
-  return axios.put(api(id, "call/undo_config")).then((response) => {
-    if (response.status === 200) {
-      return response.data;
-    } else {
-      return null;
-    }
-  });
+export async function undo_config(id, context = null) {
+  return axios
+    .put(api(id, "call/undo_config"), { context: context })
+    .then((response) => {
+      if (response.status === 200) {
+        return response.data;
+      } else {
+        return null;
+      }
+    });
 }
 
-export async function redo_config(id) {
-  return axios.put(api(id, "call/redo_config")).then((response) => {
-    if (response.status === 200) {
-      return response.data;
-    } else {
-      return null;
-    }
-  });
+export async function redo_config(id, context = null) {
+  return axios
+    .put(api(id, "call/redo_config"), { context: context })
+    .then((response) => {
+      if (response.status === 200) {
+        return response.data;
+      } else {
+        return null;
+      }
+    });
 }
 
 export async function set_filter(id, relative_coordinate) {

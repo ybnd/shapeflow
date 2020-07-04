@@ -494,6 +494,7 @@ class Main(isimple.core.Lockable):
             log.debug(f"Checking design file {path}")
             if os.path.isfile(path):
                 try:
+
                     check_svg(path)
                     self._history.add_design_file(path)
                     return True

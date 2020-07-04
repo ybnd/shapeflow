@@ -87,6 +87,8 @@ import {
   get_options,
   set_filter,
   api,
+  undo_config,
+  redo_config,
   analyze,
   stop_stream,
   endpoints,
@@ -276,10 +278,10 @@ export default {
       console.warn("NOT IMPLEMENTED YET");
     },
     handleUndoFilters() {
-      console.warn("NOT IMPLEMENTED YET");
+      undo_config(this.id, "masks");
     },
     handleRedoFilters() {
-      console.warn("NOT IMPLEMENTED YET");
+      redo_config(this.id, "masks");
     },
     stepForward() {
       this.$root.$emit(events.seek.step_fw(this.id));
