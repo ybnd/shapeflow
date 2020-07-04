@@ -143,6 +143,7 @@ class FileModel(DbModel):
                 if match is None:
                     s.add(self)
                     self.hash = hash
+                    self.path = self._path
                     file = self
                 else:
                     file = match
