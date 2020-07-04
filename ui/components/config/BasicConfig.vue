@@ -30,7 +30,7 @@
                 title="Recent video files"
               >
                 <b-dropdown-item
-                  v-for="path in video_path_options"
+                  v-for="path in path_options.video_path"
                   :key="`path-${path}`"
                   @click="selectVideoFileFromDropdown(path)"
                 >
@@ -50,7 +50,7 @@
               'is-valid': validVideo === true,
               'is-invalid': validVideo === false,
             }"
-            @change="emitChange"
+            @change="checkVideoPath"
           ></b-form-input>
         </b-input-group>
       </b-form-group>
@@ -74,7 +74,7 @@
                 :class="{ disabled: staticPaths }"
               >
                 <b-dropdown-item
-                  v-for="path in design_path_options"
+                  v-for="path in path_options.design_path"
                   :key="`path-${path}`"
                   @click="selectDesignFileFromDropdown(path)"
                 >
@@ -93,7 +93,7 @@
               'is-valid': validDesign === true,
               'is-invalid': validDesign === false,
             }"
-            @change="emitChange"
+            @change="checkDesignPath"
           ></b-form-input>
         </b-input-group>
       </b-form-group>
@@ -334,6 +334,7 @@ export default {
       select_video_path().then((path) => {
         if (path) {
           this.config.video_path = path;
+          this.checkVideoPath();
         }
       });
     },
@@ -341,12 +342,14 @@ export default {
       // console.log(`selectVideoFileFromDropdown: ${path}`);
       if (path) {
         this.config.video_path = path;
+        this.checkVideoPath();
       }
     },
     selectDesignFile() {
       select_design_path().then((path) => {
         if (path) {
           this.config.design_path = path;
+          this.checkDesignPath();
         }
       });
     },
@@ -354,16 +357,23 @@ export default {
       // console.log(`selectDesignFileFromDropdown: ${path}`);
       if (path) {
         this.config.design_path = path;
+        this.checkDesignPath();
       }
     },
     async isValid() {
-      let video_ok = await this.checkVideoPath();
-      let design_ok = await this.checkDesignPath();
+      if (this.validVideo === null) {
+        await this.checkVideoPath();
+      }
+      if (this.validDesign === null) {
+        await this.checkDesignPath();
+      }
       this.validFeatures = this.config.features.length > 0;
 
       console.log(`BasicConfig.isValid()`);
-
-      return video_ok && design_ok && this.validFeatures;
+      console.log(`this.validVideo = ${this.validVideo}`);
+      console.log(`this.validDesign = ${this.validVideo}`);
+      console.log(`this.validFeatures = ${this.validVideo}`);
+      return this.validVideo && this.validDesign && this.validFeatures;
     },
     async checkVideoPath() {
       return check_video_path(this.config.video_path).then((ok) => {
@@ -420,6 +430,8 @@ export default {
             this.config.design_path = options.design_path[0];
           }
 
+          console.log(options);
+
           return options;
         });
       },
@@ -435,8 +447,10 @@ export default {
       validVideo: null,
       validDesign: null,
       validFeatures: null,
-      video_path_options: [],
-      design_path_options: [],
+      path_options: {
+        video_path: [],
+        design_path: [],
+      },
       frame_interval_setting_text: {
         Nf: "# of equally spaced frames",
         dt: "frame interval (s)",
