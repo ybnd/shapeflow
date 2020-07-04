@@ -148,7 +148,7 @@ class Main(isimple.core.Lockable):
 
         @app.route('/api/ping', methods=['GET'])
         def ping():
-            log.debug('received ping')
+            log.vdebug('received ping')
             active()
             return respond(True)
 

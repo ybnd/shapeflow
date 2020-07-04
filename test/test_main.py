@@ -168,8 +168,16 @@ class MainTest(unittest.TestCase):
             thread = LogStreamThread()
             thread.start()
 
-            client.get('/api/ping')
-            client.get('/api/ping')
+            MESSAGE = 'test log stream'
+
+            client.put(
+                '/api/check_design_path',
+                data=json.dumps({"design_path": MESSAGE})
+            )
+            client.put(
+                '/api/check_design_path',
+                data=json.dumps({"design_path": MESSAGE})
+            )
 
             time.sleep(1)
 
@@ -178,7 +186,7 @@ class MainTest(unittest.TestCase):
             thread.join()
             self.assertEqual(
                 2,
-                thread._data.count(b'received ping')
+                thread._data.count(MESSAGE.encode('utf-8'))
             )
 
 
