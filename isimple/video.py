@@ -1101,7 +1101,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
         self.state_transition()
         self.event(AnalyzerEvent.CONFIG, self.get_config())
-        self.commit()
 
         if roi_config is not None:
             return roi_config.dict()
