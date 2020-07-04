@@ -425,9 +425,11 @@ export default {
 
           if (!this.config.video_path) {
             this.config.video_path = options.video_path[0];
+            this.checkVideoPath();
           }
           if (!this.config.design_path) {
             this.config.design_path = options.design_path[0];
+            this.checkDesignPath();
           }
 
           console.log(options);
