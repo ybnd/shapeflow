@@ -1,5 +1,5 @@
 import json
-from typing import Optional, Tuple, List, Dict
+from typing import Optional, Tuple, List, Dict, Type
 from pathlib import Path
 import datetime
 
@@ -325,6 +325,16 @@ class History(SessionWrapper):
         self._engine = create_engine(f'sqlite:///{str(path)}')
         Base.metadata.create_all(self._engine)
         self._session_factory = scoped_session(sessionmaker(bind=self._engine))
+
+    def add_video_file(self, path: str):
+        file = VideoFileModel(path=path)
+        file.connect(self)
+        file.resolve()
+
+    def add_design_file(self, path: str):
+        file = DesignFileModel(path=path)
+        file.connect(self)
+        file.resolve()
 
     def add_analysis(self, analyzer: BaseVideoAnalyzer, model: AnalysisModel = None) -> AnalysisModel:
         if model is None:

@@ -271,34 +271,11 @@ class Main(isimple.core.Lockable):
 
         @app.route('/api/check_video_path', methods=['PUT'])
         def check_video():
-            try:
-                path = json.loads(request.data)['video_path']
-                log.debug(f"Checking video file {path}")
-                if os.path.isfile(path):
-                    try:
-                        capture = cv2.VideoCapture(path)
-                        if int(capture.get(cv2.CAP_PROP_FRAME_COUNT)) > 0:
-                            return respond(True)
-                    finally:
-                        pass
-            except KeyError:
-                pass
-            return respond(False)
+            return respond(self.check_video_path(json.loads(request.data)['video_path']))
 
         @app.route('/api/check_design_path', methods=['PUT'])
         def check_design():
-            try:
-                path = json.loads(request.data)['design_path']
-                log.debug(f"Checking design file {path}")
-                if os.path.isfile(path):
-                    try:
-                        check_svg(path)
-                        return respond(True)
-                    finally:
-                        pass
-            except KeyError:
-                pass
-            return respond(False)
+            return respond(self.check_design_path(json.loads(request.data)['design_path']))
 
         @app.route('/api/start', methods=['POST'])
         def start():
@@ -497,6 +474,35 @@ class Main(isimple.core.Lockable):
 
         log.info('Main.serve() stopped.')
 
+    def check_video_path(self, path: str) -> bool:
+        try:
+            log.debug(f"Checking video file {path}")
+            if os.path.isfile(path):
+                try:
+                    capture = cv2.VideoCapture(path)
+                    if int(capture.get(cv2.CAP_PROP_FRAME_COUNT)) > 0:
+                        self._history.add_video_file(path)
+                        return True
+                finally:
+                    pass
+        except KeyError:
+            pass
+        return False
+
+    def check_design_path(self, path: str) -> bool:
+        try:
+            log.debug(f"Checking design file {path}")
+            if os.path.isfile(path):
+                try:
+                    check_svg(path)
+                    self._history.add_design_file(path)
+                    return True
+                finally:
+                    pass
+        except KeyError:
+            pass
+        return False
+
     def add_instance(self, type: video.AnalyzerType = None) -> str:
         with self.lock():
             if type is None:
@@ -599,7 +605,7 @@ class Main(isimple.core.Lockable):
                         assert isinstance(model_id, int)
 
                         model = self._history.fetch_analysis(model_id)
-                        
+
                         if model is not None:
                             model.connect(self._history)
                             analyzer = video.init(isimple.config.loads(model.get_config_json()))
