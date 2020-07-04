@@ -71,6 +71,17 @@
         </b-button>
       </PageHeaderItem>
       <PageHeaderItem>
+        <b-button
+          class="header-button-icon"
+          @click="toggleBounds"
+          :variant="enforceBounds ? null : 'danger'"
+          data-toggle="tooltip"
+          title="Ignore frame boundaries"
+        >
+          <i class="fa fa-exclamation-triangle" />
+        </b-button>
+      </PageHeaderItem>
+      <PageHeaderItem>
         <b-button-group>
           <b-dropdown
             :text="`${this.transform}`"
@@ -342,9 +353,15 @@ export default {
       target.style.transform = transform;
     },
     handleRotate({ target, transform }) {
-      // todo: rotation messes up perspective
-      // todo: during rotation, set warpable to false?
-      target.style.transform = transform; // todo: temporarily disable bounds during rotation?
+      // rotation is performed in the '3d plane' of the moveable, which is messy when it's not rectangular
+      //   => there's no easy way to fix this, AFAIK
+      // todo: it seems as if that's NOT the case; rotating a rectangle 90° makes it assume the same shape
+      // todo:    -> this suggests that this issue may be solved by setting the initial shape of the moveable
+      // todo:       to the size of the design!
+
+      // todo: temporarily disable bounds during rotation?
+
+      target.style.transform = transform;
     },
     handleFlipH() {
       this.$store
@@ -406,7 +423,7 @@ export default {
       }
     },
     handleUpdate: throttle(
-      100,
+      20,
       false,
       debounce(20, false, function () {
         this.updateRoiCoordinates();
@@ -417,16 +434,46 @@ export default {
       try {
         let frame = this.$refs.frame.getBoundingClientRect();
 
-        this.moveable.bounds = {
-          left: frame.left,
-          right: frame.right,
-          top: frame.top,
-          bottom: frame.bottom,
-        };
+        if (this.enforceBounds) {
+          this.moveable.bounds = {
+            left: frame.left,
+            right: frame.right,
+            top: frame.top,
+            bottom: frame.bottom,
+          };
+        } else {
+          this.temp_bounds = {
+            left: frame.left,
+            right: frame.right,
+            top: frame.top,
+            bottom: frame.bottom,
+          };
+        }
+
         this.align.frame = frame;
         this.resolveTransform();
       } catch (err) {
         console.log("oops @ updateFrame");
+      }
+    },
+    toggleBounds() {
+      console.log("toggling bounds...");
+      console.log(this);
+      if (this.enforceBounds) {
+        this.enforceBounds = false;
+        if (this.moveable.bounds) {
+          this.temp_bounds = this.moveable.bounds;
+          this.moveable.bounds = null;
+        } else {
+          this.updateFrame();
+        }
+      } else {
+        this.enforceBounds = true;
+        if (this.temp_bounds) {
+          this.moveable.bounds = this.temp_bounds;
+        } else {
+          this.updateFrame();
+        }
       }
     },
     updateFrameOnceHasRect() {
@@ -574,6 +621,8 @@ export default {
       roi: null,
       transform: null,
     },
+    enforceBounds: true,
+    temp_bounds: null,
     updateCall: null,
     moveableShow: false,
     dragROI: {
