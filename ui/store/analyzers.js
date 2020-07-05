@@ -284,7 +284,11 @@ export const getters = {
     return state.config[id].transform.roi;
   },
   getName: (state) => (id) => {
-    return state.config[id].name;
+    if (!isEmpty(state.config[id].name)) {
+      return state.config[id].name;
+    } else {
+      return "<unnamed>";
+    }
   },
   hasSource: (state) => {
     return isEmpty(state.source) && state.source.readyState !== 2;
