@@ -1,6 +1,8 @@
 import assert from "assert";
 import pointer from "json-pointer";
-import _ from "lodash";
+
+import get from "lodash/get";
+import pullAll from "lodash/pullAll";
 
 const InputComponent = {
   // todo: fill out with fitting Bootstrap components
@@ -274,7 +276,7 @@ const Implementations = {
     const type_model = [...model.split(".").slice(0, -1), "type"].join(".");
     console.log(`type_model=${type_model}`);
 
-    const type = _.get(data, type_model);
+    const type = get(data, type_model);
     console.log(`type=${type}`);
 
     const data_schema = schema.implementations.TransformConfig[type];
@@ -297,7 +299,7 @@ const Implementations = {
     const type_model = [...model.split(".").slice(0, -1), "type"].join(".");
     console.log(`type_model=${type_model}`);
 
-    const type = _.get(data, type_model);
+    const type = get(data, type_model);
     console.log(`type=${type}`);
 
     const data_schema = schema.implementations.FilterConfig[type];
@@ -334,7 +336,7 @@ function _handle_property(
 ) {
   if (subschema.properties.hasOwnProperty(property)) {
     const model = context ? `${context}.${property}` : property;
-    const value = _.get(data, model, undefined);
+    const value = get(data, model, undefined);
 
     // console.log(`model = ${model}`);
 
@@ -530,7 +532,7 @@ export function UiSchema(
     let properties = [];
     if (order[context]) {
       let unordered = Object.keys(subschema.properties);
-      _.pullAll(unordered, order[context]);
+      pullAll(unordered, order[context]);
       properties = [...order[context], ...unordered];
     } else {
       properties = Object.keys(subschema.properties);

@@ -7,7 +7,6 @@
     >
       <SidebarNavLink name="Settings" icon="fa fa-cogs" url="/settings" />
       <SidebarNavLink name="Log" icon="fa fa-file-text-o" url="/log" />
-      <SidebarNavLink name="Tutorial" icon="fa fa-question" url="/tutorial" />
       <SidebarNavLink name="About" icon="fa fa-info" url="/about" />
       <SidebarNavLink name="Restart" icon="fa fa-refresh" :url="restart" />
       <SidebarNavLink name="Quit" icon="fa fa-power-off" :url="quit" />

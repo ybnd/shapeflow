@@ -2,7 +2,6 @@ import Vue from "vue";
 import { get_settings, set_settings, settings_schema } from "../static/api";
 
 import assert from "assert";
-import _ from "lodash";
 
 export const state = () => {
   return {

@@ -106,7 +106,7 @@ import { UiSchema } from "../../static/ui-schema";
 
 import { events } from "../../static/events";
 
-import _ from "lodash";
+import cloneDeep from "lodash/cloneDeep";
 
 import VueHotkey from "v-hotkey";
 import Vue from "vue";
@@ -159,7 +159,7 @@ export default {
           id: this.id,
         })
         .then(() => {
-          this.config = _.cloneDeep(
+          this.config = cloneDeep(
             this.$store.getters["analyzers/getAnalyzerConfig"](this.id)
           );
           this.config_json = beautify(this.config, null, 2, 120);
@@ -195,7 +195,7 @@ export default {
           config: this.config,
         })
         .then(() => {
-          this.config = _.cloneDeep(
+          this.config = cloneDeep(
             this.$store.getters["analyzers/getAnalyzerConfig"](this.id)
           );
           this.config_json = beautify(this.config, null, 2, 120);
@@ -211,7 +211,7 @@ export default {
           config: JSON.parse(this.config_json),
         })
         .then(() => {
-          this.config = _.cloneDeep(
+          this.config = cloneDeep(
             this.$store.getters["analyzers/getAnalyzerConfig"](this.id)
           );
           this.config_json = beautify(this.config, null, 2, 120);

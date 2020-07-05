@@ -2,7 +2,9 @@ import Vue from "vue";
 import axios from "axios";
 import { get_options, AnalyzerState } from "../static/api";
 import assert from "assert";
-import _ from "lodash";
+
+import isEmpty from "lodash/isEmpty";
+import isEqual from "lodash/isEqual";
 
 export const state = () => ({
   analyzer: [], // todo: can be merged with config à la rest of things
@@ -113,25 +115,25 @@ export const mutations = {
 
 export const getters = {
   hasNoAnalyzerOptions: (state) => {
-    return _.isEmpty(state.analyzer);
+    return isEmpty(state.analyzer);
   },
   hasNoAnalyzerStateMatch: (state) => {
     return state.analyzer_state.match === null;
   },
   hasNoFrameIntervalSettingOptions: (state) => {
-    return _.isEmpty(state.frame_interval_setting.options);
+    return isEmpty(state.frame_interval_setting.options);
   },
   hasNoFeatureOptions: (state) => {
-    return _.isEmpty(state.feature.options);
+    return isEmpty(state.feature.options);
   },
   hasNoTransformOptions: (state) => {
-    return _.isEmpty(state.transform.options);
+    return isEmpty(state.transform.options);
   },
   hasNoFilterOptions: (state) => {
-    return _.isEmpty(state.filter.options);
+    return isEmpty(state.filter.options);
   },
   hasNoConfigSchemas: (state) => {
-    return _.isEmpty(state.config);
+    return isEmpty(state.config);
   },
   getConfigSchema: (state) => {
     return state.config;
@@ -151,7 +153,7 @@ export const actions = {
       get_options("state").then((options) => {
         try {
           assert(
-            _.isEqual(options, AnalyzerState),
+            isEqual(options, AnalyzerState),
             "AnalyzerState definition mismatch between frontend and backend"
           );
           commit("setAnalyzerStateMatch", { match: true });

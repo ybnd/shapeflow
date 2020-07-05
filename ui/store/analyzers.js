@@ -11,7 +11,9 @@ import {
 } from "../static/api";
 
 import assert from "assert";
-import _ from "lodash";
+
+import isEmpty from "lodash/isEmpty";
+import includes from "lodash/includes";
 
 const CATEGORY_COMMIT = {
   status: "setAnalyzerStatus",
@@ -48,7 +50,7 @@ export const mutations = {
 
   closeSource(state) {
     try {
-      if (!_.isEmpty(state.source)) {
+      if (!isEmpty(state.source)) {
         state.source.close();
         state.source = {};
       }
@@ -285,7 +287,7 @@ export const getters = {
     return state.config[id].name;
   },
   hasSource: (state) => {
-    return _.isEmpty(state.source) && state.source.readyState !== 2;
+    return isEmpty(state.source) && state.source.readyState !== 2;
   },
 };
 
@@ -301,7 +303,7 @@ export const actions = {
           let event = JSON.parse(message.data);
 
           assert(event.hasOwnProperty("category"));
-          assert(_.includes(EVENT_CATEGORIES, event.category));
+          assert(includes(EVENT_CATEGORIES, event.category));
           assert(event.hasOwnProperty("id"));
           assert(event.hasOwnProperty("data"));
 

@@ -1,11 +1,7 @@
-const fs = require("fs");
-const webpack = require("webpack");
-
-const markdown = {
-  // Can't be loaded ~ webapp if decoded here!
-  about: fs.readFileSync("../ABOUT.md"), // todo: better performance if converted to html here?
-  tutorial: fs.readFileSync("../TUTORIAL.md"),
-};
+var LodashModuleReplacementPlugin = require("lodash-webpack-plugin");
+//
+// const BundleAnalyzerPlugin = require("webpack-bundle-analyzer")
+//   .BundleAnalyzerPlugin;
 
 const changeLoaderOptions = (loaders) => {
   if (loaders) {
@@ -56,6 +52,29 @@ module.exports = {
 
   modules: ["@nuxtjs/axios", "@nuxtjs/proxy", "bootstrap-vue/nuxt"],
 
+  bootstrapVue: {
+    components: [
+      "BButton",
+      "BButtonGroup",
+      "BDropdown",
+      "BDropdownItem",
+      "BCol",
+      "BRow",
+      "BContainer",
+      "BFormGroup",
+      "BFormRow",
+      "BFormInput",
+      "BFormTextarea",
+      "BCollapse",
+      "BInputGroup",
+      "BInputGroupText",
+      "BFormSelect",
+      "BProgress",
+      "BPopover",
+      "BTbody",
+    ],
+  },
+
   axios: {
     // See https://github.com/nuxt-community/axios-module#options
   },
@@ -73,6 +92,10 @@ module.exports = {
 
   build: {
     extend(config, { isDev, isClient }) {
+      config.externals = {
+        moment: "moment", // exclude moment.js
+      };
+
       if (isDev && isClient) {
         config.devtool = "eval-source-map";
         config.module.rules.push({
@@ -100,13 +123,16 @@ module.exports = {
       if (isClient) {
       }
     },
-    // Markdown data
-    // https://stackoverflow.com/a/53502487/12259362
     plugins: [
-      // todo: loop over `contents`?
-      new webpack.DefinePlugin({
-        markdown: markdown,
-      }),
+      new LodashModuleReplacementPlugin(),
+      // new BundleAnalyzerPlugin({
+      //   analyzerMode: "static",
+      //   generateStatsFile: true,
+      //   openAnalyzer: true,
+      //   logLevel: "info",
+      //   reportFilename: "/home/ybnd/temp/reports/ui-webpack-report.html",
+      //   statsFilename: "/home/ybnd/temp/reports/ui-webpack-stats.json",
+      // }),
     ],
   },
 

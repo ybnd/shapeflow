@@ -224,7 +224,7 @@ import {
 import AsyncComputed from "vue-async-computed";
 import Vue from "vue";
 
-import _ from "lodash";
+import has from "lodash/has";
 
 Vue.use(AsyncComputed);
 
@@ -268,12 +268,11 @@ export default {
     hasParameterData(feature, parameter) {
       console.log(`BasicConfig.hasParameterData(${feature}, ${parameter})`);
 
-      let has = false;
-      if (_.has(this.config.parameters, feature)) {
-        has = _.has(this.config.parameters[feature], parameter);
+      let has_parameter_data = false;
+      if (has(this.config.parameters, feature)) {
+        has_parameter_data = has(this.config.parameters[feature], parameter);
       }
-      console.log(has);
-      return has;
+      return has_parameter_data;
     },
     getConfig() {
       console.log("BasicConfig.getconfig() -- this.config=");

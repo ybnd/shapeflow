@@ -1,20 +1,12 @@
 <template>
-  <div class="fixed-page">
-    <WebpackMarkdown :raw_content="raw_content" />
-  </div>
+  <div class="fixed-page"></div>
 </template>
 
 <script>
-import WebpackMarkdown from "../components/WebpackMarkdown";
-
 export default {
   name: "about",
-  components: { WebpackMarkdown },
-  data() {
-    return {
-      raw_content: markdown.about,
-    };
-  },
+  components: {},
+  data() {},
 };
 </script>
 

@@ -62,7 +62,6 @@ import Vue from "vue";
 import AsyncComputed from "vue-async-computed";
 
 import { get_results, get_colors } from "../../static/api";
-import { col } from "../../static/util";
 
 import ResultChart from "../../components/results/ResultChart";
 import { events } from "../../static/events";
@@ -187,11 +186,6 @@ export default {
                 [feature]: feature_results,
               };
             }
-
-            console.log(
-              "ResultChartStack.result.get() -> formatted_results = "
-            );
-            console.log(formatted_results);
 
             return formatted_results;
           });
