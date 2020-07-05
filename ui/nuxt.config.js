@@ -72,6 +72,7 @@ module.exports = {
       "BProgress",
       "BPopover",
       "BTbody",
+      "BCard",
     ],
   },
 
