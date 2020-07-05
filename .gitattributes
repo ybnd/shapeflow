@@ -1,3 +1,5 @@
-ui/assets/scss/* liguist-vendored
-isimple/dbcore/* linguist-vendored
+ui/assets/scss/core/* liguist-vendored
+ui/assets/scss/vendors/* linguist-vendored
+ui/assets/scss/styles.css linguist-generated
 ui/dist/* linguist-generated
+docs/* linguist-documentation

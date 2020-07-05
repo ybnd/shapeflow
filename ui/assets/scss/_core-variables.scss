@@ -1,6 +1,15 @@
 // core overrides
+
+$layout-transition-speed:             .05s !default;
+
 $sidebar-width: 120px;
 $header-height: 38px; /* match sidebar header height with one link, hacky */
 
-$sidebar-nav-link-padding-y:          .4rem !default;
+$sidebar-nav-title-padding-y:         .5rem !default;
+$sidebar-nav-title-padding-x:         .5rem !default;
+
+$sidebar-nav-link-padding-y:          .5rem !default;
 $sidebar-nav-link-padding-x:          .5rem !default;
+
+$sidebar-footer-padding-y:            .5rem !default;
+$sidebar-footer-padding-x:            .5rem !default;

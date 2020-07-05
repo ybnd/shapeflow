@@ -1,14 +1,10 @@
 // scss-lint:disable NestingDepth, SelectorDepth
 .sidebar {
   display: flex;
-  flex-wrap: nowrap;
   flex-direction: column;
   padding: $sidebar-padding;
   color: $sidebar-color;
   background: $sidebar-bg;
-  max-width: $sidebar-width;
-
-  max-height: 100vh; /* sidebar may not exceed viewport height */
   @include borders($sidebar-borders);
 
   .sidebar-close {
@@ -52,11 +48,8 @@
   .sidebar-nav {
     position: relative;
     flex: 1;
-    flex-direction: column;
-    max-width: $sidebar-width;
-    flex-wrap: nowrap;
     overflow-x: hidden;
-    overflow-y: hidden;
+    overflow-y: auto;
     -ms-overflow-style: -ms-autohiding-scrollbar;
     @include sidebar-width($sidebar-borders, $sidebar-width);
 
@@ -83,16 +76,6 @@
     }
   }
 
-  .sidebar-nav:hover {
-    overflow-y: auto;
-    -ms-overflow-style: none; /* IE 11 */
-    scrollbar-width: none; /* Firefox 64 */
-  }
-
-  .sidebar-nav:hover::-webkit-scrollbar {
-    display: none;
-  }
-
   .nav {
     @include sidebar-width($sidebar-borders, $sidebar-width);
     flex-direction: column;
@@ -114,7 +97,7 @@
   .nav-item {
     position: relative;
     margin: 0;
-    transition: background .1s ease-in-out;
+    transition: background .3s ease-in-out;
   }
 
   .nav-dropdown-items {
@@ -122,7 +105,7 @@
     padding: 0;
     margin: 0;
     overflow-y: hidden;
-    transition: max-height .1s ease-in-out;
+    transition: max-height .3s ease-in-out;
 
     .nav-item {
       padding: 0;
@@ -133,11 +116,8 @@
   .nav-link {
     display: block;
     padding: $sidebar-nav-link-padding-y $sidebar-nav-link-padding-x;
-    //color: $sidebar-nav-link-color;
+    color: $sidebar-nav-link-color;
     text-decoration: none;
-    user-select: none;         /* https://stackoverflow.com/questions/924916/ */
-    -moz-user-select: none;
-    -webkit-user-select: none;
     background: $sidebar-nav-link-bg;
     @include borders($sidebar-nav-link-borders);
     @if $enable-sidebar-nav-rounded {
@@ -215,24 +195,23 @@
       background-image: $sidebar-nav-dropdown-indicator;
       background-repeat: no-repeat;
       background-position: center;
-      transition: transform .1s;
+      transition: transform .3s;
     }
   }
 
   // ex.  <li class="nav-item nav-dropdown">
   .nav-dropdown.open {
-    //background: $sidebar-nav-dropdown-bg;
+    background: $sidebar-nav-dropdown-bg;
     @include borders($sidebar-nav-dropdown-borders);
     @if $enable-sidebar-nav-rounded {
       border-radius: $border-radius;
     }
     > .nav-dropdown-items {
-      background: $sidebar-nav-dropdown-bg;
       max-height: 1500px;
     }
 
     .nav-link {
-      //color: $sidebar-nav-dropdown-color;
+      color: $sidebar-nav-dropdown-color;
       border-left: 0 !important;
     }
 
@@ -359,7 +338,7 @@
     }
   }
 
-  // Minimized sidebar
+  // Minimized Sidebar
   .sidebar-minimized {
     .hidden-cn {
       display: none;

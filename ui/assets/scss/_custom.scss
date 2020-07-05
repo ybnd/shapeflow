@@ -2,6 +2,64 @@
 @import "_core-variables";
 @import "node_modules/bootstrap/scss/functions";
 
+/* Overrides */
+
+
+// Snappier animation
+.animated {
+  animation-duration: 0.2s !important;
+}
+.animated.hinge {
+  animation-duration: 0.2s !important;
+}
+
+// Sidebar styles
+.sidebar {
+  flex-wrap: nowrap !important;
+  max-width: $sidebar-width !important;
+  max-height: 100vh; // sidebar should not exceed viewport height
+  .sidebar-nav {
+    overflow-y: hidden !important;
+    flex-direction: column;
+    max-width: $sidebar-width;
+    flex-wrap: nowrap;
+  }
+  .sidebar-nav:hover {
+    overflow-y: auto;
+    -ms-overflow-style: none; /* IE 11 */
+    scrollbar-width: none; /* Firefox 64 */
+  }
+  .sidebar-nav:hover::-webkit-scrollbar {
+    display: none;
+  }
+  .nav-item {
+    transition: background .1s ease-in-out !important;
+  }
+
+  .nav-dropdown-items {
+    transition: max-height .1s ease-in-out !important;
+  }
+  .nav-link {
+    user-select: none;         // https://stackoverflow.com/questions/924916/
+    -moz-user-select: none;
+    -webkit-user-select: none;
+  }
+  .nav-dropdown-toggle {
+    &::before {
+      transition: transform .1s !important;
+    }
+  }
+  .nav-dropdown.open {
+    > .nav-dropdown-items {
+      background: $sidebar-nav-dropdown-bg;
+    }
+  }
+}
+
+
+
+/* Bootstrap form styles */
+
 $form-field-height: 30px;
 $form-gap: 4px;
 $scrollbar-width: 12px;
