@@ -381,3 +381,31 @@ class History(SessionWrapper):
                     order_by(DesignFileModel.used.desc()). \
                     limit(settings.app.recent_files).all()]
             }
+
+    def clean(self) -> None:
+        """Clean the database
+            - remove 'analysis' entries with <null> config
+            - remove 'config' entries with <null> json
+            - for 'analysis' entries older than settings.db.cleanup_interval
+                * remove all non-primary 'config' entries
+                * remove all non-primary 'results' entries
+        """
+        log.debug(f"cleaning history")
+        threshold = datetime.datetime.now() - datetime.timedelta(
+            days=settings.db.cleanup_interval
+        )
+
+        with self.session() as s:
+            s.query(ConfigModel).filter_by(json=None).delete()
+            s.query(AnalysisModel).filter_by(config=None).delete()
+
+            for old in s.query(AnalysisModel).\
+                    filter(AnalysisModel.modified < threshold):
+                s.query(ConfigModel). \
+                    filter(ConfigModel.analysis == old.id). \
+                    filter(ConfigModel.id != old.config).delete()
+
+                s.query(ResultsModel). \
+                    filter(ResultsModel.analysis == old.id). \
+                    filter(ResultsModel.id != old.results).delete()
+

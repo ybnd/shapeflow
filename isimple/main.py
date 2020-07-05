@@ -437,6 +437,7 @@ class Main(isimple.core.Lockable):
 
         @app.before_first_request
         def initialize():
+            self._history.clean()
             self.load_state()
 
         self._app = app

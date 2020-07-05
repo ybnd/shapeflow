@@ -158,6 +158,7 @@ class RenderSettings(_Settings):
 
 class DatabaseSettings(_Settings):
     path: FilePath = Field(default=os.path.join(ROOTDIR, 'history.db'), description="database file")
+    cleanup_interval: int = Field(default=7, description='clean-up interval (days)')
 
     _validate_path = validator('path', allow_reuse=True, pre=True)(_Settings._validate_filepath)
 
@@ -314,9 +315,6 @@ def get_cache(settings: Settings = settings) -> diskcache.Cache:
         directory=str(settings.cache.dir),
         size_limit=settings.cache.size_limit_gb * 1e9
     )
-
-
-# cache = get_cache()  # todo: why is this required?
 
 
 def get_logger(name: str, settings: LogSettings = settings.log) -> Logger:
