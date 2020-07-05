@@ -551,10 +551,6 @@ export function UiSchema(
       );
     }
 
-    // todo: postprocess
-    //  -> orphan fields on top
-    //  -> fix order?
-
     return ui_schema;
   } catch (err) {
     console.warn(`ui-schema.UiSchema() failed`);

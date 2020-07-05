@@ -1,7 +1,5 @@
-var LodashModuleReplacementPlugin = require("lodash-webpack-plugin");
-//
-// const BundleAnalyzerPlugin = require("webpack-bundle-analyzer")
-//   .BundleAnalyzerPlugin;
+const BundleAnalyzerPlugin = require("webpack-bundle-analyzer")
+  .BundleAnalyzerPlugin;
 
 const changeLoaderOptions = (loaders) => {
   if (loaders) {
@@ -125,7 +123,6 @@ module.exports = {
       }
     },
     plugins: [
-      new LodashModuleReplacementPlugin(),
       // new BundleAnalyzerPlugin({
       //   analyzerMode: "static",
       //   generateStatsFile: true,

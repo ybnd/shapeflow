@@ -4,9 +4,6 @@
       <PageHeaderItem>
         <b-button @click="setSettings">Save settings & restart</b-button>
       </PageHeaderItem>
-      <PageHeaderItem>
-        <b-button @click="clearCache">Clear cache</b-button>
-      </PageHeaderItem>
     </PageHeader>
     <VueFormJsonSchema
       v-model="settings"
@@ -58,13 +55,6 @@
 </template>
 
 <script>
-import {
-  settings_schema,
-  get_settings,
-  set_settings,
-  clear_cache,
-} from "../static/api";
-
 import VueFormJsonSchema from "vue-form-json-schema";
 
 import PageHeader from "../components/header/PageHeader";
@@ -90,6 +80,9 @@ export default {
         this.schema = this.$store.getters["settings/getSchema"];
 
         this.ui_schema = UiSchema(this.schema, {});
+
+        console.log("ui_schema=");
+        console.log(this.ui_schema);
       });
     } else {
       this.settings = this.$store.getters["settings/getSettings"];
@@ -105,9 +98,6 @@ export default {
         .then((settings) => {
           this.settings = settings;
         });
-    },
-    clearCache() {
-      clear_cache();
     },
   },
   data() {
