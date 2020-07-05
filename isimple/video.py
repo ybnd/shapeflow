@@ -1107,6 +1107,30 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         else:
             return None
 
+    @backend.expose(backend.turn_cw)
+    def turn_cw(self):
+        self.set_config(
+            {'transform': {'turn': self.config.transform.turn + 1}}
+        )
+
+    @backend.expose(backend.turn_ccw)
+    def turn_ccw(self):
+        self.set_config(
+            {'transform': {'turn': self.config.transform.turn - 1}}
+        )
+
+    @backend.expose(backend.flip_h)
+    def flip_h(self):
+        self.set_config(
+            {'transform': {'flip': {'horizontal': not self.config.transform.flip.horizontal}}}
+        )
+
+    @backend.expose(backend.flip_v)
+    def flip_v(self):
+        self.set_config(
+            {'transform': {'flip': {'vertical': not self.config.transform.flip.vertical}}}
+        )
+
     @backend.expose(backend.undo_config)
     def undo_config(self, context: str = None) -> dict:  # todo: implement undo/redo context (e.g. transform, masks)
         if context is None or context in self.config.__fields__:

@@ -287,6 +287,38 @@ export async function estimate_transform(id, roi) {
     });
 }
 
+export async function turn_cw(id) {
+  return axios.post(api(id, "call/turn_cw")).then((response) => {
+    if (response.status === 200) {
+      return true;
+    }
+  });
+}
+
+export async function turn_ccw(id) {
+  return axios.post(api(id, "call/turn_ccw")).then((response) => {
+    if (response.status === 200) {
+      return true;
+    }
+  });
+}
+
+export async function flip_h(id) {
+  return axios.post(api(id, "/call/flip_h")).then((response) => {
+    if (response.status === 200) {
+      return true;
+    }
+  });
+}
+
+export async function flip_v(id) {
+  return axios.post(api(id, "/call/flip_v")).then((response) => {
+    if (response.status === 200) {
+      return true;
+    }
+  });
+}
+
 export async function clear_roi(id) {
   return axios.post(api(id, "call/clear_roi")).then((response) => {
     if (response.status === 200) {

@@ -135,15 +135,17 @@ import {
   get_options,
   commit,
   api,
-  get_relative_roi,
-  undo_config,
-  redo_config,
-  flip_transform,
-  set_config,
+  get_relative_roi, // todo: handle ~ VueX store
+  undo_config, // todo: handle ~ VueX store
+  redo_config, // todo: handle ~ VueX store
+  turn_cw,
+  turn_ccw,
   endpoints,
   stop_stream,
   AnalyzerState as ast,
   state_transition,
+  flip_h,
+  flip_v,
 } from "../../static/api";
 import Moveable from "vue-moveable";
 import {
@@ -364,44 +366,16 @@ export default {
       target.style.transform = transform;
     },
     handleFlipH() {
-      this.$store
-        .dispatch("analyzers/set_config", {
-          id: this.id,
-          config: {
-            transform: {
-              flip: {
-                horizontal: !this.align.flip.horizontal,
-              }, // todo: better to synchronize this to store?
-            },
-          },
-        })
-        .then((config) => {
-          this.align.flip = config.transform.flip;
-        });
+      flip_h(this.id);
     },
     handleFlipV() {
-      this.$store
-        .dispatch("analyzers/set_config", {
-          id: this.id,
-          config: {
-            transform: {
-              flip: {
-                vertical: !this.align.flip.vertical,
-              },
-            },
-          },
-        })
-        .then((config) => {
-          this.align.flip = config.transform.flip;
-        });
+      flip_v(this.id);
     },
     handleTurnCW() {
-      console.log("align.handleTurnCW()");
-      this.$store.dispatch("analyzers/turn", { id: this.id, direction: "CW" });
+      turn_cw(this.id);
     },
     handleTurnCCW() {
-      console.log("align.handleTurnCCW()");
-      this.$store.dispatch("analyzers/turn", { id: this.id, direction: "CCW" });
+      turn_ccw(this.id);
     },
     updateRoiCoordinates() {
       console.log("align: updateRoiCoordinates");
