@@ -162,6 +162,8 @@ import PageHeaderItem from "../../components/header/PageHeaderItem";
 import PageHeaderSeek from "../../components/header/PageHeaderSeek";
 import { throttle, debounce } from "throttle-debounce";
 
+import isEqual from "lodash/isEqual";
+
 import VueHotkey from "v-hotkey";
 import Vue from "vue";
 
@@ -283,7 +285,7 @@ export default {
 
               // don't update if this.align.roi hasn't changed
               if (
-                !_.isEqual(
+                !isEqual(
                   this.align.roi,
                   this.$store.getters["analyzers/getAnalyzerConfig"](this.id)
                     .transform.roi

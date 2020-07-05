@@ -229,9 +229,9 @@ export default {
       set_filter(
         this.id,
         clickEventToRelativeCoordinate(e, this.filter.frame)
-      ).then((message) => {
-        if (message) {
-          console.log(`//PUT THIS IN A POPUP OR SOMETHING// ${message}`);
+      ).then((data) => {
+        if (data.message) {
+          console.log(`//PUT THIS IN A POPUP OR SOMETHING// ${data.message}`);
         }
       });
     },
