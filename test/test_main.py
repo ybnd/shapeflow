@@ -20,32 +20,36 @@ if os.getcwd() == '/home/travis/build/ybnd/isimple':
     __VIDEO__ = 'test/' + __VIDEO__
     __DESIGN__ = 'test/' + __DESIGN__
 
+from isimple import ROOTDIR
+
+
+CACHE = os.path.join(ROOTDIR, 'test_main-cache')
+DB = os.path.join(ROOTDIR, 'test_main-history.db')
+STATE = os.path.join(ROOTDIR, 'test_main-state')
+RESULTS = os.path.join(ROOTDIR, 'test_main-results')
+
+
+def clear_files():
+    if os.path.exists(CACHE):
+        shutil.rmtree(CACHE)
+    if os.path.exists(DB):
+        os.remove(DB)
+    if os.path.exists(STATE):
+        os.remove(STATE)
+    if os.path.exists(RESULTS):
+        shutil.rmtree(RESULTS)
+
 
 @contextmanager
 def application(keep: bool = False):
-    from isimple import settings, ROOTDIR, save_settings
+    from isimple import settings, save_settings
 
-    CACHE = os.path.join(ROOTDIR, 'test_main-cache')
-    DB = os.path.join(ROOTDIR, 'test_main-history.db')
-    STATE = os.path.join(ROOTDIR, 'test_main-state')
-    RESULTS = os.path.join(ROOTDIR, 'test_main-results')
-
-    def _clear():
-        if not keep:
-            if os.path.exists(CACHE):
-                shutil.rmtree(CACHE)
-            if os.path.exists(DB):
-                os.remove(DB)
-            if os.path.exists(STATE):
-                os.remove(STATE)
-            if os.path.exists(RESULTS):
-                shutil.rmtree(RESULTS)
-
-    _clear()
+    if not keep:
+        clear_files()
 
     try:
         with settings.cache.override({"dir": CACHE, "do_cache": False, "do_background": False}), \
-                settings.db.override({"path": DB}), \
+                settings.db.override({"path": DB, "cleanup_interval": 0}), \
                 settings.app.override({"state_path": STATE, "save_result": 'in result directory', "result_dir": RESULTS}), \
                 settings.log.override({'lvl_console': 'debug', 'lvl_file': 'debug'}):
             save_settings(settings)
@@ -70,7 +74,9 @@ def application(keep: bool = False):
 
         del main
         del settings
-        _clear()
+
+        if not keep:
+            clear_files()
 
 
 class MainTest(unittest.TestCase):
@@ -553,6 +559,49 @@ class MainAnalyzerTest(unittest.TestCase):
                 f'/api/{id}/call/redo_config',
                 data=json.dumps({'context': 'illegal'})
             )
+
+    def test_clean_db(self):
+        clear_files()
+
+        with application(keep=True) as (server, client, settings):
+            id = json.loads(client.post('/api/init').data)
+            client.post(
+                f'/api/{id}/call/set_config',
+                data=json.dumps({"config": self.CONFIG})
+            )
+            client.post(f'/api/{id}/launch')
+
+            for ROI in self.ROI_SEQUENCE:
+                # Changes to 'transform'
+                client.post(
+                    f'/api/{id}/call/set_config',
+                    data=json.dumps({"config": {"transform": {"roi": ROI}}})
+                )
+
+            for CLICK in self.TRUE_HITS:
+                # Changes to 'masks'
+                client.post(
+                    f'/api/{id}/call/set_filter_click',
+                    data=json.dumps(
+                        {'relative_x': CLICK[0], 'relative_y': CLICK[1]})
+                )
+
+            from isimple.db import ConfigModel
+
+            with server._history.session() as s:
+                n_config_t0 = len(list(s.query(ConfigModel)))
+
+        with application(keep=True) as (server, client, settings):
+            # _history.clean() is performed before the first request is handled
+            client.get('/api/ping')
+
+            with server._history.session() as s:
+                n_config_t1 = len(list(s.query(ConfigModel)))
+
+        try:
+            self.assertLess(n_config_t1, n_config_t0)
+        finally:
+            clear_files()
 
     def test_analyzers_queue_ops(self):
         with application() as (server, client, settings):
