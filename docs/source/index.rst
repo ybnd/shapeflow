@@ -12,17 +12,5 @@ Welcome to isimple's documentation!
 
    installation
    tutorial
-
-
-.. toctree::
-   :maxdepth: 1
-
    about
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   isimple
