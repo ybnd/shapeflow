@@ -105,7 +105,7 @@ class AnalysisModel(BaseAnalysisModel):
         """Name of the analysis from the database. Unset names are reset
         to '#{id}'
         """
-        with self.session() as s:
+        with self.session():
             if self.name is None:
                 self.name = f"#{self.id}"
             return self.name
@@ -434,12 +434,13 @@ class History(SessionWrapper):
 
     def add_analysis(self, analyzer: BaseVideoAnalyzer, model: AnalysisModel = None) -> AnalysisModel:
         if model is None:
-            model = AnalysisModel()
+            with self.session() as s:
+                model = AnalysisModel()
+                s.add(model)
         model.connect(self)
 
         model.set_analyzer(analyzer)
         analyzer.set_model(model)
-        model.store()
         return model
 
     def fetch_analysis(self, id: int) -> Optional[AnalysisModel]:
