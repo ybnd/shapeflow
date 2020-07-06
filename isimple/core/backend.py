@@ -22,7 +22,7 @@ from isimple.core import RootException, SetupError, RootInstance
 from isimple.maths.colors import HsvColor
 from isimple.util.meta import describe_function
 from isimple.util import Timer, Timing, hash_file, timed
-from isimple.core.db import DbModel
+from isimple.core.db import BaseAnalysisModel
 from isimple.core.config import Factory, untag, BaseConfig, Instance, Configurable
 from isimple.core.streaming import stream, streams, EventStreamer
 
@@ -444,7 +444,7 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     _video_hash: Optional[str]
     _design_hash: Optional[str]
 
-    _model: Optional[DbModel]
+    _model: Optional[BaseAnalysisModel]
     _eventstreamer: Optional[EventStreamer]
 
     def __init__(self, config: BaseAnalyzerConfig = None, eventstreamer: EventStreamer = None):
@@ -464,7 +464,7 @@ class BaseVideoAnalyzer(Instance, RootInstance):
         self._progress = 0.0
         self._model = None
 
-    def set_model(self, model: DbModel):
+    def set_model(self, model: BaseAnalysisModel):
         self._model = model
         if self.config.name is None:  # todo: move to AnalysisModel instead
             self.config(name=self.model.get_name())

@@ -443,6 +443,15 @@ class Main(isimple.core.Lockable):
         self._app = app
 
     def serve(self, host, port):
+        """Serve the application
+
+        Parameters
+        ----------
+        host: str
+            Host address
+        port: int
+            Host port
+        """
         # Don't show waitress console output (server URL)
         self._host = host
         self._port = port
@@ -476,6 +485,8 @@ class Main(isimple.core.Lockable):
         log.info('Main.serve() stopped.')
 
     def check_video_path(self, path: str) -> bool:
+        """Check whether the path is a valid video and add it to
+        the history database"""
         try:
             log.debug(f"Checking video file {path}")
             if os.path.isfile(path):
@@ -491,6 +502,8 @@ class Main(isimple.core.Lockable):
         return False
 
     def check_design_path(self, path: str) -> bool:
+        """Check whether the path is a valid design and add it to
+        the history database"""
         try:
             log.debug(f"Checking design file {path}")
             if os.path.isfile(path):
@@ -506,6 +519,18 @@ class Main(isimple.core.Lockable):
         return False
 
     def add_instance(self, type: video.AnalyzerType = None) -> str:
+        """Add a new  analyzer instance
+
+        Parameters
+        ----------
+        type: AnalyzerType
+            Type of ``BaseVideoAnalyzer`` to instantiate
+
+        Returns
+        -------
+        str
+            The ``id`` of the new analyzer
+        """
         with self.lock():
             if type is None:
                 type = video.AnalyzerType()
@@ -522,6 +547,13 @@ class Main(isimple.core.Lockable):
         return analyzer.id
 
     def remove_instance(self, id: str) -> bool:
+        """Remove a analyzer instance
+
+        Parameters
+        ----------
+        id: str
+            The ``id`` of the analyzer to remove
+        """
         with self.lock():
             if self.valid(id):
                 log.info(f"Removing '{id}'")
@@ -535,10 +567,17 @@ class Main(isimple.core.Lockable):
                 raise ValueError
 
     def q_start(self, q: List[str]) -> bool:
+        """Queue analysis
+
+        Parameters
+        ----------
+        q: List[str]
+            List of analyzer ``id`` to queue.
+        """
         if self._q_state == QueueState.STOPPED:
             done = False
 
-            if all(self._roots[id].can_analyze for id in q):
+            if all(self._roots[id].can_analyze for id in q):  # todo: handle non-id entries in q
                 log.info(f"analyzing queue: {q}")
                 for id in q:
                     while self._pause_q.is_set():
@@ -568,20 +607,23 @@ class Main(isimple.core.Lockable):
             return False
 
     def q_stop(self):
+        """Stop analysis queue"""
         log.info('stopping analysis queue')
         if self._pause_q.is_set():
             self._pause_q.clear()
         self._stop_q.set()
 
-    def commit(self):
+    def _commit(self):
         for root in self._roots.values():
             root.commit()
 
     def save_state(self):
+        """Save application state to ``isimple.settings.app.state_path``
+        """
         if isimple.settings.app.save_state:
             log.info("saving application state")
 
-            self.commit()
+            self._commit()
 
             s = {
                 id: root.model.get('id')
@@ -593,6 +635,7 @@ class Main(isimple.core.Lockable):
                 pickle.dump(s, f)
 
     def load_state(self):
+        """Load application state from ``isimple.settings.app.state_path``"""
         if isimple.settings.app.load_state:
             with self.lock():
                 log.info("loading application state")
@@ -625,6 +668,17 @@ class Main(isimple.core.Lockable):
                     pass
 
     def call(self, id: str, endpoint: str, data: dict = None) -> Any:
+        """Call an analyzer endpoint
+
+        Parameters
+        ----------
+        id: str
+            Analyzer id
+        endpoint: str
+            Endpoint name, should correspond to a :class:`isimple.endpoints.BackendRegistry`
+            attribute
+        data
+        """
         if data is None:
             data = {}
         if self.valid(id):

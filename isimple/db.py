@@ -8,7 +8,7 @@ from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, 
 
 from isimple.core.db import Base, DbModel, SessionWrapper, FileModel, BaseAnalysisModel
 from isimple import Settings, settings, get_logger
-from isimple.config import normalize_config
+from isimple.config import normalize_config, VideoAnalyzerConfig
 
 from isimple.core.backend import BaseVideoAnalyzer, BaseAnalyzerConfig
 
@@ -57,7 +57,10 @@ class ResultsModel(DbModel):
     analysis = Column(Integer, ForeignKey('analysis.id'))
 
     feature = Column(String)
+    """The feature that was analyzed"""
     data = Column(String)
+    """Results of the analysis. 
+    In JSON, formatted ~ ``pandas.DataFrame.to_json(orient='split')``"""
 
     started = Column(DateTime)
     finished = Column(DateTime)
@@ -65,6 +68,9 @@ class ResultsModel(DbModel):
 
 
 class AnalysisModel(BaseAnalysisModel):
+    """Database model of an analysis.
+    Contains a reference to a ``BaseVideoAnalyzer`` instance.
+    """
     __tablename__ = 'analysis'
 
     _analyzer: Optional[BaseVideoAnalyzer]
@@ -96,6 +102,9 @@ class AnalysisModel(BaseAnalysisModel):
                 setattr(self, attr, None)
 
     def get_name(self) -> str:
+        """Name of the analysis from the database. Unset names are reset
+        to '#{id}'
+        """
         with self.session() as s:
             if self.name is None:
                 self.name = f"#{self.id}"
@@ -162,7 +171,9 @@ class AnalysisModel(BaseAnalysisModel):
         else:
             return None
 
-    def store(self):
+    def store(self):  # todo: consider passing analyzer to store() instead of keeping a reference
+        """Store analysis information from wrapped ``BaseVideoAnalyzer``
+        to the database."""
         self._resolve_attributes()
         if self._analyzer is not None:
             config_json = json.dumps(self._analyzer.get_config(do_tag=True))
@@ -211,8 +222,33 @@ class AnalysisModel(BaseAnalysisModel):
                         self.results = model.id
 
     def load_config(self, video_path: str = None, design_path: str = None, include: List[str] = None) -> Optional[dict]:
+        """Load configuration from the database.
+
+        Parameters
+        ----------
+        video_path: str
+            Path to video file
+        design_path: str
+            Path to design file
+        include: List[str]
+            List of fields which must be included in the configuration. If a
+            matching ConfigModel doesn't provide all of these, the
+            other matches will be parsed to complete it.
+
+        Returns
+        -------
+        dict:
+            Configuration dict, if a matching config is found. Otherwise,
+            returns ``None``
+
+        """
         if include is None:
-            include = ['video', 'design', 'transform', 'masks']  # todo: how to handle feature parameters?
+            include = ['transform', 'masks']
+
+        # Check whether all fields in include are valid
+        for field in include:
+            assert field in VideoAnalyzerConfig.__fields__, \
+                f"'{field}' in `include` is not a `VideoAnalyzerConfig` field."
 
         if video_path is not None:
             self._video = self._add_video(path=video_path)
@@ -225,7 +261,7 @@ class AnalysisModel(BaseAnalysisModel):
             if self._design is not None:
                 self._design = self._design.resolve()
 
-            # Query for latest usages of video_hash
+            # Query for latest usages of video.id & design.id)
             with self.session() as s:
                 q = s.query(ConfigModel)
                 q = q.filter(ConfigModel.video == self._video.id)
@@ -242,14 +278,16 @@ class AnalysisModel(BaseAnalysisModel):
                         if field in match_config:
                             config[field] = match_config[field]
 
-                    # Check if enough
+                    # Check if enough info in ìncluded config
                     ok = []
-                    if 'transform' in config:
+                    if 'transform' in config and 'transform' in include:
+                        # 'transform' field should contain ROI
                         if 'roi' in config['transform']:
                             if config['transform']['roi'] is not {}:
                                 ok.append(True)
                                 include.remove('transform')
-                    if 'masks' in config:
+                    if 'masks' in config and 'masks' in include:
+                        # 'masks' field should not be empty
                         if len(config['masks']) > 0:
                             ok.append(True)
                             include.remove('masks')
@@ -318,24 +356,58 @@ class AnalysisModel(BaseAnalysisModel):
         return None
 
     def undo_config(self, context: str = None):
-        config = self._step_config(
-            ConfigModel.added < self._added(context),
-            ConfigModel.added.desc(),
-            context
-        )
-        if self._analyzer is not None and config is not None:
-            self._analyzer.set_config(config=config, silent=(context is None))
+        """Undo configuration. If a ``context`` is supplied, ensure that the
+        ``context`` field changes, but the other fields remain the same
+
+        Parameters
+        ----------
+        context: str
+            Name of a ``VideoAnalyzerConfig`` field
+
+        Raises
+        ------
+        ValueError
+            If ``context`` is not a ``VideoAnalyzer`` field
+        """
+        if context is None or context in VideoAnalyzerConfig.__fields__:
+            config = self._step_config(
+                ConfigModel.added < self._added(context),
+                ConfigModel.added.desc(),
+                context
+            )
+            if self._analyzer is not None and config is not None:
+                self._analyzer.set_config(config=config, silent=(context is None))
+        else:
+            raise ValueError(f"Invalid undo context '{context}'")
 
     def redo_config(self, context: str = None):
-        config = self._step_config(
-            ConfigModel.added > self._added(context),
-            ConfigModel.added,
-            context
-        )
-        if self._analyzer is not None and config is not None:
-            self._analyzer.set_config(config=config, silent=(context is None))
+        """Redo configuration. If a ``context`` is supplied, ensure that the
+        ``context`` field changes, but the other fields remain the same
+
+        Parameters
+        ----------
+        context: str
+            Name of a ``VideoAnalyzerConfig`` field
+
+        Raises
+        ------
+        ValueError
+            If ``context`` is not a ``VideoAnalyzer`` field
+        """
+        if context is None or context in VideoAnalyzerConfig.__fields__:
+            config = self._step_config(
+                ConfigModel.added > self._added(context),
+                ConfigModel.added,
+                context
+            )
+            if self._analyzer is not None and config is not None:
+                self._analyzer.set_config(config=config, silent=(context is None))
+        else:
+            raise ValueError(f"Invalid redo context '{context}'")
 
 class History(SessionWrapper):
+    """Interface to the history database
+    """
     def __init__(self, path: Path = None):
         if path is None:
             path = settings.db.path
@@ -344,15 +416,21 @@ class History(SessionWrapper):
         Base.metadata.create_all(self._engine)
         self._session_factory = scoped_session(sessionmaker(bind=self._engine))
 
-    def add_video_file(self, path: str):
+    def add_video_file(self, path: str) -> VideoFileModel:
+        """Add a video file to the database. Duplicate files are resolved
+        to the original entry."""
         file = VideoFileModel(path=path)
         file.connect(self)
         file.resolve()
+        return file
 
-    def add_design_file(self, path: str):
+    def add_design_file(self, path: str) -> DesignFileModel:
+        """Add a design file to the database. Duplicate files are resolved
+        to the original entry."""
         file = DesignFileModel(path=path)
         file.connect(self)
         file.resolve()
+        return file
 
     def add_analysis(self, analyzer: BaseVideoAnalyzer, model: AnalysisModel = None) -> AnalysisModel:
         if model is None:
@@ -360,10 +438,8 @@ class History(SessionWrapper):
         model.connect(self)
 
         model.set_analyzer(analyzer)
-        model.store()
-
         analyzer.set_model(model)
-
+        model.store()
         return model
 
     def fetch_analysis(self, id: int) -> Optional[AnalysisModel]:
@@ -372,6 +448,9 @@ class History(SessionWrapper):
                 first()
 
     def fetch_paths(self) -> Dict[str, list]:
+        """Fetch the latest video and design file paths from the
+        database. Number of paths is limited by ``settings.app.recent_files``
+        """
         with self.session() as s:
             return {
                 'video_path': [r[0] for r in s.query(VideoFileModel.path).\
@@ -384,11 +463,16 @@ class History(SessionWrapper):
 
     def clean(self) -> None:
         """Clean the database
-            - remove 'analysis' entries with <null> config
-            - remove 'config' entries with <null> json
-            - for 'analysis' entries older than settings.db.cleanup_interval
-                * remove all non-primary 'config' entries
-                * remove all non-primary 'results' entries
+
+        * remove 'analysis' entries with ``<null>`` config
+
+        * remove 'config' entries with ``<null>`` json
+
+        * for 'analysis' entries older than ``settings.db.cleanup_interval``
+
+           * remove all non-primary 'config' entries
+
+           * remove all non-primary 'results' entries
         """
         log.debug(f"cleaning history")
         threshold = datetime.datetime.now() - datetime.timedelta(

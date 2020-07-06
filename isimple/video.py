@@ -1133,19 +1133,13 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
     @backend.expose(backend.undo_config)
     def undo_config(self, context: str = None) -> dict:  # todo: implement undo/redo context (e.g. transform, masks)
-        if context is None or context in self.config.__fields__:
-            self.model.undo_config(context)
-            return self.get_config()
-        else:
-            raise ValueError(f"Invalid undo/redo context '{context}'")
+        self.model.undo_config(context)
+        return self.get_config()
 
     @backend.expose(backend.redo_config)
     def redo_config(self, context: str = None) -> dict:
-        if context is None or context in self.config.__fields__:
-            self.model.redo_config(context)
-            return self.get_config()
-        else:
-            raise ValueError(f"Invalid undo/redo context '{context}'")
+        self.model.redo_config(context)
+        return self.get_config()
 
     @backend.expose(backend.set_filter_click)
     def set_filter_click(self, relative_x: float, relative_y: float) -> dict:
