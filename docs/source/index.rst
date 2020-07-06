@@ -6,12 +6,19 @@
 Welcome to isimple's documentation!
 ===================================
 
-This is a change
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
+   usage/installation
+   usage/tutorial
+   usage/library
+
+
+.. toctree::
+   :maxdepth: 1
+
+   about
 
 
 Indices and tables
