@@ -82,6 +82,7 @@ export const mutations = {
     }
   },
   setTransformOptions(state, { options }) {
+    console.log("schema/setTransformOptions");
     try {
       assert(!(options === undefined), "no options provided");
       state.transform = options;
@@ -137,6 +138,12 @@ export const getters = {
   },
   getConfigSchema: (state) => {
     return state.config;
+  },
+  getTransformOptions: (state) => {
+    return state.transform;
+  },
+  getFilterOptions: (state) => {
+    return state.filter;
   },
 };
 

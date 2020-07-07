@@ -62,6 +62,7 @@ module.exports = {
       "BFormGroup",
       "BFormRow",
       "BFormInput",
+      "BInputGroupPrepend",
       "BFormTextarea",
       "BCollapse",
       "BInputGroup",

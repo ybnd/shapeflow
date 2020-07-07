@@ -254,31 +254,7 @@ export const getters = {
     return state.config[id].features;
   },
   getMasks: (state) => (id) => {
-    return state.config[id].masks.map(({ name }) => name);
-  },
-  getMaskFilterType: (state) => (id, mask_index) => {
-    // console.log(`getMaskFilterType: id=${id} mask_index=${mask_index}`);
-    //
-    // console.log("state.config[id].masks[mask_index] = ");
-    // console.log(state.config[id].masks[mask_index]);
-
-    return state.config[id].masks[mask_index].filter.type;
-  },
-  getMaskFilterData: (state) => (id, mask_index) => {
-    // console.log(`getMaskFilterData: id=${id} mask_index=${mask_index}`);
-    //
-    // console.log("state.config[id].masks[mask_index] = ");
-    // console.log(state.config[id].masks[mask_index]);
-
-    return state.config[id].masks[mask_index].filter.data;
-  },
-  getMaskFilterParameters: (state) => (id, mask_index) => {
-    // console.log(`getMaskFilterParameters: id=${id} mask_index=${mask_index}`);
-    //
-    // console.log("state.config[id].masks[mask_index] = ");
-    // console.log(state.config[id].masks[mask_index]);
-
-    return state.config[id].masks[mask_index].filter.parameters;
+    return state.config[id]["masks"];
   },
   getRoi: (state) => (id) => {
     return state.config[id].transform.roi;
@@ -410,6 +386,15 @@ export const actions = {
             });
           }
         }
+
+        // for any id with get_configconfig[id] is undefined, dispatch get_config
+        q = getters["getQueue"];
+        for (let i = 0; i < q.length; i++) {
+          if (getters["getAnalyzerConfig"](q[i]) === undefined) {
+            dispatch("get_config", { id: q[i] });
+          }
+        }
+
         return true;
       });
     } catch (e) {
@@ -438,6 +423,18 @@ export const actions = {
       console.warn(`could not get config for ${id}`);
       return undefined;
     }
+  },
+
+  async refresh({ getters, dispatch }, { id }) {
+    try {
+      assert(id !== undefined, "no id provided");
+      if (getters["getAnalyzerConfig"](id) === undefined) {
+        dispatch("get_config", { id: id });
+      }
+      if (getters["getAnalyzerStatus"](id) === undefined) {
+        dispatch("get_status", { id: id });
+      }
+    } catch (e) {}
   },
 
   async get_status({ commit }, { id }) {

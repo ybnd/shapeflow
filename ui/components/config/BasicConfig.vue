@@ -308,10 +308,14 @@ export default {
 
       this.config.features = [...this.config.features, feature];
 
-      this.config.parameters = [
-        ...this.config.parameters,
-        JSON.parse(JSON.stringify(this.features.parameter_defaults[feature])),
-      ];
+      try {
+        this.config.parameters = [
+          ...this.config.parameters,
+          JSON.parse(JSON.stringify(this.features.parameter_defaults[feature])),
+        ];
+      } catch (e) {
+        this.config.parameters = [];
+      }
 
       this.validFeatures = this.config.features.length > 0;
       // console.log(this.config);

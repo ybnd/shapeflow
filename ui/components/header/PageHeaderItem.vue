@@ -39,7 +39,7 @@ $item-height: calc(#{$header-height - 8px});
   height: $item-height;
   padding: 4px;
 }
-.page-header-item * {
+.page-header-item > * {
   height: $item-height;
   max-height: $item-height;
   margin-right: 4px;

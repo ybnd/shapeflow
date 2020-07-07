@@ -82,20 +82,21 @@
         </b-button>
       </PageHeaderItem>
       <PageHeaderItem>
-        <b-button-group>
-          <b-dropdown
-            :text="`${this.transform}`"
-            data-toggle="tooltip"
-            title="Transform type"
-          >
+        <b-dropdown
+          :text="transform"
+          data-toggle="tooltip"
+          title="Transform type"
+        >
+          <template v-for="(t, i) in transform_options.options">
             <b-dropdown-item
-              v-for="align in transform_options"
-              :key="`align-${align}`"
+              v-bind:key="i"
+              @click="handleSetTransform(t, i)"
+              data-toggle="tooltip"
+              :title="transform_options.descriptions[i]"
+              >{{ transform_options.options[i] }}</b-dropdown-item
             >
-              {{ align }}
-            </b-dropdown-item>
-          </b-dropdown>
-        </b-button-group>
+          </template>
+        </b-dropdown>
       </PageHeaderItem>
     </PageHeader>
     <div
@@ -189,6 +190,7 @@ export default {
     handleInit() {
       console.log("align: handleInit()");
       this.previous_id = this.id;
+      this.$store.dispatch("analyzers/refresh", { id: this.id });
 
       this.opened_at = Date.now();
 
@@ -198,17 +200,8 @@ export default {
       } else {
         this.$root.$emit(events.sidebar.open(this.id));
 
-        this.align.flip = this.$store.getters["analyzers/getAnalyzerConfig"](
-          this.id
-        ).transform.flip;
-
         this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
 
-        get_options("transform").then((options) => {
-          this.transform_options = options; // todo: get from store.options.transform
-          this.transform = options[0]; // todo: get from store.analyzers.config
-        });
-        // this.$store.dispatch("align/init", { id: this.id }).then(() => {
         get_relative_roi(this.id).then((roi) => {
           this.setRoi(roi);
           this.$root.$emit(events.seek.reset(this.id)); // todo: this doesn't trigger the stream for some reason
@@ -429,7 +422,7 @@ export default {
         this.align.frame = frame;
         this.resolveTransform();
       } catch (err) {
-        console.log("oops @ updateFrame");
+        console.warn(err);
       }
     },
     toggleBounds() {
@@ -522,6 +515,14 @@ export default {
         );
       }
     },
+    handleSetTransform(transform, index) {
+      console.log(transform);
+      console.log({ transform: { type: transform } });
+      this.$store.dispatch("analyzers/set_config", {
+        id: this.id,
+        config: { transform: { type: transform } },
+      });
+    },
   },
   watch: {
     "$route.query.id"() {
@@ -529,6 +530,7 @@ export default {
 
       this.handleCleanUp();
       this.handleInit();
+      this.updateFrame();
     },
     "$refs.moveable.$el"() {
       console.warn("there was a change in $ref.moveable.data");
@@ -567,11 +569,23 @@ export default {
         state === ast.DONE || state === ast.ERROR || state === ast.CANCELED
       ); // todo: cleaner
     },
+    transform_options() {
+      console.log("transform_options computed property");
+      console.log('this.$store.getters["schemas/getTransformOptions"]=');
+      console.log(this.$store.getters["schemas/getTransformOptions"]);
+      return this.$store.getters["schemas/getTransformOptions"];
+    },
+    transform() {
+      let config = this.$store.getters["analyzers/getAnalyzerConfig"](this.id);
+      if (config !== undefined) {
+        return config.transform.type;
+      } else {
+        return undefined;
+      }
+    },
   },
   data: () => ({
     opened_at: 0,
-    transform_options: {},
-    transform: "",
     moveable: {
       // request-level throttle & debounce to limit traffic, but keep pixel-level throttle at 0 for precision
       draggable: true,

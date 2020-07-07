@@ -35,31 +35,25 @@
         <!-- todo: should not set features here though! -->
       </PageHeaderItem>
       <PageHeaderItem>
-        <b-button-group>
-          <b-dropdown :text="`${this.mask}`" data-toggle="tooltip" title="Mask">
+        <b-dropdown :text="masks[mask]">
+          <template v-for="(m, i) in masks">
+            <b-dropdown-item v-bind:key="i" @click="handleSetMask(m, i)">{{
+              masks[i]
+            }}</b-dropdown-item>
+          </template>
+        </b-dropdown>
+        <b-dropdown :text="filter_type">
+          <template v-for="(f, i) in filter_options.options">
             <b-dropdown-item
-              v-for="(mask, index) in masks"
-              :key="`mask-${mask}`"
-              @click="handleSetMask(mask, index)"
+              v-bind:key="i"
+              @click="handleSetFilter(f, i)"
+              :title="filter_options.descriptions[i]"
+              >{{ filter_options.options[i] }}</b-dropdown-item
             >
-              {{ mask }}
-            </b-dropdown-item>
-          </b-dropdown>
-          <b-dropdown
-            :text="`${this.filter_type}`"
-            data-toggle="tooltip"
-            title="Filter type"
-          >
-            <b-dropdown-item
-              v-for="filter in filter_options"
-              :key="`filter-${filter}`"
-              @click="handleSetFilter(filter)"
-            >
-              {{ filter }}
-            </b-dropdown-item>
-          </b-dropdown>
-        </b-button-group>
+          </template>
+        </b-dropdown>
       </PageHeaderItem>
+      <PageHeaderItem> </PageHeaderItem>
     </PageHeader>
     <div class="filter" @click="handleClick">
       <img
@@ -101,6 +95,12 @@ import PageHeaderSeek from "../../components/header/PageHeaderSeek";
 import { throttle, debounce } from "throttle-debounce";
 import { clickEventToRelativeCoordinate } from "../../static/coordinates";
 
+import cloneDeep from "lodash/cloneDeep";
+import Vue from "vue";
+import AsyncComputed from "vue-async-computed";
+
+Vue.use(AsyncComputed);
+
 export default {
   name: "analyzer-filter",
   beforeMount() {
@@ -119,6 +119,7 @@ export default {
     handleInit() {
       console.log("filter: handleInit()");
       this.previous_id = this.id;
+      this.$store.dispatch("analyzers/refresh", { id: this.id });
 
       this.opened_at = Date.now();
 
@@ -128,21 +129,15 @@ export default {
       } else {
         this.$root.$emit(events.sidebar.open(this.id));
 
-        this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
-        this.waitForMasks = setInterval(this.getMasks, 100);
-        this.waitForFeatures = setInterval(this.getFeatures, 100);
-
-        get_options("filter").then((options) => {
-          this.filter_options = options;
-        });
-
-        console.log(`setting this.feature to ${this.feature}`);
-
         this.$store
           .dispatch("analyzers/get_config", { id: this.id })
           .then(() => {
             this.$root.$emit(events.seek.reset(this.id));
           });
+
+        this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
+        this.waitForMasks = setInterval(this.getMasks, 100);
+        this.waitForFeatures = setInterval(this.getFeatures, 100);
       }
     },
     handleCleanUp() {
@@ -176,22 +171,6 @@ export default {
 
       this.refs.frame = this.$refs[this.ref_frame];
     },
-    getMasks() {
-      console.log("filter: getMasks()");
-      this.masks = this.$store.getters["analyzers/getMasks"](this.id);
-      this.mask = this.masks[0];
-      this.filter_type = this.$store.getters["analyzers/getMaskFilterType"](
-        this.id,
-        0
-      );
-      if (this.masks.length !== 0) {
-        if (this.masks[0] !== undefined) {
-          console.log("filter: getMasks() -- clearing interval");
-          clearInterval(this.waitForMasks);
-        }
-      }
-      console.log(this.masks);
-    },
     getFeatures() {
       console.log("filter: getFeatures()");
       this.features = this.$store.getters["analyzers/getFeatures"](this.id);
@@ -203,10 +182,14 @@ export default {
       console.log(this.features);
     },
     updateFrame() {
-      console.log("Updating frame...");
-      let frame = this.refs.frame.getBoundingClientRect();
-      console.log(frame);
-      this.filter.frame = frame;
+      console.log("filter: updateFrame");
+      try {
+        let frame = this.refs.frame.getBoundingClientRect();
+        console.log(frame);
+        this.filter.frame = frame;
+      } catch (err) {
+        console.warn(err);
+      }
     },
     updateFrameOnceHasRect() {
       // todo: clean up
@@ -235,44 +218,19 @@ export default {
         }
       });
     },
-    handleSetFeature(feature) {
-      this.$store
-        .dispatch("analyzers/set_config", {
-          id: this.id,
-          config: { features: [feature] },
-        })
-        .then((stuff) => {
-          console.log("in analyzers/set_config callback");
-          let features = this.$store.getters["analyzers/getFeatures"](this.id);
-          this.feature = features[0];
-        });
-    },
     handleSetMask(mask, index) {
-      this.mask = mask;
-
-      this.filter_type = this.$store.getters["analyzers/getMaskFilterType"](
-        this.id,
-        index
-      );
-      this.filter_data = this.$store.getters["analyzers/getMaskFilterData"](
-        this.id,
-        index
-      );
+      console.log("filter: handleSetMask()");
+      console.log(mask);
+      console.log(index);
+      this.mask = index;
     },
-    handleSetFilter(filter) {
-      let config = this.$store.getters["analyzers/getAnalyzerConfig"](this.id);
-      config.masks[this.mask].filter.type = filter;
+    handleSetFilter(filter, index) {
+      this.config.masks[this.mask].filter.type = filter;
 
-      this.$store
-        .dispatch("analyzers/set_config", {
-          id: this.id,
-          config: config,
-        })
-        .then(() => {
-          this.filter_type = this.$store.getters["analyzers/getMaskFilterType"](
-            this.id
-          );
-        });
+      this.$store.dispatch("analyzers/set_config", {
+        id: this.id,
+        config: this.config,
+      });
     },
     handleClearFilters() {
       console.warn("NOT IMPLEMENTED YET");
@@ -300,6 +258,7 @@ export default {
       this.updateFrame();
     },
   },
+  asyncComputed: {},
   computed: {
     id() {
       return this.$route.query.id;
@@ -324,19 +283,37 @@ export default {
         left: this.stepBackward,
       };
     },
+    config() {
+      return this.$store.getters["analyzers/getAnalyzerConfig"](
+        this.$route.query.id
+      );
+    },
+    masks() {
+      if (this.config !== undefined) {
+        return this.config.masks.map(({ name }) => name);
+      } else {
+        return [];
+      }
+    },
+    filter_options() {
+      console.log('this.$store.getters["schemas/getFilterOptions"]');
+      console.log(this.$store.getters["schemas/getFilterOptions"]);
+      return this.$store.getters["schemas/getFilterOptions"];
+    },
+    filter_type() {
+      if (this.config !== undefined) {
+        return this.config.masks[this.mask].filter.type;
+      } else {
+        return undefined;
+      }
+    },
   },
   data: () => ({
     opened_at: 0,
     waitUntilHasRect: null,
     waitForMasks: null,
     waitForFeatures: null,
-    filter_type: "",
-    filter_options: undefined,
-    filter_data: {},
-    mask: "",
-    masks: [],
-    feature: "",
-    features: [],
+    mask: 0,
     filter: {
       frame: null,
     },
