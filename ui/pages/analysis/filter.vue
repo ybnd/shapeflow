@@ -53,7 +53,6 @@
           </template>
         </b-dropdown>
       </PageHeaderItem>
-      <PageHeaderItem> </PageHeaderItem>
     </PageHeader>
     <div class="filter" @click="handleClick">
       <img
