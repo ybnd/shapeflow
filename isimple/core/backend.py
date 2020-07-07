@@ -733,9 +733,6 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     def export(self):
         raise NotImplementedError
 
-    def describe(self, description: str):
-        self._description = description
-
     @property
     def description(self):
         return self._description
