@@ -4,6 +4,7 @@ from typing import Type, Tuple, Optional, Dict
 import numpy as np
 
 from isimple import get_logger
+from isimple.core import Described
 from isimple.core.config import BaseConfig, Configurable, Factory
 from isimple.maths.colors import HsvColor
 from isimple.maths.coordinates import ShapeCoo, Roi
@@ -14,7 +15,8 @@ log = get_logger(__name__)
 
 
 class InterfaceFactory(Factory):
-    _mapping: Dict[str, Type[Configurable]] = {}
+    _type = Configurable
+    _mapping: Dict[str, Type[Described]] = {}
 
     def get(self) -> Type[Configurable]:
         interface = super().get()
@@ -107,7 +109,7 @@ class FilterInterface(Configurable, abc.ABC):
 
 class FilterType(InterfaceFactory):
     _type = FilterInterface
-    _mapping: Dict[str, Type[Configurable]] = {}
+    _mapping: Dict[str, Type[Described]] = {}
 
     def get(self) -> Type[FilterInterface]:
         interface = super().get()
@@ -117,7 +119,7 @@ class FilterType(InterfaceFactory):
 
 class TransformType(InterfaceFactory):
     _type = TransformInterface
-    _mapping: Dict[str, Type[Configurable]] = {}
+    _mapping: Dict[str, Type[Described]] = {}
 
     def get(self) -> Type[TransformInterface]:
         interface = super().get()

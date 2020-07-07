@@ -236,6 +236,15 @@ class ImmutableRegistry(EndpointRegistry):
         return self._endpoints.endpoints
 
 
+class Described(object):
+    @classmethod
+    def _description(cls):
+        if cls.__doc__ is not None:
+            return cls.__doc__.split('\n')[0]
+        else:
+            return cls.__name__
+
+
 class Lockable(abc.ABC):
     _lock: threading.Lock
     _cancel: threading.Event
@@ -331,7 +340,7 @@ class RootInstance(Lockable):
             for attr in [attr for attr in all_attributes(instance)]:
                 value = getattr(instance, attr)  # bound method
 
-                if hasattr(value, '__func__'):
+                if hasattr(value, '__func__') and not isinstance(getattr(instance.__class__, attr), property):
                     endpoint = None
                     implementations = get_overridden_methods(instance.__class__, getattr(instance.__class__, attr))
 

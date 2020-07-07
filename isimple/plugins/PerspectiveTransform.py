@@ -14,12 +14,13 @@ log = get_logger(__name__)
 
 @extend(ConfigType)
 class PerspectiveTransformConfig(TransformConfig):
-    """Perspective transform"""
     pass
 
 
 @extend(TransformType)
 class PerspectiveTransform(TransformInterface):
+    """Perspective transform"""
+
     _config_class = PerspectiveTransformConfig
 
     def validate(self, matrix: Optional[np.ndarray]) -> bool:

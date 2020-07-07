@@ -18,7 +18,7 @@ from pydantic import Field, FilePath, DirectoryPath
 from isimple import settings, get_logger, get_cache
 from isimple.endpoints import BackendRegistry
 
-from isimple.core import RootException, SetupError, RootInstance
+from isimple.core import RootException, SetupError, RootInstance, Described
 from isimple.maths.colors import HsvColor
 from isimple.util.meta import describe_function
 from isimple.util import Timer, Timing, hash_file, timed
@@ -358,7 +358,7 @@ class FeatureSet(object):
 
 class FeatureType(Factory):  # todo: nest in Feature?
     _type = Feature
-    _mapping: Dict[str, Type[Feature]] = {}
+    _mapping: Dict[str, Type[Described]] = {}
 
     def get(self) -> Type[Feature]:
         feature = super().get()
@@ -437,8 +437,6 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
     results: Dict[str, pd.DataFrame]
 
-    _description: str
-
     _timer: Timer
 
     _video_hash: Optional[str]
@@ -452,7 +450,6 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
         super().__init__(config)
 
-        self._description = ''
         self._timer = Timer(self)
         self._launched = False
 
@@ -746,7 +743,7 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
 class AnalyzerType(Factory):
     _type = BaseVideoAnalyzer
-    _mapping: Dict[str, Type[BaseVideoAnalyzer]] = {}
+    _mapping: Dict[str, Type[Described]] = {}
 
     def get(self) -> Type[BaseVideoAnalyzer]:
         t = super().get()

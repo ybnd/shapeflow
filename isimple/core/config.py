@@ -7,7 +7,7 @@ from typing import Optional, Union, Type, Dict, Any
 from functools import partial
 
 from isimple import get_logger, __version__
-from isimple.core import EnforcedStr
+from isimple.core import EnforcedStr, Described
 from isimple.util import ndarray2str, str2ndarray
 from isimple.util.meta import resolve_type_to_most_specific, is_optional
 
@@ -30,9 +30,9 @@ __meta_sheet__ = 'metadata'
 
 
 class Factory(EnforcedStr):  # todo: add a _class & issubclass check
-    _mapping: Dict[str, type]
+    _mapping: Dict[str, Type[Described]]
     _default: Optional[str] = None
-    _type: type = object
+    _type: Type[Described] = Described
 
     def get(self) -> type:
         if self._str in self._mapping:
@@ -55,6 +55,10 @@ class Factory(EnforcedStr):  # todo: add a _class & issubclass check
         return list(self._mapping.keys())
 
     @property
+    def descriptions(self):
+        return [self._mapping[o]._description() for o in self.options]
+
+    @property
     def default(self):
         if self._default is not None:
             return self._default
@@ -65,7 +69,7 @@ class Factory(EnforcedStr):  # todo: add a _class & issubclass check
                 return None
 
     @classmethod
-    def _extend(cls, key: str, extension: type):
+    def _extend(cls, key: str, extension: Type[Described]):
         if not hasattr(cls, '_mapping'):
             cls._mapping = {}
 
@@ -115,7 +119,7 @@ class NpArray(np.ndarray):
         return v
 
 
-class BaseConfig(BaseModel):
+class BaseConfig(BaseModel, Described):
     """Abstract class for configuration data.
 
     * Usage, where `SomeConfig` is a subclass of `BaseConfig`:
@@ -243,7 +247,7 @@ class BaseConfig(BaseModel):
 
 class ConfigType(Factory):
     _type = BaseConfig
-    _mapping: Dict[str, Type[BaseConfig]] = {}
+    _mapping: Dict[str, Type[Described]] = {}
 
     def get(self) -> Type[BaseConfig]:
         config = super().get()
@@ -259,7 +263,7 @@ class ConfigType(Factory):
         return self.get().schema()
 
 
-class Configurable(object):
+class Configurable(Described):
     _config_class: Type[BaseConfig]
 
     @classmethod
