@@ -11,6 +11,7 @@
         <template v-if="show_popup">
           <b-popover
             :target="id"
+            triggers="hover"
             :id="`popover-${id}`"
             :show.sync="show_popup"
             @ok="handleClick"
