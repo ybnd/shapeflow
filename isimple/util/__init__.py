@@ -7,6 +7,8 @@ from functools import wraps, lru_cache
 from typing import Any, Generator, Optional
 from collections import namedtuple
 import multiprocessing
+import threading
+import queue
 import hashlib
 from contextlib import contextmanager
 import diskcache
@@ -159,37 +161,22 @@ def after_version(version_a, version_b):
     return not before_version(version_a, version_b)
 
 
-def hash_file(path: str, blocksize: int = 1024) -> multiprocessing.Queue:
+def hash_file(path: str, blocksize: int = 1024) -> queue.Queue:
     if os.path.isfile:
-        q: multiprocessing.Queue = multiprocessing.Queue()
-        cache = diskcache.Cache(
-                directory=settings.cache.dir,
-                size_limit=settings.cache.size_limit_gb * 1e9,
-            )
+        q: queue.Queue = queue.Queue()
+        def _hash_file():
+            nonlocal q
 
-        key = f"hash_file_{path}"
-
-        if key in cache:
-            q.put(cache[key])
-            cache.close()
-        else:
-            def _hash_file():
-                nonlocal q
-                nonlocal key
-                nonlocal cache
-
-                m = hashlib.sha1()
-                with open(path, 'rb') as f:
-                    while True:
-                        buf = f.read(blocksize)
-                        if not buf:
-                            break
-                        m.update(buf)
-                    hash = m.hexdigest()
-                    cache[key] = hash
-                    cache.close()
-                    q.put(hash)
-            multiprocessing.Process(target=_hash_file, daemon=True).start()
+            m = hashlib.sha1()
+            with open(path, 'rb') as f:
+                while True:
+                    buf = f.read(blocksize)
+                    if not buf:
+                        break
+                    m.update(buf)
+                hash = m.hexdigest()
+                q.put(hash)
+        threading.Thread(target=_hash_file, daemon=True).start()
         return q
 
 

@@ -26,11 +26,16 @@ import diskcache
 __version__: str = '0.3.14'
 
 # Get root directory
-_user_dir = str(pathlib.Path.home())  # todo: where is this on Windows?
-_subdirs = ['.local', 'share', 'isimple']  # todo: does this make sense on windows?
+_user_dir = str(pathlib.Path.home())  
+if os.name == 'nt':  # if running on Windows
+    _subdirs = ['AppData', 'Roaming', 'isimple']
+else:
+    _subdirs = ['.local', 'share', 'isimple']
 
 ROOTDIR = os.path.join(_user_dir, os.path.join(*_subdirs))
+
 _SETTINGS_FILE = os.path.join(ROOTDIR, 'settings.yaml')
+
 if not os.path.isdir(ROOTDIR):
     _path = _user_dir
     for _subdir in _subdirs:

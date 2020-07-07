@@ -1,5 +1,5 @@
 import abc
-import multiprocessing
+import queue
 import os
 import time
 from contextlib import contextmanager
@@ -124,7 +124,7 @@ class FileModel(DbModel):
     Files are hashed and resolved in order to keep a single entry per file.
     """
     __abstract__ = True
-    _hash_q: multiprocessing.Queue
+    _hash_q: queue.Queue
     _resolved: bool
     _path: str
 
