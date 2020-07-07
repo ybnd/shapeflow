@@ -75,7 +75,7 @@ def load_file_dialog(title: str = None, patterns: List[str] = None, patterns_str
             return None
 
 
-def save_file_dialog(title: str = None, patterns: List[str] = None, patterns_str: str = None) -> Optional[str]:
+def save_file_dialog(title: str = None, patterns: List[str] = None, patterns_str: str = '') -> Optional[str]:
     if title is None:
         title = 'Save as...'
 
