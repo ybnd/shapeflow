@@ -46,7 +46,6 @@ class ConfigModel(DbModel):
     json = Column(String)
 
     added = Column(DateTime)
-    modified = Column(DateTime)
 
 
 class ResultsModel(DbModel):
