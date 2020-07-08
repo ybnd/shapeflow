@@ -4,110 +4,75 @@ import pointer from "json-pointer";
 import get from "lodash/get";
 import pullAll from "lodash/pullAll";
 
-function id(model) {
-  return `form-${model}`;
-}
-
 const InputComponent = {
   // todo: fill out with fitting Bootstrap components
   // todo: get inspired by BasicConfig layout
-  enum(model, options) {
+  enum({ enum_options }) {
     return {
       component: "b-form-select",
-      model: model,
-      fieldOptions: {
-        on: "input",
-        class: "isimple-form-field-auto",
-        attrs: {
-          options: options.enum_options,
-          // id: id(model),
-        },
-      },
-    };
-  },
-  string(model, options) {
-    return {
-      component: "b-form-input",
-      model: model,
       fieldOptions: {
         on: "input",
         class: "isimple-form-field-input",
-        // attrs: { id: id(model) },
+        attrs: { options: enum_options },
       },
     };
   },
-  integer(model, options) {
+  string() {
     return {
       component: "b-form-input",
-      model: model,
+      fieldOptions: {
+        on: "input",
+        class: ["isimple-form-field-input"],
+      },
+    };
+  },
+  integer() {
+    return {
+      component: "b-form-input",
       fieldOptions: {
         attrs: {
           type: "number",
-          // id: id(model),
+        },
+        on: { input: (value) => parseFloat(value) },
+        class: "isimple-form-field-input",
+      },
+    };
+  },
+  float({ step }) {
+    return {
+      component: "b-form-input",
+      fieldOptions: {
+        attrs: {
+          type: "number",
+          step: step,
         },
         on: { input: (value) => parseInt(value) },
-        class: "isimple-form-field-auto",
-        style: {
-          "max-width": "90px",
-        },
+        class: "isimple-form-field-input",
       },
     };
   },
-  float(model, options = {}) {
+  number() {
     // todo: not sure how or why this is in schema...
-    if (options.step === undefined) {
-      options.step = 0.1;
-    }
-
     return {
       component: "b-form-input",
-      model: model,
       fieldOptions: {
         attrs: {
           type: "number",
-          step: options.step,
-          // id: id(model),
+          step: 0.1,
         },
-        style: {
-          "max-width": "180px",
-        },
-        on: { input: (value) => parseFloat(value) },
-        class: "isimple-form-field-auto",
+        on: { input: (value) => parseInt(value) },
+        class: "isimple-form-field-input",
       },
     };
   },
-  number(model, options = {}) {
-    // todo: not sure how or why this is in schema...
-    if (options.step === undefined) {
-      options.step = 0.1;
-    }
-
+  boolean() {
     return {
-      component: "b-form-input",
-      model: model,
-      fieldOptions: {
-        attrs: {
-          type: "number",
-          step: options.step,
-          // id: id(model),
-        },
-        style: {
-          width: "90px",
-        },
-        on: { input: (value) => parseFloat(value) },
-        class: "isimple-form-field-auto",
-      },
-    };
-  },
-  boolean(model, options) {
-    return {
-      component: "b-form-checkbox",
-      model: model,
+      component: "b-form-select",
       fieldOptions: {
         on: "input",
         class: "isimple-form-field-checkbox",
         attrs: {
-          // id: id(model),
+          options: [true, false],
         },
       },
     };
@@ -117,70 +82,26 @@ const InputComponent = {
 const getComponent = {
   CATEGORY(title, children) {
     return {
-      component: "b-form-group",
+      component: "b-card",
       fieldOptions: {
-        // class: "isimple-form-section",
-      },
-      children: [
-        {
-          component: "details",
-          fieldOptions: {
-            attrs: { open: "" },
-            class: "isimple-form-section-fit",
-          },
-          children: [
-            {
-              component: "summary",
-              fieldOptions: {
-                // class: "isimple-form-row",
-                domProps: { innerHTML: title },
-              },
-            },
-            {
-              component: "div",
-              fieldOptions: {
-                class: "isimple-form-indent",
-                // props: { id: id(title) },
-              },
-              children: children,
-            },
-          ],
+        class: "isimple-form-section",
+        props: {
+          header: title,
         },
-      ],
+      },
+      children: children,
     };
   },
   NESTED_CATEGORY(title, children) {
     return {
-      component: "b-form-group",
+      component: "b-card",
       fieldOptions: {
         class: "isimple-form-section-fit",
-      },
-      children: [
-        {
-          component: "details",
-          fieldOptions: {
-            attrs: { open: "" },
-            class: "isimple-form-section-fit",
-          },
-          children: [
-            {
-              component: "summary",
-              fieldOptions: {
-                // class: "isimple-form-row",
-                domProps: { innerHTML: title },
-              },
-            },
-            {
-              component: "div",
-              fieldOptions: {
-                class: "isimple-form-indent",
-                // props: { id: id(title) },
-              },
-              children: children,
-            },
-          ],
+        props: {
+          header: title,
         },
-      ],
+      },
+      children: children,
     };
   },
   ARRAY(title, item_type, items) {
@@ -206,23 +127,31 @@ const getComponent = {
   FIELD(title, type, model, options) {
     // console.log(`FIELD() for type=${type}`);
     return {
-      component: "b-form-row",
+      component: "b-row",
       fieldOptions: {
         class: "isimple-form-row",
       },
       children: [
         {
-          component: "label",
+          component: "b-input-group",
           fieldOptions: {
-            class: "mr-sm-2 isimple-form-label",
-            // for: id(model),
-            domProps: {
-              innerHTML: title,
-            },
+            class: "isimple-form-group",
           },
-        },
-        {
-          ...InputComponent[type](model, options),
+          children: [
+            {
+              component: "b-input-group-text",
+              fieldOptions: {
+                class: "isimple-form-field-text",
+                domProps: {
+                  innerHTML: title,
+                },
+              },
+            },
+            {
+              ...InputComponent[type](options),
+              model: model,
+            },
+          ],
         },
       ],
     };
@@ -242,22 +171,19 @@ const Hardcoded = {
           fieldOptions: { class: "isimple-form-group" },
           children: [
             {
-              component: "label",
+              component: "b-input-group-text",
               fieldOptions: {
-                class: "mr-sm-2 isimple-form-label",
+                class: "isimple-form-field-text",
                 domProps: { innerHTML: `${title} (x,y)` },
-                style: { width: "60px" },
               },
             },
             {
-              ...InputComponent.float([model, "x"].join("."), { step: 1e-24 }),
+              ...InputComponent.float({ step: 1e-24 }),
+              model: [model, "x"].join("."),
             },
             {
-              component: "div",
-              fieldOptions: { class: "isimple-form-gap" },
-            },
-            {
-              ...InputComponent.float([model, "x"].join("."), { step: 1e-24 }),
+              ...InputComponent.float({ step: 1e-24 }),
+              model: [model, "y"].join("."),
             },
           ],
         },
@@ -276,29 +202,23 @@ const Hardcoded = {
           fieldOptions: { class: "isimple-form-group" },
           children: [
             {
-              component: "label",
+              component: "b-input-group-text",
               fieldOptions: {
-                class: "mr-sm-2 isimple-form-label",
-                style: { width: "90px" },
+                class: "isimple-form-field-text",
                 domProps: { innerHTML: `${title} (h,s,v)` },
               },
             },
             {
-              ...InputComponent.integer([model, "h"].join(".")),
+              ...InputComponent.integer(),
+              model: [model, "h"].join("."),
             },
             {
-              component: "div",
-              fieldOptions: { class: "isimple-form-gap" },
+              ...InputComponent.integer(),
+              model: [model, "s"].join("."),
             },
             {
-              ...InputComponent.integer([model, "s"].join(".")),
-            },
-            {
-              component: "div",
-              fieldOptions: { class: "isimple-form-gap" },
-            },
-            {
-              ...InputComponent.integer([model, "v"].join(".")),
+              ...InputComponent.integer(),
+              model: [model, "v"].join("."),
             },
           ],
         },
@@ -317,22 +237,15 @@ const Hardcoded = {
           fieldOptions: { class: "isimple-form-group" },
           children: [
             {
-              component: "label",
+              component: "b-input-group-text",
               fieldOptions: {
-                class: "mr-sm-2 isimple-form-label",
-                domProps: { innerHTML: `${title} horizontally` },
+                class: "isimple-form-field-text",
+                domProps: { innerHTML: `${title} horizontally/vertically` },
               },
             },
             {
               ...InputComponent.boolean(),
               model: [model, "horizontal"].join("."),
-            },
-            {
-              component: "label",
-              fieldOptions: {
-                class: "mr-sm-2 isimple-form-label",
-                domProps: { innerHTML: "vertically" },
-              },
             },
             {
               ...InputComponent.boolean(),
@@ -347,55 +260,55 @@ const Hardcoded = {
 
 const Implementations = {
   "#/definitions/FeatureConfig"(title, model, schema, data, skip, order) {
-    // console.log("FeatureConfig is here");
-    // console.log(`title=${title}`);
-    // console.log(`model=${model}`);
-    // console.log("data=");
-    // console.log(data);
+    console.log("FeatureConfig is here");
+    console.log(`title=${title}`);
+    console.log(`model=${model}`);
+    console.log("data=");
+    console.log(data);
   },
   "#/definitions/TransformConfig"(title, model, schema, data, skip, order) {
-    // console.log("TransformConfig is here");
-    // console.log(`title=${title}`);
-    // console.log(`model=${model}`);
-    // console.log("data=");
-    // console.log(data);
+    console.log("TransformConfig is here");
+    console.log(`title=${title}`);
+    console.log(`model=${model}`);
+    console.log("data=");
+    console.log(data);
 
     const type_model = [...model.split(".").slice(0, -1), "type"].join(".");
-    // console.log(`type_model=${type_model}`);
+    console.log(`type_model=${type_model}`);
 
     const type = get(data, type_model);
-    // console.log(`type=${type}`);
+    console.log(`type=${type}`);
 
     const data_schema = schema.implementations.TransformConfig[type];
-    // console.log("data_schema=");
-    // console.log(data_schema);
+    console.log("data_schema=");
+    console.log(data_schema);
 
     const ui_schema = UiSchema(schema, data, skip, order, model, data_schema);
-    // console.log("ui_schema=");
-    // console.log(ui_schema);
+    console.log("ui_schema=");
+    console.log(ui_schema);
 
     return ui_schema;
   },
   "#/definitions/FilterConfig"(title, model, schema, data, skip, order) {
-    // console.log("FilterConfig is here");
-    // console.log(`title=${title}`);
-    // console.log(`model=${model}`);
-    // console.log("data=");
-    // console.log(data);
+    console.log("FilterConfig is here");
+    console.log(`title=${title}`);
+    console.log(`model=${model}`);
+    console.log("data=");
+    console.log(data);
 
     const type_model = [...model.split(".").slice(0, -1), "type"].join(".");
-    // console.log(`type_model=${type_model}`);
+    console.log(`type_model=${type_model}`);
 
     const type = get(data, type_model);
-    // console.log(`type=${type}`);
+    console.log(`type=${type}`);
 
     const data_schema = schema.implementations.FilterConfig[type];
-    // console.log("data_schema=");
-    // console.log(data_schema);
+    console.log("data_schema=");
+    console.log(data_schema);
 
     const ui_schema = UiSchema(schema, data, skip, order, model, data_schema);
-    // console.log("ui_schema=");
-    // console.log(ui_schema);
+    console.log("ui_schema=");
+    console.log(ui_schema);
 
     return ui_schema;
   },
@@ -504,40 +417,18 @@ function _handle_property(
         if (type === "array") {
           const item_reference = subschema.properties[property].items.$ref;
 
-          // console.log("item_reference=");
-          // console.log(item_reference);
-
           if (item_reference) {
             const item_definition = pointer.get(
               schema,
               item_reference.slice(1)
             );
 
-            // console.log("item_definition=");
-            // console.log(item_definition);
-
             if (value !== undefined) {
-              var title_i;
-              var skip_i;
-
               for (let i = 0; i < value.length; i++) {
-                // console.log(item_definition.properties);
-
-                if ("name" in item_definition.properties) {
-                  title_i = `${title}[${i}] - ${get(
-                    data,
-                    `${model}[${i}].name`
-                  )}`;
-                  skip_i = skip + [`${model}[${i}].name`];
-                } else {
-                  title_i = title;
-                  skip_i = skip;
-                }
-
                 const item_schema = UiSchema(
                   schema,
                   data,
-                  skip_i,
+                  skip,
                   order,
                   `${model}[${i}]`,
                   item_definition
@@ -547,12 +438,12 @@ function _handle_property(
                   if (context) {
                     ui_schema = [
                       ...ui_schema,
-                      getComponent.NESTED_CATEGORY(title_i, item_schema), // todo: not writing model!
+                      getComponent.NESTED_CATEGORY(title, item_schema), // todo: not writing model!
                     ];
                   } else {
                     ui_schema = [
                       ...ui_schema,
-                      getComponent.CATEGORY(title_i, item_schema),
+                      getComponent.CATEGORY(title, item_schema),
                     ];
                   }
                 }
@@ -568,9 +459,9 @@ function _handle_property(
                 const item_model = `${model}.${i}`; // todo: probably won't work
                 items = [
                   ...items,
-                  getComponent.FIELD("", item_type.type, item_model, {
-                    enum_options: item_type.enum,
-                    format: item_type.format, // todo: this is not used!
+                  getComponent.FIELD("", item_type[i].type, item_model, {
+                    enum_options: item_type[i].enum,
+                    format: item_type[i].format,
                   }),
                 ];
               }
@@ -583,7 +474,7 @@ function _handle_property(
           }
         } else if (type === "object") {
           // todo: handle arrays
-          console.warn("THIS IS AN OBJECT I'M CONFUSED");
+          console.log("THIS IS AN OBJECT I'M CONFUSED");
         } else {
           ui_schema = [
             ...ui_schema,

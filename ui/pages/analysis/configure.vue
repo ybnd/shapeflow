@@ -40,7 +40,7 @@
       </PageHeaderItem>
     </PageHeader>
     <div class="scrollable">
-      <b-card class="name-config isimple-form-section-full">
+      <b-card class="name-config isimple-form-section">
         <b-row class="isimple-form-row">
           <b-input-group class="isimple-form-group">
             <b-input-group-text class="isimple-form-field-text"
@@ -69,7 +69,7 @@
           </b-input-group>
         </b-row>
       </b-card>
-      <b-card class="basic-config isimple-form-section-full">
+      <b-card class="basic-config isimple-form-section">
         <BasicConfig
           ref="BasicConfig"
           :config="config"
@@ -83,13 +83,34 @@
         :visible="edit_json"
         v-if="edit_json"
       >
-        <b-form-textarea
-          class="isimple-form-field-text advanced-config-box"
-          spellcheck="false"
-          v-model.lazy="config_json"
-          @change="handleChangeJson"
-          style="font-family: monospace;"
-        />
+        <!--        <b-form-textarea-->
+        <!--          class="isimple-form-field-text advanced-config-box"-->
+        <!--          spellcheck="false"-->
+        <!--          v-model.lazy="config_json"-->
+        <!--          @change="handleChangeJson"-->
+        <!--          style="font-family: monospace;"-->
+        <!--        />-->
+        <!--        <b-card class="isimple-form-section-full advanced-config-box">-->
+        <!--          stuff-->
+        <!--        </b-card>-->
+        <b-card class="isimple-form-section advanced-config-box">
+          <VueFormJsonSchema
+            v-model="config"
+            class="config-form-container"
+            :schema="schema"
+            :ui-schema="ui_schema"
+            :options="{
+              castToSchemaType: false,
+              showValidationErrors: false,
+              allowInvalidModel: true,
+              ajv: {
+                options: {
+                  unknownFormats: ['directory-path', 'file-path'], // these get validated by the backend
+                },
+              },
+            }"
+          />
+        </b-card>
       </b-collapse>
     </div>
   </div>
@@ -115,6 +136,8 @@ import AsyncComputed from "vue-async-computed";
 
 import beautify from "json-beautify";
 
+import VueFormJsonSchema from "vue-form-json-schema";
+
 Vue.use(VueHotkey);
 Vue.use(AsyncComputed);
 
@@ -124,6 +147,7 @@ export default {
     PageHeader,
     PageHeaderItem,
     BasicConfig,
+    VueFormJsonSchema,
   },
   beforeMount() {
     this.handleInit();
@@ -153,6 +177,7 @@ export default {
     },
     handleCleanUp() {},
     handleGetConfig() {
+      const t0 = Date.now();
       // request config from backend
       this.$store
         .dispatch("analyzers/get_config", {
@@ -163,28 +188,34 @@ export default {
             this.$store.getters["analyzers/getAnalyzerConfig"](this.id)
           );
           this.config_json = beautify(this.config, null, 2, 120);
-          // if (this.schema) {
-          //   this.ui_schema = UiSchema(
-          //     this.schema,
-          //     this.config,
-          //     [
-          //       // these should be handled ~ BasicConfig
-          //       "frame_interval_setting",
-          //       "Nf",
-          //       "dt",
-          //       "video_path",
-          //       "design_path",
-          //       "features",
-          //       "parameters",
-          //       // these should be handled separately
-          //       "name",
-          //       "description",
-          //     ],
-          //     { "": ["design", "transform"] }
-          //   );
-          //   console.log("ui_schema=");
-          //   console.log(this.ui_schema);
-          // }
+
+          const t1 = Date.now();
+
+          if (this.schema) {
+            this.ui_schema = UiSchema(
+              this.schema,
+              this.config,
+              [
+                // these should be handled ~ BasicConfig
+                "frame_interval_setting",
+                "Nf",
+                "dt",
+                "video_path",
+                "design_path",
+                "features",
+                "parameters",
+                // these should be handled separately
+                "name",
+                "description",
+              ],
+              { "": ["design", "transform"] }
+            );
+            console.log("ui_schema=");
+            console.log(this.ui_schema);
+          }
+
+          console.log(`ui_schema: ${Date.now() - t1} elapsed`);
+          console.log(`total: ${Date.now() - t0} elapsed`);
         });
     },
     handleSetConfig() {
@@ -246,6 +277,7 @@ export default {
       config: {},
       config_json: undefined,
       edit_json: false,
+      ui_schema: [],
     };
   },
 };
@@ -268,17 +300,10 @@ export default {
 .config-form-container {
   padding: 0;
   margin: 0;
-  display: flex;
-  flex-direction: row;
-  flex-wrap: wrap;
-  overflow-x: hidden;
-  overflow-y: visible;
-  align-content: flex-start;
-  justify-content: flex-start;
-  max-width: calc(100vw - #{$sidebar-width});
 }
 
 .scrollable {
+  // it's not scrollable tho
   display: flex;
   flex-direction: column;
   max-width: calc(100vw - #{$sidebar-width});
@@ -286,6 +311,7 @@ export default {
   height: calc(100vh - #{$header-height});
   /*-ms-overflow-style: none; !* IE 11 *!*/
   /*scrollbar-width: none; !* Firefox 64 *!*/
+  flex-grow: 0;
 }
 
 $description-height: 64px;
@@ -297,23 +323,21 @@ $description-height: 64px;
   height: $description-height;
 }
 .advanced-config-box {
-  display: flex;
-  flex-shrink: 1;
-  flex-grow: 1;
+  margin-top: 0;
+}
+
+.advanced-config-box > .card-body {
 }
 
 .advanced-config-card {
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 1;
-  flex-grow: 1;
 }
+
 .advanced-config-collapse {
-  display: flex;
-  flex-direction: column;
-  flex-shrink: 0;
-  flex-grow: 1;
-  margin: 4px;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  max-width: calc(100vw - #{$sidebar-width} - 4px);
 }
 
 .description-label-row {

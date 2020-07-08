@@ -77,7 +77,7 @@ export default {
           this.waiting = false;
         });
       } else {
-        console.warn("backend may be down");
+        // console.warn("backend may be down");
       }
     },
     handleReorderQueue() {

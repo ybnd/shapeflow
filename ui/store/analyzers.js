@@ -105,9 +105,9 @@ export const mutations = {
   },
 
   setAnalyzerConfig(state, { id, config }) {
-    // console.log("analyzers/setAnalyzerConfig");
-    // console.log(id);
-    // console.log(config);
+    console.log("analyzers/setAnalyzerConfig");
+    console.log(id);
+    console.log(config);
     try {
       assert(!(id === undefined), "no id provided");
       assert(!(config === undefined), "no config");
@@ -286,6 +286,9 @@ export const actions = {
           assert(includes(EVENT_CATEGORIES, event.category));
           assert(event.hasOwnProperty("id"));
           assert(event.hasOwnProperty("data"));
+
+          console.log(`${event.category} event:`);
+          console.log(event);
 
           commit(CATEGORY_COMMIT[event.category], {
             id: event.id,

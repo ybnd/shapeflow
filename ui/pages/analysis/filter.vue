@@ -5,6 +5,14 @@
       <PageHeaderItem>
         <b-button
           class="header-button-icon"
+          @click="handleHideConfigSidebar"
+          data-toggle="tooltip"
+          title="Toggle configuration sidebar"
+        >
+          <i class="icon-menu" />
+        </b-button>
+        <b-button
+          class="header-button-icon"
           @click="handleClearFilters"
           data-toggle="tooltip"
           title="Clear alignment"
@@ -34,43 +42,55 @@
       <PageHeaderItem>
         <!-- todo: should not set features here though! -->
       </PageHeaderItem>
-      <PageHeaderItem>
-        <b-dropdown :text="masks[mask]">
-          <template v-for="(m, i) in masks">
-            <b-dropdown-item v-bind:key="i" @click="handleSetMask(m, i)">{{
-              masks[i]
-            }}</b-dropdown-item>
-          </template>
-        </b-dropdown>
-        <b-dropdown :text="filter_type">
-          <template v-for="(f, i) in filter_options.options">
-            <b-dropdown-item
-              v-bind:key="i"
-              @click="handleSetFilter(f, i)"
-              :title="filter_options.descriptions[i]"
-              >{{ filter_options.options[i] }}</b-dropdown-item
-            >
-          </template>
-        </b-dropdown>
-      </PageHeaderItem>
+      <!--      <PageHeaderItem>-->
+      <!--        <b-dropdown :text="masks[mask]">-->
+      <!--          <template v-for="(m, i) in masks">-->
+      <!--            <b-dropdown-item v-bind:key="i" @click="handleSetMask(m, i)">{{-->
+      <!--              masks[i]-->
+      <!--            }}</b-dropdown-item>-->
+      <!--          </template>-->
+      <!--        </b-dropdown>-->
+      <!--        <b-dropdown :text="filter_type">-->
+      <!--          <template v-for="(f, i) in filter_options.options">-->
+      <!--            <b-dropdown-item-->
+      <!--              v-bind:key="i"-->
+      <!--              @click="handleSetFilter(f, i)"-->
+      <!--              :title="filter_options.descriptions[i]"-->
+      <!--              >{{ filter_options.options[i] }}</b-dropdown-item-->
+      <!--            >-->
+      <!--          </template>-->
+      <!--        </b-dropdown>-->
+      <!--      </PageHeaderItem>-->
+      <PageHeaderItem> </PageHeaderItem>
     </PageHeader>
-    <div class="filter" @click="handleClick">
-      <img
-        :src="`${frame_url}?${opened_at}`"
-        alt=""
-        class="streamed-image-f"
-        :ref="ref_frame"
-      />
-      <img
-        :src="`${overlay_url}?${opened_at}`"
-        alt=""
-        class="streamed-image-f overlay"
-      />
-      <img
-        :src="`${state_url}?${opened_at}`"
-        alt=""
-        class="streamed-image-f overlay-state"
-      />
+    <div class="filter-content">
+      <ConfigSidebar :id="this.id" :hidden="true" v-if="!hideConfigSidebar" />
+      <div class="filter filter-placeholder" @click="handleClick">
+        <img
+          :src="`${frame_url}?${opened_at}`"
+          alt=""
+          :class="
+            hideConfigSidebar ? 'streamed-image-f' : 'streamed-image-f-cs'
+          "
+          :ref="ref_frame"
+        />
+        <img
+          :src="`${overlay_url}?${opened_at}`"
+          alt=""
+          class="overlay"
+          :class="
+            hideConfigSidebar ? 'streamed-image-f' : 'streamed-image-f-cs'
+          "
+        />
+        <img
+          :src="`${state_url}?${opened_at}`"
+          alt=""
+          class="overlay-state"
+          :class="
+            hideConfigSidebar ? 'streamed-image-f' : 'streamed-image-f-cs'
+          "
+        />
+      </div>
     </div>
   </div>
 </template>
@@ -91,6 +111,7 @@ import { events } from "../../static/events";
 import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
 import PageHeaderSeek from "../../components/header/PageHeaderSeek";
+import ConfigSidebar from "../../components/config/ConfigSidebar";
 import { throttle, debounce } from "throttle-debounce";
 import { clickEventToRelativeCoordinate } from "../../static/coordinates";
 
@@ -113,6 +134,7 @@ export default {
     PageHeader,
     PageHeaderItem,
     PageHeaderSeek,
+    ConfigSidebar,
   },
   methods: {
     handleInit() {
@@ -190,6 +212,16 @@ export default {
         console.warn(err);
       }
     },
+    updateFrameOnChange() {
+      console.log("filter: updateFrameOnChange");
+      const og_width = this.refs.frame.getBoundingClientRect().width;
+
+      while (this.refs.frame.getBoundingClientRect().width === og_width) {
+        console.log("frame is still the same");
+      }
+      console.log("frame has changed");
+      this.updateFrame();
+    },
     updateFrameOnceHasRect() {
       // todo: clean up
       let frame_ok = false;
@@ -246,6 +278,10 @@ export default {
     stepBackward() {
       this.$root.$emit(events.seek.step_bw(this.id));
     },
+    handleHideConfigSidebar() {
+      this.hideConfigSidebar = !this.hideConfigSidebar;
+      this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
+    },
   },
   watch: {
     "$route.query.id"() {
@@ -255,6 +291,9 @@ export default {
       this.handleCleanUp();
       this.handleInit();
       this.updateFrame();
+    },
+    "refs.frame.class"() {
+      console.log("waaa this is a change");
     },
   },
   asyncComputed: {},
@@ -319,6 +358,7 @@ export default {
     refs: {
       frame: null,
     },
+    hideConfigSidebar: true,
   }),
 };
 </script>
@@ -330,12 +370,12 @@ export default {
 
 .filter {
   z-index: 100; /* has to be top of fixed-page etc. to handle clicks*/
-  position: absolute;
-  float: left;
-  display: block;
+  /*position: relative;*/
+  /*float: left;*/
+  /*display: block;*/
   margin: 0 0 0 0;
-  height: calc(100vh - #{$header-height});
-  width: calc(100vw - #{$sidebar-width});
+  //height: calc(100vh - #{$header-height});
+  //width: calc(100vw - #{$sidebar-width});
   /* Disable double-click selection */
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -345,9 +385,20 @@ export default {
 }
 
 .streamed-image-f {
-  display: block;
+  display: inline;
   max-width: calc(100vw - #{$sidebar-width});
   max-height: calc(100vh - #{$header-height});
+  width: auto;
+  height: auto;
+  float: left;
+  position: absolute;
+  pointer-events: none;
+}
+
+.streamed-image-f-cs {
+  display: inline;
+  max-width: calc(100vw - #{$sidebar-width} - #{$config-sidebar-width});
+  max-height: calc(100vh - #{$header-height} - #{$config-sidebar-width});
   width: auto;
   height: auto;
   float: left;
@@ -372,5 +423,16 @@ export default {
 
 .hidden * {
   visibility: hidden;
+}
+
+.filter-content {
+  display: flex;
+  flex-direction: row;
+}
+
+.filter-placeholder {
+  /*background: #ff0000;*/
+  flex-grow: 1;
+  height: calc(100vh - #{$header-height});
 }
 </style>

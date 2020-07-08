@@ -57,23 +57,27 @@
 }
 
 
-
 /* Bootstrap form styles */
 
 $form-field-height: 30px;
 $form-gap: 4px;
+$form-indent: 16px;
 $scrollbar-width: 12px;
 
-$fit-width: calc(100% + 3*#{$form-gap});
+$fit-width: calc(100%  - #{$form-indent} + 3 * #{$form-gap});
 $half-width: calc((100vw - #{$sidebar-width} - 3 * #{$form-gap})/2);
 $full-width: calc(100vw - #{$sidebar-width} - 2 * #{$form-gap});
+
+.form-group {
+  margin-bottom: $form-gap;
+}
 
 .isimple-form-section {
   border-radius: 0;
   margin-top: $form-gap;
   margin-bottom: 0;
   margin-left: $form-gap;
-  width: $half-width;
+  width: 600px;
 }
 
 .isimple-form-section-full {
@@ -106,16 +110,36 @@ $full-width: calc(100vw - #{$sidebar-width} - 2 * #{$form-gap});
   padding-left: 0;
 }
 
+.isimple-form-indent {
+  margin-left: $form-indent;
+  //margin-right: $form-gap;
+  padding-right: $form-indent;
+}
+
+.isimple-form-label {
+  margin-bottom: 0;
+  display: inline;
+  vertical-align: middle;
+}
+
 .isimple-form-row {
   margin-top: $form-gap;
   margin-left: $form-gap;
-  height: $form-field-height;
-  width: $fit-width;
+  min-height: 16px;
+  //width: $fit-width;
   display: flex;
   flex-direction: row;
   flex-shrink: 1;
   flex-grow: 0;
   align-content: flex-start;
+}
+
+.isimple-form-chevron {
+  height: 18px;
+  width: 18px;
+  padding: 0;
+  background: transparent;
+  border: transparent;
 }
 
 .isimple-form-group {
@@ -140,15 +164,23 @@ $full-width: calc(100vw - #{$sidebar-width} - 2 * #{$form-gap});
   display: block;
   min-width: 120px;
   flex-shrink: 1;
-  flex-grow: 1;
+  flex-grow: 0;
+}
+
+.isimple-form-field-auto {
+  height: $form-field-height;
+  display: block;
+  width: auto;
+  flex-shrink: 1;
+  flex-grow: 0;
 }
 
 .isimple-form-field-checkbox {
-  height: $form-field-height;
+  //height: $form-field-height;
   display: block;
+  vertical-align: center;
   flex-shrink: 1;
   flex-grow: 0;
-  border-radius: 0;
 }
 
 .isimple-form-path-input {

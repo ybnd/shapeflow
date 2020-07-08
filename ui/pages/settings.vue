@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="../assets/scss/_custom.scss" />
 <template>
   <div class="fixed-page">
     <PageHeader>
@@ -143,13 +144,13 @@ $form-element-width: 600px;
   padding: 0;
   margin: 0;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   flex-wrap: wrap;
-  overflow-x: hidden;
+  overflow-x: scroll;
   overflow-y: hidden;
   align-content: flex-start;
   justify-content: flex-start;
-  max-height: calc(100vh - #{$header-height});
-  max-width: calc(100vw - #{$sidebar-width});
+  height: calc(100vh - #{$header-height});
+  width: calc(100vw - #{$sidebar-width});
 }
 </style>

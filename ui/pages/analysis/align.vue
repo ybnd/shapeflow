@@ -8,6 +8,14 @@
       <PageHeaderItem>
         <b-button
           class="header-button-icon"
+          @click="handleHideConfigSidebar"
+          data-toggle="tooltip"
+          title="Toggle configuration sidebar"
+        >
+          <i class="icon-menu" />
+        </b-button>
+        <b-button
+          class="header-button-icon"
           @click="handleClearAlignment"
           data-toggle="tooltip"
           title="Clear alignment"
@@ -99,32 +107,52 @@
         </b-dropdown>
       </PageHeaderItem>
     </PageHeader>
-    <div
-      class="align"
-      ref="align"
-      v-on:mousedown="handleStartRectangle"
-      v-on:mouseup="handleStopRectangle"
-    >
-      <img
-        :src="`${overlaid_url}?${opened_at}`"
-        alt=""
-        class="streamed-image-a"
-        ref="frame"
+    <div class="align-content">
+      <ConfigSidebar
+        :id="this.id"
+        :hidden="true"
+        v-if="!hideConfigSidebar"
+        :skip="[
+          'frame_interval_setting',
+          'Nf',
+          'dt',
+          'video_path',
+          'design_path',
+          'features',
+          'parameters',
+          'name',
+          'description',
+          'masks',
+          'design',
+        ]"
       />
-      <template v-if="moveableShow">
-        <Moveable
-          class="moveable"
-          ref="moveable"
-          v-bind="moveable"
-          @drag="handleTransform"
-          @scale="handleTransform"
-          @rotate="handleRotate"
-          @warp="handleTransform"
-          @render="handleUpdate"
-          @renderEnd="handleSaveAlignment"
-        >
-        </Moveable>
-      </template>
+      <div
+        class="align align-placeholder"
+        ref="align"
+        v-on:mousedown="handleStartRectangle"
+        v-on:mouseup="handleStopRectangle"
+      >
+        <img
+          :src="`${overlaid_url}?${opened_at}`"
+          alt=""
+          class="streamed-image-a"
+          ref="frame"
+        />
+        <template v-if="moveableShow">
+          <Moveable
+            class="moveable"
+            ref="moveable"
+            v-bind="moveable"
+            @drag="handleTransform"
+            @scale="handleTransform"
+            @rotate="handleRotate"
+            @warp="handleTransform"
+            @render="handleUpdate"
+            @renderEnd="handleSaveAlignment"
+          >
+          </Moveable>
+        </template>
+      </div>
     </div>
   </div>
 </template>
@@ -162,7 +190,7 @@ import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
 import PageHeaderSeek from "../../components/header/PageHeaderSeek";
 import { throttle, debounce } from "throttle-debounce";
-
+import ConfigSidebar from "../../components/config/ConfigSidebar";
 import isEqual from "lodash/isEqual";
 
 import VueHotkey from "v-hotkey";
@@ -185,6 +213,7 @@ export default {
     PageHeader,
     PageHeaderItem,
     PageHeaderSeek,
+    ConfigSidebar,
   },
   methods: {
     handleInit() {
@@ -523,6 +552,10 @@ export default {
         config: { transform: { type: transform } },
       });
     },
+    handleHideConfigSidebar() {
+      this.hideConfigSidebar = !this.hideConfigSidebar;
+      this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
+    },
   },
   watch: {
     "$route.query.id"() {
@@ -620,6 +653,7 @@ export default {
     },
     waitUntilHasRect: null,
     previous_id: "",
+    hideConfigSidebar: true,
   }),
 };
 </script>
@@ -701,5 +735,16 @@ export default {
 /* hide weird .moveable-reverse thing that gets rendered in the top left corner after refresh */
 .moveable-reverse * {
   /*visibility: hidden !important;*/
+}
+
+.align-content {
+  display: flex;
+  flex-direction: row;
+}
+
+.filter-placeholder {
+  /*background: #ff0000;*/
+  flex-grow: 1;
+  height: calc(100vh - #{$header-height});
 }
 </style>

@@ -23,7 +23,7 @@ export default {
 
 .page-header {
   flex-grow: 0 !important;
-  flex-shrink: 0 !important;
+  flex-shrink: 1 !important;
   height: $header-height !important;
   margin-bottom: 0 !important;
   border-bottom: 0 !important;
