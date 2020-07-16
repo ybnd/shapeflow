@@ -184,6 +184,7 @@ const getComponent = {
     };
   },
   ARRAY(title, item_type, items) {
+    // todo: deprecated!
     // console.log(`ARRAY() of type=${item_type}`);
 
     return {

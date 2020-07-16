@@ -1,5 +1,6 @@
 import Vue from "vue";
 import { get_settings, set_settings, settings_schema } from "../static/api";
+import cloneDeep from "lodash/cloneDeep";
 
 import assert from "assert";
 
@@ -35,8 +36,14 @@ export const getters = {
   getSettings: (state) => {
     return state.settings;
   },
+  getSettingsCopy: (state) => {
+    return cloneDeep(state.settings);
+  },
   getSchema: (state) => {
     return state.schema;
+  },
+  getSchemaCopy: (state) => {
+    return cloneDeep(state.schema);
   },
   isUndefined: (state) => {
     return state.settings === undefined && state.schema === undefined;

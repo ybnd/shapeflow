@@ -6,63 +6,39 @@
         <b-button @click="setSettings">Save settings & restart</b-button>
       </PageHeaderItem>
     </PageHeader>
-    <VueFormJsonSchema
-      v-model="settings"
-      class="settings-form-container"
+    <SchemaForm
+      :data="settings"
       :schema="schema"
-      :ui-schema="ui_schema"
-      :options="{
-        castToSchemaType: true,
-        showValidationErrors: true,
-        allowInvalidModel: true,
-        ajv: {
-          options: {
-            unknownFormats: ['directory-path', 'file-path'], // these get validated by the backend
-          },
-        },
-      }"
+      class="settings-form-container"
     />
-    <!--      <b-card>-->
-    <!--        <h5>Log</h5>-->
-    <!--        <FormSchema ref="form_log" v-model="settings.log" class="form-schema" />-->
-    <!--      </b-card>-->
-    <!--      <b-card>-->
-    <!--        <h5>Cache</h5>-->
-    <!--        <FormSchema-->
-    <!--          ref="form_cache"-->
-    <!--          v-model="settings.cache"-->
-    <!--          class="form-schema"-->
-    <!--      /></b-card>-->
-    <!--      <b-card-->
-    <!--        ><h5>Render</h5>-->
-    <!--        <FormSchema-->
-    <!--          ref="form_render"-->
-    <!--          v-model="settings.render"-->
-    <!--          class="form-schema"-->
-    <!--      /></b-card>-->
-    <!--      <b-card-->
-    <!--        ><h5>Format</h5>-->
-    <!--        <FormSchema-->
-    <!--          ref="form_format"-->
-    <!--          v-model="settings.format"-->
-    <!--          class="form-schema"-->
-    <!--      /></b-card>-->
 
-    <!--      <b-card-->
-    <!--        ><h5>Database</h5>-->
-    <!--        <FormSchema ref="form_db" v-model="settings.db" class="form-schema"-->
-    <!--      /></b-card>-->
+    <!--    <VueFormJsonSchema-->
+    <!--      v-model="settings"-->
+    <!--      class="settings-form-container"-->
+    <!--      :schema="schema"-->
+    <!--      :ui-schema="ui_schema"-->
+    <!--      :options="{-->
+    <!--        castToSchemaType: true,-->
+    <!--        showValidationErrors: true,-->
+    <!--        allowInvalidModel: true,-->
+    <!--        ajv: {-->
+    <!--          options: {-->
+    <!--            unknownFormats: ['directory-path', 'file-path'], // these get validated by the backend-->
+    <!--          },-->
+    <!--        },-->
+    <!--      }"-->
+    <!--    />-->
   </div>
 </template>
 
 <script>
-import VueFormJsonSchema from "vue-form-json-schema";
-
 import PageHeader from "../components/header/PageHeader";
 import PageHeaderItem from "../components/header/PageHeaderItem";
 import PageHeaderSeek from "../components/header/PageHeaderSeek";
 
-import { UiSchema } from "../static/ui-schema";
+import SchemaForm from "../components/config/SchemaForm";
+
+import cloneDeep from "lodash/cloneDeep";
 
 export default {
   name: "dashboard",
@@ -70,34 +46,27 @@ export default {
     PageHeader,
     PageHeaderItem,
     PageHeaderSeek,
-    VueFormJsonSchema,
+    SchemaForm,
   },
   mounted() {
     if (this.$store.getters["settings/isUndefined"]) {
       this.$store.dispatch("settings/sync").then(() => {
         // workaround to (re)load frontend on the settings page
         // => settings/sync action called in layouts/default is not resolved yet
-        this.settings = this.$store.getters["settings/getSettings"];
-        this.schema = this.$store.getters["settings/getSchema"];
-
-        this.ui_schema = UiSchema(this.schema, {});
-
-        console.log("ui_schema=");
-        console.log(this.ui_schema);
+        this.settings = this.$store.getters["settings/getSettingsCopy"];
+        this.schema = this.$store.getters["settings/getSchemaCopy"];
       });
     } else {
-      this.settings = this.$store.getters["settings/getSettings"];
-      this.schema = this.$store.getters["settings/getSchema"];
-
-      this.ui_schema = UiSchema(this.schema, {});
+      this.settings = this.$store.getters["settings/getSettingsCopy"];
+      this.schema = this.$store.getters["settings/getSchemaCopy"];
     }
   },
   methods: {
     setSettings() {
       this.$store
         .dispatch("settings/set", { settings: this.settings })
-        .then((settings) => {
-          this.settings = settings;
+        .then(() => {
+          this.settings = this.$store.getters["settings/getSettingsCopy"];
         });
     },
   },
@@ -111,7 +80,6 @@ export default {
         render: {},
       },
       schema: {},
-      ui_schema: [],
     };
   },
 };
@@ -148,6 +116,8 @@ $form-element-width: 600px;
   flex-wrap: wrap;
   overflow-x: scroll;
   overflow-y: hidden;
+  -ms-overflow-style: none; /* IE 11 */
+  scrollbar-width: none; /* Firefox 64 */
   align-content: flex-start;
   justify-content: flex-start;
   height: calc(100vh - #{$header-height});

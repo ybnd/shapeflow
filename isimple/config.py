@@ -96,7 +96,7 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
     """Video analyzer"""
     frame_interval_setting: FrameIntervalSetting = Field(default_factory=FrameIntervalSetting)
     dt: Optional[float] = Field(default=5.0)
-    Nf: Optional[int] = Field(default=100)
+    Nf: Optional[int] = Field(default=100, description="Nf")
 
     video: VideoFileHandlerConfig = Field(default_factory=VideoFileHandlerConfig)
     design: DesignFileHandlerConfig = Field(default_factory=DesignFileHandlerConfig)

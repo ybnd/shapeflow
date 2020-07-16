@@ -94,21 +94,38 @@
         <!--          stuff-->
         <!--        </b-card>-->
         <b-card class="isimple-form-section advanced-config-box">
-          <VueFormJsonSchema
-            v-model="config"
-            class="config-form-container"
+          <!--          <VueFormJsonSchema-->
+          <!--            v-model="config"-->
+          <!--            class="config-form-container"-->
+          <!--            :schema="schema"-->
+          <!--            :ui-schema="ui_schema"-->
+          <!--            :options="{-->
+          <!--              castToSchemaType: false,-->
+          <!--              showValidationErrors: false,-->
+          <!--              allowInvalidModel: true,-->
+          <!--              ajv: {-->
+          <!--                options: {-->
+          <!--                  unknownFormats: ['directory-path', 'file-path'], // these get validated by the backend-->
+          <!--                },-->
+          <!--              },-->
+          <!--            }"-->
+          <!--          />-->
+          <SchemaForm
+            v-if="config"
+            :data="config"
             :schema="schema"
-            :ui-schema="ui_schema"
-            :options="{
-              castToSchemaType: false,
-              showValidationErrors: false,
-              allowInvalidModel: true,
-              ajv: {
-                options: {
-                  unknownFormats: ['directory-path', 'file-path'], // these get validated by the backend
-                },
-              },
-            }"
+            :skip="[
+              'features',
+              'parameters',
+              'name',
+              'description',
+              'features',
+              'masks', // todo: this one's bugged
+              'video', // todo: this one's bugged
+              'transform', // todo: this one's bugged
+              'frame_interval_setting', // todo: isn't recognized as an Enum
+            ]"
+            class="config-form-container"
           />
         </b-card>
       </b-collapse>
@@ -120,6 +137,7 @@
 import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
 import BasicConfig from "../../components/config/BasicConfig";
+import SchemaForm from "../../components/config/SchemaForm";
 
 import { undo_config, redo_config } from "../../static/api";
 
@@ -147,7 +165,7 @@ export default {
     PageHeader,
     PageHeaderItem,
     BasicConfig,
-    VueFormJsonSchema,
+    SchemaForm,
   },
   beforeMount() {
     this.handleInit();
@@ -177,46 +195,56 @@ export default {
     },
     handleCleanUp() {},
     handleGetConfig() {
-      const t0 = Date.now();
-      // request config from backend
-      this.$store
-        .dispatch("analyzers/get_config", {
-          id: this.id,
-        })
-        .then(() => {
-          this.config = cloneDeep(
-            this.$store.getters["analyzers/getAnalyzerConfig"](this.id)
-          );
-          this.config_json = beautify(this.config, null, 2, 120);
+      console.log("configure.hangleGetConfig()");
 
-          const t1 = Date.now();
+      this.config = this.$store.getters["analyzers/getAnalyzerConfigCopy"](
+        this.id
+      );
 
-          if (this.schema) {
-            this.ui_schema = UiSchema(
-              this.schema,
-              this.config,
-              [
-                // these should be handled ~ BasicConfig
-                "frame_interval_setting",
-                "Nf",
-                "dt",
-                "video_path",
-                "design_path",
-                "features",
-                "parameters",
-                // these should be handled separately
-                "name",
-                "description",
-              ],
-              { "": ["design", "transform"] }
-            );
-            console.log("ui_schema=");
-            console.log(this.ui_schema);
-          }
+      console.log(this.config);
 
-          console.log(`ui_schema: ${Date.now() - t1} elapsed`);
-          console.log(`total: ${Date.now() - t0} elapsed`);
-        });
+      // const t0 = Date.now();
+      // // request config from backend
+      // this.$store
+      //   .dispatch("analyzers/get_config", {
+      //     id: this.id,
+      //   })
+      //   .then(() => {
+      //     this.config = this.$store.getters["analyzers/getAnalyzerConfigCopy"](
+      //       this.id
+      //     );
+      //
+      //     console.log(this.config);
+      //     // this.config_json = beautify(this.config, null, 2, 120);
+      //
+      //     // const t1 = Date.now();
+      //     //
+      //     // // if (this.schema) {
+      //     // //   this.ui_schema = UiSchema(
+      //     // //     this.schema,
+      //     // //     this.config,
+      //     // //     [
+      //     // //       // these should be handled ~ BasicConfig
+      //     // //       "frame_interval_setting",
+      //     // //       "Nf",
+      //     // //       "dt",
+      //     // //       "video_path",
+      //     // //       "design_path",
+      //     // //       "features",
+      //     // //       "parameters",
+      //     // //       // these should be handled separately
+      //     // //       "name",
+      //     // //       "description",
+      //     // //     ],
+      //     // //     { "": ["design", "transform"] }
+      //     // //   );
+      //     // //   console.log("ui_schema=");
+      //     // //   console.log(this.ui_schema);
+      //     // // }
+      //     //
+      //     // console.log(`ui_schema: ${Date.now() - t1} elapsed`);
+      //     // console.log(`total: ${Date.now() - t0} elapsed`);
+      //   });
     },
     handleSetConfig() {
       // send config to backend
@@ -277,7 +305,6 @@ export default {
       config: {},
       config_json: undefined,
       edit_json: false,
-      ui_schema: [],
     };
   },
 };

@@ -14,6 +14,7 @@ import assert from "assert";
 
 import isEmpty from "lodash/isEmpty";
 import includes from "lodash/includes";
+import cloneDeep from "lodash/cloneDeep";
 
 const CATEGORY_COMMIT = {
   status: "setAnalyzerStatus",
@@ -249,6 +250,9 @@ export const getters = {
   },
   getAnalyzerConfig: (state) => (id) => {
     return state.config[id];
+  },
+  getAnalyzerConfigCopy: (state) => (id) => {
+    return cloneDeep(state.config[id]);
   },
   getFeatures: (state) => (id) => {
     return state.config[id].features;
