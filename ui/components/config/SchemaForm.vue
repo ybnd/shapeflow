@@ -1,72 +1,73 @@
 <template>
-  <component
-    :is="context !== undefined ? 'SchemaCategory' : 'div'"
-    v-if="ok"
-    :title="title"
-  >
-    <template v-if="properties" v-for="property in properties">
-      <template v-if="p_type(property) === 'array'">
-        <SchemaForm
-          v-for="(item, index) in p_model(property)"
-          :title="array_title(property, index)"
-          :data="data"
-          :schema="schema"
-          :skip="skip"
-          :context="array_context(property, index)"
-          :key="item"
-        />
-      </template>
-      <template v-else-if="p_reference(property) !== undefined">
-        <SchemaDefinition
-          v-if="p_is_hardcoded(property)"
-          :title="p_title(property)"
-          :model="p_model(property)"
-          :definition="p_definition(property)"
-          :key="property"
-        />
-        <SchemaImplementation
-          v-else-if="p_is_implementation(property)"
-          :title="p_title(property)"
-          :model="p_model(property)"
-          :type="p_type(property)"
-          :schema="schema"
-          :skip="skip"
-          :key="property"
-        />
-        <SchemaForm
+  <div v-if="properties.length > 0">
+    <component
+      :is="context !== undefined ? 'SchemaCategory' : 'div'"
+      v-if="is_loaded"
+      :title="title"
+    >
+      <template v-if="properties" v-for="property in properties">
+        <template v-if="p_type(property) === 'array'">
+          <SchemaForm
+            v-for="(item, index) in p_model(property)"
+            :title="array_title(property, index)"
+            :data="data"
+            :schema="schema"
+            :skip="skip"
+            :context="array_context(property, index)"
+            :key="index"
+          />
+        </template>
+        <template v-else-if="p_reference(property) !== undefined">
+          <SchemaDefinition
+            v-if="p_is_hardcoded(property)"
+            :title="p_title(property)"
+            :model="p_model(property)"
+            :definition="p_definition(property)"
+            :key="property"
+          />
+          <SchemaImplementation
+            v-else-if="p_is_implementation(property)"
+            :title="p_title(property)"
+            :model="p_model(property)"
+            :type="p_type(property)"
+            :schema="schema"
+            :skip="skip"
+            :key="property"
+          />
+          <SchemaForm
+            v-else
+            :title="p_title(property)"
+            :data="data"
+            :schema="schema"
+            :skip="skip"
+            :context="property"
+            :key="property"
+          />
+        </template>
+        <SchemaField
           v-else
           :title="p_title(property)"
-          :data="data"
-          :schema="schema"
-          :skip="skip"
-          :context="property"
+          :value="p_model(property)"
+          @input="p_set(resolve_context(property), $event)"
+          :type="p_type(property)"
           :key="property"
+          :options="p_options(property)"
         />
       </template>
-      <SchemaField
-        v-else
-        :title="p_title(property)"
-        :value="p_model(property)"
-        @input="p_set(resolve_context(property), $event)"
-        :type="p_type(property)"
-        :key="property"
-        :options="p_options(property)"
-      />
-    </template>
-    <template v-else>
-      <SchemaField
-        :title="p_title()"
-        :value="p_model()"
-        @input="p_set(resolve_context(), $event)"
-        :type="p_type()"
-        :key="property"
-        :options="p_options()"
-    /></template>
-  </component>
-  <div v-else>
-    <i class="fa fa-spin fa-spinner" :style="{ 'padding-left': '4px' }" />
+      <template v-else>
+        <SchemaField
+          :title="p_title()"
+          :value="p_model()"
+          @input="p_set(resolve_context(), $event)"
+          :type="p_type()"
+          :key="property"
+          :options="p_options()"
+      /></template>
+    </component>
+    <div v-else>
+      <i class="fa fa-spin fa-spinner" :style="{ 'padding-left': '4px' }" />
+    </div>
   </div>
-  <!--  todo: loading animation?-->
 </template>
 
 <script>
@@ -117,7 +118,7 @@ export default {
     console.log(`SchemaForm ~ ${this.context}`);
   },
   computed: {
-    ok() {
+    is_loaded() {
       return this.schema.hasOwnProperty("properties");
     },
     properties() {
@@ -131,8 +132,10 @@ export default {
         props = this.schema.properties;
       } else {
         let def = this.p_definition(); // todo: placeholder, only works for single-level reference->definition context!
+
         console.log("def=");
         console.log(def);
+
         if (def !== undefined) {
           props = def.properties;
         }
@@ -144,8 +147,8 @@ export default {
         properties = [];
       }
 
-      // console.log("properties=");
-      // console.log(properties);
+      console.log("properties=");
+      console.log(properties);
 
       return properties;
     },
@@ -308,7 +311,7 @@ export default {
         return `${this.resolve_context(p)}[${i}]`;
       },
       p_model: (p) => {
-        // console.log(`SchemaForm.p_model() p=${this.resolve_context(p)}`);
+        console.log(`SchemaForm.p_model() p=${this.resolve_context(p)}`);
         return this.get_from_data(p);
       },
       p_definition: (p) => {
