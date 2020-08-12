@@ -115,15 +115,20 @@
             :data="config"
             :schema="schema"
             :skip="[
-              'features',
-              'parameters',
-              'name',
-              'description',
-              'features',
-              'masks', // todo: this one's bugged
-              'video', // todo: this one's bugged
+              'name', // handled separately
+              'description', // handled separately
+              'features', // handled by BasicConfig.vue
+              'parameters', // handled by BasicConfig.vue
+              'frame_interval_setting', // handled by BasicConfig.vue
+              'dt', // handled by BasicConfig.vue
+              'Nf', // handled by BasicConfig.vue
+              'design_path', // handled by BasicConfig.vue
+              'video_path', // handled by BasicConfig.vue
+              // 'masks',
               'transform', // todo: this one's bugged
-              'frame_interval_setting', // todo: isn't recognized as an Enum
+              // 'design',
+              // 'video',
+              'filter', // todo: this one's bugged
             ]"
             class="config-form-container"
           />

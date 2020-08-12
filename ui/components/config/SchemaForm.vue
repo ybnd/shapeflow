@@ -7,15 +7,17 @@
     >
       <template v-if="properties" v-for="property in properties">
         <template v-if="p_type(property) === 'array'">
-          <SchemaForm
-            v-for="(item, index) in p_model(property)"
-            :title="array_title(property, index)"
-            :data="data"
-            :schema="schema"
-            :skip="skip"
-            :context="array_context(property, index)"
-            :key="index"
-          />
+          <SchemaCategory :title="p_title(property)" :key="property">
+            <SchemaForm
+              v-for="(item, index) in p_model(property)"
+              :title="array_title(property, index)"
+              :data="data"
+              :schema="schema"
+              :skip="skip"
+              :context="array_context(property, index)"
+              :key="index"
+            />
+          </SchemaCategory>
         </template>
         <template v-else-if="p_reference(property) !== undefined">
           <SchemaDefinition
@@ -188,8 +190,8 @@ export default {
         return undefined;
       }
     },
-    get_from_schema(p) {
-      console.log(`SchemaForm.get_from_schema() p=${this.resolve_context(p)}`);
+    get_from_schema(p, dereference = true) {
+      // console.log(`SchemaForm.get_from_schema() p=${this.resolve_context(p)}`);
 
       var p_schema;
       p_schema = this.schema;
@@ -197,8 +199,8 @@ export default {
       // split into levels
       const levels = this.resolve_context(p).split("."); // todo: this doesn't work with array indeces!
 
-      console.log("levels=");
-      console.log(levels);
+      // console.log("levels=");
+      // console.log(levels);
 
       for (let i = 0; i < levels.length; i++) {
         if (this.get_reference(p_schema) !== undefined) {
@@ -210,17 +212,24 @@ export default {
 
         // split property & index (optional)
         let prop_index = /(.*)\[([0-9]+)]/g.exec(levels[i]);
-        console.log("prop_index=");
-        console.log(prop_index);
+        // console.log("prop_index=");
+        // console.log(prop_index);
 
         if (prop_index) {
           let prop = prop_index[1];
           let index = prop_index[2];
 
-          console.log(`${levels[i]} is indexed: ${prop} -> ${index}`);
+          // console.log("p_schema=");
+          // console.log(p_schema);
+
+          // console.log(`${levels[i]} is indexed: ${prop} -> ${index}`);
+
           p_schema = p_schema.properties[prop].items;
+
+          // console.log("p_schema=");
+          // console.log(p_schema);
         } else {
-          console.log(`${levels[i]} is not indexed`);
+          // console.log(`${levels[i]} is not indexed`);
           p_schema = p_schema.properties[levels[i]];
         }
       }
@@ -228,7 +237,7 @@ export default {
       // console.log("p_schema=");
       // console.log(p_schema);
 
-      if (this.is_reference(p_schema)) {
+      if (this.is_reference(p_schema) && dereference) {
         return pointer.get(this.schema, this.get_reference(p_schema).slice(1)); // todo: this is a quick patch to fix ROI not being dereferenced property
       } else {
         return p_schema;
@@ -254,22 +263,19 @@ export default {
         return "properties" in p_schema;
       },
       p_reference: (p) => {
-        // console.log(`SchemaForm.p_reference(), p=${this.resolve_context(p)}`);
+        console.log(`SchemaForm.p_reference(), p=${this.resolve_context(p)}`);
 
-        const p_schema = this.get_from_schema(p);
+        const p_schema = this.get_from_schema(p, false);
 
-        // console.log("this.schema=");
-        // console.log(this.schema);
-
-        // console.log("p_schema=");
-        // console.log(p_schema); // todo: gets confused when handling definitions
+        console.log("p_schema=");
+        console.log(p_schema); // todo: gets confused when handling definitions
 
         if (p_schema !== undefined) {
           var r;
 
           r = this.get_reference(p_schema);
 
-          // console.log(`r=${r}`);
+          console.log(`r=${r}`);
 
           return r;
         } else {
@@ -277,10 +283,17 @@ export default {
         }
       },
       p_type: (p) => {
-        // console.log(`SchemaForm.p_type() p=${this.resolve_context(p)}`);
-        const p_schema = this.get_from_schema(p);
+        console.log(`SchemaForm.p_type() p=${this.resolve_context(p)}`);
+        const p_schema = this.get_from_schema(p, false);
 
-        return p_schema.enum ? "enum" : p_schema.type;
+        console.log("p_schema=");
+        console.log(p_schema);
+
+        const type = p_schema.enum ? "enum" : p_schema.type;
+
+        console.log(`type=${type}`);
+
+        return type;
       },
       p_title: (p) => {
         console.log(`SchemaForm.p_title() p=${this.resolve_context(p)}`);
@@ -317,9 +330,10 @@ export default {
       p_definition: (p) => {
         console.log(`SchemaForm.p_definition() p=${this.resolve_context(p)}`);
 
-        console.log("this.p_reference(p)=");
-        console.log(this.p_reference(p));
         const r = this.p_reference(p);
+
+        console.log("this.p_reference(p)=");
+        console.log(r);
 
         if (r !== undefined) {
           return pointer.get(this.schema, this.p_reference(p).slice(1));
