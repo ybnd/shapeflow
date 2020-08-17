@@ -24,7 +24,8 @@
             v-if="p_is_hardcoded(property)"
             :title="p_title(property)"
             :model="p_model(property)"
-            :definition="p_definition(property)"
+            :definition="p_reference(property)"
+            :context="resolve_context(property)"
             :key="property"
           />
           <SchemaImplementation
@@ -34,6 +35,7 @@
             :type="p_type(property)"
             :schema="schema"
             :skip="skip"
+            :context="resolve_context(property)"
             :key="property"
           />
           <SchemaForm
@@ -42,7 +44,7 @@
             :data="data"
             :schema="schema"
             :skip="skip"
-            :context="property"
+            :context="resolve_context(property)"
             :key="property"
           />
         </template>
@@ -342,13 +344,26 @@ export default {
         }
       },
       p_is_hardcoded: (p) => {
-        // console.log(`SchemaForm.p_is_hardcoded() p=${this.resolve_context(p)}`);
-        return Object.values(SchemaDefinition.def).includes(
-          this.p_definition(p)
-        );
+        console.log(`SchemaForm.p_is_hardcoded() p=${this.resolve_context(p)}`);
+
+        const ref = this.p_reference(p);
+
+        console.log("ref=");
+        console.log(ref);
+
+        console.log("SchemaDefinition.def=");
+        console.log(SchemaDefinition.def);
+
+        const is_hardcoded = Object.values(SchemaDefinition.def).includes(ref);
+
+        console.log(`is_hardcoded=${is_hardcoded}`);
+
+        return is_hardcoded;
       },
       p_is_implementation: (p) => {
-        // console.log(`SchemaForm.p_is_implementation() p=${this.resolve_context(p)}`);
+        console.log(
+          `SchemaForm.p_is_implementation() p=${this.resolve_context(p)}`
+        );
         if (this.schema.hasOwnProperty("implementations")) {
           return (
             this.p_reference(p).split("/").pop() in this.schema.implementations

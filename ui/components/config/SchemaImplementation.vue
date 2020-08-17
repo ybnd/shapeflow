@@ -1,9 +1,11 @@
 <template>
   <SchemaForm
+    v-if="type !== undefined"
     :title="title"
     :data="model"
     :schema="implementation_schema"
     :skip="skip"
+    :context="context"
   ></SchemaForm>
 </template>
 
@@ -30,6 +32,10 @@ export default {
       type: Object,
       required: true,
     },
+    context: {
+      type: String,
+      required: false,
+    },
     skip: {
       type: Array,
       default() {
@@ -39,6 +45,16 @@ export default {
   },
   computed: {
     implementation_schema() {
+      console.log(
+        `SchemaImplementation.implementation_schema() title=${this.title} type=${this.type}`
+      );
+
+      console.log("this.schema=");
+      console.log(this.schema);
+
+      console.log("this.model=");
+      console.log(this.model);
+
       return this.schema.implementations[this.type][this.model.type];
     },
   },

@@ -115,7 +115,7 @@
             :data="config"
             :schema="schema"
             :skip="[
-              'name', // handled separately
+              // 'name', // handled separately; also applies to masks[*].name, which shouldn't be changed
               'description', // handled separately
               'features', // handled by BasicConfig.vue
               'parameters', // handled by BasicConfig.vue
@@ -125,10 +125,10 @@
               'design_path', // handled by BasicConfig.vue
               'video_path', // handled by BasicConfig.vue
               // 'masks',
-              'transform', // todo: this one's bugged
+              // 'transform'
               // 'design',
-              // 'video',
-              'filter', // todo: this one's bugged
+              'video',
+              // 'filter', // todo: this one's bugged
             ]"
             class="config-form-container"
           />
