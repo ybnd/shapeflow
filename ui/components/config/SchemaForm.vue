@@ -15,6 +15,7 @@
               :schema="schema"
               :skip="skip"
               :context="array_context(property, index)"
+              :property_as_title="property_as_title"
               :key="index"
             />
           </SchemaCategory>
@@ -36,6 +37,7 @@
             :schema="schema"
             :skip="skip"
             :context="resolve_context(property)"
+            :property_as_title="property_as_title"
             :key="property"
           />
           <SchemaForm
@@ -45,6 +47,7 @@
             :schema="schema"
             :skip="skip"
             :context="resolve_context(property)"
+            :property_as_title="property_as_title"
             :key="property"
           />
         </template>
@@ -115,6 +118,12 @@ export default {
       type: String,
       default() {
         return "";
+      },
+    },
+    property_as_title: {
+      type: Boolean,
+      default() {
+        return false;
       },
     },
   },
@@ -300,12 +309,16 @@ export default {
       p_title: (p) => {
         console.log(`SchemaForm.p_title() p=${this.resolve_context(p)}`);
 
-        const p_schema = this.get_from_schema(p);
+        if (this.property_as_title) {
+          return p;
+        } else {
+          const p_schema = this.get_from_schema(p);
 
-        console.log("p_schema=");
-        console.log(p_schema);
+          console.log("p_schema=");
+          console.log(p_schema);
 
-        return p_schema.description || p_schema.title.toLowerCase();
+          return p_schema.description || p_schema.title.toLowerCase();
+        }
       },
       p_options: (p) => {
         const p_schema = this.get_from_schema(p);

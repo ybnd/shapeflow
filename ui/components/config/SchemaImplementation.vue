@@ -6,6 +6,7 @@
     :schema="implementation_schema"
     :skip="skip"
     :context="context"
+    :property_as_title="property_as_title"
   ></SchemaForm>
 </template>
 
@@ -40,6 +41,12 @@ export default {
       type: Array,
       default() {
         return [];
+      },
+    },
+    property_as_title: {
+      type: Boolean,
+      default() {
+        return false;
       },
     },
   },

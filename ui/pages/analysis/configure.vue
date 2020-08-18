@@ -131,6 +131,7 @@
               // 'filter', // todo: this one's bugged
             ]"
             class="config-form-container"
+            :property_as_title="true"
           />
         </b-card>
       </b-collapse>
