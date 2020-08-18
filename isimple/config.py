@@ -5,6 +5,8 @@ import json
 
 from pydantic import Field, validator
 
+from isimple import __version__
+
 from isimple.core.config import extend, ConfigType, \
     log, VERSION, CLASS, untag, BaseConfig
 from isimple.core.backend import BaseAnalyzerConfig, \
@@ -110,21 +112,23 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
     def schema(cls, by_alias: bool = True) -> Dict[str, Any]:
         schema = super().schema(by_alias)
 
-        # add implementation schemas to schema
-        schema.update({'implementations': {
-            'FeatureConfig': {
-                feature: FeatureType(feature).config_schema()
-                for feature in FeatureType().options
+        schema.update({
+            'implementations': {  # add implementation schemas to schema
+                'FeatureConfig': {
+                    feature: FeatureType(feature).config_schema()
+                    for feature in FeatureType().options
+                },
+                'TransformConfig': {
+                    transform: TransformType(transform).config_schema()
+                    for transform in TransformType().options
+                },
+                'FilterConfig': {
+                    filter: FilterType(filter).config_schema()
+                    for filter in FilterType().options
+                },
             },
-            'TransformConfig': {
-                transform: TransformType(transform).config_schema()
-                for transform in TransformType().options
-            },
-            'FilterConfig': {
-                filter: FilterType(filter).config_schema()
-                for filter in FilterType().options
-            },
-        }})
+            'isimple_version': __version__,  # add version to schema
+        })
 
         # definitions in schema['implementations'] to top-level
         for category in schema['implementations'].values():
