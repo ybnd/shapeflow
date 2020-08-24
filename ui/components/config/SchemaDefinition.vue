@@ -139,6 +139,7 @@ export default {
     },
     p_set(p, a) {
       set(this.model, p, a);
+      this.$emit("input");
     },
   },
   data() {

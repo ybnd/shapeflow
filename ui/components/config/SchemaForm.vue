@@ -17,6 +17,7 @@
               :context="array_context(property, index)"
               :property_as_title="property_as_title"
               :key="index"
+              @input="p_change"
             />
           </SchemaCategory>
         </template>
@@ -28,6 +29,7 @@
             :definition="p_reference(property)"
             :context="resolve_context(property)"
             :key="property"
+            @input="p_change"
           />
           <SchemaForm
             v-else-if="p_is_implementation(property)"
@@ -39,6 +41,7 @@
             :context="resolve_context(property)"
             :property_as_title="property_as_title"
             :key="property"
+            @input="p_change"
           />
           <SchemaForm
             v-else
@@ -49,17 +52,32 @@
             :context="resolve_context(property)"
             :property_as_title="property_as_title"
             :key="property"
+            @input="p_change"
           />
         </template>
-        <SchemaField
-          v-else
-          :title="p_title(property)"
-          :value="p_model(property)"
-          @input="p_set(resolve_context(property), $event)"
-          :type="p_type(property)"
-          :key="property"
-          :options="p_options(property)"
-        />
+        <template v-else>
+          <SchemaField
+            v-if="p_is_implementation_selector(property)"
+            :title="p_title(property)"
+            :value="p_model(property)"
+            @input="p_set(resolve_context(property), $event)"
+            type="enum"
+            :key="property"
+            :options="{
+              ...p_options(property),
+              ...p_implementation_options(property),
+            }"
+          />
+          <SchemaField
+            v-else
+            :title="p_title(property)"
+            :value="p_model(property)"
+            @input="p_set(resolve_context(property), $event)"
+            :type="p_type(property)"
+            :key="property"
+            :options="p_options(property)"
+          />
+        </template>
       </template>
       <template v-else>
         <SchemaField
@@ -67,7 +85,6 @@
           :value="p_model()"
           @input="p_set(resolve_context(), $event)"
           :type="p_type()"
-          :key="property"
           :options="p_options()"
       /></template>
     </component>
@@ -296,8 +313,12 @@ export default {
       console.log(p);
       console.log(`a=`);
       console.log(a);
-
       set(this.data, p, a);
+      this.$emit("input", this.data);
+    },
+    p_change(v) {
+      console.log(`SchemaForm.p_change()`);
+      this.$emit("input", v);
     },
   },
   data() {
@@ -341,12 +362,12 @@ export default {
           }
         }
 
-        console.log(`type=${type}`);
+        // console.log(`type=${type}`);
 
         return type;
       },
       p_implementation: (p) => {
-        console.log(`SchemaForm.implementation() p=${this.resolve_context()}`);
+        // console.log(`SchemaForm.implementation() p=${this.resolve_context()}`);
 
         return {
           interface: this.p_type(p), // every implementation object should have a 'type' sibling
@@ -377,7 +398,13 @@ export default {
       },
       array_title: (p, i) => {
         // console.log(`SchemaForm.array_title() p=${this.resolve_context(p)}`);
-        return `${this.p_title(p)}[${i}]`;
+        const name = this.get_from_data(p)[i].name;
+
+        if (name !== undefined) {
+          return `${this.p_title(p)}[${i}]: ${name}`;
+        } else {
+          return `${this.p_title(p)}[${i}]`;
+        }
       },
       array_context: (p, i) => {
         // console.log(
@@ -409,7 +436,7 @@ export default {
         const ref = this.p_reference(p);
 
         // console.log("ref=");
-        // console.log(ref);
+        // console.log(ref
 
         // console.log("SchemaDefinition.def=");
         // console.log(SchemaDefinition.def);
@@ -433,6 +460,35 @@ export default {
         // console.log(`is_implementation=${is_implementation}`);
 
         return is_implementation;
+      },
+      p_is_implementation_selector: (p) => {
+        console.log(
+          `SchemaForm.p_is_implementation_selector() p=${this.resolve_context(
+            p
+          )}`
+        );
+
+        let is_selector = p === "type" && this.p_is_implementation("data");
+
+        console.log(`is_selector=${is_selector}`);
+
+        return is_selector;
+      },
+      p_implementation_options: (p) => {
+        console.log(
+          `SchemaForm.implementation_options() p=${this.resolve_context(p)}`
+        );
+
+        const category = this.p_reference("data").split("/").pop();
+        const options = Object.keys(this.schema.implementations[category]);
+
+        console.log(`category=${category}`);
+        console.log("options=");
+        console.log(options);
+
+        return {
+          enum_options: options,
+        };
       },
     };
   },

@@ -168,6 +168,7 @@ class BaseFilterTest(abc.ABC, unittest.TestCase):
 
 
 class BaseMaskFunctionTest(unittest.TestCase):
+    design: DesignFileHandler
     mask: Mask
 
     feature: MaskFunction
@@ -187,12 +188,14 @@ class BaseMaskFunctionTest(unittest.TestCase):
         mask_img = np.zeros(self.img.shape[:2], dtype=np.uint8)
         mask_img[0:25, 0:25] = ckernel(25)
 
+        self.design = DesignFileHandler('', DesignFileHandlerConfig(dpi=400))
+
         self.mask = Mask(
+            design=self.design,
             mask=mask_img,
             name='test mask',
             config=MaskConfig(),
             filter=FilterHandler(),
-            dpi=400,
         )
         assert issubclass(self.feature_type, MaskFunction)
         self.feature = self.feature_type(self.mask, self.parameters_type())

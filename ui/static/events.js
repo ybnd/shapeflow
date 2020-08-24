@@ -36,6 +36,11 @@ export let events = {
       return `sidebar-unhighlight-${url}`;
     },
   },
+  config: {
+    change(analyzer_id) {
+      return `config-change-${analyzer_id}`;
+    },
+  },
   data: {
     update(analyzer_id) {
       return `data-update-${analyzer_id}`;

@@ -1,7 +1,9 @@
 <template>
   <b-form-group>
     <details class="isimple-form-section-fit" open>
-      <summary>{{ title }}</summary>
+      <summary
+        ><b>{{ title }}</b></summary
+      >
       <div class="isimple-form-indent">
         <slot></slot>
       </div>

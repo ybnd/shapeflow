@@ -6,7 +6,7 @@ import numpy as np
 from isimple import get_logger
 from isimple.core import Described
 from isimple.core.config import BaseConfig, Configurable, Factory
-from isimple.maths.colors import HsvColor
+from isimple.maths.colors import Color
 from isimple.maths.coordinates import ShapeCoo, Roi
 
 from pydantic import validator
@@ -70,6 +70,12 @@ class TransformInterface(Configurable, abc.ABC):
     def estimate(self, roi: Roi, from_shape: tuple, to_shape: tuple) -> np.ndarray:
         raise NotImplementedError
 
+    def invert(self, matrix: Optional[np.ndarray]) -> Optional[np.ndarray]:
+        if matrix is not None:
+            return np.linalg.inv(matrix)
+        else:
+            return None
+
     @abc.abstractmethod
     def transform(self, transform: np.ndarray, img: np.ndarray, shape: Tuple[int, int]) -> np.ndarray:
         raise NotImplementedError
@@ -95,15 +101,15 @@ class FilterInterface(Configurable, abc.ABC):
     """
 
     @abc.abstractmethod
-    def set_filter(self, filter, color: HsvColor):
+    def set_filter(self, filter, color: Color):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def mean_color(self, filter) -> HsvColor:
+    def mean_color(self, filter) -> Color:
         raise NotImplementedError
 
     @abc.abstractmethod
-    def filter(self, filter, image: np.ndarray) -> np.ndarray:
+    def filter(self, filter, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
         raise NotImplementedError
 
 

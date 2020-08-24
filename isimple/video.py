@@ -25,7 +25,7 @@ from isimple.core.config import extend, __meta_ext__, __meta_sheet__
 from isimple.core.interface import TransformInterface, FilterConfig, \
     FilterInterface, FilterType, TransformType
 from isimple.core.streaming import stream, streams
-from isimple.maths.colors import HsvColor, BgrColor, convert, css_hex
+from isimple.maths.colors import Color, HsvColor, BgrColor, convert, css_hex
 from isimple.maths.images import to_mask, crop_mask, ckernel, \
     overlay, rect_contains
 from isimple.maths.coordinates import ShapeCoo, Roi
@@ -286,8 +286,10 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
         return self._config
 
     @backend.expose(backend.set_transform_implementation)  # todo: doesn't need to be an endpoint if ~ set_config (+ don't need to worry about endpoint/nested instance resolution)
-    def set_implementation(self, implementation: str) -> str:
+    def set_implementation(self, implementation: str = None) -> str:
         # If there's ever any method to set additional transform options, this method/endpoint can be merged into that
+        if implementation is None:
+            implementation = self.config.type
         return super(TransformHandler, self).set_implementation(implementation)
 
     def set(self, matrix: Optional[np.ndarray]):
@@ -296,7 +298,7 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
         if matrix is not None:
             if self._implementation.validate(matrix):
                 self._matrix = matrix
-                self._inverse = np.linalg.inv(matrix)
+                self._inverse = self._implementation.invert(matrix)
             else:
                 raise ValueError(f"Invalid transform {matrix} for "
                                  f"'{self._implementation.__class__.__name__}'")
@@ -431,19 +433,27 @@ class FilterHandler(Instance, Handler):
 
     def __init__(self, config: FilterHandlerConfig = None):
         super(FilterHandler, self).__init__(config)
-        self.set_implementation(self.config.type.__str__())
-        if self.config.data is None:
-            self.config(data=self._implementation.config_class())
+
+        if config is not None:
+            self._config = config
+        else:
+            self._config = FilterHandlerConfig()
+
+        self.set_implementation()
 
     @property
     def config(self) -> FilterHandlerConfig:
         return self._config
 
+    def set_config(self, config: dict) -> None:
+        self._config(**config)
+        self.set_implementation()
+
     @property
     def implementation(self):
         return self._implementation
 
-    def mean_color(self) -> HsvColor:
+    def mean_color(self) -> Color:
         return self.implementation.mean_color(self.config.data)
 
     def set(self, color: HsvColor = None) -> FilterConfig:
@@ -459,16 +469,27 @@ class FilterHandler(Instance, Handler):
 
         return self.config.data
 
-    def set_implementation(self, implementation: str) -> str:
+    def set_implementation(self, implementation: str = None) -> str:
+        if implementation is None:
+            implementation = self.config.type.__str__()
+
         implementation = super(FilterHandler, self).set_implementation(implementation)
 
         # Keep matching config fields accross implementations
-        self.config.data = self.implementation.config_class()(**self.config.data.to_dict())
+        old_data = self.config.data.to_dict()
+        new_keys = list(self.implementation.config_class().__fields__.keys())
+
+        self.config(
+            type=implementation,
+            data=self.implementation.config_class()(
+                **{key:old_data[key] for key in new_keys if key in old_data}
+            )
+        )
 
         return implementation
 
-    def __call__(self, frame: np.ndarray) -> np.ndarray:
-        return self.implementation.filter(self.config.data, frame)
+    def __call__(self, frame: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
+        return self.implementation.filter(self.config.data, frame, mask)
 
 
 class Mask(Instance):
@@ -476,26 +497,31 @@ class Mask(Instance):
     """
 
     filter: FilterHandler
+    _design: 'DesignFileHandler'
 
     _config_class = MaskConfig
     _config: MaskConfig
     _dpi: float
 
+    _full: np.ndarray
     _part: np.ndarray
     _rect: np.ndarray
+    _center: Tuple[int,int]
 
     def __init__(
             self,
+            design: 'DesignFileHandler',
             mask: np.ndarray,
             name: str,
             config: MaskConfig = None,
             filter: FilterHandler = None,
-            dpi: float = None
     ):
         if config is None:
             config = MaskConfig()
 
         super(Mask, self).__init__(config)
+
+        self._design = design
         self._full = mask
         self.config(name=name)
 
@@ -511,14 +537,13 @@ class Mask(Instance):
         self.filter = filter
         self.config(filter=self.filter.config)
 
-        if dpi is None:
-            raise BackendSetupError(f'Mask {self.config.name} has no defined DPI.')
-        else:
-            self._dpi = dpi
-
     @property
     def config(self) -> MaskConfig:
         return self._config
+
+    def set_config(self, config: dict) -> None:
+        self._config(**config)
+        self.filter.set_config(self.config.filter.to_dict())
 
     def set_filter(self, color: HsvColor):
         self.filter.set(color=color)
@@ -530,7 +555,7 @@ class Mask(Instance):
             If caller needs the original value, they should copy explicitly
         """
         img = self._crop(img)
-        return cv2.bitwise_and(img, img, mask=self._part)
+        return cv2.bitwise_and(img, img, mask=self.part)
 
     def _crop(self, img: np.ndarray) -> np.ndarray:
         """Crop an image to fit self._part
@@ -548,6 +573,10 @@ class Mask(Instance):
             return False
 
     @property
+    def design(self):
+        return self._design
+
+    @property
     def rows(self):
         return slice(self._rect[0], self._rect[1])
 
@@ -558,10 +587,6 @@ class Mask(Instance):
     @property
     def name(self):
         return self.config.name
-
-    @property
-    def dpi(self):
-        return self._dpi
 
     @property
     def part(self):
@@ -593,19 +618,24 @@ class DesignFileHandler(CachingInstance):
             raise FileNotFoundError
 
         self._path = path
+        self._render(path, mask_config)
+
+    def _render(self, path: str = None, mask_config: Tuple[MaskConfig, ...] = None):
+        if path is None:
+            path = self._path
+
         with self.caching():
-            self._overlay = self.peel_design(path)
+            self._overlay = self.peel_design(path, self.config.dpi)
             self._shape = (self._overlay.shape[1], self._overlay.shape[0])
 
             self._masks = []
-            for i, (mask, name) in enumerate(zip(*self.read_masks(path))):
+            for i, (mask, name) in enumerate(zip(*self.read_masks(path, self.config.dpi))):
                 if mask_config is not None and len(mask_config) > 0 and len(mask_config) >= i + 1:  # handle case len(mask_config) < len(self.read_masks(path))
                     self._masks.append(
-                        Mask(mask, name, mask_config[i], dpi=self.config.dpi)
+                        Mask(self, mask, name, mask_config[i])
                     )
                 else:
-                    self._masks.append(Mask(mask, name, dpi=self.config.dpi))
-
+                    self._masks.append(Mask(self, mask, name))
 
     @property
     def config(self) -> DesignFileHandlerConfig:
@@ -617,14 +647,14 @@ class DesignFileHandler(CachingInstance):
         for f in renders:
             os.remove(os.path.join(settings.render.dir, f))
 
-    def _peel_design(self, design_path) -> np.ndarray:
+    def _peel_design(self, design_path, dpi) -> np.ndarray:
         if not os.path.isdir(settings.render.dir):
             os.mkdir(settings.render.dir)
         else:
             self._clear_renders()
 
         check_svg(design_path)
-        OnionSVG(design_path, dpi=self.config.dpi).peel(
+        OnionSVG(design_path, dpi=dpi).peel(
             'all', to=settings.render.dir  # todo: should maybe prepend file name to avoid overwriting previous renders?
         )
         print("\n")
@@ -635,7 +665,7 @@ class DesignFileHandler(CachingInstance):
 
         return overlay
 
-    def _read_masks(self, _) -> Tuple[List[np.ndarray], List[str]]:
+    def _read_masks(self, _, __) -> Tuple[List[np.ndarray], List[str]]:
         files = os.listdir(settings.render.dir)
         files.remove('overlay.png')
 
@@ -684,11 +714,11 @@ class DesignFileHandler(CachingInstance):
 
         return masks, names
 
-    def peel_design(self, design_path) -> np.ndarray:
-        return self._cached_call(self._peel_design, design_path)
+    def peel_design(self, design_path: str, dpi: int) -> np.ndarray:
+        return self._cached_call(self._peel_design, design_path, dpi)
 
-    def read_masks(self, design_path) -> Tuple[List[np.ndarray], List[str]]:
-        return self._cached_call(self._read_masks, design_path)
+    def read_masks(self, design_path: str, dpi: int) -> Tuple[List[np.ndarray], List[str]]:
+        return self._cached_call(self._read_masks, design_path, dpi)
 
     @property
     def shape(self):
@@ -711,12 +741,14 @@ class DesignFileHandler(CachingInstance):
 class MaskFunction(Feature):
     mask: Mask
     filter: FilterHandler
+    dpi: int
 
     _feature_type: FeatureType
 
     def __init__(self, mask: Mask, global_config: FeatureConfig, config: Optional[FeatureConfig] = None):
         self.mask = mask
         self.filter = mask.filter
+        self.dpi = mask.design.config.dpi
 
         super(MaskFunction, self).__init__(
             (self.mask, self.filter), global_config, config
@@ -745,20 +777,20 @@ class MaskFunction(Feature):
         :param value: # of pixels
         :return:
         """
-        return value / (self.mask.dpi / 25.4)
+        return value / (self.dpi / 25.4)
 
     def pxsq2mmsq(self, value):
         """Convert design-space pixels to mm²
         :param value:
         :return:
         """
-        return value / (self.mask.dpi / 25.4) ** 2
+        return value / (self.dpi / 25.4) ** 2
 
-    def _guideline_color(self) -> HsvColor:
+    def _guideline_color(self) -> Color:
         return self.filter.mean_color()
 
     def value(self, frame) -> Any:
-        return self._function(self.filter(self.mask(frame)))
+        return self._function(self.filter(self.mask(frame), self.mask.part))
 
     def state(self, frame: np.ndarray, state: np.ndarray) -> np.ndarray:
         """Generate a state image (BGR)
@@ -766,7 +798,8 @@ class MaskFunction(Feature):
         if not self.skip:
             if self.ready:
                 # Masked & filtered pixels ~ frame
-                binary = self.filter(self.mask(frame))
+                binary = self.filter(self.mask(frame), self.mask.part)
+
                 substate = np.multiply(
                     np.ones((binary.shape[0], binary.shape[1], 3),
                             dtype=np.uint8),
@@ -969,14 +1002,25 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 previous_features = copy.deepcopy(self.config.features)  # todo: clean up
                 previous_video_path = copy.deepcopy(self.config.video_path)
                 previous_design_path = copy.deepcopy(self.config.design_path)
+                previous_design = copy.deepcopy(self.config.design)
                 previous_flip = copy.deepcopy(self.config.transform.flip)
                 previous_turn = copy.deepcopy(self.config.transform.turn)
                 previous_roi = copy.deepcopy(self.config.transform.roi)
+                previous_masks = copy.deepcopy(self.config.masks)
+
+                # Set implementations
+                if hasattr(self, 'transform') and 'transform' in config and 'type' in config['transform']:
+                    self.transform.set_implementation(config['transform']['type'])
+                if hasattr(self, 'design') and 'masks' in config:
+                    for i, mask in enumerate(self.design.masks):
+                        if 'type' in config['masks'][i]['filter']:
+                            mask.filter.set_implementation(config['masks'][i]['filter']['type'])
 
                 self._set_config(config)
 
                 if hasattr(self, 'transform'):
                     self.transform._config(**self.config.transform.to_dict())
+                    self.transform.set_implementation()
                 if hasattr(self, 'design'):
                     self.design._config(**self.config.design.to_dict())
 
@@ -988,6 +1032,13 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 if self.launched and previous_design_path != self.config.design_path:
                     do_commit = True
                     do_relaunch = True
+
+                # Check for design render changes
+                if previous_design != self.config.design:
+                    self.design._render(mask_config=self.config.masks)
+                    self.transform._design_shape = self.design.shape
+                    self.estimate_transform()
+                    do_commit = True
 
                 # Check for name/description changes
                 if self.config.name != previous_name:
@@ -1012,7 +1063,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
                     do_commit = True
 
-                # Get featureset instances
+                # Get featureset instances  todo: overlap with previous block?
                 if self.launched and not self._featuresets:
                     self._get_featuresets()
 
@@ -1021,6 +1072,13 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                         or previous_turn != self.config.transform.turn \
                         or previous_roi != self.config.transform.roi:
                     self.estimate_transform()  # todo: self.config.bla.thing should be exactly self.bla.config.thing always
+                    do_commit = True
+
+                # Check for mask adjustments
+                if previous_masks != self.config.masks:
+                    for i, mask in enumerate(self.design.masks):
+                        mask.set_config(self.config.masks[i].to_dict())
+
                     do_commit = True
 
                 if do_commit and not silent:  # todo: better config handling in AnalysisMdoel.store() instead!

@@ -115,7 +115,7 @@
             :data="config"
             :schema="schema"
             :skip="[
-              // 'name', // handled separately; also applies to masks[*].name, which shouldn't be changed
+              'name', // handled separately; also applies to masks[*].name, which shouldn't be changed
               'description', // handled separately
               'features', // handled by BasicConfig.vue
               'parameters', // handled by BasicConfig.vue
@@ -132,6 +132,7 @@
             ]"
             class="config-form-container"
             :property_as_title="true"
+            @input="handleUpdate"
           />
         </b-card>
       </b-collapse>
@@ -160,7 +161,7 @@ import AsyncComputed from "vue-async-computed";
 
 import beautify from "json-beautify";
 
-import VueFormJsonSchema from "vue-form-json-schema";
+import { throttle, debounce } from "throttle-debounce";
 
 Vue.use(VueHotkey);
 Vue.use(AsyncComputed);
@@ -260,12 +261,19 @@ export default {
           config: this.config,
         })
         .then(() => {
-          this.config = cloneDeep(
-            this.$store.getters["analyzers/getAnalyzerConfig"](this.id)
+          this.config = this.$store.getters["analyzers/getAnalyzerConfigCopy"](
+            this.id
           );
-          this.config_json = beautify(this.config, null, 2, 120);
+          // this.config_json = beautify(this.config, null, 2, 120);
         });
     },
+    handleUpdate: throttle(
+      250,
+      false,
+      debounce(50, false, function () {
+        this.handleSetConfig();
+      })
+    ),
     toggleEditJson() {
       this.edit_json = !this.edit_json;
     },
@@ -303,7 +311,11 @@ export default {
       };
     },
     schema() {
-      return this.$store.getters["schemas/getConfigSchema"];
+      const schema = this.$store.getters["schemas/getConfigSchema"];
+
+      console.log(schema);
+
+      return schema;
     },
   },
   data() {

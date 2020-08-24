@@ -19,7 +19,7 @@ from isimple import settings, get_logger, get_cache
 from isimple.endpoints import BackendRegistry
 
 from isimple.core import RootException, SetupError, RootInstance, Described
-from isimple.maths.colors import HsvColor
+from isimple.maths.colors import Color, HsvColor, convert, as_hsv
 from isimple.util.meta import describe_function
 from isimple.util import Timer, Timing, hash_file, timed
 from isimple.core.db import BaseAnalysisModel
@@ -207,7 +207,7 @@ class Feature(abc.ABC, Configurable):  # todo: should probably use Config for pa
     """A feature implements interactions between BackendElements to
         produce a certain value
     """
-    _color: Optional[HsvColor]
+    _color: Optional[Color]
     _state: Optional[np.ndarray]
 
     _label: str = ''  # todo: keep these in the config instead?
@@ -253,11 +253,11 @@ class Feature(abc.ABC, Configurable):  # todo: should probably use Config for pa
     def ready(self) -> bool:
         raise NotImplementedError
 
-    def set_color(self, color: HsvColor):
+    def set_color(self, color: Color):
         self._color = color
 
     @property
-    def color(self) -> HsvColor:
+    def color(self) -> Color:
         """Color of the Feature in figures.
 
             A Feature's color must be set as not to overlap with
@@ -270,7 +270,7 @@ class Feature(abc.ABC, Configurable):  # todo: should probably use Config for pa
             raise ValueError
 
     @abc.abstractmethod
-    def _guideline_color(self) -> HsvColor:
+    def _guideline_color(self) -> Color:
         """Returns the 'guideline color' of a Feature instance
             Used by FeatureSet to determine the actual _color
         """
@@ -302,13 +302,13 @@ class Feature(abc.ABC, Configurable):  # todo: should probably use Config for pa
 
 class FeatureSet(object):
     _feature: Tuple[Feature, ...]
-    _colors: Tuple[HsvColor, ...]
+    _colors: Tuple[Color, ...]
 
     def __init__(self, features: Tuple[Feature, ...]):
         self._features = features
 
-    def resolve_colors(self) -> Tuple[HsvColor, ...]:
-        guideline_colors = [f._guideline_color() for f in self._features]
+    def resolve_colors(self) -> Tuple[Color, ...]:
+        guideline_colors = [as_hsv(f._guideline_color()) for f in self._features]
 
         min_v = 20.0
         max_v = 255.0
@@ -348,7 +348,7 @@ class FeatureSet(object):
         return self.colors
 
     @property
-    def colors(self) -> Tuple[HsvColor, ...]:
+    def colors(self) -> Tuple[Color, ...]:
         return self._colors
 
     @property

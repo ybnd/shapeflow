@@ -27,6 +27,8 @@
 </template>
 
 <script>
+import events from "../../static/events";
+
 const types = {
   ENUM: "enum",
   STRING: "string",

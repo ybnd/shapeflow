@@ -14,6 +14,7 @@ _HSV = 'hsv'
 _BGR = 'bgr'
 _RGB = 'rgb'
 
+WRAP = 180
 
 class Color(BaseConfig):
     _colorspace: str = ''
@@ -41,7 +42,7 @@ class Color(BaseConfig):
     def list(self) -> List[int]:
         return list(np.uint8(list(self.__dict__.values())))
 
-    def _convert(self, colorspace: str) -> tuple:
+    def convert(self, colorspace: str) -> tuple:
         if colorspace not in self._conversion_map:
             raise NotImplementedError
         converted = cv2.cvtColor(self.np3d, self._conversion_map[colorspace])
@@ -80,9 +81,8 @@ class Color(BaseConfig):
             return v
 
 
-
 class HsvColor(Color):
-    h: int = Field(default=0, ge=0, le=180)  # todo: should wrap ~ -20 => 180-20
+    h: int = Field(default=0, ge=0, le=WRAP - 1)
     s: int = Field(default=0, ge=0, le=255)
     v: int = Field(default=0, ge=0, le=255)
 
@@ -95,11 +95,10 @@ class HsvColor(Color):
     @validator('h', pre=True)
     def hue_wraps(cls, v):
         while v < 0:
-            v += 180
-        while v > 180:
-            v -= 180
+            v += WRAP
+        while v > WRAP:
+            v -= WRAP
         return v
-
 
 
 class RgbColor(Color):
@@ -131,18 +130,35 @@ def convert(color: Color, to: Type[Color]) -> Color:
     if type(color) == to:
         return color
     else:
-        return to(*color._convert(to._colorspace))
+        return to(*color.convert(to._colorspace))
 
 
-# noinspection Mypy
+def as_hsv(color: Color) -> HsvColor:
+    out = convert(color, HsvColor)
+    assert isinstance(out, HsvColor)
+    return out
+
+
+def as_bgr(color: Color) -> BgrColor:
+    out = convert(color, BgrColor)
+    assert isinstance(out, BgrColor)
+    return out
+
+
+def as_rgb(color: Color) -> RgbColor:
+    out = convert(color, RgbColor)
+    assert isinstance(out, RgbColor)
+    return out
+
+
 def complementary(color: Color) -> Color:
-    hsv0 = convert(color, HsvColor)
-    hsv1 = HsvColor(int(round((hsv0.h + 90) % 180)), hsv0.s, hsv0.v)  # type: ignore
+    hsv0 = as_hsv(color)
+    hsv1 = HsvColor(int(round((hsv0.h + WRAP / 2) % WRAP)), hsv0.s, hsv0.v)
     return convert(hsv1, type(color))
 
+
 def css_hex(color: Color) -> str:
-    rgb = convert(color, RgbColor)
-    assert isinstance(rgb, RgbColor)
+    rgb = as_rgb(color)
 
     def _hex(num: int) -> str:
         return "{0:0{1}x}".format(num,2)
