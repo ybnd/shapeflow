@@ -29,11 +29,11 @@
             :context="resolve_context(property)"
             :key="property"
           />
-          <SchemaImplementation
+          <SchemaForm
             v-else-if="p_is_implementation(property)"
             :title="p_title(property)"
-            :model="p_model(property)"
-            :type="p_type(property)"
+            :implementation="p_implementation(property)"
+            :data="data"
             :schema="schema"
             :skip="skip"
             :context="resolve_context(property)"
@@ -104,6 +104,10 @@ export default {
       type: Object,
       required: true,
     },
+    implementation: {
+      type: Object,
+      required: false,
+    },
     skip: {
       type: Array,
       default() {
@@ -128,15 +132,15 @@ export default {
     },
   },
   mounted() {
-    console.log(`SchemaForm ~ ${this.context}`);
+    // console.log(`SchemaForm ~ ${this.context}`);
   },
   computed: {
     is_loaded() {
       return this.schema.hasOwnProperty("properties");
     },
     properties() {
-      console.log(`SchemaForm.properties() @context=${this.context}`);
-      console.log(this.schema);
+      // console.log(`SchemaForm.properties() @context=${this.context}`);
+      // console.log(this.schema);
 
       var props; // intermediate
       var properties;
@@ -144,13 +148,27 @@ export default {
       if (this.context === undefined) {
         props = this.schema.properties;
       } else {
-        let def = this.p_definition(); // todo: placeholder, only works for single-level reference->definition context!
+        if (this.implementation !== undefined) {
+          // console.log("this.implementation=");
+          // console.log(this.implementation);
 
-        console.log("def=");
-        console.log(def);
+          let impl = this.schema.implementations[this.implementation.interface][
+            this.implementation.type
+          ];
 
-        if (def !== undefined) {
-          props = def.properties;
+          // console.log("impl=");
+          // console.log(impl);
+
+          props = impl.properties;
+        } else {
+          let def = this.p_definition();
+
+          // console.log("def=");
+          // console.log(def);
+
+          if (def !== undefined) {
+            props = def.properties;
+          }
         }
       }
 
@@ -160,8 +178,8 @@ export default {
         properties = [];
       }
 
-      console.log("properties=");
-      console.log(properties);
+      // console.log("properties=");
+      // console.log(properties);
 
       return properties;
     },
@@ -182,13 +200,18 @@ export default {
       return p;
     },
     is_reference(p_schema) {
-      return (
+      // console.log("SchemaForm.is_referece()");
+      const is_reference =
         p_schema.hasOwnProperty("$ref") ||
         (p_schema.hasOwnProperty("allOf") &&
-          p_schema.allOf.hasOwnProperty("$ref")) ||
+          (p_schema.allOf.hasOwnProperty("$ref") ||
+            p_schema.allOf[0].hasOwnProperty("$ref"))) ||
         (p_schema.hasOwnProperty("items") &&
-          p_schema.items.hasOwnProperty("$ref"))
-      );
+          p_schema.items.hasOwnProperty("$ref"));
+
+      // console.log(`is_reference=${is_reference}`);
+
+      return is_reference;
     },
     get_reference(p_schema) {
       if (p_schema.hasOwnProperty("$ref")) {
@@ -204,8 +227,7 @@ export default {
     get_from_schema(p, dereference = true) {
       // console.log(`SchemaForm.get_from_schema() p=${this.resolve_context(p)}`);
 
-      var p_schema;
-      p_schema = this.schema;
+      var p_schema = this.schema;
 
       // split into levels
       const levels = this.resolve_context(p).split("."); // todo: this doesn't work with array indeces!
@@ -214,11 +236,22 @@ export default {
       // console.log(levels);
 
       for (let i = 0; i < levels.length; i++) {
-        if (this.get_reference(p_schema) !== undefined) {
-          p_schema = pointer.get(
-            this.schema,
-            this.get_reference(p_schema).slice(1)
-          );
+        if (this.is_reference(p_schema)) {
+          let r = this.get_reference(p_schema);
+          // console.log(`r=${r}`);
+          if (
+            this.schema.implementations !== undefined &&
+            this.schema.implementations.hasOwnProperty(r.split("/").slice(-1))
+          ) {
+            p_schema = this.schema.implementations[r.split("/").slice(-1)][
+              get(this.data, [...levels.slice(0, i - 1), "type"].join(".")) // get type from sibling 'type' property
+            ];
+          } else {
+            p_schema = pointer.get(this.schema, r.slice(1));
+
+            // console.log("p_schema=");
+            // console.log(p_schema);
+          }
         }
 
         // split property & index (optional)
@@ -243,10 +276,10 @@ export default {
           // console.log(`${levels[i]} is not indexed`);
           p_schema = p_schema.properties[levels[i]];
         }
-      }
 
-      // console.log("p_schema=");
-      // console.log(p_schema);
+        // console.log("p_schema=");
+        // console.log(p_schema);
+      }
 
       if (this.is_reference(p_schema) && dereference) {
         return pointer.get(this.schema, this.get_reference(p_schema).slice(1)); // todo: this is a quick patch to fix ROI not being dereferenced property
@@ -274,19 +307,18 @@ export default {
         return "properties" in p_schema;
       },
       p_reference: (p) => {
-        console.log(`SchemaForm.p_reference(), p=${this.resolve_context(p)}`);
+        // console.log(`SchemaForm.p_reference(), p=${this.resolve_context(p)}`);
 
         const p_schema = this.get_from_schema(p, false);
 
-        console.log("p_schema=");
-        console.log(p_schema); // todo: gets confused when handling definitions
+        // console.log("p_schema=");
+        // console.log(p_schema);
 
         if (p_schema !== undefined) {
           var r;
-
           r = this.get_reference(p_schema);
 
-          console.log(`r=${r}`);
+          // console.log(`r=${r}`);
 
           return r;
         } else {
@@ -294,28 +326,43 @@ export default {
         }
       },
       p_type: (p) => {
-        console.log(`SchemaForm.p_type() p=${this.resolve_context(p)}`);
+        // console.log(`SchemaForm.p_type() p=${this.resolve_context(p)}`);
         const p_schema = this.get_from_schema(p, false);
 
-        console.log("p_schema=");
-        console.log(p_schema);
+        // console.log("p_schema=");
+        // console.log(p_schema);
 
-        const type = p_schema.enum ? "enum" : p_schema.type;
+        let type = p_schema.enum ? "enum" : p_schema.type;
+
+        if (type === undefined) {
+          let r = this.p_reference(p);
+          if (r !== undefined) {
+            type = r.split("/").slice(-1)[0]; // #/definitions/Something -> Something
+          }
+        }
 
         console.log(`type=${type}`);
 
         return type;
       },
+      p_implementation: (p) => {
+        console.log(`SchemaForm.implementation() p=${this.resolve_context()}`);
+
+        return {
+          interface: this.p_type(p), // every implementation object should have a 'type' sibling
+          type: this.get_from_data("type"),
+        };
+      },
       p_title: (p) => {
-        console.log(`SchemaForm.p_title() p=${this.resolve_context(p)}`);
+        // console.log(`SchemaForm.p_title() p=${this.resolve_context(p)}`);
 
         if (this.property_as_title) {
           return p;
         } else {
           const p_schema = this.get_from_schema(p);
 
-          console.log("p_schema=");
-          console.log(p_schema);
+          // console.log("p_schema=");
+          // console.log(p_schema);
 
           return p_schema.description || p_schema.title.toLowerCase();
         }
@@ -333,22 +380,22 @@ export default {
         return `${this.p_title(p)}[${i}]`;
       },
       array_context: (p, i) => {
-        console.log(
-          `SchemaForm.array_context() p=${p} i=${i} @context=${this.context}`
-        );
+        // console.log(
+        //   `SchemaForm.array_context() p=${p} i=${i} @context=${this.context}`
+        // );
         return `${this.resolve_context(p)}[${i}]`;
       },
       p_model: (p) => {
-        console.log(`SchemaForm.p_model() p=${this.resolve_context(p)}`);
+        // console.log(`SchemaForm.p_model() p=${this.resolve_context(p)}`);
         return this.get_from_data(p);
       },
       p_definition: (p) => {
-        console.log(`SchemaForm.p_definition() p=${this.resolve_context(p)}`);
+        // console.log(`SchemaForm.p_definition() p=${this.resolve_context(p)}`);
 
         const r = this.p_reference(p);
 
-        console.log("this.p_reference(p)=");
-        console.log(r);
+        // console.log("this.p_reference(p)=");
+        // console.log(r);
 
         if (r !== undefined) {
           return pointer.get(this.schema, this.p_reference(p).slice(1));
@@ -357,33 +404,35 @@ export default {
         }
       },
       p_is_hardcoded: (p) => {
-        console.log(`SchemaForm.p_is_hardcoded() p=${this.resolve_context(p)}`);
+        // console.log(`SchemaForm.p_is_hardcoded() p=${this.resolve_context(p)}`);
 
         const ref = this.p_reference(p);
 
-        console.log("ref=");
-        console.log(ref);
+        // console.log("ref=");
+        // console.log(ref);
 
-        console.log("SchemaDefinition.def=");
-        console.log(SchemaDefinition.def);
+        // console.log("SchemaDefinition.def=");
+        // console.log(SchemaDefinition.def);
 
         const is_hardcoded = Object.values(SchemaDefinition.def).includes(ref);
 
-        console.log(`is_hardcoded=${is_hardcoded}`);
+        // console.log(`is_hardcoded=${is_hardcoded}`);
 
         return is_hardcoded;
       },
       p_is_implementation: (p) => {
-        console.log(
-          `SchemaForm.p_is_implementation() p=${this.resolve_context(p)}`
-        );
+        // console.log(
+        //   `SchemaForm.p_is_implementation() p=${this.resolve_context(p)}`
+        // );
+        let is_implementation = false;
         if (this.schema.hasOwnProperty("implementations")) {
-          return (
-            this.p_reference(p).split("/").pop() in this.schema.implementations
-          );
-        } else {
-          return false;
+          is_implementation =
+            this.p_reference(p).split("/").pop() in this.schema.implementations;
         }
+
+        // console.log(`is_implementation=${is_implementation}`);
+
+        return is_implementation;
       },
     };
   },

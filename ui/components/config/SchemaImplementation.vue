@@ -29,6 +29,10 @@ export default {
       type: String,
       required: true,
     },
+    implementation: {
+      type: String,
+      required: true,
+    },
     schema: {
       type: Object,
       required: true,

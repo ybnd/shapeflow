@@ -113,11 +113,11 @@ export default {
     },
   },
   mounted() {
-    console.log(
-      `SchemaDefinition ~ ${this.definition}; ${this.context}: ${this.title}`
-    );
-    console.log("model=");
-    console.log(this.model);
+    // console.log(
+    //   `SchemaDefinition ~ ${this.definition}; ${this.context}: ${this.title}`
+    // );
+    // console.log("model=");
+    // console.log(this.model);
   },
   methods: {
     match(match_definition) {

@@ -64,11 +64,11 @@ export default {
     },
   },
   mounted() {
-    console.log(`SchemaField ~ title=${this.title} type=${this.type}`);
+    // console.log(`SchemaField ~ title=${this.title} type=${this.type}`);
   },
   computed: {
     type_component() {
-      console.log(`SchemaField.type_component() type=${this.type}`);
+      // console.log(`SchemaField.type_component() type=${this.type}`);
       return this.components[this.type];
     },
     type_class() {
