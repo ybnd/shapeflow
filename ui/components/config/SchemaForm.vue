@@ -156,8 +156,8 @@ export default {
       return this.schema.hasOwnProperty("properties");
     },
     properties() {
-      // console.log(`SchemaForm.properties() @context=${this.context}`);
-      // console.log(this.schema);
+      console.log(`SchemaForm.properties() @context=${this.context}`);
+      console.log(this.schema);
 
       var props; // intermediate
       var properties;
@@ -166,22 +166,22 @@ export default {
         props = this.schema.properties;
       } else {
         if (this.implementation !== undefined) {
-          // console.log("this.implementation=");
-          // console.log(this.implementation);
+          console.log("this.implementation=");
+          console.log(this.implementation);
 
           let impl = this.schema.implementations[this.implementation.interface][
             this.implementation.type
           ];
 
-          // console.log("impl=");
-          // console.log(impl);
+          console.log("impl=");
+          console.log(impl);
 
           props = impl.properties;
         } else {
           let def = this.p_definition();
 
-          // console.log("def=");
-          // console.log(def);
+          console.log("def=");
+          console.log(def);
 
           if (def !== undefined) {
             props = def.properties;
@@ -367,12 +367,21 @@ export default {
         return type;
       },
       p_implementation: (p) => {
-        // console.log(`SchemaForm.implementation() p=${this.resolve_context()}`);
+        console.log(
+          `SchemaForm.p_implementation() p=${this.resolve_context(p)}`
+        );
 
-        return {
-          interface: this.p_type(p), // every implementation object should have a 'type' sibling
-          type: this.get_from_data("type"),
+        const impl = {
+          interface: this.p_type(p),
+          type: this.get_from_data("type"), // every implementation object should have a 'type' sibling
         };
+
+        console.log(this.data);
+
+        console.log("impl=");
+        console.log(impl);
+
+        return impl;
       },
       p_title: (p) => {
         // console.log(`SchemaForm.p_title() p=${this.resolve_context(p)}`);
@@ -448,29 +457,29 @@ export default {
         return is_hardcoded;
       },
       p_is_implementation: (p) => {
-        // console.log(
-        //   `SchemaForm.p_is_implementation() p=${this.resolve_context(p)}`
-        // );
+        console.log(
+          `SchemaForm.p_is_implementation() p=${this.resolve_context(p)}`
+        );
         let is_implementation = false;
         if (this.schema.hasOwnProperty("implementations")) {
           is_implementation =
             this.p_reference(p).split("/").pop() in this.schema.implementations;
         }
 
-        // console.log(`is_implementation=${is_implementation}`);
+        console.log(`is_implementation=${is_implementation}`);
 
         return is_implementation;
       },
       p_is_implementation_selector: (p) => {
-        console.log(
-          `SchemaForm.p_is_implementation_selector() p=${this.resolve_context(
-            p
-          )}`
-        );
+        // console.log(
+        //   `SchemaForm.p_is_implementation_selector() p=${this.resolve_context(
+        //     p
+        //   )}`
+        // );
 
         let is_selector = p === "type" && this.p_is_implementation("data");
 
-        console.log(`is_selector=${is_selector}`);
+        // console.log(`is_selector=${is_selector}`);
 
         return is_selector;
       },

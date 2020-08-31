@@ -435,12 +435,15 @@ export const actions = {
   async refresh({ getters, dispatch }, { id }) {
     try {
       assert(id !== undefined, "no id provided");
+      console.log(`action: analyzers.refresh (id=${id})`);
+
       if (getters["getAnalyzerConfig"](id) === undefined) {
         dispatch("get_config", { id: id });
       }
       if (getters["getAnalyzerStatus"](id) === undefined) {
         dispatch("get_status", { id: id });
       }
+      return;
     } catch (e) {}
   },
 

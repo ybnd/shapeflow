@@ -1,39 +1,27 @@
 <template>
   <div class="config-sidebar">
-    <VueFormJsonSchema
-      v-if="config && ui_schema.length > 0"
-      v-model="config"
-      class="sidebar-form-container"
+    <SchemaForm
+      v-if="config"
+      :data="config"
       :schema="schema"
-      :ui-schema="ui_schema"
-      :options="{
-        validate: false,
-        validateOnLoad: false,
-        showValidationErrors: true,
-        ajv: {
-          options: {
-            unknownFormats: ['directory-path', 'file-path'], // these get validated by the backend
-            format: false,
-            verbose: true,
-          },
-        },
-      }"
+      :skip="skip"
+      class="config-form-container"
+      :property_as_title="true"
+      @input="handleUpdate"
     />
   </div>
 </template>
 
 <script>
-import { UiSchema } from "../../static/ui-schema";
-import VueFormJsonSchema from "vue-form-json-schema";
-import cloneDeep from "lodash/cloneDeep";
+import SchemaForm from "../../components/config/SchemaForm";
 
-import Vue from "vue";
-import AsyncComputed from "vue-async-computed";
-Vue.use(AsyncComputed);
+import cloneDeep from "lodash/cloneDeep";
+import { throttle, debounce } from "throttle-debounce";
+import { events } from "static/events";
 
 export default {
   name: "ConfigSidebar",
-  components: { VueFormJsonSchema },
+  components: { SchemaForm },
   props: {
     hidden: {
       type: Boolean,
@@ -64,46 +52,68 @@ export default {
       },
     },
   },
-  mounted() {
-    this.$store
-      .dispatch("analyzers/refresh", { id: this.id })
-      .then(this.initConfig());
+  beforeMount() {
+    this.handleInit();
+  },
+  beforeDestroy() {
+    this.handleCleanUp();
   },
   methods: {
-    initConfig() {
-      this.config = cloneDeep(
-        this.$store.getters["analyzers/getAnalyzerConfig"](this.id)
+    handleInit() {
+      this.previous_id = this.id;
+
+      if (this.$store.getters["analyzers/getIndex"](this.id) === -1) {
+        this.$router.push(`/`);
+      } else {
+        this.$root.$emit(events.sidebar.open(this.id));
+        this.edit_json = this.$store.getters[
+          "settings/getSettings"
+        ].app.edit_json;
+        this.handleGetConfig();
+      }
+    },
+    handleCleanUp() {},
+    handleGetConfig() {
+      console.log("configure.hangleGetConfig()");
+
+      this.config = this.$store.getters["analyzers/getAnalyzerConfigCopy"](
+        this.id
       );
-      console.log("this.config = ");
-      console.log(this.config);
     },
     handleSetConfig() {
-      this.$store.dispatch("analyzers/set_config", {
-        id: this.id,
-        config: this.config,
-      });
+      // send config to backend
+      this.$store
+        .dispatch("analyzers/set_config", {
+          id: this.id,
+          config: this.config,
+        })
+        .then(() => {
+          this.config = this.$store.getters["analyzers/getAnalyzerConfigCopy"](
+            this.id
+          );
+        });
+    },
+    handleUpdate: throttle(
+      250,
+      false,
+      debounce(50, false, function () {
+        this.handleSetConfig();
+      })
+    ),
+  },
+  watch: {
+    "$route.query.id"() {
+      console.log(`id has changed ${this.id}`);
+
+      // this.$forceUpdate();
+      this.handleCleanUp();
+      this.handleInit();
     },
   },
   computed: {
     schema() {
-      return this.$store.getters["schemas/getConfigSchema"];
-    },
-  },
-  asyncComputed: {
-    ui_schema: {
-      async get() {
-        if (this.config !== undefined && this.schema !== undefined) {
-          const ui_schema = UiSchema(this.schema, this.config, this.skip);
-          // console.log("this.schema = ");
-          // console.log(this.schema);
-          // console.log("this.ui_schema = ");
-          // console.log(JSON.stringify(this.ui_schema));
-          return ui_schema;
-        } else {
-          return [];
-        }
-      },
-      default: [],
+      const schema = this.$store.getters["schemas/getConfigSchema"];
+      return schema;
     },
   },
   data() {

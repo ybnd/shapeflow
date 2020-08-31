@@ -4,7 +4,10 @@
       <!--      todo: check if model fits definition? -->
       <b-row class="isimple-form-row">
         <b-input-group class="isimple-form-group">
-          <label class="mr-sm-2 isimple-form-label" :style="{ width: '60px' }">
+          <label
+            class="mr-sm-2 isimple-form-label"
+            :style="{ width: '60px', 'margin-right': '-10px !important' }"
+          >
             {{ title }} (x,y)
           </label>
           <SchemaField
@@ -26,7 +29,10 @@
     <template v-else-if="match(def.HSVCOLOR)">
       <b-row class="isimple-form-row">
         <b-input-group class="isimple-form-group">
-          <label class="mr-sm-2 isimple-form-label" :style="{ width: '90px' }">
+          <label
+            class="mr-sm-2 isimple-form-label"
+            :style="{ width: '80px', 'margin-right': '-8px !important' }"
+          >
             {{ title }} (h,s,v)
           </label>
           <SchemaField

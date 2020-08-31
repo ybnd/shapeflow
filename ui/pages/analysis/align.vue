@@ -118,12 +118,12 @@
           'dt',
           'video_path',
           'design_path',
+          'design',
           'features',
           'parameters',
           'name',
           'description',
           'masks',
-          'design',
         ]"
       />
       <div

@@ -148,23 +148,15 @@ import SchemaForm from "../../components/config/SchemaForm";
 
 import { undo_config, redo_config } from "../../static/api";
 
-import { UiSchema } from "../../static/ui-schema";
-
 import { events } from "../../static/events";
 
 import cloneDeep from "lodash/cloneDeep";
 
-import VueHotkey from "v-hotkey";
-import Vue from "vue";
-
-import AsyncComputed from "vue-async-computed";
-
-import beautify from "json-beautify";
-
 import { throttle, debounce } from "throttle-debounce";
 
+import Vue from "vue";
+import VueHotkey from "v-hotkey";
 Vue.use(VueHotkey);
-Vue.use(AsyncComputed);
 
 export default {
   name: "dashboard",
@@ -208,50 +200,8 @@ export default {
         this.id
       );
 
+      console.log("config=");
       console.log(this.config);
-
-      // const t0 = Date.now();
-      // // request config from backend
-      // this.$store
-      //   .dispatch("analyzers/get_config", {
-      //     id: this.id,
-      //   })
-      //   .then(() => {
-      //     this.config = this.$store.getters["analyzers/getAnalyzerConfigCopy"](
-      //       this.id
-      //     );
-      //
-      //     console.log(this.config);
-      //     // this.config_json = beautify(this.config, null, 2, 120);
-      //
-      //     // const t1 = Date.now();
-      //     //
-      //     // // if (this.schema) {
-      //     // //   this.ui_schema = UiSchema(
-      //     // //     this.schema,
-      //     // //     this.config,
-      //     // //     [
-      //     // //       // these should be handled ~ BasicConfig
-      //     // //       "frame_interval_setting",
-      //     // //       "Nf",
-      //     // //       "dt",
-      //     // //       "video_path",
-      //     // //       "design_path",
-      //     // //       "features",
-      //     // //       "parameters",
-      //     // //       // these should be handled separately
-      //     // //       "name",
-      //     // //       "description",
-      //     // //     ],
-      //     // //     { "": ["design", "transform"] }
-      //     // //   );
-      //     // //   console.log("ui_schema=");
-      //     // //   console.log(this.ui_schema);
-      //     // // }
-      //     //
-      //     // console.log(`ui_schema: ${Date.now() - t1} elapsed`);
-      //     // console.log(`total: ${Date.now() - t0} elapsed`);
-      //   });
     },
     handleSetConfig() {
       // send config to backend
@@ -264,7 +214,6 @@ export default {
           this.config = this.$store.getters["analyzers/getAnalyzerConfigCopy"](
             this.id
           );
-          // this.config_json = beautify(this.config, null, 2, 120);
         });
     },
     handleUpdate: throttle(
@@ -276,19 +225,6 @@ export default {
     ),
     toggleEditJson() {
       this.edit_json = !this.edit_json;
-    },
-    handleChangeJson() {
-      this.$store
-        .dispatch("analyzers/set_config", {
-          id: this.id,
-          config: JSON.parse(this.config_json),
-        })
-        .then(() => {
-          this.config = cloneDeep(
-            this.$store.getters["analyzers/getAnalyzerConfig"](this.id)
-          );
-          this.config_json = beautify(this.config, null, 2, 120);
-        });
     },
   },
   watch: {
@@ -311,17 +247,12 @@ export default {
       };
     },
     schema() {
-      const schema = this.$store.getters["schemas/getConfigSchema"];
-
-      console.log(schema);
-
-      return schema;
+      return this.$store.getters["schemas/getConfigSchema"];
     },
   },
   data() {
     return {
       config: {},
-      config_json: undefined,
       edit_json: false,
     };
   },

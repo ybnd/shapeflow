@@ -64,7 +64,24 @@
       <PageHeaderItem> </PageHeaderItem>
     </PageHeader>
     <div class="filter-content">
-      <ConfigSidebar :id="this.id" :hidden="true" v-if="!hideConfigSidebar" />
+      <ConfigSidebar
+        :id="this.id"
+        :hidden="true"
+        v-if="!hideConfigSidebar"
+        :skip="[
+          'frame_interval_setting',
+          'Nf',
+          'dt',
+          'video_path',
+          'design_path',
+          'design',
+          'features',
+          'parameters',
+          'name',
+          'description',
+          'transform',
+        ]"
+      />
       <div class="filter filter-placeholder" @click="handleClick">
         <img
           :src="`${frame_url}?${opened_at}`"
