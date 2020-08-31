@@ -40,28 +40,10 @@
       </PageHeaderItem>
       <PageHeaderSeek :id="id" :key="id" />
       <PageHeaderItem>
-        <!-- todo: should not set features here though! -->
+        <b-button @click="hideVideoFrame = !hideVideoFrame">
+          {{ hideVideoFrame ? "Show video frame" : "Hide video frame" }}
+        </b-button>
       </PageHeaderItem>
-      <!--      <PageHeaderItem>-->
-      <!--        <b-dropdown :text="masks[mask]">-->
-      <!--          <template v-for="(m, i) in masks">-->
-      <!--            <b-dropdown-item v-bind:key="i" @click="handleSetMask(m, i)">{{-->
-      <!--              masks[i]-->
-      <!--            }}</b-dropdown-item>-->
-      <!--          </template>-->
-      <!--        </b-dropdown>-->
-      <!--        <b-dropdown :text="filter_type">-->
-      <!--          <template v-for="(f, i) in filter_options.options">-->
-      <!--            <b-dropdown-item-->
-      <!--              v-bind:key="i"-->
-      <!--              @click="handleSetFilter(f, i)"-->
-      <!--              :title="filter_options.descriptions[i]"-->
-      <!--              >{{ filter_options.options[i] }}</b-dropdown-item-->
-      <!--            >-->
-      <!--          </template>-->
-      <!--        </b-dropdown>-->
-      <!--      </PageHeaderItem>-->
-      <PageHeaderItem> </PageHeaderItem>
     </PageHeader>
     <div class="filter-content">
       <ConfigSidebar
@@ -84,6 +66,7 @@
       />
       <div class="filter filter-placeholder" @click="handleClick">
         <img
+          v-if="!hideVideoFrame"
           :src="`${frame_url}?${opened_at}`"
           alt=""
           :class="
@@ -376,6 +359,7 @@ export default {
       frame: null,
     },
     hideConfigSidebar: true,
+    hideVideoFrame: false,
   }),
 };
 </script>
