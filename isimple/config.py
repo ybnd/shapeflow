@@ -106,7 +106,7 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
     masks: Tuple[MaskConfig, ...] = Field(default_factory=tuple)
 
     features: Tuple[FeatureType, ...] = Field(default=())
-    parameters: Tuple[FeatureConfig, ...] = Field(default=())
+    feature_parameters: Tuple[FeatureConfig, ...] = Field(default=())
 
     @classmethod
     def schema(cls, by_alias: bool = True) -> Dict[str, Any]:
@@ -140,7 +140,7 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
 
 
     @validator('masks', pre=True)
-    def _validate_masks(cls, value, values):  # todo: actually validate
+    def _validate_masks(cls, value, values):
         for mask in value:
             # Resolve class
             if isinstance(mask, dict):
@@ -153,7 +153,7 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
             # Resolve parameters
             parameters = []
 
-            if 'features' in values and 'parameters' in values:
+            if 'features' in values and 'feature_parameters' in values:
                 for index, feature in enumerate(values['features']):
                     if index >= len(mask.parameters) or mask.parameters[index] is None:
                         parameters.append(None)
@@ -186,7 +186,7 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
             for feature in value
         ])
 
-    @validator('parameters', pre=True)
+    @validator('feature_parameters', pre=True)
     def _validate_parameters(cls, value, values):  # todo: actually validate
         # todo: can we know for certain that values['features'] has already been validated?
 
@@ -210,8 +210,8 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
             else:
                 # Resolve not provided to default FeatureConfig silently
                 parameters.append(feature.get()._config_class())
-        return tuple(parameters)
 
+        return tuple(parameters)
 
     _validate_fis = validator('frame_interval_setting')(BaseConfig._resolve_enforcedstr)
 
@@ -385,6 +385,11 @@ def normalize_config(d: dict) -> dict:
                             c0 = mask['filter']['data'].pop('c0')
                         if 'c1' in mask['filter']['data']:
                             mask['filter']['data'].pop('c1')
+        if before_version(d[VERSION], '0.3.15'):
+            normalizing_to('0.3.15')
+            # rename parameters -> feature_parameters
+            if 'parameters' in d:
+                d['feature_parameters'] = d.pop('parameters')
 
     else:
         raise NotImplementedError

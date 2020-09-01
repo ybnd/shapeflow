@@ -58,7 +58,7 @@
           'design_path',
           'design',
           'features',
-          'parameters',
+          'feature_parameters',
           'name',
           'description',
           'transform',

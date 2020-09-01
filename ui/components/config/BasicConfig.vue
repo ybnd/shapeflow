@@ -158,7 +158,7 @@
             ><b-form-group>
               <b-input-group :key="`par-input-group-row-${feature}`">
                 <template
-                  v-for="(value, parameter) in config.parameters[index]"
+                  v-for="(value, parameter) in config.feature_parameters[index]"
                 >
                   <b-input-group-text
                     :key="`form-text-${feature}-${parameter}`"
@@ -168,7 +168,7 @@
                   <b-form-input
                     type="text"
                     class="config-form"
-                    v-model="config.parameters[index][parameter]"
+                    v-model="config.feature_parameters[index][parameter]"
                     :key="`form-field-${feature}-${parameter}`"
                     @change="emitChange"
                   >
@@ -251,7 +251,7 @@ export default {
           Nf: 100,
           dt: 5,
           features: [],
-          parameters: [], // todo: these don't actually get sent to the backend
+          feature_parameters: [], // todo: these don't actually get sent to the backend
         };
       },
     },
@@ -269,8 +269,11 @@ export default {
       console.log(`BasicConfig.hasParameterData(${feature}, ${parameter})`);
 
       let has_parameter_data = false;
-      if (has(this.config.parameters, feature)) {
-        has_parameter_data = has(this.config.parameters[feature], parameter);
+      if (has(this.config.feature_parameters, feature)) {
+        has_parameter_data = has(
+          this.config.feature_parameters[feature],
+          parameter
+        );
       }
       return has_parameter_data;
     },
@@ -302,19 +305,19 @@ export default {
       if (this.config.features === undefined) {
         this.config.features = [];
       }
-      if (this.config.parameters === undefined) {
-        this.config.parameters = [];
+      if (this.config.feature_parameters === undefined) {
+        this.config.feature_parameters = [];
       }
 
       this.config.features = [...this.config.features, feature];
 
       try {
-        this.config.parameters = [
-          ...this.config.parameters,
+        this.config.feature_parameters = [
+          ...this.config.feature_parameters,
           JSON.parse(JSON.stringify(this.features.parameter_defaults[feature])),
         ];
       } catch (e) {
-        this.config.parameters = [];
+        this.config.feature_parameters = [];
       }
 
       this.validFeatures = this.config.features.length > 0;
@@ -329,7 +332,7 @@ export default {
       if (this.features.options.includes(feature)) {
         // console.log("selecting feature");
         // console.log(feature);
-        this.config.parameters[index] = JSON.parse(
+        this.config.feature_parameters[index] = JSON.parse(
           JSON.stringify(this.features.parameter_defaults[feature])
         );
       }
@@ -397,8 +400,8 @@ export default {
     config() {
       // console.log("BasicConfig.watch.config()");
       for (let i = 0; i < this.config.features.length; i++) {
-        if (!this.config.parameters[i]) {
-          this.config.parameters[i] = JSON.parse(
+        if (!this.config.feature_parameters[i]) {
+          this.config.feature_parameters[i] = JSON.parse(
             JSON.stringify(
               this.features.parameter_defaults[this.config.features[i]]
             )

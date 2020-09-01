@@ -118,7 +118,7 @@
               'name', // handled separately; also applies to masks[*].name, which shouldn't be changed
               'description', // handled separately
               'features', // handled by BasicConfig.vue
-              'parameters', // handled by BasicConfig.vue
+              'feature_parameters', // handled by BasicConfig.vue
               'frame_interval_setting', // handled by BasicConfig.vue
               'dt', // handled by BasicConfig.vue
               'Nf', // handled by BasicConfig.vue

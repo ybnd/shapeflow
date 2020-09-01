@@ -943,13 +943,15 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             feature: FeatureSet(
                 tuple(
                     feature.get()(
-                        mask, global_config, mask.config.parameters[index]
+                        mask,
+                        global_config,
+                        mask.config.parameters[index] if index < len(mask.config.parameters) else None
                     ) for mask in self.design.masks
                 ),
             ) for index, (feature, global_config) in enumerate(
                 zip(
                     self.config.features,
-                    self.config.parameters
+                    self.config.feature_parameters
                 )
             )
         }
