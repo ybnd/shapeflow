@@ -219,13 +219,18 @@ class Feature(abc.ABC, Configurable):  # todo: should probably use Config for pa
     _global_config: FeatureConfig
     _config_class: Type[FeatureConfig] = FeatureConfig
 
-    def __init__(self, elements: Tuple[Instance, ...], global_config: FeatureConfig, config: Optional[FeatureConfig] = None):
+    def __init__(self, elements: Tuple[Instance, ...], global_config: FeatureConfig, config: Optional[dict] = None):
         self._skip = False
         self._ready = False
 
         self._elements = elements
         self._global_config = global_config
-        self._config = config
+
+        if config is not None:
+            self._config = global_config.__class__(**config)
+        else:
+            self._config = None
+
         self._color = HsvColor(h=0,s=200,v=255)  # start out as red
 
     def calculate(self, frame: np.ndarray, state: np.ndarray = None) \

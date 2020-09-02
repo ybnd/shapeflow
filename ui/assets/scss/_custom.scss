@@ -60,13 +60,15 @@
 /* Bootstrap form styles */
 
 $form-field-height: 30px;
-$form-gap: 4px;
-$form-indent: 4px;
+$form-gap: 2px;
+$form-indent: 3px; /* makes section border fit neatly under <details> twisty triangle*/
 $scrollbar-width: 12px;
 
 $fit-width: calc(100%  - #{$form-indent} + 3 * #{$form-gap});
 $half-width: calc((100vw - #{$sidebar-width} - 3 * #{$form-gap})/2);
 $full-width: calc(100vw - #{$sidebar-width} - 2 * #{$form-gap});
+
+$form-color: theme-color('gray-700');
 
 .form-group {
   margin-bottom: $form-gap;
@@ -90,10 +92,11 @@ $full-width: calc(100vw - #{$sidebar-width} - 2 * #{$form-gap});
 
 .isimple-form-section-fit {
   border-radius: 0;
-  margin-top: $form-gap;
-  margin-bottom: 0;
+  margin-top: 0;
+  margin-bottom: $form-gap;
   margin-left: $form-gap;
   width: $fit-width;
+  color: $form-color;
 }
 
 .card-header {
@@ -113,7 +116,10 @@ $full-width: calc(100vw - #{$sidebar-width} - 2 * #{$form-gap});
 .isimple-form-indent {
   margin-left: $form-indent;
   //margin-right: $form-gap;
-  padding-right: $form-indent;
+  padding-left: $form-gap;
+  border-left-width: 1px;
+  border-left-color: theme-color("gray-200");
+  border-left-style: solid;
 }
 
 .isimple-form-label {

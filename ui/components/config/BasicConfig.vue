@@ -100,7 +100,7 @@
     </b-row>
     <b-row class="card-form-row">
       <b-input-group-text class="leftmost-text">
-        <b>Frames</b>
+        <b>frames</b>
       </b-input-group-text>
       <b-form-group>
         <b-input-group>
@@ -138,7 +138,7 @@
           <b-form-row class="feature-row" :key="`feature-col-row-${index}`">
             <b-input-group
               ><b-input-group-text class="leftmost-text">
-                <template v-if="index === 0"> <b>Features</b></template>
+                <template v-if="index === 0"> <b>features</b></template>
                 <template v-else></template>
               </b-input-group-text>
               <b-form-select
@@ -202,7 +202,7 @@
           >
             <i class="fa fa-plus" />
             <div class="add-feature-text">
-              &nbsp; Add feature...
+              &nbsp; add feature...
             </div>
           </b-input-group-text>
         </b-form-row>
@@ -478,6 +478,7 @@ export default {
   border-radius: 0;
   margin-right: -1px;
 }
+
 .column-container {
   padding-right: 3px;
   vertical-align: bottom;

@@ -1012,17 +1012,17 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
                 # Set implementations
                 if hasattr(self, 'transform') and 'transform' in config and 'type' in config['transform']:
-                    self.transform.set_implementation(config['transform']['type'])
+                    self.transform.set_implementation(config['transform']['type'])   # todo: shouldn't do this every time
                 if hasattr(self, 'design') and 'masks' in config:
                     for i, mask in enumerate(self.design.masks):
                         if 'type' in config['masks'][i]['filter']:
-                            mask.filter.set_implementation(config['masks'][i]['filter']['type'])
+                            mask.filter.set_implementation(config['masks'][i]['filter']['type'])  # todo: shouldn't do this every time
 
                 self._set_config(config)
 
                 if hasattr(self, 'transform'):
                     self.transform._config(**self.config.transform.to_dict())
-                    self.transform.set_implementation()
+                    self.transform.set_implementation()   # todo: shouldn't do this every time
                 if hasattr(self, 'design'):
                     self.design._config(**self.config.design.to_dict())
 

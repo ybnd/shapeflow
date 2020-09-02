@@ -5,7 +5,7 @@
         <b-button
           class="header-button-icon"
           data-toggle="tooltip"
-          title="Clear configuration"
+          title="Reset to defaults (DOES NOTHING FOR NOW)"
           @click="undefined"
         >
           <i class="icon-ban" />
@@ -49,14 +49,9 @@
             <b-form-input
               class="isimple-form-field-text"
               v-model.lazy="config.name"
-              @change="handleSetConfig"
+              @change="handleUpdate"
             ></b-form-input>
           </b-input-group>
-        </b-row>
-        <b-row class="isimple-form-row description-label-row">
-          <b-input-group-text class="isimple-form-field-text"
-            >description</b-input-group-text
-          >
         </b-row>
         <b-row class="isimple-form-row description-row">
           <b-input-group class="isimple-form-group">
@@ -64,7 +59,8 @@
             <b-form-textarea
               class="isimple-form-field-text description-box"
               v-model.lazy="config.description"
-              @change="handleSetConfig"
+              placeholder="add a description here"
+              @change="handleUpdate"
             ></b-form-textarea>
           </b-input-group>
         </b-row>
@@ -74,7 +70,7 @@
           ref="BasicConfig"
           :config="config"
           :static-paths="true"
-          @change="handleSetConfig"
+          @change="handleUpdate"
         />
       </b-card>
       <b-collapse
@@ -125,9 +121,10 @@
               'design_path', // handled by BasicConfig.vue
               'video_path', // handled by BasicConfig.vue
               // 'masks',
-              // 'transform'
+              // 'parameters',
+              // 'transform',
               // 'design',
-              'video',
+              // 'video',
               // 'filter', // todo: this one's bugged
             ]"
             class="config-form-container"
@@ -219,7 +216,7 @@ export default {
     handleUpdate: throttle(
       250,
       false,
-      debounce(50, false, function () {
+      debounce(250, false, function () {
         this.handleSetConfig();
       })
     ),

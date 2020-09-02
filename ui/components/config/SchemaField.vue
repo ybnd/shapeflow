@@ -87,13 +87,14 @@ export default {
     },
     field: {
       get() {
-        return this.value;
+        return this.parse[this.type](this.value);
       },
       set(v) {
         console.log("SchemaField.set()");
         console.log("v=");
         console.log(v);
-        this.$emit("input", v);
+
+        this.$emit("input", this.parse[this.type](v));
       },
     },
   },
@@ -127,8 +128,8 @@ export default {
         [types.ENUM]: {},
         [types.STRING]: {},
         [types.INTEGER]: {},
-        [types.FLOAT]: { step: 0.1 },
-        [types.NUMBER]: { step: 0.1 },
+        [types.FLOAT]: { step: 0.001 },
+        [types.NUMBER]: { step: 0.001 },
         [types.BOOLEAN]: {},
       },
       default_style: {

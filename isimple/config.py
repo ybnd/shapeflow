@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Dict, Any, Type
+from typing import Optional, Tuple, Dict, Any, Type, Union
 
 import yaml
 import json
@@ -73,7 +73,7 @@ class MaskConfig(BaseConfig):
     skip: bool = Field(default=False)
     filter: FilterHandlerConfig = Field(default_factory=FilterHandlerConfig)
 
-    parameters: Tuple[Optional[FeatureConfig],...] = Field(default=())
+    parameters: Tuple[Optional[dict],...] = Field(default=())
 
     @property
     def ready(self):
@@ -158,22 +158,7 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
                     if index >= len(mask.parameters) or mask.parameters[index] is None:
                         parameters.append(None)
                     else:
-                        if isinstance(mask.parameters[index], dict):
-                            parameters.append(
-                                feature.config_class()(
-                                    **mask.parameters[index]
-                                )
-                            )
-                        elif isinstance(mask.parameters[index], FeatureConfig):
-                            parameters.append(
-                                mask.parameters[index]
-                            )
-                        elif mask.parameters[index] is None:
-                            parameters.append(None)
-                        else:
-                            raise ValueError(
-                                f"can not resolve parameters {mask.parameters[index]}"
-                            )
+                        parameters.append(mask.parameters[index])
 
             mask.parameters = tuple(parameters)
         return tuple(value)
