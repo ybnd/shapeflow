@@ -79,7 +79,7 @@ class MaskConfig(BaseConfig):
     def ready(self):
         return self.filter.ready
 
-    @validator('parameters', pre=True)
+    @validator('parameters')
     def _validate_parameters(cls, value, values):
         return value
 
@@ -96,6 +96,7 @@ class DesignFileHandlerConfig(BaseConfig):
 @extend(ConfigType)
 class VideoAnalyzerConfig(BaseAnalyzerConfig):
     """Video analyzer"""
+
     frame_interval_setting: FrameIntervalSetting = Field(default_factory=FrameIntervalSetting)
     dt: Optional[float] = Field(default=5.0)
     Nf: Optional[int] = Field(default=100, description="Nf")
@@ -103,10 +104,11 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
     video: VideoFileHandlerConfig = Field(default_factory=VideoFileHandlerConfig)
     design: DesignFileHandlerConfig = Field(default_factory=DesignFileHandlerConfig)
     transform: TransformHandlerConfig = Field(default_factory=TransformHandlerConfig)
-    masks: Tuple[MaskConfig, ...] = Field(default_factory=tuple)
 
     features: Tuple[FeatureType, ...] = Field(default=())
     feature_parameters: Tuple[FeatureConfig, ...] = Field(default=())
+
+    masks: Tuple[MaskConfig, ...] = Field(default_factory=tuple)
 
     @classmethod
     def schema(cls, by_alias: bool = True) -> Dict[str, Any]:
@@ -139,7 +141,7 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
         return schema
 
 
-    @validator('masks', pre=True)
+    @validator('masks')
     def _validate_masks(cls, value, values):
         for mask in value:
             # Resolve class
@@ -163,7 +165,7 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
             mask.parameters = tuple(parameters)
         return tuple(value)
 
-    @validator('features', pre=True)
+    @validator('features')
     def _validate_features(cls, value):
         return tuple([
             FeatureType(feature)
@@ -171,12 +173,19 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
             for feature in value
         ])
 
-    @validator('feature_parameters', pre=True)
-    def _validate_parameters(cls, value, values):  # todo: actually validate
+    @validator('feature_parameters')
+    def _validate_parameters(cls, value, values):
         # todo: can we know for certain that values['features'] has already been validated?
+        #   -> it hasn't and it's breaking the validation order for some reason...
+        #      see: https://pydantic-docs.helpmanual.io/usage/models/#field-ordering
+
+        if 'features' in values:
+            features = values['features']
+        else:
+            features = []
 
         parameters = []
-        for index, feature in enumerate(values['features']):
+        for index, feature in enumerate(features):
             if index < len(value):
                 if isinstance(value[index], dict):
                     # Resolve dict to FeatureConfig

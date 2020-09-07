@@ -175,13 +175,15 @@ class BaseConfig(BaseModel, Described):
             raise NotImplementedError
 
     def __call__(self, **kwargs) -> None:
-        for kw, value in kwargs.items():
-            if isinstance(getattr(self, kw), BaseConfig) and isinstance(value, dict):
-                # If field is a BaseConfig instance, resolve in place
-                getattr(self, kw)(**value)
-            else:
-                # Otherwise, let the validators handle it
-                setattr(self, kw, value)
+        # iterate over fields to maintain validation order
+        for field in self.__fields__.keys():
+            if field in kwargs:  # todo: inefficient
+                if isinstance(getattr(self, field), BaseConfig) and isinstance(kwargs[field], dict):
+                    # If field is a BaseConfig instance, resolve in place
+                    getattr(self, field)(**kwargs[field])
+                else:
+                    # Otherwise, let the validators handle it
+                    setattr(self, field, kwargs[field])
 
     @classmethod
     def _get_field_type(cls, attr):
