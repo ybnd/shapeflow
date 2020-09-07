@@ -175,9 +175,8 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
 
     @validator('feature_parameters')
     def _validate_parameters(cls, value, values):
-        # todo: can we know for certain that values['features'] has already been validated?
-        #   -> it hasn't and it's breaking the validation order for some reason...
-        #      see: https://pydantic-docs.helpmanual.io/usage/models/#field-ordering
+        # todo: not called if `feature_parameters` is not set
+        #        -> should be called in that case if `features` is set!
 
         if 'features' in values:
             features = values['features']
@@ -190,7 +189,8 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
                 if isinstance(value[index], dict):
                     # Resolve dict to FeatureConfig
                     parameters.append(
-                        feature.get()._config_class(**value[index]))
+                        feature.get()._config_class(**value[index])
+                    )
                 elif not value[index]:
                     # Resolve *empty* to default FeatureConfig silently
                     parameters.append(feature.get()._config_class())

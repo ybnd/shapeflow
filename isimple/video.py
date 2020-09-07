@@ -930,15 +930,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             return True
 
     def _get_featuresets(self):
-        features = []
-        for feature in self.config.features:
-            if isinstance(feature, str):
-                features.append(FeatureType(feature))
-            elif isinstance(feature, FeatureType):
-                features.append(feature)
-
-        self._config.features = tuple(features)
-
         self._featuresets = {
             feature: FeatureSet(
                 tuple(

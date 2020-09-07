@@ -203,7 +203,7 @@ class MainAnalyzerTest(unittest.TestCase):
         "video_path": __VIDEO__,
         "design_path": __DESIGN__,
         "features": [''],
-        "parameters": [None],  # todo: parameters should be resolved to the same length as features, for now _get_featuresets() fails ~ zip(features, parameters)
+        "feature_parameters": [{}],
         "frame_interval_setting": 'Nf',
         'Nf': 5,
     }
@@ -309,7 +309,7 @@ class MainAnalyzerTest(unittest.TestCase):
             self.assertFalse(
                 server._roots[id].results[
                     server._roots[id].config.features[0]].isna().all().all()
-            )
+            )  # todo: results are cleared after exporting?
 
             client.post(f'/api/{id}/remove')
             self.assertNotIn(id, server._roots)

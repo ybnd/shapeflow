@@ -127,6 +127,9 @@ class BgrColor(Color):
 
 # noinspection PyArgumentList
 def convert(color: Color, to: Type[Color]) -> Color:
+    if not isinstance(color, Color):
+        raise ValueError(f"'{color}' is not a valid color.")
+
     if type(color) == to:
         return color
     else:

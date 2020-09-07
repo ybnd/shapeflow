@@ -14,6 +14,10 @@ from isimple.plugins import *
 from isimple.video import *
 
 
+__VIDEO__ = 'test.mp4'
+__DESIGN__ = 'test.svg'
+
+
 class PluginRegistrationTest(unittest.TestCase):
     def test_valid_extension(self):
         @extend(TransformType)
@@ -188,7 +192,7 @@ class BaseMaskFunctionTest(unittest.TestCase):
         mask_img = np.zeros(self.img.shape[:2], dtype=np.uint8)
         mask_img[0:25, 0:25] = ckernel(25)
 
-        self.design = DesignFileHandler('', DesignFileHandlerConfig(dpi=400))
+        self.design = DesignFileHandler(__DESIGN__, DesignFileHandlerConfig(dpi=400))
 
         self.mask = Mask(
             design=self.design,
