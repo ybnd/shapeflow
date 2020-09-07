@@ -3,7 +3,7 @@
     <details
       class="isimple-form-section-fit"
       :open="open"
-      @toggle="handleToggle"
+      v-on="{ toggle: emit_toggle ? handleToggle : null }"
     >
       <summary class="category-title">
         <b>{{ title }}</b>
@@ -16,6 +16,8 @@
 </template>
 
 <script>
+import { debounce } from "throttle-debounce";
+
 export default {
   name: "SchemaCategory",
   props: {
@@ -34,33 +36,11 @@ export default {
       default: false,
     },
   },
-  mounted() {
-    // console.log(`SchemaCategory.mounted() title=${this.title}`);
-
-    if (this.emit_toggle && this.open) {
-      this.first_toggle = true;
-    }
-  },
   methods: {
-    handleToggle(e) {
+    handleToggle: debounce(100, true, function () {
       // console.log(`SchemaCategory.handleToggle() title=${this.title}`);
-      // console.log(e);
-
-      if (this.emit_toggle) {
-        if (this.first_toggle) {
-          // workaround
-          // otherwise, the automatic first toggle causes an infinite loop of toggles
-          this.first_toggle = false;
-        } else {
-          this.$emit("toggle");
-        }
-      }
-    },
-  },
-  data() {
-    return {
-      first_toggle: false,
-    };
+      this.$emit("toggle");
+    }),
   },
 };
 </script>

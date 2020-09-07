@@ -365,11 +365,11 @@ export default {
       return get(this.data, this.resolve_context(p));
     },
     p_set(p, a) {
-      console.log(`SchemaForm.p_set()`);
-      console.log("p=");
-      console.log(p);
-      console.log(`a=`);
-      console.log(a);
+      // console.log(`SchemaForm.p_set()`);
+      // console.log("p=");
+      // console.log(p);
+      // console.log(`a=`);
+      // console.log(a);
 
       set(this.data, p, a);
 
@@ -585,7 +585,7 @@ export default {
         };
       },
       p_has_parameters: () => {
-        console.log(`SchemaForm.p_has_parameters()`);
+        // console.log(`SchemaForm.p_has_parameters()`);
 
         return this.data.feature_parameters
           .map((e) => e !== null && !isEmpty(e))
