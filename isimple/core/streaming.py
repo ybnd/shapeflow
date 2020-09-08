@@ -209,8 +209,9 @@ class StreamHandler(Lockable):
                         self._streams[instance] = {}
 
                     self._streams[instance][method] = stream
-
                     log.debug(f'registering {instance}, {method} as {stream}')
+
+                    self.push(instance, method, method(instance))
                 else:
                     raise ValueError('cannot resolve stream type')
             return stream

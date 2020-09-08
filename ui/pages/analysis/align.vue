@@ -233,7 +233,6 @@ export default {
 
         get_relative_roi(this.id).then((roi) => {
           this.setRoi(roi);
-          this.$root.$emit(events.seek.reset(this.id)); // todo: this doesn't trigger the stream for some reason
         });
       }
     },

@@ -150,11 +150,7 @@ export default {
       } else {
         this.$root.$emit(events.sidebar.open(this.id));
 
-        this.$store
-          .dispatch("analyzers/get_config", { id: this.id })
-          .then(() => {
-            this.$root.$emit(events.seek.reset(this.id));
-          });
+        this.$store.dispatch("analyzers/get_config", { id: this.id });
 
         this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
         this.waitForMasks = setInterval(this.getMasks, 100);

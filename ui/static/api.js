@@ -170,6 +170,7 @@ export async function launch(id) {
 }
 
 export async function seek(id, position) {
+  // console.log(`api.seek(${id}), ${position}`);
   return axios
     .post(api(id, "call/seek"), { position: position })
     .then(return_data);

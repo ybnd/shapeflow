@@ -15,7 +15,7 @@
 </template>
 
 <script>
-import { seek, get_total_time } from "../../static/api";
+import { seek, get_total_time, get_seek_position } from "../../static/api";
 import { events } from "../../static/events";
 import { seconds2timestr } from "../../static/util";
 
@@ -40,9 +40,9 @@ export default {
   },
   components: { VueSlider, PageHeaderItem },
   beforeMount() {
-    // delay seek request; otherwise it may arrive before stream is opened
-    setTimeout(this.resetSeekPosition, 50);
-
+    get_seek_position(this.id).then((position) => {
+      this.position = position;
+    });
     get_total_time(this.id).then((total) => {
       this.totalSeconds = total;
     });
@@ -54,8 +54,6 @@ export default {
   },
   beforeDestroy() {
     this.position = null;
-
-    clearInterval(this.syncInterval);
 
     this.$root.$off(events.seek.set(this.id), this.handleSeek);
     this.$root.$off(events.seek.reset(this.id), this.resetSeekPosition);
@@ -72,11 +70,12 @@ export default {
       100,
       true,
       debounce(25, true, function () {
+        console.log(`PageHeaderSeek.handleSeek()`);
         this.setSeekPosition();
       })
     ),
     resetSeekPosition() {
-      console.log(`PageHeaderSeek(${this.id}.resetSeek()`);
+      console.log(`PageHeaderSeek.resetSeek()`);
       this.position = null;
       this.handleSeek();
     },
@@ -131,7 +130,6 @@ export default {
         marks: false,
         process: false,
       },
-      syncInterval: null,
       totalSeconds: 0,
     };
   },
