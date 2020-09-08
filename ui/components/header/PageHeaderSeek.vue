@@ -40,7 +40,8 @@ export default {
   },
   components: { VueSlider, PageHeaderItem },
   beforeMount() {
-    this.resetSeekPosition();
+    // delay seek request; otherwise it may arrive before stream is opened
+    setTimeout(this.resetSeekPosition, 50);
 
     get_total_time(this.id).then((total) => {
       this.totalSeconds = total;
