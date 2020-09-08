@@ -152,7 +152,6 @@ class StreamHandlerTest(unittest.TestCase):
         thread2.start()
 
         streams.update()
-        streams.update()
         time.sleep(0.1)
 
         # Unregiter specific method
@@ -160,7 +159,8 @@ class StreamHandlerTest(unittest.TestCase):
         # Unregister all methods & stop
         streams.stop()
 
-        # JpegStreamer -> double yield
+        # FrameStreamer -> double yield
+        # each streamer pushes once when registered and once on streams.update()
         self.assertEqual(
             4, len(thread1.data)
         )
