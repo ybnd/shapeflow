@@ -5,7 +5,6 @@ matrix:
       python: 3.7
       env: {TOX_ENV: py37-type}
       install:
-        - travis_retry pip -vv install -r requirements.txt
         - travis_retry pip install tox
         - travis_retry tox -vv -e $TOX_ENV --notest
       script:
@@ -15,7 +14,6 @@ matrix:
       python: 3.7
       env: {TOX_ENV: py37-test}
       install:
-        - travis_retry pip -vv install -r requirements.txt
         - travis_retry pip install tox
         - travis_retry tox -vv -e $TOX_ENV --notest
       script:
@@ -29,7 +27,6 @@ matrix:
       after_success:
         - codecov
       install:
-        - travis_retry pip -vv install -r requirements.txt
         - travis_retry pip install tox
         - travis_retry tox -vv -e $TOX_ENV --notest
       script:
