@@ -6,7 +6,7 @@ matrix:
       env: {TOX_ENV: py37-type}
       install:
         - travis_retry pip install tox
-        - travis_retry tox -vv -e $TOX_ENV --notest
+        - travis_retry tox -vv -e $TOX_ENV $SITE_PACKAGES --notest
       script:
         - tox -vv -e $TOX_ENV $SITE_PACKAGES
 
@@ -15,7 +15,7 @@ matrix:
       env: {TOX_ENV: py37-test}
       install:
         - travis_retry pip install tox
-        - travis_retry tox -vv -e $TOX_ENV --notest
+        - travis_retry tox -vv -e $TOX_ENV $SITE_PACKAGES --notest
       script:
         - tox -vv -e $TOX_ENV $SITE_PACKAGES
 
@@ -28,7 +28,7 @@ matrix:
         - codecov
       install:
         - travis_retry pip install tox
-        - travis_retry tox -vv -e $TOX_ENV --notest
+        - travis_retry tox -vv -e $TOX_ENV $SITE_PACKAGES --notest
       script:
         - tox -vv -e $TOX_ENV $SITE_PACKAGES
 
