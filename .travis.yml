@@ -2,34 +2,34 @@
 matrix:
   include:
     - language: python
-      python: 3.8
-      env: {TOX_ENV: py38-type}
+      python: 3.7
+      env: {TOX_ENV: py37-type}
       install:
-        - "pip install --upgrade pip && pip install -r requirements.txt"
+        - travis_retry pip -vv install -r requirements.txt
         - travis_retry pip install tox
         - travis_retry tox -vv -e $TOX_ENV --notest
       script:
         - tox -vv -e $TOX_ENV $SITE_PACKAGES
 
     - language: python
-      python: 3.8
-      env: {TOX_ENV: py38-test}
+      python: 3.7
+      env: {TOX_ENV: py37-test}
       install:
-        - "pip install --upgrade pip && pip install -r requirements.txt"
+        - travis_retry pip -vv install -r requirements.txt
         - travis_retry pip install tox
         - travis_retry tox -vv -e $TOX_ENV --notest
       script:
         - tox -vv -e $TOX_ENV $SITE_PACKAGES
 
     - language: python
-      python: 3.8
-      env: {TOX_ENV: py38-cover}
+      python: 3.7
+      env: {TOX_ENV: py37-cover}
       before_install:
         - travis_retry pip install codecov
       after_success:
         - codecov
       install:
-        - "pip install --upgrade pip && pip install -r requirements.txt"
+        - travis_retry pip -vv install -r requirements.txt
         - travis_retry pip install tox
         - travis_retry tox -vv -e $TOX_ENV --notest
       script:
