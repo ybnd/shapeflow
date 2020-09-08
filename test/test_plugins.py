@@ -18,6 +18,12 @@ __VIDEO__ = 'test.mp4'
 __DESIGN__ = 'test.svg'
 
 
+# Point to right files in Travis CI build
+if os.getcwd() == '/home/travis/build/ybnd/isimple':
+    __VIDEO__ = 'test/' + __VIDEO__
+    __DESIGN__ = 'test/' + __DESIGN__
+
+
 class PluginRegistrationTest(unittest.TestCase):
     def test_valid_extension(self):
         @extend(TransformType)
