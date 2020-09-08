@@ -745,7 +745,7 @@ class MaskFunction(Feature):
 
     _feature_type: FeatureType
 
-    def __init__(self, mask: Mask, global_config: FeatureConfig, config: Optional[FeatureConfig] = None):
+    def __init__(self, mask: Mask, global_config: FeatureConfig, config: Optional[dict] = None):
         self.mask = mask
         self.filter = mask.filter
         self.dpi = mask.design.config.dpi
