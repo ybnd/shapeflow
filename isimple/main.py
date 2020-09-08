@@ -4,11 +4,9 @@
 import json
 import pickle
 import os
-from contextlib import contextmanager
 import time
 import subprocess
 from threading import Thread, Event, Lock
-from _thread import interrupt_main
 from typing import Dict, Any, List, Optional
 from enum import IntEnum
 

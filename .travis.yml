@@ -7,9 +7,9 @@ matrix:
       install:
         - "pip install --upgrade pip && pip install -r requirements.txt"
         - travis_retry pip install tox
-        - travis_retry tox -e $TOX_ENV --notest
+        - travis_retry tox -vv -e $TOX_ENV --notest
       script:
-        - tox -e $TOX_ENV $SITE_PACKAGES
+        - tox -vv -e $TOX_ENV $SITE_PACKAGES
 
     - language: python
       python: 3.7
@@ -17,9 +17,9 @@ matrix:
       install:
         - "pip install --upgrade pip && pip install -r requirements.txt"
         - travis_retry pip install tox
-        - travis_retry tox -e $TOX_ENV --notest
+        - travis_retry tox -vv -e $TOX_ENV --notest
       script:
-        - tox -e $TOX_ENV $SITE_PACKAGES
+        - tox -vv -e $TOX_ENV $SITE_PACKAGES
 
     - language: python
       python: 3.7
@@ -31,9 +31,9 @@ matrix:
       install:
         - "pip install --upgrade pip && pip install -r requirements.txt"
         - travis_retry pip install tox
-        - travis_retry tox -e $TOX_ENV --notest
+        - travis_retry tox -vv -e $TOX_ENV --notest
       script:
-        - tox -e $TOX_ENV $SITE_PACKAGES
+        - tox -vv -e $TOX_ENV $SITE_PACKAGES
 
 #    # https://medium.com/faun/configuring-travis-ci-for-angular-application-34afee1715f
 #    - language: node_js   # https://stackoverflow.com/questions/27644586/
