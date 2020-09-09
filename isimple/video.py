@@ -147,7 +147,7 @@ class VideoFileHandler(CachingInstance, Lockable):
             state_callback(AnalyzerState.ERROR)
 
     def cache_frames(self, progress_callback: Callable[[float], None], state_callback: Callable[[int], None]):
-        if settings.cache.do_cache and settings.cache.do_background and not self.cached:
+        if settings.cache.do_cache and not self.cached:
             self._background = threading.Thread(
                 target=self._cache_frames, args=(progress_callback, state_callback,), daemon=True
             )

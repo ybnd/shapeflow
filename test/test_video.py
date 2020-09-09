@@ -262,12 +262,11 @@ class VideoAnalyzerTest(FrameTest):
         self.assertEqual(12, len(frames))
 
     # @unittest.skip("Unreliable, needs a deep dive.")
-    def test_context(self):  # todo: don't need the design to load here
+    def test_context(self):
         # Don't overwrite self.config
         config = deepcopy(self.config)
 
-        with settings.cache.override(
-                {"do_cache": False, "do_background": False}):
+        with settings.cache.override({"do_cache": False}):
             va = VideoAnalyzer(config)
             va.launch()
 
@@ -277,19 +276,7 @@ class VideoAnalyzerTest(FrameTest):
             self.assertEqual(None, va.video._cache)
 
 
-        with settings.cache.override(
-                {"do_cache": True, "do_background": False}):
-            va = VideoAnalyzer(config)
-            va.launch()
-
-            self.assertEqual(None, va.video._cache) # todo: cache stays open ~ isimple.main -- not sure why
-            with va.caching():
-                self.assertNotEqual(None, va.video._cache)
-            self.assertEqual(None, va.video._cache)
-
-            # Background caching is enabled
-            settings.cache.do_cache = True
-            settings.cache.do_background = True
+        with settings.cache.override({"do_cache": True}):
             va = VideoAnalyzer(config)
             va.launch()
 

@@ -173,7 +173,6 @@ class CacheSettings(_Settings):
     dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'cache'), title="cache directory")
     size_limit_gb: int = Field(default=4, title="cache size limit (GB)")
     do_cache: bool = Field(default=True, title="use the cache")
-    do_background: bool = Field(default=True, title="cache in the background")
     resolve_frame_number: bool = Field(default=True, title="resolve to (nearest) cached frame numbers")
     block_timeout: float = Field(default=0.1, title="wait for blocked item (s)")
 
