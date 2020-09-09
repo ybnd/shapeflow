@@ -47,18 +47,21 @@
           <SchemaField
             :value="model.h"
             @input="p_set('h', $event)"
+            :style_="{ width: '50px' }"
             type="integer"
           ></SchemaField>
           <div class="isimple-form-gap" />
           <SchemaField
             :value="model.s"
             @input="p_set('s', $event)"
+            :style_="{ width: '50px' }"
             type="integer"
           ></SchemaField>
           <div class="isimple-form-gap" />
           <SchemaField
             :value="model.v"
             @input="p_set('v', $event)"
+            :style_="{ width: '50px' }"
             type="integer"
           ></SchemaField>
         </b-input-group>

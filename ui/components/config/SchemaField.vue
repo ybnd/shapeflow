@@ -7,6 +7,7 @@
       {{ title }}
     </label>
     <component
+      @wheel="$event.target.blur()"
       :is="type_component"
       :class="type_class"
       :type="type_type"
@@ -58,6 +59,11 @@ export default {
         return {};
       },
     },
+    style_: {
+      default() {
+        return undefined;
+      },
+    },
     new_row: {
       type: Boolean,
       default() {
@@ -80,7 +86,17 @@ export default {
       return { ...this.default_options[this.type], ...this.options };
     },
     type_style() {
-      return { ...this.default_style[this.type], ...this.style };
+      if (this.style_ !== undefined) {
+        console.log(`SchemaField.type_style() type=${this.type}`);
+        console.log("default=");
+        console.log(this.default_style[this.type]);
+        console.log("style=");
+        console.log(this.style_);
+        console.log("=>");
+        console.log({ ...this.default_style[this.type], ...this.style_ });
+      }
+
+      return { ...this.default_style[this.type], ...this.style_ };
     },
     type_type() {
       return this.types[this.type];
@@ -112,9 +128,9 @@ export default {
       classes: {
         [types.ENUM]: "isimple-form-field-auto",
         [types.STRING]: "isimple-form-field-input",
-        [types.INTEGER]: "isimple-form-field-auto",
-        [types.FLOAT]: "isimple-form-field-auto",
-        [types.NUMBER]: "isimple-form-field-auto",
+        [types.INTEGER]: "isimple-form-field-auto isimple-noarrow",
+        [types.FLOAT]: "isimple-form-field-auto isimple-noarrow",
+        [types.NUMBER]: "isimple-form-field-auto isimple-noarrow",
         [types.BOOLEAN]: "isimple-form-field-checkbox",
       },
       types: {
@@ -137,7 +153,7 @@ export default {
         [types.ENUM]: {},
         [types.STRING]: {},
         [types.INTEGER]: { "max-width": "90px" },
-        [types.FLOAT]: { "max-width": "180px" },
+        [types.FLOAT]: { "max-width": "150px" },
         [types.NUMBER]: { "max-width": "90px" },
         [types.BOOLEAN]: {},
       },

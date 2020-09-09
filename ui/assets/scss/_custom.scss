@@ -171,6 +171,8 @@ $form-color: theme-color('gray-700');
   min-width: 120px;
   flex-shrink: 1;
   flex-grow: 0;
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
 }
 
 .isimple-form-field-auto {
@@ -179,6 +181,11 @@ $form-color: theme-color('gray-700');
   width: auto;
   flex-shrink: 1;
   flex-grow: 0;
+}
+
+.isimple-noarrow {
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
 }
 
 .isimple-form-field-checkbox {

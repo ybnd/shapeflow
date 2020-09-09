@@ -129,6 +129,7 @@ class _Settings(BaseModel):
 
         return _inject(cls, schema, schema['definitions'])
 
+
 class FormatSettings(_Settings):
     datetime_format: str = Field(default='%Y/%m/%d %H:%M:%S.%f', description="date/time format")
     datetime_format_fs: str = Field(default='%Y-%m-%d_%H-%M-%S', description="file system date/time format")
@@ -150,6 +151,7 @@ _levels.update({
     'default': logging.INFO
 })
 
+
 class LoggingLevel(str, Enum):
     critical = 'critical'
     error =  'error'
@@ -157,6 +159,7 @@ class LoggingLevel(str, Enum):
     info = "info"
     debug = "debug"
     vdebug = "vdebug"
+
 
 class LogSettings(_Settings):
     path: FilePath = Field(default=os.path.join(ROOTDIR, 'current.log'), title='running log file')
@@ -205,7 +208,7 @@ class ApplicationSettings(_Settings):
     load_state: bool = Field(default=False, title="load application state on start")
     state_path: FilePath = Field(default=os.path.join(ROOTDIR, 'state'), title="application state file")
     recent_files: int = Field(default=16, title="# of recent files to fetch")
-    edit_json: bool = Field(default=False, title="show JSON configuration editor by default")
+    edit_json: bool = Field(default=False, title="show detailed configuration by default")
     save_result: ResultSaveMode = Field(default=ResultSaveMode.next_to_video, title="result save mode")
     result_dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'results'), title="result directory")
 
