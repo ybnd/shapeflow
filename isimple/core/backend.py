@@ -149,10 +149,7 @@ class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB 
         if settings.cache.do_cache or override:
             if self._cache is None:
                 log.debug(f'{self.__class__.__qualname__}: opening cache @ {settings.cache.dir}')
-                self._cache = diskcache.Cache(
-                    directory=settings.cache.dir,
-                    size_limit=settings.cache.size_limit_gb * 1e9,
-                )
+                self._cache = get_cache(settings)
 
         return self
 

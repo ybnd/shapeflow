@@ -433,6 +433,21 @@ class Main(isimple.core.Lockable):
                 self.load_state()
                 return respond(True)
 
+        @app.route('/api/cache/clear', methods=['POST'])
+        def clear_cache():
+            log.info('clearing cache')
+            cache = isimple.get_cache(isimple.settings)
+            cache.clear()
+            cache.close()
+            return respond(True)
+
+        @app.route('/api/db/clear', methods=['POST'])
+        def clear_db():
+            log.info('clearing database')
+            with self.lock():
+                self._history.forget()
+            return respond(True)
+
         @app.before_first_request
         def initialize():
             self._history.clean()

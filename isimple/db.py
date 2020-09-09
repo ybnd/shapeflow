@@ -493,3 +493,19 @@ class History(SessionWrapper):
                     filter(ResultsModel.analysis == old.id). \
                     filter(ResultsModel.id != old.results).delete()
 
+    def forget(self) -> None:
+        """Remove everything."""
+        models = [
+            AnalysisModel,
+            VideoFileModel,
+            DesignFileModel,
+            ConfigModel,
+            ResultsModel
+        ]
+
+        with self.session() as s:
+            for model in models:
+                s.query(model).delete()
+
+
+

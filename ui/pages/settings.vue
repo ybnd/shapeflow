@@ -5,6 +5,10 @@
       <PageHeaderItem>
         <b-button @click="setSettings">Save settings & restart</b-button>
       </PageHeaderItem>
+      <PageHeaderItem>
+        <b-button @click="clearDb">Clear database</b-button>
+        <b-button @click="clearCache">Clear cache</b-button>
+      </PageHeaderItem>
     </PageHeader>
     <SchemaForm
       :data="settings"
@@ -40,6 +44,8 @@ import SchemaForm from "../components/config/SchemaForm";
 
 import cloneDeep from "lodash/cloneDeep";
 
+import { clear_cache, clear_db } from "static/api";
+
 export default {
   name: "dashboard",
   components: {
@@ -68,6 +74,12 @@ export default {
         .then(() => {
           this.settings = this.$store.getters["settings/getSettingsCopy"];
         });
+    },
+    clearCache() {
+      clear_cache();
+    },
+    clearDb() {
+      clear_db();
     },
   },
   data() {

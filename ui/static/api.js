@@ -267,5 +267,9 @@ export function events(callback) {
 }
 
 export async function clear_cache() {
-  return axios.get(api("clear-cache")).then(return_success);
+  return axios.post(api("cache", "clear")).then(return_success);
+}
+
+export async function clear_db() {
+  return axios.post(api("db", "clear")).then(return_success);
 }
