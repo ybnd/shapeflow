@@ -1383,7 +1383,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     @backend.expose(backend.get_results)
     def get_result(self) -> dict:
         return {
-            str(feature):result.to_dict(orient='split')
+            # Convert NaN to None -> JSON serializable
+            str(feature):result.where(pd.notnull(result),None).to_dict(orient='split')
             for feature,result in self.results.items()
         }
 

@@ -291,8 +291,8 @@ export const actions = {
           assert(event.hasOwnProperty("id"));
           assert(event.hasOwnProperty("data"));
 
-          console.log(`${event.category} event:`);
-          console.log(event);
+          // console.log(`${event.category} event:`);
+          // console.log(event);
 
           commit(CATEGORY_COMMIT[event.category], {
             id: event.id,
