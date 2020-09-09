@@ -155,5 +155,6 @@ export default {
 }
 .popover-buttons {
   margin-left: -1px;
+  margin-bottom: 14px;
 }
 </style>
