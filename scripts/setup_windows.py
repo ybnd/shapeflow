@@ -15,7 +15,7 @@ if os.name == 'nt':  # If running on Windows
             z.extractall()
 
         # Move cairo files to the /Scripts/ folder in the virtual environment
-        if 'PROGRAMFILES(X86)' in os.eviron:
+        if 'PROGRAMFILES(X86)' in os.environ:
             # 64-bit Windows
             for file in glob.glob('cairo*/lib/x64/cairo*'):
                 shutil.move(file, "$environment/Scripts/")
