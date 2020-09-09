@@ -1,6 +1,15 @@
 <template>
   <div>
-    <template v-if="match(def.COO)">
+    <template v-if="model === undefined">
+      <b-row class="isimple-form-row">
+        <b-input-group class="isimple-form-group">
+          <label class="mr-sm-2 isimple-form-label">
+            {{ title }} (undefined)
+          </label>
+        </b-input-group>
+      </b-row>
+    </template>
+    <template v-else-if="match(def.COO)">
       <!--      todo: check if model fits definition? -->
       <b-row class="isimple-form-row">
         <b-input-group class="isimple-form-group">
@@ -106,7 +115,6 @@ export default {
       required: true,
     },
     model: {
-      type: Object,
       required: true,
     },
     definition: {

@@ -384,16 +384,26 @@ export default {
       return this.validVideo && this.validDesign && this.validFeatures;
     },
     async checkVideoPath() {
-      return check_video_path(this.config.video_path).then((ok) => {
-        this.validVideo = ok;
-        return ok;
-      });
+      if (this.config.video_path) {
+        return check_video_path(this.config.video_path).then((ok) => {
+          this.validVideo = ok;
+          return ok;
+        });
+      } else {
+        // don't bother sending a request if empty string
+        this.validVideo = false;
+      }
     },
     async checkDesignPath() {
-      return check_design_path(this.config.design_path).then((ok) => {
-        this.validDesign = ok;
-        return ok;
-      });
+      if (this.config.design_path) {
+        return check_design_path(this.config.design_path).then((ok) => {
+          this.validDesign = ok;
+          return ok;
+        });
+      } else {
+        // don't bother sending a request if empty string
+        this.validDesign = false;
+      }
     },
   },
   watch: {
