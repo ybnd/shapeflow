@@ -208,7 +208,6 @@ class ApplicationSettings(_Settings):
     load_state: bool = Field(default=False, title="load application state on start")
     state_path: FilePath = Field(default=os.path.join(ROOTDIR, 'state'), title="application state file")
     recent_files: int = Field(default=16, title="# of recent files to fetch")
-    edit_json: bool = Field(default=False, title="show detailed configuration by default")
     save_result: ResultSaveMode = Field(default=ResultSaveMode.next_to_video, title="result save mode")
     result_dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'results'), title="result directory")
 

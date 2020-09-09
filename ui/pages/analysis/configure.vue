@@ -33,11 +33,6 @@
         <b-button @click="handleGetConfig">Get configuration</b-button>
         <b-button @click="handleSetConfig">Set configuration</b-button>
       </PageHeaderItem>
-      <PageHeaderItem>
-        <b-button @click="toggleEditJson">{{
-          edit_json ? "Hide JSON" : "Edit JSON"
-        }}</b-button>
-      </PageHeaderItem>
     </PageHeader>
     <div class="scrollable">
       <b-card class="name-config isimple-form-section">
@@ -73,66 +68,51 @@
           @change="handleUpdate"
         />
       </b-card>
-      <b-collapse
-        id="advanced-settings"
-        class="advanced-config-collapse"
-        :visible="edit_json"
-        v-if="edit_json"
+      <b-card
+        class="isimple-form-section advanced-config-box advanced-config-collapse"
       >
-        <!--        <b-form-textarea-->
-        <!--          class="isimple-form-field-text advanced-config-box"-->
-        <!--          spellcheck="false"-->
-        <!--          v-model.lazy="config_json"-->
-        <!--          @change="handleChangeJson"-->
-        <!--          style="font-family: monospace;"-->
-        <!--        />-->
-        <!--        <b-card class="isimple-form-section-full advanced-config-box">-->
-        <!--          stuff-->
-        <!--        </b-card>-->
-        <b-card class="isimple-form-section advanced-config-box">
-          <!--          <VueFormJsonSchema-->
-          <!--            v-model="config"-->
-          <!--            class="config-form-container"-->
-          <!--            :schema="schema"-->
-          <!--            :ui-schema="ui_schema"-->
-          <!--            :options="{-->
-          <!--              castToSchemaType: false,-->
-          <!--              showValidationErrors: false,-->
-          <!--              allowInvalidModel: true,-->
-          <!--              ajv: {-->
-          <!--                options: {-->
-          <!--                  unknownFormats: ['directory-path', 'file-path'], // these get validated by the backend-->
-          <!--                },-->
-          <!--              },-->
-          <!--            }"-->
-          <!--          />-->
-          <SchemaForm
-            v-if="config"
-            :data="config"
-            :schema="schema"
-            :skip="[
-              'name', // handled separately; also applies to masks[*].name, which shouldn't be changed
-              'description', // handled separately
-              'features', // handled by BasicConfig.vue
-              'feature_parameters', // handled by BasicConfig.vue
-              'frame_interval_setting', // handled by BasicConfig.vue
-              'dt', // handled by BasicConfig.vue
-              'Nf', // handled by BasicConfig.vue
-              'design_path', // handled by BasicConfig.vue
-              'video_path', // handled by BasicConfig.vue
-              // 'masks',
-              // 'parameters',
-              // 'transform',
-              // 'design',
-              // 'video',
-              // 'filter', // todo: this one's bugged
-            ]"
-            class="config-form-container"
-            :property_as_title="true"
-            @input="handleUpdate"
-          />
-        </b-card>
-      </b-collapse>
+        <!--          <VueFormJsonSchema-->
+        <!--            v-model="config"-->
+        <!--            class="config-form-container"-->
+        <!--            :schema="schema"-->
+        <!--            :ui-schema="ui_schema"-->
+        <!--            :options="{-->
+        <!--              castToSchemaType: false,-->
+        <!--              showValidationErrors: false,-->
+        <!--              allowInvalidModel: true,-->
+        <!--              ajv: {-->
+        <!--                options: {-->
+        <!--                  unknownFormats: ['directory-path', 'file-path'], // these get validated by the backend-->
+        <!--                },-->
+        <!--              },-->
+        <!--            }"-->
+        <!--          />-->
+        <SchemaForm
+          v-if="config"
+          :data="config"
+          :schema="schema"
+          :skip="[
+            'name', // handled separately; also applies to masks[*].name, which shouldn't be changed
+            'description', // handled separately
+            'features', // handled by BasicConfig.vue
+            'feature_parameters', // handled by BasicConfig.vue
+            'frame_interval_setting', // handled by BasicConfig.vue
+            'dt', // handled by BasicConfig.vue
+            'Nf', // handled by BasicConfig.vue
+            'design_path', // handled by BasicConfig.vue
+            'video_path', // handled by BasicConfig.vue
+            // 'masks',
+            // 'parameters',
+            // 'transform',
+            // 'design',
+            // 'video',
+            // 'filter', // todo: this one's bugged
+          ]"
+          class="config-form-container"
+          :property_as_title="true"
+          @input="handleUpdate"
+        />
+      </b-card>
     </div>
   </div>
 </template>
@@ -183,9 +163,6 @@ export default {
         this.$router.push(`/`);
       } else {
         this.$root.$emit(events.sidebar.open(this.id));
-        this.edit_json = this.$store.getters[
-          "settings/getSettings"
-        ].app.edit_json;
         this.handleGetConfig();
       }
     },
@@ -220,9 +197,6 @@ export default {
         this.handleSetConfig();
       })
     ),
-    toggleEditJson() {
-      this.edit_json = !this.edit_json;
-    },
   },
   watch: {
     "$route.query.id"() {
@@ -250,7 +224,6 @@ export default {
   data() {
     return {
       config: {},
-      edit_json: false,
     };
   },
 };
@@ -306,7 +279,7 @@ $description-height: 64px;
 }
 
 .advanced-config-collapse {
-  margin-top: 4px;
+  margin-top: 2px;
   margin-bottom: 4px;
   overflow-y: scroll;
   overflow-x: hidden;
