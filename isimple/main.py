@@ -454,7 +454,7 @@ class Main(isimple.core.Lockable):
         self._host = host
         self._port = port
 
-        log.info(f"serving on {host}:{port}")
+        log.info(f"serving on http://{host}:{port}")
 
         with util.suppress_stdout():
             self._server = ServerThread(self._app, host, port)
