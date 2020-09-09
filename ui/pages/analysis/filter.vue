@@ -3,14 +3,14 @@
   <div class="fixed-page">
     <PageHeader>
       <PageHeaderItem>
-        <b-button
-          class="header-button-icon"
-          @click="handleHideConfigSidebar"
-          data-toggle="tooltip"
-          title="Toggle configuration sidebar"
-        >
-          <i class="icon-menu" />
-        </b-button>
+        <!--        <b-button-->
+        <!--          class="header-button-icon"-->
+        <!--          @click="handleHideConfigSidebar"-->
+        <!--          data-toggle="tooltip"-->
+        <!--          title="Toggle configuration sidebar"-->
+        <!--        >-->
+        <!--          <i class="icon-menu" />-->
+        <!--        </b-button>-->
         <b-button
           class="header-button-icon"
           @click="handleClearFilters"
