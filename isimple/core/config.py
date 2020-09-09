@@ -174,6 +174,16 @@ class BaseConfig(BaseModel, Described):
         else:
             raise NotImplementedError
 
+    @classmethod
+    def _odd_add(cls, value):
+        if value:
+            if not (value % 2):
+                return value + 1
+            else:
+                return value
+        else:
+            return 0
+
     def __call__(self, **kwargs) -> None:
         # iterate over fields to maintain validation order
         for field in self.__fields__.keys():

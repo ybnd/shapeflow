@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 
 from isimple import get_logger, settings
-from isimple.config import extend, ConfigType, Field
+from isimple.config import extend, ConfigType, Field, validator, BaseConfig
 
 from isimple.core.interface import FilterConfig, FilterInterface, FilterType
 from isimple.maths.images import ckernel
@@ -30,6 +30,9 @@ class HsvRangeFilterConfig(FilterConfig):
     @property
     def c1(self) -> HsvColor:
         return self.color + self.range
+
+    _resolve_close = validator('close', allow_reuse=True)(BaseConfig._odd_add)
+    _resolve_open = validator('open', allow_reuse=True)(BaseConfig._odd_add)
 
 
 @extend(FilterType)

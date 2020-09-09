@@ -89,8 +89,10 @@ class DesignFileHandlerConfig(BaseConfig):
     """Design file"""
     dpi: int = Field(default=400)
 
-    overlay_alpha: float = Field(default=0.1)  # todo: more of a application setting; has no direct effect on the output
+    overlay_alpha: float = Field(default=0.1)
     smoothing: int = Field(default=7)
+
+    _resolve_smoothing = validator('smoothing', allow_reuse=True)(BaseConfig._odd_add)
 
 
 @extend(ConfigType)
