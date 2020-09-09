@@ -5,7 +5,7 @@ from isimple import get_logger, settings
 from isimple.config import extend, ConfigType, Field
 
 from isimple.core.interface import FilterConfig, FilterInterface, FilterType
-
+from isimple.maths.images import ckernel
 from isimple.maths.colors import Color, HsvColor, convert, WRAP
 
 log = get_logger(__name__)
@@ -16,6 +16,8 @@ class HsvRangeFilterConfig(FilterConfig):
     """HSV range filter"""
     range: HsvColor = Field(default=HsvColor(h=10, s=75, v=75))
     color: HsvColor = Field(default=HsvColor())
+    close: int = Field(default=0)
+    open: int = Field(default=0)
 
     @property
     def ready(self) -> bool:
@@ -56,10 +58,20 @@ class HsvRangeFilter(FilterInterface):
             c0_b = np.float32([0] + filter.c0.list[1:])
             c1_b = np.float32(filter.c1.list)
 
-            return cv2.inRange(img, c0_a, c1_a, img) \
+            binary = cv2.inRange(img, c0_a, c1_a, img) \
                    + cv2.inRange(img, c0_b, c1_b, img)
         else:
             c0 = np.float32(filter.c0.list)
             c1 = np.float32(filter.c1.list)
 
-            return cv2.inRange(img, c0, c1, img)
+            binary = cv2.inRange(img, c0, c1, img)
+
+        if filter.close:
+            binary = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, ckernel(filter.close))
+        if filter.open:
+            binary = cv2.morphologyEx(binary, cv2.MORPH_OPEN, ckernel(filter.open))
+        if mask is not None:
+            # Mask off again
+            binary = cv2.bitwise_and(binary, mask)
+
+        return binary
