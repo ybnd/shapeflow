@@ -1,7 +1,5 @@
 url: https://github.com/ybnd/isimple
-branch: master
-name: isimple-master
+branch: 0.3.16
+name: isimple-0.3.16
 environment: .venv
 setup: scripts/setup_windows.py
-wrap:
-    .app.py: app.py
