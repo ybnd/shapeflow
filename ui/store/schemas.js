@@ -82,7 +82,7 @@ export const mutations = {
     }
   },
   setTransformOptions(state, { options }) {
-    console.log("schema/setTransformOptions");
+    // console.log("schema/setTransformOptions");
     try {
       assert(!(options === undefined), "no options provided");
       state.transform = options;

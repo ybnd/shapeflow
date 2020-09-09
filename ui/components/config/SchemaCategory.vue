@@ -3,7 +3,7 @@
     <details
       class="isimple-form-section-fit"
       :open="open"
-      v-on="{ toggle: emit_toggle ? handleToggle : null }"
+      v-on="{ toggle: emit_toggle ? handleToggle : () => {} }"
     >
       <summary class="category-title">
         <b>{{ title }}</b>

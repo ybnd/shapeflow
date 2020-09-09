@@ -8,6 +8,7 @@ import re
 import datetime
 import logging
 
+from typing import Dict, Any, Type
 from pathlib import Path
 from enum import Enum
 
@@ -103,6 +104,31 @@ class _Settings(BaseModel):
 
         return value
 
+    @classmethod
+    def schema(cls, by_alias: bool = True) -> Dict[str, Any]:
+        """
+        Inject title & description into schema ~ lost due to Enum bugs.
+        https://github.com/samuelcolvin/pydantic/pull/1749
+        """
+
+        schema = super().schema(by_alias)
+
+        def _inject(class_: Type[_Settings], schema, definitions):
+            for field in class_.__fields__.values():
+                if 'properties' in schema and field.alias in schema['properties']:
+                    if 'title' not in schema['properties'][field.alias]:
+                        schema['properties'][field.alias][
+                            'title'] = field.field_info.title
+                    if field.field_info.description is not None and 'description' not in schema['properties'][field.alias]:
+                        schema['properties'][field.alias][
+                            'description'] = field.field_info.description
+                if issubclass(field.type_, _Settings):
+                    # recurse into nested _Settings classes
+                    _inject(field.type_, definitions[field.type_.__name__], definitions)
+            return schema
+
+        return _inject(cls, schema, schema['definitions'])
+
 class FormatSettings(_Settings):
     datetime_format: str = Field(default='%Y/%m/%d %H:%M:%S.%f', description="date/time format")
     datetime_format_fs: str = Field(default='%Y-%m-%d_%H-%M-%S', description="file system date/time format")
@@ -133,37 +159,37 @@ class LoggingLevel(str, Enum):
     vdebug = "vdebug"
 
 class LogSettings(_Settings):
-    path: FilePath = Field(default=os.path.join(ROOTDIR, 'current.log'), description='running log file')
-    dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'log'), description='log file directory')
-    keep: int = Field(default=16, description="# of log files to keep")
-    lvl_console: LoggingLevel = Field(default=LoggingLevel.debug, description="logging level (Python console)")
-    lvl_file: LoggingLevel = Field(default=LoggingLevel.debug, description="logging level (file)")
+    path: FilePath = Field(default=os.path.join(ROOTDIR, 'current.log'), title='running log file')
+    dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'log'), title='log file directory')
+    keep: int = Field(default=16, title="# of log files to keep")
+    lvl_console: LoggingLevel = Field(default=LoggingLevel.debug, title="logging level (Python console)")
+    lvl_file: LoggingLevel = Field(default=LoggingLevel.debug, title="logging level (file)")
 
     _validate_path = validator('path', allow_reuse=True, pre=True)(_Settings._validate_filepath)
     _validate_dir = validator('dir', allow_reuse=True, pre=True)(_Settings._validate_directorypath)
 
 
 class CacheSettings(_Settings):
-    dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'cache'), description="cache directory")
-    size_limit_gb: int = Field(default=4, description="cache size limit (GB)")
-    do_cache: bool = Field(default=True, description="use the cache")
-    do_background: bool = Field(default=True, description="cache in the background")
-    resolve_frame_number: bool = Field(default=True, description="resolve to (nearest) cached frame numbers")
-    block_timeout: float = Field(default=0.1, description="wait for blocked item (s)")
+    dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'cache'), title="cache directory")
+    size_limit_gb: int = Field(default=4, title="cache size limit (GB)")
+    do_cache: bool = Field(default=True, title="use the cache")
+    do_background: bool = Field(default=True, title="cache in the background")
+    resolve_frame_number: bool = Field(default=True, title="resolve to (nearest) cached frame numbers")
+    block_timeout: float = Field(default=0.1, title="wait for blocked item (s)")
 
     _validate_dir = validator('dir', allow_reuse=True, pre=True)(_Settings._validate_directorypath)
 
 
 class RenderSettings(_Settings):
-    dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'render'), description="render directory")
-    keep: bool = Field(default=False, description="keep files after rendering")
+    dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'render'), title="render directory")
+    keep: bool = Field(default=False, title="keep files after rendering")
 
     _validate_dir = validator('dir', allow_reuse=True, pre=True)(_Settings._validate_directorypath)
 
 
 class DatabaseSettings(_Settings):
-    path: FilePath = Field(default=os.path.join(ROOTDIR, 'history.db'), description="database file")
-    cleanup_interval: int = Field(default=7, description='clean-up interval (days)')
+    path: FilePath = Field(default=os.path.join(ROOTDIR, 'history.db'), title="database file")
+    cleanup_interval: int = Field(default=7, title='clean-up interval (days)')
 
     _validate_path = validator('path', allow_reuse=True, pre=True)(_Settings._validate_filepath)
 
@@ -176,25 +202,25 @@ class ResultSaveMode(str, Enum):
 
 
 class ApplicationSettings(_Settings):
-    save_state: bool = Field(default=True, description="save application state")
-    load_state: bool = Field(default=False, description="load application state on start")
-    state_path: FilePath = Field(default=os.path.join(ROOTDIR, 'state'), description="application state file")
-    recent_files: int = Field(default=16, description="# of recent files to fetch")
-    edit_json: bool = Field(default=False, description="show JSON configuration editor by default")
-    save_result: ResultSaveMode = Field(default=ResultSaveMode.next_to_video, description="result save mode")
-    result_dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'results'), description="result directory")
+    save_state: bool = Field(default=True, title="save application state")
+    load_state: bool = Field(default=False, title="load application state on start")
+    state_path: FilePath = Field(default=os.path.join(ROOTDIR, 'state'), title="application state file")
+    recent_files: int = Field(default=16, title="# of recent files to fetch")
+    edit_json: bool = Field(default=False, title="show JSON configuration editor by default")
+    save_result: ResultSaveMode = Field(default=ResultSaveMode.next_to_video, title="result save mode")
+    result_dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'results'), title="result directory")
 
     _validate_dir = validator('result_dir', allow_reuse=True, pre=True)(_Settings._validate_directorypath)
     _validate_state_path = validator('state_path', allow_reuse=True, pre=True)(_Settings._validate_filepath)
 
 
 class Settings(_Settings):
-    log: LogSettings = Field(default=LogSettings(), description="Logging")
-    cache: CacheSettings = Field(default=CacheSettings(), description="Caching")
-    render: RenderSettings = Field(default=RenderSettings(), description="SVG Rendering")
-    format: FormatSettings = Field(default=FormatSettings(), description="Formatting")
-    db: DatabaseSettings = Field(default=DatabaseSettings(), description="Database")
-    app: ApplicationSettings = Field(default=ApplicationSettings(), description="Application")
+    log: LogSettings = Field(default=LogSettings(), title="Logging")
+    cache: CacheSettings = Field(default=CacheSettings(), title="Caching")
+    render: RenderSettings = Field(default=RenderSettings(), title="SVG Rendering")
+    format: FormatSettings = Field(default=FormatSettings(), title="Formatting")
+    db: DatabaseSettings = Field(default=DatabaseSettings(), title="Database")
+    app: ApplicationSettings = Field(default=ApplicationSettings(), title="Application")
 
     @classmethod
     def from_dict(cls, settings: dict):
@@ -304,7 +330,8 @@ _file_handler = logging.FileHandler(str(settings.log.path))
 _file_handler.setLevel(_levels[settings.log.lvl_file])
 
 _formatter = logging.Formatter(
-    '%(asctime)s - %(levelname)s - %(name)s - %(message)s')
+    '%(asctime)s - %(levelname)s - %(name)s - %(message)s'
+)
 _console_handler.setFormatter(_formatter)
 _file_handler.setFormatter(_formatter)
 

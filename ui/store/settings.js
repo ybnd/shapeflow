@@ -66,7 +66,7 @@ export const actions = {
   async schema({ commit, getters }) {
     return settings_schema().then((schema) => {
       commit("setSchema", { schema: schema });
-      console.log("settings.schema() callback");
+      // console.log("settings.schema() callback");
       return getters["getSchema"];
     });
   },

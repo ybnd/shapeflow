@@ -87,12 +87,13 @@ export default {
     },
     field: {
       get() {
+        // console.log(`SchemaForm.get() type=${this.type}`);
         return this.parse[this.type](this.value);
       },
       set(v) {
-        console.log("SchemaField.set()");
-        console.log("v=");
-        console.log(v);
+        // console.log(`SchemaForm.set() type=${this.type}`);
+        // console.log("v=");
+        // console.log(v);
 
         this.$emit("input", this.parse[this.type](v));
       },

@@ -49,7 +49,11 @@
             />
           </SchemaCategory>
         </template>
-        <template v-else-if="p_reference(property) !== undefined">
+        <template
+          v-else-if="
+            p_type(property) === 'object' && p_reference(property) !== undefined
+          "
+        >
           <SchemaDefinition
             v-if="p_is_hardcoded(property)"
             :title="p_title(property)"
@@ -182,7 +186,7 @@ export default {
   },
   computed: {
     is_loaded() {
-      return this.schema.hasOwnProperty("properties");
+      return this.schema.hasOwnProperty("properties"); // todo: does nothing basically
     },
     properties() {
       // console.log(`SchemaForm.properties() @context=${this.context}`);
@@ -421,9 +425,12 @@ export default {
           type = p_schema.enum ? "enum" : p_schema.type;
 
           if (type === undefined) {
-            let r = this.p_reference(p);
-            if (r !== undefined) {
-              type = r.split("/").slice(-1)[0]; // #/definitions/Something -> Something
+            let def = this.p_definition(p);
+            if (def !== undefined) {
+              // console.log("def=");
+              // console.log(def);
+
+              type = def.enum ? "enum" : def.type;
             }
           }
         } else {
@@ -439,8 +446,10 @@ export default {
         //   `SchemaForm.p_implementation() p=${this.resolve_context(p)}`
         // );
 
+        let r = this.p_reference(p);
+
         const impl = {
-          interface: this.p_type(p),
+          interface: r.split("/").slice(-1)[0], // #/definitions/Something -> Something
           type: this.get_from_data("type"), // every implementation object should have a 'type' sibling
         };
 
@@ -457,12 +466,17 @@ export default {
         if (this.property_as_title) {
           return p;
         } else {
-          const p_schema = this.get_from_schema(p);
+          const p_schema = this.get_from_schema(p, false);
 
           // console.log("p_schema=");
           // console.log(p_schema);
 
-          return p_schema.description || p_schema.title.toLowerCase();
+          const title = p_schema.title;
+
+          // console.log("title=");
+          // console.log(title);
+
+          return title;
         }
       },
       p_options: (p) => {
