@@ -10,7 +10,7 @@ export const AnalyzerState = {
   INCOMPLETE: 1,
   CAN_LAUNCH: 2,
   LAUNCHED: 3,
-  CACHING: 4,
+  CAN_FILTER: 4,
   CAN_ANALYZE: 5,
   ANALYZING: 6,
   DONE: 7,

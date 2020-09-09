@@ -394,7 +394,7 @@ class AnalyzerState(IntEnum):
     INCOMPLETE = 1
     CAN_LAUNCH = 2
     LAUNCHED = 3
-    CACHING = 4
+    CAN_FILTER = 4
     CAN_ANALYZE = 5
     ANALYZING = 6
     DONE = 7
@@ -415,6 +415,7 @@ class AnalyzerState(IntEnum):
     def is_launched(cls, state: int) -> bool:
         return state in [
             cls.LAUNCHED,
+            cls.CAN_FILTER,
             cls.CAN_ANALYZE,
             cls.DONE,
             cls.ANALYZING,
@@ -505,6 +506,10 @@ class BaseVideoAnalyzer(Instance, RootInstance):
         raise NotImplementedError
 
     @abc.abstractmethod
+    def can_filter(self) -> bool:
+        raise NotImplementedError
+
+    @abc.abstractmethod
     @backend.expose(backend.can_analyze)
     def can_analyze(self) -> bool:
         raise NotImplementedError
@@ -535,16 +540,22 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
         if self.state == AnalyzerState.INCOMPLETE and self.can_launch():
             self.set_state(AnalyzerState.CAN_LAUNCH, push)
-        elif self.state == AnalyzerState.LAUNCHED:
-            if self.can_analyze:
+        elif self.state == AnalyzerState.LAUNCHED or self.state == AnalyzerState.CAN_FILTER:
+            if self.can_analyze():
                 self.set_state(AnalyzerState.CAN_ANALYZE, push)
+            elif self.can_filter():
+                self.set_state(AnalyzerState.CAN_FILTER, push)
+            else:
+                self.set_state(AnalyzerState.LAUNCHED, push)
         elif self.state == AnalyzerState.DONE or self.state == AnalyzerState.CANCELED:
             self.set_progress(0.0, push=False)
-            if self.can_analyze:
+            if self.can_analyze():
                 self.set_state(AnalyzerState.CAN_ANALYZE, push)
+            elif self.can_filter():
+                self.set_state(AnalyzerState.CAN_FILTER, push)
             elif self.launched:
                 self.set_state(AnalyzerState.LAUNCHED, push)
-            elif self.can_launch:
+            elif self.can_launch():
                 self.set_state(AnalyzerState.CAN_LAUNCH, push)
 
         return int(self.state)

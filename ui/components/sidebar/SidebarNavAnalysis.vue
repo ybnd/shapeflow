@@ -28,7 +28,6 @@
       :class="{
         'sidebar-progress': true,
         busy: status.busy,
-        caching: status.state === ast.CACHING,
         error: status.state === ast.ERROR,
         canceled: status.state === ast.CANCELED,
         done: status.state === ast.DONE,
@@ -61,13 +60,13 @@
         name="Set filters"
         icon="icon-layers"
         :id="link.filter"
-        :disabled="
+        :enabled="
           [
-            undefined,
-            ast.UNKNOWN,
-            ast.INCOMPLETE,
-            ast.CAN_LAUNCH,
-            ast.ANALYZING,
+            ast.CAN_FILTER,
+            ast.CAN_ANALYZE,
+            ast.DONE,
+            ast.CANCELED,
+            ast.ERROR,
           ].includes(status.state)
         "
       />
@@ -83,15 +82,10 @@
           name="Analyze"
           icon="icon-control-play"
           :id="link.analyze"
-          :disabled="
-            [
-              undefined,
-              ast.UNKNOWN,
-              ast.INCOMPLETE,
-              ast.LAUNCHED,
-              ast.CAN_LAUNCH,
-              ast.CACHING,
-            ].includes(status.state)
+          :enabled="
+            [ast.CAN_ANALYZE, ast.CANCELED, ast.DONE, ast.ERROR].includes(
+              status.state
+            )
           "
         />
       </template>
@@ -106,9 +100,7 @@
         icon="icon-trash"
         :two_stage="true"
         :id="event.remove"
-        :disabled="
-          [undefined, ast.CACHING, ast.ANALYZING].includes(status.state)
-        "
+        :disabled="[undefined, ast.ANALYZING].includes(status.state)"
       />
     </ul>
   </div>
@@ -238,18 +230,9 @@ export default {
 @import "../../assets/scss/_core-variables";
 @import "node_modules/bootstrap/scss/functions";
 
-.sidebar-progress.cached {
-  /* progress bar background should match caching fill color */
-  background-color: theme-color("secondary") !important;
-}
-
 .sidebar-progress * {
   /*transition-duration: 0.25s !important;*/
   transition: none !important;
-}
-
-.sidebar-progress.caching * {
-  background-color: theme-color("secondary") !important;
 }
 
 /* todo: make sure this overrides busy */

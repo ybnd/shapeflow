@@ -391,7 +391,6 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
 
         return roi
 
-    @backend.expose(backend.clear_roi)
     def clear(self) -> None:
         self.config(roi=None, flip=FlipConfig(), turn=0)
         self.set(None)
@@ -891,7 +890,10 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
         return video_ok and design_ok
 
-    def can_analyze(self) -> bool:  # todo: endpoint?
+    def can_filter(self) -> bool:
+        return self.transform.is_set
+
+    def can_analyze(self) -> bool:
         return self.launched and all([mask.ready or mask.skip for mask in self.masks])
 
     def _launch(self):
@@ -922,12 +924,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
         # Initialize FeatureSets
         self._get_featuresets()
-
-    @backend.expose(backend.cache)
-    def cache(self) -> bool:
-        with self.busy_context(AnalyzerState.CACHING):
-            self.video.cache_frames(self.set_progress, self.set_state)
-            return True
 
     def _get_featuresets(self):
         self._featuresets = {
@@ -1157,6 +1153,11 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             return roi_config.dict()
         else:
             return None
+
+    @backend.expose(backend.clear_roi)
+    def clear_roi(self) -> None:
+        self.transform.clear()
+        self.state_transition()
 
     @backend.expose(backend.turn_cw)
     def turn_cw(self):

@@ -74,6 +74,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    enabled: {
+      type: Boolean,
+      default: true,
+    },
   },
   methods: {
     handleClick() {
@@ -110,7 +114,7 @@ export default {
       return [
         "nav-link",
         this.highlight ? "highlight" : "",
-        this.disabled ? "disabled" : "",
+        this.disabled || !this.enabled ? "disabled" : "",
         this.linkVariant,
       ];
     },
