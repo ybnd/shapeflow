@@ -4,6 +4,8 @@
       :is="context !== undefined ? 'SchemaCategory' : 'div'"
       v-if="is_loaded"
       :title="title"
+      :clickable="clickable_categories"
+      :class="container_class"
     >
       <template v-if="properties" v-for="property in properties">
         <template v-if="property === 'parameters'">
@@ -179,6 +181,14 @@ export default {
       default() {
         return false;
       },
+    },
+    container_class: {
+      type: String,
+      default: "",
+    },
+    clickable_categories: {
+      type: Boolean,
+      default: false,
     },
   },
   mounted() {

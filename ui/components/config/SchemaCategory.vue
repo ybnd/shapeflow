@@ -5,7 +5,7 @@
       :open="open"
       v-on="{ toggle: emit_toggle ? handleToggle : () => {} }"
     >
-      <summary class="category-title">
+      <summary class="category-title" :class="{ unclickable: !clickable }">
         <b>{{ title }}</b>
       </summary>
       <div class="isimple-form-indent">
@@ -35,6 +35,11 @@ export default {
       required: false,
       default: false,
     },
+    clickable: {
+      type: Boolean,
+      required: false,
+      default: true,
+    },
   },
   methods: {
     handleToggle: debounce(100, true, function () {
@@ -52,5 +57,8 @@ export default {
 
 .category-title {
   color: theme-color("gray-700");
+}
+.unclickable {
+  pointer-events: none;
 }
 </style>

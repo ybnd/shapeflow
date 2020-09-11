@@ -10,28 +10,17 @@
         <b-button @click="clearCache">Clear cache</b-button>
       </PageHeaderItem>
     </PageHeader>
-    <SchemaForm
-      :data="settings"
-      :schema="schema"
-      class="settings-form-container"
-    />
-
-    <!--    <VueFormJsonSchema-->
-    <!--      v-model="settings"-->
-    <!--      class="settings-form-container"-->
-    <!--      :schema="schema"-->
-    <!--      :ui-schema="ui_schema"-->
-    <!--      :options="{-->
-    <!--        castToSchemaType: true,-->
-    <!--        showValidationErrors: true,-->
-    <!--        allowInvalidModel: true,-->
-    <!--        ajv: {-->
-    <!--          options: {-->
-    <!--            unknownFormats: ['directory-path', 'file-path'], // these get validated by the backend-->
-    <!--          },-->
-    <!--        },-->
-    <!--      }"-->
-    <!--    />-->
+    <div class="scrollable">
+      <b-card class="isimple-settings-box isimple-form-section">
+        <SchemaForm
+          :data="settings"
+          :schema="schema"
+          class="settings-form-container"
+          :clickable_categories="false"
+          container_class="settings-form-container2"
+        />
+      </b-card>
+    </div>
   </div>
 </template>
 
@@ -104,27 +93,34 @@ $form-element-width: 600px;
 @import "../assets/scss/_core-variables";
 @import "node_modules/bootstrap/scss/functions";
 
-.form-schema form * {
-  display: block;
-  width: $form-element-width !important;
-  margin: 2px;
+.scrollable {
+  // it's not scrollable tho
+  display: flex;
+  flex-direction: column;
+  max-width: calc(100vw - #{$sidebar-width});
+  max-height: calc(100vh - #{$header-height});
+  height: calc(100vh - #{$header-height});
+  flex-grow: 0;
 }
-.card-body {
-  padding: 8px;
-}
-.card {
-  min-width: calc(#{$form-element-width} + 20px) !important;
-  max-width: calc(#{$form-element-width} + 20px) !important;
-  margin-left: 4px;
-  margin-top: 4px;
-  margin-right: 0;
-  margin-bottom: 0;
+
+.isimple-settings-box {
+  margin-top: 2px;
+  margin-bottom: 2px;
+  overflow-y: scroll;
+  overflow-x: hidden;
+  //max-width: calc(100vw - #{$sidebar-width} - 4px);
+  //-ms-overflow-style: none; //!* IE 11 *!
+  //scrollbar-width: none; //!* Firefox 64 *!
 }
 .settings-form-container {
+  margin: 4px;
+  padding-bottom: 4px;
+}
+.settings-form-container2 {
   padding: 0;
   margin: 0;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   flex-wrap: wrap;
   overflow-x: scroll;
   overflow-y: hidden;

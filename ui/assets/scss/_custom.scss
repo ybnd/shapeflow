@@ -18,11 +18,17 @@
   flex-wrap: nowrap !important;
   max-width: $sidebar-width !important;
   max-height: 100vh; // sidebar should not exceed viewport height
+
   .sidebar-nav {
-    overflow-y: hidden !important;
+    overflow-y: scroll !important;
     flex-direction: column;
     max-width: $sidebar-width;
     flex-wrap: nowrap;
+    -ms-overflow-style: none; /* IE 11 */
+    scrollbar-width: none; /* Firefox 64 */
+  }
+  .sidebar-nav::-webkit-scrollbar {
+    display: none;
   }
   .sidebar-nav:hover {
     overflow-y: auto;
@@ -32,6 +38,7 @@
   .sidebar-nav:hover::-webkit-scrollbar {
     display: none;
   }
+
   .nav-item {
     transition: background .1s ease-in-out !important;
   }
@@ -46,7 +53,7 @@
   }
   .nav-dropdown-toggle {
     &::before {
-      transition: transform .1s !important;
+      transition: transform .2s !important;
     }
   }
   .nav-dropdown.open {
@@ -75,6 +82,9 @@ $form-color: theme-color('gray-700');
 }
 
 .isimple-form-section {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
   border-radius: 0;
   margin-top: $form-gap;
   margin-bottom: 0;
@@ -83,6 +93,9 @@ $form-color: theme-color('gray-700');
 }
 
 .isimple-form-section-full {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
   border-radius: 0;
   margin-top: $form-gap;
   margin-bottom: 0;
@@ -91,6 +104,9 @@ $form-color: theme-color('gray-700');
 }
 
 .isimple-form-section-fit {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
   border-radius: 0;
   margin-top: 0;
   margin-bottom: $form-gap;
