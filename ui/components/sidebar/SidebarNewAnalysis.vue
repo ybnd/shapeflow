@@ -151,10 +151,8 @@ export default {
   padding-top: 1px;
   padding-left: 12px;
   padding-right: 24px;
-  margin-bottom: -16px;
+  margin-bottom: -1px;
 }
 .popover-buttons {
-  margin-left: -1px;
-  margin-bottom: 14px;
 }
 </style>
