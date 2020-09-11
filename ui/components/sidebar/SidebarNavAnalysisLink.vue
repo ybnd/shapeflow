@@ -142,6 +142,10 @@ export default {
 @import "../../assets/scss/_core-variables";
 @import "node_modules/bootstrap/scss/functions";
 
+.popover {
+  z-index: 9000;
+}
+
 .highlight {
   background: $gray-700 !important;
   /*color: $gray-800 !important;*/
