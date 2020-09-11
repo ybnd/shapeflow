@@ -1,5 +1,4 @@
 # KUL Biosensors team - iSIMPLE
-[![Documentation Status](https://readthedocs.org/projects/isimple/badge/?version=master)](https://isimple.readthedocs.io/en/latest/?badge=master)
 [![travis-ci](https://travis-ci.org/ybnd/isimple.svg?branch=master)](https://travis-ci.org/ybnd/isimple)
 [![codecov](https://codecov.io/gh/ybnd/isimple/branch/master/graph/badge.svg)](https://codecov.io/gh/ybnd/isimple)
 
