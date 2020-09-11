@@ -1310,8 +1310,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
                     result.update({k: values})
                     self.results[k].loc[frame_number] = [t] + values
-
-                self.set_progress(frame_number / self.video.frame_count)
             else:
                 log.warning(f"skipping unreadable frame {frame_number}")
 
@@ -1334,6 +1332,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 for fn in self.frame_numbers():
                     if not self.canceled and not self.errored:
                         self.calculate(fn)
+                        self.set_progress((fn+1) / self.video.frame_count)
                     else:
                         break
 
