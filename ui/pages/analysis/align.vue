@@ -292,8 +292,7 @@ export default {
           }
         } else {
           console.log("is invalid");
-          console.warn("SHOULD ALLOW USER TO DRAW A RECTANGLE");
-          this.handleHideMoveable();
+          this.clearRoi();
         }
       }
     },
@@ -637,8 +636,8 @@ export default {
   float: left;
   display: block;
   margin: 0 0 0 0;
-  height: auto;
-  width: auto;
+  width: calc(100vw - #{$sidebar-width});
+  height: calc(100vh - #{$header-height});
   max-width: calc(100vw - #{$sidebar-width});
   max-height: calc(100vh - #{$header-height});
   /* Disable double-click selection */
