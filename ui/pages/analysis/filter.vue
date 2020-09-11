@@ -3,14 +3,14 @@
   <div class="fixed-page">
     <PageHeader>
       <PageHeaderItem>
-        <!--        <b-button-->
-        <!--          class="header-button-icon"-->
-        <!--          @click="handleHideConfigSidebar"-->
-        <!--          data-toggle="tooltip"-->
-        <!--          title="Toggle configuration sidebar"-->
-        <!--        >-->
-        <!--          <i class="icon-menu" />-->
-        <!--        </b-button>-->
+        <b-button
+          class="header-button-icon"
+          @click="handleHideConfigSidebar"
+          data-toggle="tooltip"
+          title="Toggle configuration sidebar"
+        >
+          <i class="icon-menu" />
+        </b-button>
         <b-button
           class="header-button-icon"
           @click="handleClearFilters"
@@ -70,7 +70,7 @@
           :src="`${frame_url}?${opened_at}`"
           alt=""
           :class="
-            hideConfigSidebar ? 'streamed-image-f' : 'streamed-image-f-cs'
+            hideConfigSidebar ? 'streamed-image-f' : 'streamed-image-f with-cs'
           "
           :ref="ref_frame"
         />
@@ -78,17 +78,13 @@
           :src="`${overlay_url}?${opened_at}`"
           alt=""
           class="overlay"
-          :class="
-            hideConfigSidebar ? 'streamed-image-f' : 'streamed-image-f-cs'
-          "
+          :class="hideConfigSidebar ? 'overlay' : 'overlay with-cs'"
         />
         <img
           :src="`${state_url}?${opened_at}`"
           alt=""
           class="overlay-state"
-          :class="
-            hideConfigSidebar ? 'streamed-image-f' : 'streamed-image-f-cs'
-          "
+          :class="hideConfigSidebar ? 'overlay-state' : 'overlay-state with-cs'"
         />
       </div>
     </div>
@@ -371,8 +367,8 @@ export default {
   /*float: left;*/
   /*display: block;*/
   margin: 0 0 0 0;
-  //height: calc(100vh - #{$header-height});
-  //width: calc(100vw - #{$sidebar-width});
+  height: calc(100vh - #{$header-height});
+  width: calc(100vw - #{$sidebar-width});
   /* Disable double-click selection */
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -381,41 +377,45 @@ export default {
   user-select: none;
 }
 
+.with-cs {
+  max-width: calc(
+    100vw - #{$sidebar-width} - #{$config-sidebar-width}
+  ) !important;
+}
+
 .streamed-image-f {
   display: inline;
   max-width: calc(100vw - #{$sidebar-width});
   max-height: calc(100vh - #{$header-height});
-  width: auto;
-  height: auto;
-  float: left;
-  position: absolute;
-  pointer-events: none;
-}
-
-.streamed-image-f-cs {
-  display: inline;
-  max-width: calc(100vw - #{$sidebar-width} - #{$config-sidebar-width});
-  max-height: calc(100vh - #{$header-height} - #{$config-sidebar-width});
-  width: auto;
-  height: auto;
+  //width: auto;
+  //height: auto;
   float: left;
   position: absolute;
   pointer-events: none;
 }
 
 .overlay {
-  mix-blend-mode: multiply;
-  pointer-events: none;
-  float: left;
+  display: inline;
+  max-width: calc(100vw - #{$sidebar-width});
   max-height: calc(100vh - #{$header-height});
+  //width: auto;
+  //height: auto;
+  float: left;
+  position: absolute;
+  pointer-events: none;
   opacity: 0.25;
 }
 
 .overlay-state {
   mix-blend-mode: multiply;
-  pointer-events: none;
-  float: left;
+  display: inline;
+  max-width: calc(100vw - #{$sidebar-width});
   max-height: calc(100vh - #{$header-height});
+  //width: auto;
+  //height: auto;
+  float: left;
+  position: absolute;
+  pointer-events: none;
 }
 
 .hidden * {

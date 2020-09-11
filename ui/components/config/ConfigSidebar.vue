@@ -60,27 +60,19 @@ export default {
   },
   methods: {
     handleInit() {
-      this.previous_id = this.id;
-
-      if (this.$store.getters["analyzers/getIndex"](this.id) === -1) {
-        this.$router.push(`/`);
-      } else {
-        this.$root.$emit(events.sidebar.open(this.id));
-        this.edit_json = this.$store.getters[
-          "settings/getSettings"
-        ].app.edit_json;
-        this.handleGetConfig();
-      }
+      this.handleGetConfig();
     },
     handleCleanUp() {},
     handleGetConfig() {
-      console.log("configure.hangleGetConfig()");
+      console.log("ConfigSidebar.hangleGetConfig()");
 
       this.config = this.$store.getters["analyzers/getAnalyzerConfigCopy"](
         this.id
       );
     },
     handleSetConfig() {
+      console.log("ConfigSidebar.hangleSetConfig()");
+
       // send config to backend
       this.$store
         .dispatch("analyzers/set_config", {
@@ -96,24 +88,14 @@ export default {
     handleUpdate: throttle(
       250,
       false,
-      debounce(50, false, function () {
+      debounce(250, false, function () {
         this.handleSetConfig();
       })
     ),
   },
-  watch: {
-    "$route.query.id"() {
-      console.log(`id has changed ${this.id}`);
-
-      // this.$forceUpdate();
-      this.handleCleanUp();
-      this.handleInit();
-    },
-  },
   computed: {
     schema() {
-      const schema = this.$store.getters["schemas/getConfigSchema"];
-      return schema;
+      return this.$store.getters["schemas/getConfigSchema"];
     },
   },
   data() {
@@ -134,7 +116,7 @@ export default {
   background: #ffffff;
   width: $config-sidebar-width;
   float: right;
-  max-height: calc(100vh - #{$header-height});
+  height: calc(100vh - #{$header-height});
   overflow-y: scroll;
   overflow-x: hidden;
   -ms-overflow-style: none; /* IE 11 */

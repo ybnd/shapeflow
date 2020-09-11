@@ -174,8 +174,8 @@ export default {
         this.id
       );
 
-      console.log("config=");
-      console.log(this.config);
+      // console.log("config=");
+      // console.log(this.config);
     },
     handleSetConfig() {
       // send config to backend

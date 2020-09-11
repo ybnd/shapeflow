@@ -6,14 +6,6 @@
       <!--        <b-button>Reset ROI</b-button>-->
       <!--      </PageHeaderItem>-->
       <PageHeaderItem>
-        <!--        <b-button-->
-        <!--          class="header-button-icon"-->
-        <!--          @click="handleHideConfigSidebar"-->
-        <!--          data-toggle="tooltip"-->
-        <!--          title="Toggle configuration sidebar"-->
-        <!--        >-->
-        <!--          <i class="icon-menu" />-->
-        <!--        </b-button>-->
         <b-button
           class="header-button-icon"
           @click="handleClearAlignment"
@@ -108,24 +100,6 @@
       </PageHeaderItem>
     </PageHeader>
     <div class="align-content">
-      <ConfigSidebar
-        :id="this.id"
-        :hidden="true"
-        v-if="!hideConfigSidebar"
-        :skip="[
-          'frame_interval_setting',
-          'Nf',
-          'dt',
-          'video_path',
-          'design_path',
-          'design',
-          'features',
-          'parameters',
-          'name',
-          'description',
-          'masks',
-        ]"
-      />
       <div
         class="align align-placeholder"
         ref="align"
@@ -551,10 +525,6 @@ export default {
         config: { transform: { type: transform } },
       });
     },
-    handleHideConfigSidebar() {
-      this.hideConfigSidebar = !this.hideConfigSidebar;
-      this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
-    },
   },
   watch: {
     "$route.query.id"() {
@@ -667,8 +637,10 @@ export default {
   float: left;
   display: block;
   margin: 0 0 0 0;
-  height: calc(100vh - #{$header-height});
-  width: calc(100vw - #{$sidebar-width});
+  height: auto;
+  width: auto;
+  max-width: calc(100vw - #{$sidebar-width});
+  max-height: calc(100vh - #{$header-height});
   /* Disable double-click selection */
   -webkit-user-select: none;
   -moz-user-select: none;
