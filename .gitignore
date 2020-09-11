@@ -27,3 +27,4 @@ build/
 dist/
 ui/
 .venv/
+.ploy
