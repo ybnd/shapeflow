@@ -40,8 +40,23 @@
       </PageHeaderItem>
       <PageHeaderSeek :id="id" :key="id" />
       <PageHeaderItem>
-        <b-button @click="hideVideoFrame = !hideVideoFrame">
+        <b-button
+          @click="hideVideoFrame = !hideVideoFrame"
+          :disabled="hideStateFrame && hideOverlay"
+        >
           {{ hideVideoFrame ? "Show video frame" : "Hide video frame" }}
+        </b-button>
+        <b-button
+          @click="hideStateFrame = !hideStateFrame"
+          :disabled="hideVideoFrame && hideOverlay"
+        >
+          {{ hideStateFrame ? "Show state frame" : "Hide state frame" }}
+        </b-button>
+        <b-button
+          @click="hideOverlay = !hideOverlay"
+          :disabled="hideVideoFrame && hideStateFrame"
+        >
+          {{ hideOverlay ? "Show overlay" : "Hide overlay" }}
         </b-button>
       </PageHeaderItem>
     </PageHeader>
@@ -75,12 +90,14 @@
           :ref="ref_frame"
         />
         <img
+          v-if="!hideOverlay"
           :src="`${overlay_url}?${opened_at}`"
           alt=""
           class="overlay"
           :class="hideConfigSidebar ? 'overlay' : 'overlay with-cs'"
         />
         <img
+          v-if="!hideStateFrame"
           :src="`${state_url}?${opened_at}`"
           alt=""
           class="overlay-state"
@@ -352,6 +369,8 @@ export default {
     },
     hideConfigSidebar: true,
     hideVideoFrame: false,
+    hideStateFrame: false,
+    hideOverlay: false,
   }),
 };
 </script>
@@ -403,7 +422,7 @@ export default {
   float: left;
   position: absolute;
   pointer-events: none;
-  opacity: 0.25;
+  opacity: 0.15;
 }
 
 .overlay-state {
