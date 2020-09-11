@@ -16,8 +16,8 @@ class HsvRangeFilterConfig(FilterConfig):
     """HSV range filter"""
     range: HsvColor = Field(default=HsvColor(h=10, s=75, v=75))
     color: HsvColor = Field(default=HsvColor())
-    close: int = Field(default=0)
-    open: int = Field(default=0)
+    close: int = Field(default=0, ge=0, le=200)
+    open: int = Field(default=0, ge=0, le=200)
 
     @property
     def ready(self) -> bool:
@@ -33,6 +33,8 @@ class HsvRangeFilterConfig(FilterConfig):
 
     _resolve_close = validator('close', allow_reuse=True)(BaseConfig._odd_add)
     _resolve_open = validator('open', allow_reuse=True)(BaseConfig._odd_add)
+    _close_limits = validator('close', pre=True, allow_reuse=True)(BaseConfig._int_limits)
+    _open_limits = validator('open', pre=True, allow_reuse=True)(BaseConfig._int_limits)
 
 
 @extend(FilterType)

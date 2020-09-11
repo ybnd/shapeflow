@@ -87,12 +87,15 @@ class MaskConfig(BaseConfig):
 @extend(ConfigType)
 class DesignFileHandlerConfig(BaseConfig):
     """Design file"""
-    dpi: int = Field(default=400)
+    dpi: int = Field(default=400, ge=50, le=1200)
 
-    overlay_alpha: float = Field(default=0.1)
-    smoothing: int = Field(default=7)
+    overlay_alpha: float = Field(default=0.1, ge=0.0, le=1.0)
+    smoothing: int = Field(default=7, ge=0, le=50)
 
     _resolve_smoothing = validator('smoothing', allow_reuse=True)(BaseConfig._odd_add)
+    _limit_smoothing = validator('smoothing', allow_reuse=True, pre=True)(BaseConfig._int_limits)
+    _limit_dpi = validator('dpi', allow_reuse=True, pre=True)(BaseConfig._int_limits)
+    _limit_alpha = validator('overlay_alpha', allow_reuse=True, pre=True)(BaseConfig._float_limits)
 
 
 @extend(ConfigType)

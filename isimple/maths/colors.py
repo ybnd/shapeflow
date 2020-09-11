@@ -2,9 +2,7 @@ import re
 from collections import namedtuple
 from typing import Dict, Type, List
 
-from pydantic import BaseModel, Field, validator, conint
-
-from isimple.core.config import BaseConfig
+from isimple.core.config import BaseConfig, Field, validator
 
 import cv2
 import numpy as np

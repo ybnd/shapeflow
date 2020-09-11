@@ -184,6 +184,35 @@ class BaseConfig(BaseModel, Described):
         else:
             return 0
 
+    @classmethod
+    def _int_limits(cls, value, field):
+        if field.field_info.le is not None and not value <= field.field_info.le:
+            return field.field_info.le
+        elif field.field_info.lt is not None and not value < field.field_info.lt:
+            return field.field_info.lt - 1
+        elif field.field_info.ge is not None and not value >= field.field_info.ge:
+            return field.field_info.ge
+        elif field.field_info.gt is not None and not value > field.field_info.gt:
+            return field.field_info.gt + 1
+        else:
+            return value
+
+    @classmethod
+    def _float_limits(cls, value, field):
+        if field.field_info.le is not None and not value <= field.field_info.le:
+            return field.field_info.le
+        elif field.field_info.lt is not None and not value < field.field_info.lt:
+            log.warning(f"resolving float 'lt' as 'le' for field {field}")
+            return field.field_info.lt
+        elif field.field_info.ge is not None and not value >= field.field_info.ge:
+            return field.field_info.ge
+        elif field.field_info.gt is not None and not value > field.field_info.gt:
+            log.warning(f"resolving float 'gt' as 'ge' for field {field}")
+            return field.field_info.gt
+        else:
+            return value
+
+
     def __call__(self, **kwargs) -> None:
         # iterate over fields to maintain validation order
         for field in self.__fields__.keys():
