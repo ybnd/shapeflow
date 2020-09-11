@@ -1312,7 +1312,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                     self.results[k].loc[frame_number] = [t] + values
 
                 self.set_progress(frame_number / self.video.frame_count)
-                self.event(AnalyzerEvent.RESULT, result)
             else:
                 log.warning(f"skipping unreadable frame {frame_number}")
 
@@ -1331,8 +1330,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 self._get_featuresets()
                 self.commit()
                 self._new_results()
-
-                self.event(AnalyzerEvent.RMETAD, {'colors': self.get_colors()})
 
                 for fn in self.frame_numbers():
                     if not self.canceled and not self.errored:

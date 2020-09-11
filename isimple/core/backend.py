@@ -385,8 +385,6 @@ class BaseAnalyzerConfig(BaseConfig):
 class AnalyzerEvent(Enum):  # todo: make a 'toast' event -> frontend shows a message (e.g. warnings)
     STATUS = 'status'
     CONFIG = 'config'
-    RESULT = 'result'
-    RMETAD = 'result_metadata'
 
 
 class AnalyzerState(IntEnum):
