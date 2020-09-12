@@ -6,11 +6,7 @@
     :key="charts_key"
   >
     <template v-for="(feature_data, feature) in result">
-      <div
-        class="result"
-        :class="result_class"
-        :key="`result-${name}-${feature}`"
-      >
+      <div class="result" :class="result_class" :key="`result-${feature}`">
         <ResultChart
           :chart-data="{
             datasets: feature_data,
@@ -57,23 +53,19 @@
 </template>
 
 <script>
-import Vue from "vue";
-
-import AsyncComputed from "vue-async-computed";
-
-import { get_results, get_colors } from "../../static/api";
-
 import ResultChart from "../../components/results/ResultChart";
 import { events } from "../../static/events";
 import { seconds2timestr } from "../../static/util";
 
-Vue.use(AsyncComputed);
-
 export default {
   name: "ResultChartStack",
   props: {
-    id: {
-      type: String,
+    raw_result: {
+      type: Object,
+      required: true,
+    },
+    colors: {
+      type: Array,
       required: true,
     },
     container_class: {
@@ -110,9 +102,6 @@ export default {
     },
   },
   computed: {
-    name() {
-      return this.$store.getters["analyzers/getName"](this.id);
-    },
     maxX() {
       return Math.max(
         ...this.result[Object.keys(this.result)[0]][0].data
@@ -120,82 +109,49 @@ export default {
           .map((point) => point.x)
       );
     },
-  },
-  asyncComputed: {
-    colors: {
-      get() {
-        return get_colors(this.id).then((colors) => {
-          return colors;
-        });
-      },
-      default: null,
-    },
-    result: {
-      async get() {
-        if (this.colors !== null) {
-          return get_results(this.id).then((results) => {
-            // backend returns results ~ pandas.DataFrame.to_json(orient='split')
-            // -> convert to
-            // {
-            //  feature:
-            //    [                           -> array of data / mask
-            //      {
-            //        ...metadata,
-            //        data: [{x:t y:mask}]    -> array of data points
-            //      }
-            //    ]
-            // }
-            console.log("ResultChartStack.result.get() -> results = ");
-            console.log(results);
+    result() {
+      let formatted_results = {};
 
-            let formatted_results = {};
+      for (const feature of Object.keys(this.raw_result)) {
+        console.log(`feature = ${feature}`);
+        let feature_results = [];
+        if (this.raw_result.hasOwnProperty(feature)) {
+          let masks = this.raw_result[feature].columns.slice(1);
 
-            for (const feature of Object.keys(results)) {
-              console.log(`feature = ${feature}`);
-              let feature_results = [];
-              if (results.hasOwnProperty(feature)) {
-                let masks = results[feature].columns.slice(1);
+          for (let m = 0; m < masks.length; m++) {
+            let data = [];
 
-                for (let m = 0; m < masks.length; m++) {
-                  let data = [];
+            console.log(this.raw_result[feature].data.length);
 
-                  console.log(results[feature].data.length);
-
-                  for (let i = 0; i < results[feature].data.length; i++) {
-                    data = [
-                      ...data,
-                      {
-                        x: results[feature].data[i][0],
-                        y: results[feature].data[i][m + 1],
-                      },
-                    ];
-                  }
-
-                  feature_results = [
-                    ...feature_results,
-                    {
-                      label: masks[m],
-                      backgroundColor: this.colors[feature][m],
-                      borderColor: this.colors[feature][m],
-                      showLine: true,
-                      data: data,
-                    },
-                  ];
-                }
-              }
-              formatted_results = {
-                ...formatted_results,
-                [feature]: feature_results,
-              };
+            for (let i = 0; i < this.raw_result[feature].data.length; i++) {
+              data = [
+                ...data,
+                {
+                  x: this.raw_result[feature].data[i][0],
+                  y: this.raw_result[feature].data[i][m + 1],
+                },
+              ];
             }
 
-            return formatted_results;
-          });
-        } else {
-          return {};
+            feature_results = [
+              ...feature_results,
+              {
+                label: masks[m],
+                backgroundColor: this.colors[m],
+                borderColor: this.colors[m],
+                showLine: true,
+                data: data,
+              },
+            ];
+          }
         }
-      },
-      default: {},
+        formatted_results = {
+          ...formatted_results,
+          [feature]: feature_results,
+        };
+      }
+
+      return formatted_results;
     },
   },
   data() {

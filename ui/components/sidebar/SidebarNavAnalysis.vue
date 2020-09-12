@@ -83,9 +83,7 @@
           icon="icon-control-play"
           :id="link.analyze"
           :enabled="
-            [ast.CAN_ANALYZE, ast.CANCELED, ast.DONE, ast.ERROR].includes(
-              status.state
-            )
+            [ast.CAN_ANALYZE, ast.CANCELED, ast.ERROR].includes(status.state)
           "
         />
       </template>
@@ -93,7 +91,11 @@
         name="Results"
         icon="icon-graph"
         :id="link.result"
-        :disabled="![ast.DONE, ast.CANCELED, ast.ERROR].includes(status.state)"
+        :disabled="
+          ![ast.CAN_ANALYZE, ast.DONE, ast.CANCELED, ast.ERROR].includes(
+            status.state
+          )
+        "
       />
       <SidebarNavAnalysisLink
         name="Remove"

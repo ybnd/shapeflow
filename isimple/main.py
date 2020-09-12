@@ -5,6 +5,7 @@ import json
 import pickle
 import os
 import time
+import datetime
 import subprocess
 from threading import Thread, Event, Lock
 from typing import Dict, Any, List, Optional
@@ -45,6 +46,21 @@ def restart_server(host: str, port: int):
         shell=True,
          cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     )
+
+
+def check_history():
+    history = db.History()
+
+    if history.check():
+        history.clean()
+    else:
+        timestamp = datetime.datetime.fromtimestamp(time.time()).strftime(isimple.settings.format.datetime_format_fs)
+        backup_path = f"{isimple.settings.db.path}_broken_{timestamp}"
+        log.warning(f"backing up old history database @ {backup_path}")
+        os.rename(isimple.settings.db.path, backup_path)
+
+
+check_history()
 
 
 class ServerThread(Thread, metaclass=util.Singleton):
@@ -251,7 +267,7 @@ class Main(isimple.core.Lockable):
                     'descriptions': video.TransformType().descriptions
                 })
             elif for_type == "paths":
-                return respond(self._history.fetch_paths())
+                return respond(self._history.get_paths())
             elif for_type == "config":
                 return respond(
                     backend.AnalyzerType().config_schema()  # todo: { AnalyzerType:<schema> }
@@ -449,21 +465,29 @@ class Main(isimple.core.Lockable):
 
             return respond(size)
 
-        @app.route('/api/db/clear', methods=['POST'])
-        def clear_db():
-            log.info('clearing database')
-            with self.lock():
-                self._history.forget()
-            return respond(True)
-
         @app.route('/api/db/disk-size', methods=['GET'])
         def get_db_size_mb():
             return respond(util.sizeof_fmt(os.path.getsize(isimple.settings.db.path)))
 
+        @app.route('/api/db/<endpoint>', methods=['GET', 'POST', 'PUT'])
+        def db_call(endpoint):
+            active()
+
+            if request.data:
+                data = json.loads(request.data)
+            else:
+                data = {k: json.loads(v) for k, v in
+                        request.args.to_dict().items() if v != ''}
+
+            result = self.db_call(endpoint, data)
+
+            if isinstance(result, bytes):
+                return make_response(result)
+            else:
+                return respond(result)
 
         @app.before_first_request
         def initialize():
-            self._history.clean()
             self.load_state()
 
         self._app = app
@@ -719,6 +743,15 @@ class Main(isimple.core.Lockable):
             return result
         else:
             return None
+
+    def db_call(self, endpoint: str, data: dict = None) -> Any:
+        if data is None:
+            data = {}
+
+        log.debug(f"db: call '{endpoint}' {data}")
+        method = self._history.get(getattr(db.history, endpoint))
+        result = method(**data)
+        return result
 
     def stream(self, id: str, endpoint: str) -> Optional[streaming.BaseStreamer]:  # todo: extend to handle json streaming also
         with self.lock():

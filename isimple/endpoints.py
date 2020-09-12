@@ -55,10 +55,20 @@ class BackendRegistry(ImmutableRegistry):
     get_inverse_transformed_overlay = Endpoint(Callable[[], np.ndarray], stream_image)
     get_inverse_overlaid_frame = Endpoint(Callable[[Optional[int]], np.ndarray], stream_image)
     get_state_frame = Endpoint(Callable[[Optional[int], Optional[int]], np.ndarray], stream_image)
-    get_colors = Endpoint(Callable[[], Dict[str, Tuple[str, ...]]])
+    get_colors = Endpoint(Callable[[], Tuple[str, ...]])
     get_time = Endpoint(Callable[[int], float])
     get_total_time = Endpoint(Callable[[], float])
     get_fps = Endpoint(Callable[[], float])
     get_h = Endpoint(Callable[[], float])
     get_dpi = Endpoint(Callable[[], float])
     get_mask_rects = Endpoint(Callable[[], Dict[str, np.ndarray]])
+    get_db_id = Endpoint(Callable[[], int])
+
+
+class HistoryRegistry(ImmutableRegistry):
+    get_recent_paths = Endpoint(Callable[[], Dict[str, List[str]]])
+    get_result_list = Endpoint(Callable[[int], dict])
+    get_result = Endpoint(Callable[[int], dict])
+    clean = Endpoint(Callable[[], None])
+    forget = Endpoint(Callable[[], None])
+

@@ -201,6 +201,10 @@ export async function clear_roi(id) {
   return axios.post(api(id, "call/clear_roi")).then(return_success);
 }
 
+export async function get_db_id(id) {
+  return axios.get(api(id, "call/get_db_id")).then(return_data);
+}
+
 export async function undo_config(id, context = null) {
   return axios
     .put(api(id, "call/undo_config"), { context: context })
@@ -265,6 +269,10 @@ export async function clear_cache() {
   return axios.post(api("cache", "clear")).then(return_success);
 }
 
+export async function get_cache_size() {
+  return axios.get(api("cache", "disk-size")).then(return_data);
+}
+
 export async function clear_db() {
   return axios.post(api("db", "clear")).then(return_success);
 }
@@ -273,6 +281,14 @@ export async function get_db_size() {
   return axios.get(api("db", "disk-size")).then(return_data);
 }
 
-export async function get_cache_size() {
-  return axios.get(api("cache", "disk-size")).then(return_data);
+export async function get_result_list(analysis) {
+  return axios
+    .post(api("db", "get_result_list"), { analysis: analysis })
+    .then(return_data);
+}
+
+export async function get_result(analysis, run) {
+  return axios
+    .post(api("db", "get_result"), { analysis: analysis, run: run })
+    .then(return_data);
 }

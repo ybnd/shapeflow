@@ -242,3 +242,11 @@ class BaseAnalysisModel(DbModel):
         """Store analysis information from wrapped ``BaseVideoAnalyzer``
         to the database"""
         raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_runs(self) -> int:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def get_id(self) -> int:
+        raise NotImplementedError

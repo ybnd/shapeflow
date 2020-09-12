@@ -453,6 +453,8 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     _model: Optional[BaseAnalysisModel]
     _eventstreamer: Optional[EventStreamer]
 
+    _runs: int
+
     def __init__(self, config: BaseAnalyzerConfig = None, eventstreamer: EventStreamer = None):
         self.set_eventstreamer(eventstreamer)
 
@@ -474,9 +476,18 @@ class BaseVideoAnalyzer(Instance, RootInstance):
         if self.config.name is None:  # todo: move to AnalysisModel instead
             self.config(name=self.model.get_name())
 
+        self._runs = self._model.get_runs()
+
     @property
     def model(self):
         return self._model
+
+    @property
+    def runs(self):
+        return self._runs
+
+    def _new_run(self):
+        self._runs += 1
 
     @property
     def eventstreamer(self):
@@ -693,6 +704,10 @@ class BaseVideoAnalyzer(Instance, RootInstance):
             else:
                 log.warning(f"{self.__class__.__qualname__} can not be launched.")  # todo: try to be more verbose
                 return False
+
+    @backend.expose(backend.get_db_id)
+    def get_db_id(self) -> int:
+        return self.model.get_id()
 
     @contextmanager
     def caching(self):

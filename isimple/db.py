@@ -6,6 +6,8 @@ import datetime
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, ForeignKey
 
+from isimple.endpoints import HistoryRegistry
+from isimple.core import RootInstance
 from isimple.core.db import Base, DbModel, SessionWrapper, FileModel, BaseAnalysisModel
 from isimple import Settings, settings, get_logger
 from isimple.config import normalize_config, VideoAnalyzerConfig
@@ -14,6 +16,7 @@ from isimple.core.backend import BaseVideoAnalyzer, BaseAnalyzerConfig
 
 
 log = get_logger(__name__)
+history = HistoryRegistry()
 
 
 class VideoFileModel(FileModel):
@@ -48,12 +51,14 @@ class ConfigModel(DbModel):
     added = Column(DateTime)
 
 
-class ResultsModel(DbModel):
+class ResultModel(DbModel):
     __tablename__ = 'results'
 
     id = Column(Integer, primary_key=True)
 
     analysis = Column(Integer, ForeignKey('analysis.id'))
+    run = Column(Integer)
+    config = Column(Integer, ForeignKey('config.id'))
 
     feature = Column(String)
     """The feature that was analyzed"""
@@ -79,6 +84,7 @@ class AnalysisModel(BaseAnalysisModel):
     _added_by_context: Dict[str, datetime.datetime]
 
     id = Column(Integer, primary_key=True)
+    runs = Column(Integer)
 
     video = Column(Integer, ForeignKey('video_file.id'))
     design = Column(Integer, ForeignKey('design_file.id'))
@@ -108,6 +114,16 @@ class AnalysisModel(BaseAnalysisModel):
             if self.name is None:
                 self.name = f"#{self.id}"
             return self.name
+
+    def get_runs(self) -> int:
+        with self.session():
+            if self.runs is None:
+                self.runs = 0
+            return self.runs
+
+    def get_id(self) -> int:
+        with self.session():
+            return self.id
 
     def set_analyzer(self, analyzer: BaseVideoAnalyzer):
         self._analyzer = analyzer
@@ -162,7 +178,7 @@ class AnalysisModel(BaseAnalysisModel):
         if video is not None or design is not None:
             model = ConfigModel(
                 video=video, design=design, analysis=analysis,
-                json = json,
+                json=json,
                 added=datetime.datetime.now(),
             )
             model.connect(self)
@@ -194,6 +210,8 @@ class AnalysisModel(BaseAnalysisModel):
                 if self._analyzer.config.description is not None:
                     self.description = self._analyzer.config.description
 
+                self.runs = self._analyzer.runs
+
                 s.commit()
 
                 if self._config is not None:
@@ -202,9 +220,11 @@ class AnalysisModel(BaseAnalysisModel):
                 # Store results
                 for k, df in self._analyzer.results.items():
                     # Add columnsfe
-                    if not df.isnull().all().all():
-                        model = ResultsModel(
+                    if not df.isnull().all().all():  # todo: doesn't save results if there's *one* NaN?
+                        model = ResultModel(
                             analysis=self.id,
+                            run=self.runs,
+                            config=self.config,
                             feature=k,
                             data=df.to_json(orient='split'),
                         )  # todo: should have a _results: Dict[ <?>, ResultsModel] so these don't spawn new results each time
@@ -404,10 +424,16 @@ class AnalysisModel(BaseAnalysisModel):
         else:
             raise ValueError(f"Invalid redo context '{context}'")
 
-class History(SessionWrapper):
+class History(SessionWrapper, RootInstance):
     """Interface to the history database
     """
+    _endpoints: HistoryRegistry = history
+    _instance_class = SessionWrapper
+
     def __init__(self, path: Path = None):
+        super().__init__()
+        self._gather_instances()
+
         if path is None:
             path = settings.db.path
 
@@ -447,7 +473,8 @@ class History(SessionWrapper):
             return s.query(AnalysisModel).filter(AnalysisModel.id == id).\
                 first()
 
-    def fetch_paths(self) -> Dict[str, list]:
+    @history.expose(history.get_recent_paths)
+    def get_paths(self) -> Dict[str, list]:
         """Fetch the latest video and design file paths from the
         database. Number of paths is limited by ``settings.app.recent_files``
         """
@@ -461,6 +488,76 @@ class History(SessionWrapper):
                     limit(settings.app.recent_files).all()]
             }
 
+    @history.expose(history.get_result_list)
+    def get_result_list(self, analysis: int) -> dict:
+        with self.session() as s:
+            runs = s.query(AnalysisModel).\
+                filter(AnalysisModel.id == analysis).first().runs
+
+            return {
+                run: s.query(ResultModel).\
+                    filter(ResultModel.analysis == analysis).\
+                    filter(ResultModel.run == run).first().finished
+                for run in range(1, runs+1)
+            }
+
+    @history.expose(history.get_result)
+    def get_result(self, analysis: int, run: int) -> dict:
+        with self.session() as s:
+            return {
+                r.feature: json.loads(r.data)
+                for r in s.query(ResultModel).\
+                    filter(ResultModel.analysis == analysis).\
+                    filter(ResultModel.run == run)
+            }
+
+    def check(self) -> bool:
+        log.debug('checking history')
+
+        ok = []
+        models = [
+            VideoFileModel, DesignFileModel, ConfigModel,
+            ResultModel, AnalysisModel
+        ]
+
+        with self.session() as s:
+            db = s.bind.connect()
+            cursor = db.connection.cursor()
+
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table';")
+            tables = [name[0] for name in cursor.fetchall()]
+
+            for model in models:
+                table = model.__tablename__  # type: ignore
+
+                if table in tables:
+                    ok.append(True)
+                else:
+                    log.warning(f"table '{table}' is missing from the database.")
+                    ok.append(False)
+
+                cursor.execute(f"PRAGMA table_info({table})")
+                columns = {column[1]: column[2] for column in
+                           cursor.fetchall()}
+
+                model_columns = {
+                    column.name: str(column.type) for column in
+                    model.__table__.columns  # type: ignore
+                }
+
+                if columns == model_columns:
+                    ok.append(True)
+                else:
+                    log.warning(f"table '{table}' columns don't match.")
+                    ok.append(False)
+
+            db.close()
+
+        return all(ok)
+
+
+    @history.expose(history.clean)
     def clean(self) -> None:
         """Clean the database
 
@@ -489,18 +586,20 @@ class History(SessionWrapper):
                     filter(ConfigModel.analysis == old.id). \
                     filter(ConfigModel.id != old.config).delete()
 
-                s.query(ResultsModel). \
-                    filter(ResultsModel.analysis == old.id). \
-                    filter(ResultsModel.id != old.results).delete()
+                s.query(ResultModel). \
+                    filter(ResultModel.analysis == old.id). \
+                    filter(ResultModel.id != old.results).delete()
 
+    @history.expose(history.forget)
     def forget(self) -> None:
         """Remove everything."""
+        log.info(f"clearing history")
         models = [
             AnalysisModel,
             VideoFileModel,
             DesignFileModel,
             ConfigModel,
-            ResultsModel
+            ResultModel
         ]
 
         with self.session() as s:

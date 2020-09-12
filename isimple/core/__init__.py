@@ -315,20 +315,21 @@ class RootInstance(Lockable):
         return self._instance_mapping
 
     def _gather_instances(self):  # todo: needs major clean-up
-        log.debug(f'{self.__class__.__name__}: gather nested instances')
+        log.vdebug(f'{self.__class__.__name__}: gather nested instances')
         self._instance_mapping = {}
         instances = []
         attributes = [attr for attr in self.__dir__()]   # todo: all_attributes fails here because that's ~ class!
 
         for attr in sorted(attributes):
-            value = getattr(self, attr)
+            if hasattr(self, attr):
+                value = getattr(self, attr)
 
-            if isinstance(value, self._instance_class) and not isinstance(value, list):
-                instances.append(value)
-            elif isinstance(value, list) and all(isinstance(v, self._instance_class) for v in value):
-                instances += list(value)
-            elif isinstance(value, dict) and all(isinstance(v, self._instance_class) for v in value.values()):
-                instances += [v for v in value.values()]
+                if isinstance(value, self._instance_class) and not isinstance(value, list):
+                    instances.append(value)
+                elif isinstance(value, list) and all(isinstance(v, self._instance_class) for v in value):
+                    instances += list(value)
+                elif isinstance(value, dict) and all(isinstance(v, self._instance_class) for v in value.values()):
+                    instances += [v for v in value.values()]
 
         for instance in [self] + instances:
             self._add_instance(instance)
@@ -338,29 +339,29 @@ class RootInstance(Lockable):
     def _add_instance(self, instance: object):
         if isinstance(instance, self._instance_class):
             for attr in [attr for attr in all_attributes(instance)]:
-                value = getattr(instance, attr)  # bound method
+                if hasattr(instance, attr):
+                    value = getattr(instance, attr)  # bound method
+                    if hasattr(value, '__func__') and not isinstance(getattr(instance.__class__, attr), property):
+                        endpoint = None
+                        implementations = get_overridden_methods(instance.__class__, getattr(instance.__class__, attr))
 
-                if hasattr(value, '__func__') and not isinstance(getattr(instance.__class__, attr), property):
-                    endpoint = None
-                    implementations = get_overridden_methods(instance.__class__, getattr(instance.__class__, attr))
+                        # Returns an empty list for wrapped methods -> workaround
+                        if len(implementations) == 0:
+                            endpoint = value._endpoint
+                            # todo: there will probably be some bugs with inheritance & wrapping
 
-                    # Returns an empty list for wrapped methods -> workaround
-                    if len(implementations) == 0:
-                        endpoint = value._endpoint
-                        # todo: there will probably be some bugs with inheritance & wrapping
+                        for implementation in implementations:  # unbound methods
+                            try:
+                                endpoint = implementation._endpoint  # todo: won't catch endpoints defined at multiple places in the methods inheritance tree
+                            except AttributeError:
+                                pass
 
-                    for implementation in implementations:  # unbound methods
-                        try:
-                            endpoint = implementation._endpoint  # todo: won't catch endpoints defined at multiple places in the methods inheritance tree
-                        except AttributeError:
-                            pass
-
-                    if endpoint is not None:
-                        if endpoint not in self._instance_mapping:
-                            self._instance_mapping[endpoint] = [value]
-                        else:
-                            if value not in self._instance_mapping[endpoint]:
-                                self._instance_mapping[endpoint].append(value)
+                        if endpoint is not None:
+                            if endpoint not in self._instance_mapping:
+                                self._instance_mapping[endpoint] = [value]
+                            else:
+                                if value not in self._instance_mapping[endpoint]:
+                                    self._instance_mapping[endpoint].append(value)
 
         else:
             pass

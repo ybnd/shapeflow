@@ -306,10 +306,11 @@ class MainAnalyzerTest(unittest.TestCase):
 
             client.post(f'/api/{id}/call/analyze')
 
-            self.assertFalse(
+            # Results are cleared after analyzing  todo: assert that results are in database
+            self.assertTrue(
                 server._roots[id].results[
                     server._roots[id].config.features[0]].isna().all().all()
-            )  # todo: results are cleared after exporting?
+            )
 
             client.post(f'/api/{id}/remove')
             self.assertNotIn(id, server._roots)
@@ -592,8 +593,7 @@ class MainAnalyzerTest(unittest.TestCase):
                 n_config_t0 = len(list(s.query(ConfigModel)))
 
         with application(keep=True) as (server, client, settings):
-            # _history.clean() is performed before the first request is handled
-            client.get('/api/ping')
+            server._history.clean()
 
             with server._history.session() as s:
                 n_config_t1 = len(list(s.query(ConfigModel)))
@@ -716,6 +716,58 @@ class MainAnalyzerTest(unittest.TestCase):
     @unittest.skip('placeholder')
     def test_json_streaming(self):
         raise NotImplementedError
+
+
+class DbCheckTest(unittest.TestCase):
+    def test_db_check(self):
+        from isimple import settings, save_settings
+
+        with settings.db.override({'path': DB}):
+            clear_files()
+            save_settings(settings)
+
+            import sqlite3
+
+            db = sqlite3.connect(settings.db.path)
+            cursor = db.cursor()
+
+            cursor.execute("""
+            CREATE TABLE video_file (
+                id INTEGER PRIMARY KEY,
+                hash TEXT,
+                path TEXT,
+                used TIMESTAMP
+            );
+            """)  # A correct table
+
+            cursor.execute("""
+                CREATE TABLE design_file (
+                    id INTEGER PRIMARY KEY,
+                    path TEXT,
+                    used TIMESTAMP
+                );
+            """)  # An incorrect table
+
+            # Not enough tables -> invalid
+
+            db.commit()
+            db.close()
+
+            # runs check_history() on import, replaces invalid db
+            from isimple.main import db
+            import glob
+
+            # db is now valid
+            self.assertTrue(db.History().check())
+
+            # There should be a broken db
+            broken = glob.glob(f"{settings.db.path}_broken_*")
+
+            self.assertEqual(1, len(broken))
+
+            # clean up
+            os.remove(broken[0])
+            clear_files()
 
 
 if __name__ == '__main__':
