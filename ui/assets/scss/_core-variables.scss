@@ -16,3 +16,15 @@ $sidebar-footer-padding-x:            .5rem !default;
 
 /* Config sidebar */
 $config-sidebar-width: 300px;
+
+
+/* Bootstrap form styles */
+
+$form-field-height: 30px;
+$form-gap: 2px;
+$form-indent: 3px; /* makes section border fit neatly under <details> twisty triangle*/
+$scrollbar-width: 12px;
+
+$fit-width: calc(100%  - #{$form-indent} + 3 * #{$form-gap});
+$half-width: calc((100vw - #{$sidebar-width} - 3 * #{$form-gap})/2);
+$full-width: calc(100vw - #{$sidebar-width} - 2 * #{$form-gap});

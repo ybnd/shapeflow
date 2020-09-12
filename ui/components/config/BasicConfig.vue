@@ -12,7 +12,7 @@
   <!--        </div>-->
   <!--      </b-col>-->
   <b-container class="column-container">
-    <b-row class="card-form-row">
+    <b-row class="card-form-row path-row">
       <b-form-group>
         <b-input-group class="popover-field">
           <b-input-group-prepend>
@@ -55,7 +55,7 @@
         </b-input-group>
       </b-form-group>
     </b-row>
-    <b-row class="card-form-row">
+    <b-row class="card-form-row path-row">
       <b-form-group>
         <b-input-group>
           <b-input-group-prepend>
@@ -87,6 +87,7 @@
             v-bind:style="formStyle"
             ref="design_path"
             type="text"
+            class="path-form"
             v-model="config.design_path"
             :readonly="staticPaths"
             v-bind:class="{
@@ -627,9 +628,13 @@ export default {
   padding: 6px;
 }
 .path-form {
-  min-width: 260px;
-  max-width: 600px;
-  flex-shrink: 1;
+  width: auto;
+  max-width: $full-width;
+  flex-shrink: 0;
   flex-grow: 1;
+}
+.path-row {
+  display: block !important;
+  margin-right: -19px;
 }
 </style>

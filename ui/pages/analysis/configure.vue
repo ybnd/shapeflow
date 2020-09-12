@@ -61,12 +61,14 @@
         </b-row>
       </b-card>
       <b-card class="basic-config isimple-form-section">
-        <BasicConfig
-          ref="BasicConfig"
-          :config="config"
-          :static-paths="true"
-          @change="handleUpdate"
-        />
+        <div class="basic-config-gap">
+          <BasicConfig
+            ref="BasicConfig"
+            :config="config"
+            :static-paths="true"
+            @change="handleUpdate"
+          />
+        </div>
       </b-card>
       <b-card
         class="isimple-form-section advanced-config-box advanced-config-collapse"
@@ -296,5 +298,10 @@ $description-height: 64px;
 
 .description-label-row {
   margin-bottom: -5px;
+}
+
+.basic-config-gap {
+  padding-left: 4px;
+  padding-top: 4px;
 }
 </style>
