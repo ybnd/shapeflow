@@ -92,10 +92,12 @@ export default {
   components: { ResultChart },
   beforeMount() {
     this.updateChartsKey();
-    window.onresize = this.updateChartsKey;
+    window.addEventListener("resize", this.updateChartsKey);
     this.$root.$on(events.data.update(this.id), this.updateChartsKey);
   },
-  beforeDestroy() {},
+  beforeDestroy() {
+    window.removeEventListener("resize", this.updateChartsKey);
+  },
   methods: {
     is_last(index) {
       return index === Object.keys(this.result).length - 1;

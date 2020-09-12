@@ -139,10 +139,11 @@ export default {
   name: "analyzer-filter",
   beforeMount() {
     this.handleInit();
-    window.onresize = this.updateFrame;
+    window.addEventListener("resize", this.updateFrame);
   },
   beforeDestroy() {
     this.handleCleanUp();
+    window.removeEventListener("resize", this.updateFrame);
   },
   components: {
     PageHeader,

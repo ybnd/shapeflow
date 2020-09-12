@@ -1,6 +1,6 @@
 <template>
   <div class="app">
-    <div class="app-body">
+    <div v-show="!tooSmall" class="app-body">
       <Sidebar />
       <main class="main">
         <nuxt />
@@ -19,7 +19,7 @@ export default {
     Sidebar,
   },
   beforeCreate() {
-    this.$store.dispatch("schemas/sync");
+    this.$store.dispatch("schemas/sync"); // todo: is this really the place for this though?
     this.$store.dispatch("settings/sync");
   },
   mounted() {

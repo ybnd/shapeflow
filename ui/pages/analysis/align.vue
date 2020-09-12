@@ -176,11 +176,12 @@ export default {
   name: "analyzer-align",
   beforeMount() {
     this.handleInit();
-    window.onresize = this.updateFrame;
+    window.addEventListener("resize", this.updateFrame);
   },
   beforeDestroy() {
     this.handleSaveAlignment();
     this.handleCleanUp();
+    window.removeEventListener("resize", this.updateFrame);
   },
   components: {
     Moveable,
