@@ -81,23 +81,6 @@
           <i class="fa fa-exclamation-triangle" />
         </b-button>
       </PageHeaderItem>
-      <PageHeaderItem>
-        <b-dropdown
-          :text="transform"
-          data-toggle="tooltip"
-          title="Transform type"
-        >
-          <template v-for="(t, i) in transform_options.options">
-            <b-dropdown-item
-              v-bind:key="i"
-              @click="handleSetTransform(t, i)"
-              data-toggle="tooltip"
-              :title="transform_options.descriptions[i]"
-              >{{ transform_options.options[i] }}</b-dropdown-item
-            >
-          </template>
-        </b-dropdown>
-      </PageHeaderItem>
     </PageHeader>
     <div class="align-content">
       <div
