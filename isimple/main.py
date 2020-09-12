@@ -132,7 +132,9 @@ class Main(isimple.core.Lockable):
         self._history = db.History()
         super().__init__()
         app = Flask(__name__, static_url_path='')
+
         app.config.from_object(__name__)
+        app.config['JSON_SORT_KEYS'] = False
 
         self._stop_log = Event()  # todo: these could be class attributes instead
         self._pause_q = Event()
