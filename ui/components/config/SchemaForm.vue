@@ -20,6 +20,7 @@
             :open="p_overridden_parameters(property)"
             :emit_toggle="true"
             @toggle="p_toggle_override_parameters(property)"
+            :clickable="clickable_categories"
           >
             <template v-if="p_overridden_parameters(property)">
               <SchemaForm
@@ -32,12 +33,17 @@
                 :property_as_title="property_as_title"
                 :key="index"
                 @input="p_change"
+                :clickable_categories="clickable_categories"
               />
             </template>
           </SchemaCategory>
         </template>
         <template v-else-if="p_type(property) === 'array'">
-          <SchemaCategory :title="p_title(property)" :key="property">
+          <SchemaCategory
+            :title="p_title(property)"
+            :key="property"
+            :clickable="clickable_categories"
+          >
             <SchemaForm
               v-for="(item, index) in p_model(property)"
               :title="array_title(property, index)"
@@ -48,6 +54,7 @@
               :property_as_title="property_as_title"
               :key="index"
               @input="p_change"
+              :clickable_categories="clickable_categories"
             />
           </SchemaCategory>
         </template>
@@ -76,6 +83,7 @@
             :property_as_title="property_as_title"
             :key="property"
             @input="p_change"
+            :clickable_categories="clickable_categories"
           />
           <SchemaForm
             v-else
@@ -87,6 +95,7 @@
             :property_as_title="property_as_title"
             :key="property"
             @input="p_change"
+            :clickable_categories="clickable_categories"
           />
         </template>
         <template v-else>
@@ -188,7 +197,7 @@ export default {
     },
     clickable_categories: {
       type: Boolean,
-      default: false,
+      default: true,
     },
   },
   mounted() {
