@@ -174,7 +174,7 @@ class LogSettings(_Settings):
 
 class CacheSettings(_Settings):
     dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'cache'), title="cache directory")
-    size_limit_gb: int = Field(default=4, title="cache size limit (GB)")
+    size_limit_gb: float = Field(default=4.0, title="cache size limit (GB)")
     do_cache: bool = Field(default=True, title="use the cache")
     resolve_frame_number: bool = Field(default=True, title="resolve to (nearest) cached frame numbers")
     block_timeout: float = Field(default=0.1, title="wait for blocked item (s)")

@@ -6,8 +6,8 @@
         <b-button @click="setSettings">Save settings & restart</b-button>
       </PageHeaderItem>
       <PageHeaderItem>
-        <b-button @click="clearDb">Clear database</b-button>
-        <b-button @click="clearCache">Clear cache</b-button>
+        <b-button @click="clearDb">Clear database ({{ size.db }})</b-button>
+        <b-button @click="clearCache">Clear cache ({{ size.cache }})</b-button>
       </PageHeaderItem>
     </PageHeader>
     <div class="scrollable">
@@ -33,7 +33,7 @@ import SchemaForm from "../components/config/SchemaForm";
 
 import cloneDeep from "lodash/cloneDeep";
 
-import { clear_cache, clear_db } from "static/api";
+import { clear_cache, clear_db, get_cache_size, get_db_size } from "static/api";
 
 export default {
   name: "dashboard",
@@ -55,6 +55,8 @@ export default {
       this.settings = this.$store.getters["settings/getSettingsCopy"];
       this.schema = this.$store.getters["settings/getSchemaCopy"];
     }
+    this.getDiskSize();
+    setInterval(this.getDiskSize, 1000);
   },
   methods: {
     setSettings() {
@@ -65,10 +67,14 @@ export default {
         });
     },
     clearCache() {
-      clear_cache();
+      clear_cache().then(this.getDiskSize);
     },
     clearDb() {
-      clear_db();
+      clear_db().then(this.getDiskSize);
+    },
+    getDiskSize() {
+      get_cache_size().then((size) => (this.size.cache = size));
+      get_db_size().then((size) => (this.size.db = size));
     },
   },
   data() {
@@ -81,6 +87,10 @@ export default {
         render: {},
       },
       schema: {},
+      size: {
+        cache: null,
+        db: null,
+      },
     };
   },
 };

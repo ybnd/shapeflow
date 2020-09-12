@@ -441,12 +441,25 @@ class Main(isimple.core.Lockable):
             cache.close()
             return respond(True)
 
+        @app.route('/api/cache/disk-size', methods=['GET'])
+        def get_cache_size_mb():
+            cache = isimple.get_cache()
+            size = util.sizeof_fmt(cache.size)
+            cache.close()
+
+            return respond(size)
+
         @app.route('/api/db/clear', methods=['POST'])
         def clear_db():
             log.info('clearing database')
             with self.lock():
                 self._history.forget()
             return respond(True)
+
+        @app.route('/api/db/disk-size', methods=['GET'])
+        def get_db_size_mb():
+            return respond(util.sizeof_fmt(os.path.getsize(isimple.settings.db.path)))
+
 
         @app.before_first_request
         def initialize():
