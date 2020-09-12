@@ -355,6 +355,15 @@ class FeatureSet(object):
     def features(self) -> Tuple[Feature, ...]:
         return self._features
 
+    def calculate(self, frame: np.ndarray, state: Optional[np.ndarray]) -> Tuple[List[Any], Optional[np.ndarray]]:
+        values = []
+
+        for feature in self.features:
+            value, state = feature.calculate(frame=frame, state=state)
+            values.append(value)
+
+        return values, state
+
 
 class FeatureType(Factory):  # todo: nest in Feature?
     _type = Feature

@@ -933,7 +933,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                         mask,
                         global_config,
                         mask.config.parameters[index] if index < len(mask.config.parameters) else None
-                    ) for mask in self.design.masks
+                    ) for mask in self.design.masks if not mask.skip
                 ),
             ) for index, (feature, global_config) in enumerate(
                 zip(
@@ -1300,13 +1300,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 result = {'t': t}
 
                 for k,fs in self._featuresets.items():
-                    values = []
-
-                    for feature in fs._features:  # todo: make featureset iterable maybe?
-                        value, state = feature.calculate(
-                            frame.copy(),  # don't overwrite self.frame ~ cv2 dst parameter  # todo: better to let OpenCV handle copying, or not?
-                        )
-                        values.append(value)
+                    values, _ = fs.calculate(frame, state=None)
 
                     result.update({k: values})
                     self.results[k].loc[frame_number] = [t] + values
