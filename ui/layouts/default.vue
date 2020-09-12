@@ -6,6 +6,10 @@
         <nuxt />
       </main>
     </div>
+    <div v-if="tooSmall" class="too-small-message">
+      <i class="fa fa-exclamation-triangle" />
+      Window size too small to properly render the application!
+    </div>
   </div>
 </template>
 
@@ -23,7 +27,36 @@ export default {
     this.$store.dispatch("settings/sync");
   },
   mounted() {
-    window.onunload = unload;
+    window.addEventListener("unload", unload);
+    window.addEventListener("resize", this.checkIfTooSmall);
+  },
+  destroyed() {
+    window.removeEventListener("resize", this.checkIftooSmall);
+    window.removeEventListener("unload", unload);
+  },
+  methods: {
+    checkIfTooSmall() {
+      console.log(`default.checkIfTooSmall`);
+      console.log(`width=${window.innerWidth} height=${window.innerHeight}`);
+
+      this.tooSmall = window.innerWidth < 707 || window.innerHeight < 360;
+      // width: sidebar + new analysis popover render correctly
+      // height: arbitrary
+
+      console.log(`tooSmall = ${this.tooSmall}`);
+    },
+  },
+  data() {
+    return {
+      tooSmall: false,
+    };
   },
 };
 </script>
+
+<style>
+.too-small-message {
+  padding: 16px;
+  font-size: 16px;
+}
+</style>

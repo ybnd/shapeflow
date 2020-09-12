@@ -4,6 +4,15 @@
 
 /* Overrides */
 
+.app-body {
+  margin-top: 0 !important;
+}
+
+.app-body .main {
+  height: 100vh;
+  width: calc(100vw - #{$sidebar-width});
+  margin-left: $sidebar-width !important;  // fix main below sidebar @ narrow window
+}
 
 // Snappier animation
 .animated {
@@ -17,9 +26,17 @@
 .sidebar {
   flex-wrap: nowrap !important;
   max-width: $sidebar-width !important;
+  height: 100vh;
   max-height: 100vh; // sidebar should not exceed viewport height
+  margin-left: 0 !important;
+  margin-right: - $sidebar-width; // compensate for narrow window main fix
+
+  .nav {
+    min-height: 0 !important;
+  }
 
   .sidebar-nav {
+    min-height: 0 !important;
     overflow-y: scroll !important;
     flex-direction: column;
     max-width: $sidebar-width;

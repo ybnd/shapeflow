@@ -14,10 +14,7 @@
       >
         <div class="popover-form-container">
           <b-row>
-            <BasicConfig
-              ref="new_analyzer_form"
-              :formStyle="{ width: '600px' }"
-            />
+            <BasicConfig ref="new_analyzer_form" />
           </b-row>
 
           <b-row class="popover-form-row">
