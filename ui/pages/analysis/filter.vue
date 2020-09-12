@@ -41,22 +41,34 @@
       <PageHeaderSeek :id="id" :key="id" />
       <PageHeaderItem>
         <b-button
+          class="header-button-icon"
+          :variant="hideVideoFrame ? 'danger' : null"
+          data-toggle="tooltip"
+          :title="hideVideoFrame ? 'Show video frame' : 'Hide video frame'"
           @click="hideVideoFrame = !hideVideoFrame"
           :disabled="hideStateFrame && hideOverlay"
         >
-          {{ hideVideoFrame ? "Show video frame" : "Hide video frame" }}
+          <i class="icon-film" />
         </b-button>
         <b-button
+          class="header-button-icon"
+          :variant="hideStateFrame ? 'danger' : null"
+          data-toggle="tooltip"
+          :title="hideStateFrame ? 'Show state frame' : 'Hide state frame'"
           @click="hideStateFrame = !hideStateFrame"
           :disabled="hideVideoFrame && hideOverlay"
         >
-          {{ hideStateFrame ? "Show state frame" : "Hide state frame" }}
+          <i class="icon-layers" />
         </b-button>
         <b-button
+          class="header-button-icon"
+          :variant="hideOverlay ? 'danger' : null"
+          data-toggle="tooltip"
+          :title="hideStateFrame ? 'Show overlay' : 'Hide overlay'"
           @click="hideOverlay = !hideOverlay"
           :disabled="hideVideoFrame && hideStateFrame"
         >
-          {{ hideOverlay ? "Show overlay" : "Hide overlay" }}
+          <i class="icon-frame" />
         </b-button>
       </PageHeaderItem>
     </PageHeader>
@@ -441,6 +453,12 @@ export default {
 
 .hidden * {
   visibility: hidden;
+}
+
+.button-hidden {
+  background: theme-color("danger") !important;
+  color: theme-color("gray-100") !important;
+  font-weight: bold;
 }
 
 .filter-content {

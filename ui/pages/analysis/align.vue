@@ -76,9 +76,15 @@
           @click="toggleBounds"
           :variant="enforceBounds ? null : 'danger'"
           data-toggle="tooltip"
-          title="Ignore frame boundaries"
+          :title="
+            enforceBounds
+              ? 'Ignore frame boundaries'
+              : 'Enforce frame boundaries'
+          "
         >
-          <i class="fa fa-exclamation-triangle" />
+          <i
+            :class="enforceBounds ? 'icon-size-fullscreen' : 'icon-size-actual'"
+          />
         </b-button>
       </PageHeaderItem>
     </PageHeader>
