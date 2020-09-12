@@ -50,7 +50,7 @@ class HomographyTransform(TransformInterface):
                 )
             )
 
-    def estimate(self, roi: Roi, from_shape: tuple, to_shape: tuple) -> np.ndarray:
+    def estimate(self, roi: Roi, from_shape: tuple, to_shape: tuple) -> Optional[np.ndarray]:
         log.debug(f'Estimating transform ~ coordinates {roi} & shape {to_shape}')
 
         matrix, status = cv2.findHomography(
@@ -61,9 +61,8 @@ class HomographyTransform(TransformInterface):
         if self.validate(matrix):
             return matrix
         else:
-            raise ValueError(
-                f'Cannot estimate a valid matrix from {roi} and {to_shape}'
-            )
+            log.warning(f'Cannot estimate a valid matrix from {roi} and {to_shape}')
+            return None
 
     def transform(self, matrix: np.ndarray, img: np.ndarray, shape: tuple) -> np.ndarray:
         return cv2.warpPerspective(

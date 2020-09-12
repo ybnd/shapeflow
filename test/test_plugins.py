@@ -113,9 +113,8 @@ class BaseTransformTest(abc.ABC, unittest.TestCase):
                 self.transform.validate(matrix)
             )
         for roi, from_shape, to_shape in self.invalid_estimations:
-            self.assertRaises(
-                ValueError,
-                self.transform.estimate, roi, from_shape, to_shape
+            self.assertIsNone(
+                self.transform.estimate(roi, from_shape, to_shape)
             )
 
     def test_transform(self):

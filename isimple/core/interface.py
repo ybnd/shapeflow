@@ -67,7 +67,7 @@ class TransformInterface(Configurable, abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def estimate(self, roi: Roi, from_shape: tuple, to_shape: tuple) -> np.ndarray:
+    def estimate(self, roi: Roi, from_shape: tuple, to_shape: tuple) -> Optional[np.ndarray]:
         raise NotImplementedError
 
     def invert(self, matrix: Optional[np.ndarray]) -> Optional[np.ndarray]:
