@@ -97,6 +97,14 @@ export default {
     schema() {
       return this.$store.getters["schemas/getConfigSchema"];
     },
+    store_config() {
+      return this.$store.getters["analyzers/getAnalyzerConfig"](this.id);
+    },
+  },
+  watch: {
+    store_config: function () {
+      this.handleGetConfig();
+    },
   },
   data() {
     return {
