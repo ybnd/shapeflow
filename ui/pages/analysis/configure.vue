@@ -29,10 +29,6 @@
           <i class="icon-action-redo" />
         </b-button>
       </PageHeaderItem>
-      <PageHeaderItem>
-        <b-button @click="handleGetConfig">Get configuration</b-button>
-        <b-button @click="handleSetConfig">Set configuration</b-button>
-      </PageHeaderItem>
     </PageHeader>
     <div class="scrollable">
       <b-card class="name-config isimple-form-section">
@@ -208,6 +204,9 @@ export default {
       this.handleCleanUp();
       this.handleInit();
     },
+    store_config: function () {
+      this.handleGetConfig();
+    },
   },
   computed: {
     id() {
@@ -224,11 +223,6 @@ export default {
     },
     store_config() {
       return this.$store.getters["analyzers/getAnalyzerConfig"](this.id);
-    },
-  },
-  watch: {
-    store_config: function () {
-      this.handleGetConfig();
     },
   },
   data() {
