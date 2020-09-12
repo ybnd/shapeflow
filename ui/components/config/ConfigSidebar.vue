@@ -115,6 +115,8 @@ export default {
 .config-sidebar {
   background: #ffffff;
   width: $config-sidebar-width;
+  max-width: $config-sidebar-width;
+  min-width: $config-sidebar-width;
   float: right;
   height: calc(100vh - #{$header-height});
   overflow-y: scroll;
