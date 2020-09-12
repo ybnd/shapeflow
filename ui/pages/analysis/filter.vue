@@ -63,6 +63,7 @@
     <div class="filter-content">
       <ConfigSidebar
         :id="this.id"
+        :key="this.id"
         :hidden="true"
         v-if="!hideConfigSidebar"
         :skip="[
