@@ -634,7 +634,7 @@ class Main(isimple.core.Lockable):
             'status': [a.status() for a in self._roots.values()],
         }
 
-    def q_start(self, q: List[str]) -> bool:
+    def q_start(self, q: List[str]) -> None:
         """Queue analysis
 
         Parameters
