@@ -553,11 +553,12 @@ export default {
   margin-left: -10px;
   display: block;
   width: 200px;
-  margin-right: 4px;
+  margin-right: 0;
   flex-grow: 0;
 }
 .par-col {
-  margin-left: 200px;
+  margin-left: 0;
+  padding-left: 0;
   display: flex;
 }
 .feature-selector {
