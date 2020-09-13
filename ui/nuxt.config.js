@@ -37,6 +37,8 @@ module.exports = {
     mode: "hash",
   },
 
+  ssr: false,
+
   loading: { color: "#42A5CC" },
 
   css: [
@@ -47,6 +49,8 @@ module.exports = {
   ],
 
   plugins: [],
+
+  telemetry: false,
 
   modules: ["@nuxtjs/axios", "@nuxtjs/proxy", "bootstrap-vue/nuxt"],
 
