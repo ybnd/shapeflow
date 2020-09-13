@@ -306,6 +306,10 @@ class Main(isimple.core.Lockable):
         def stop():
             return respond(self.q_stop())
 
+        @app.route('/api/cancel', methods=['POST'])
+        def cancel():
+            return respond(self.q_cancel())
+
         # API: working with Analyzer instances
         @app.route('/api/init', methods=['POST'])
         def init():  # todo: also add a model instance to self._models
@@ -664,6 +668,13 @@ class Main(isimple.core.Lockable):
         if self._pause_q.is_set():
             self._pause_q.clear()
         self._stop_q.set()
+        if isimple.settings.app.cancel_on_q_stop:
+            self.q_cancel()
+
+    def q_cancel(self):
+        for root in self._roots.values():
+            if root.state == backend.AnalyzerState.ANALYZING:
+                root.cancel()
 
     def _commit(self):
         for root in self._roots.values():

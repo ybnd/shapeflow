@@ -1,6 +1,7 @@
 import Vue from "vue";
 import {
   EVENT_CATEGORIES,
+  QueueState,
   events,
   get_config,
   get_status,
@@ -25,7 +26,7 @@ export const state = () => {
   return {
     last_heard_from_backend: null,
     queue: [], // array of analyzer ids (uuid strings)
-    queue_state: 0,
+    queue_state: QueueState.STOPPED,
     status: {}, // id: analyzer status object
     config: {}, // id: analyzer config object
     result: {},
@@ -180,6 +181,9 @@ export const getters = {
   getQueue: (state) => {
     // Clone instead of returning reference
     return [...state.queue];
+  },
+  getQueueState: (state) => {
+    return state.queue_state;
   },
   getIndex: (state) => (id) => {
     return state.queue.indexOf(id);

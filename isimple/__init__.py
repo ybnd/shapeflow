@@ -204,24 +204,25 @@ class ResultSaveMode(str, Enum):
 
 
 class ApplicationSettings(_Settings):
-    save_state: bool = Field(default=True, title="save application state")
+    save_state: bool = Field(default=True, title="save application state on exit")
     load_state: bool = Field(default=False, title="load application state on start")
     state_path: FilePath = Field(default=os.path.join(ROOTDIR, 'state'), title="application state file")
     recent_files: int = Field(default=16, title="# of recent files to fetch")
     save_result: ResultSaveMode = Field(default=ResultSaveMode.next_to_video, title="result save mode")
     result_dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'results'), title="result directory")
+    cancel_on_q_stop: bool = Field(default=False, title="cancel running analyzers when stopping queue")
 
     _validate_dir = validator('result_dir', allow_reuse=True, pre=True)(_Settings._validate_directorypath)
     _validate_state_path = validator('state_path', allow_reuse=True, pre=True)(_Settings._validate_filepath)
 
 
 class Settings(_Settings):
+    app: ApplicationSettings = Field(default=ApplicationSettings(), title="Application")
     log: LogSettings = Field(default=LogSettings(), title="Logging")
     cache: CacheSettings = Field(default=CacheSettings(), title="Caching")
     render: RenderSettings = Field(default=RenderSettings(), title="SVG Rendering")
     format: FormatSettings = Field(default=FormatSettings(), title="Formatting")
     db: DatabaseSettings = Field(default=DatabaseSettings(), title="Database")
-    app: ApplicationSettings = Field(default=ApplicationSettings(), title="Application")
 
     @classmethod
     def from_dict(cls, settings: dict):
