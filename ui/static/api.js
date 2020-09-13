@@ -309,3 +309,11 @@ export async function get_result(analysis, run) {
     .post(api("db", "get_result"), { analysis: analysis, run: run })
     .then(return_data);
 }
+
+export async function q_start(ids) {
+  return axios.post(api("start"), { queue: ids }).then(return_data);
+}
+
+export async function q_stop() {
+  return axios.post(api("stop")).then(return_data);
+}

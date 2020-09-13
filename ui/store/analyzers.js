@@ -11,6 +11,8 @@ import {
   get_app_state,
   set_config,
   close_events,
+  q_start,
+  q_stop,
 } from "../static/api";
 
 import { uuidv4 } from "../static/util";
@@ -346,6 +348,20 @@ export const actions = {
     // console.log(`action: analyzers.unqueue (id=${id})`);
     commit("dropFromQueue", { id: id });
     commit("dropAnalyzer", { id: id });
+  },
+
+  q_start({ commit, getters }) {
+    // console.log("action: analyzers.q_start");
+    return q_start(getters["getQueue"]).then((app_state) => {
+      commit("setQueueState", { queue_state: app_state.q_state });
+    });
+  },
+
+  q_stop({ commit }) {
+    // console.log("action: analyzers.q_stop");
+    return q_stop().then((app_state) => {
+      commit("setQueueState", { queue_state: app_state.q_state });
+    });
   },
 
   async init({ commit, dispatch }, { config = {} }) {

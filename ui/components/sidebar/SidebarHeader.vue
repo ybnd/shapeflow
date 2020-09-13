@@ -33,10 +33,10 @@ export default {
   components: {},
   methods: {
     start() {
-      axios.post(api("start"), this.payload);
+      this.$store.dispatch("analyzers/q_start");
     },
     stop() {
-      axios.post(api("stop"));
+      this.$store.dispatch("analyzers/q_stop");
     },
   },
   mounted() {

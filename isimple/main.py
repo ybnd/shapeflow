@@ -121,6 +121,7 @@ class Main(isimple.core.Lockable):
     _eventstreamer = streaming.EventStreamer()
 
     _q_state: int
+    _q_thread: Thread
     _pause_q: Event
     _stop_q: Event
 
@@ -300,11 +301,13 @@ class Main(isimple.core.Lockable):
                 queue = data['queue']
             else:
                 queue = list(self._roots.keys())
-            return respond(self.q_start(queue))
+            self.q_start(queue)
+            return respond(self.app_state())
 
         @app.route('/api/stop', methods=['POST'])
         def stop():
-            return respond(self.q_stop())
+            self.q_stop()
+            return respond(self.app_state())
 
         @app.route('/api/cancel', methods=['POST'])
         def cancel():
@@ -408,11 +411,7 @@ class Main(isimple.core.Lockable):
             """List instances in self._roots
             """
             active()
-            return respond({
-                'q_state': self._q_state,
-                'ids': [k for k in self._roots.keys()],
-                'status': [a.status() for a in self._roots.values()],
-            })
+            return respond(self.app_state())
 
         @app.route('/api/get_log')
         def get_log():
@@ -628,6 +627,13 @@ class Main(isimple.core.Lockable):
             else:
                 raise ValueError
 
+    def app_state(self) -> dict:
+        return {
+            'q_state': self._q_state,
+            'ids': [k for k in self._roots.keys()],
+            'status': [a.status() for a in self._roots.values()],
+        }
+
     def q_start(self, q: List[str]) -> bool:
         """Queue analysis
 
@@ -636,37 +642,36 @@ class Main(isimple.core.Lockable):
         q: List[str]
             List of analyzer ``id`` to queue.
         """
-        if self._q_state == QueueState.STOPPED:
-            done = False
 
-            if all(self._roots[id].can_analyze for id in q):  # todo: handle non-id entries in q
-                log.info(f"analyzing queue: {q}")
-                for id in q:
-                    while self._pause_q.is_set():
-                        self._q_state = QueueState.PAUSED
-                        time.sleep(0.5)
-                    self._q_state = QueueState.RUNNING
+        def target():
+            if self._q_state == QueueState.STOPPED:
+                self._q_state = QueueState.RUNNING
+                if all(self._roots[id].can_analyze for id in q):  # todo: handle non-id entries in q
+                    log.info(f"analyzing queue: {q}")
+                    for id in q:
+                        while self._pause_q.is_set():
+                            self._q_state = QueueState.PAUSED
+                            time.sleep(0.5)
+                        self._q_state = QueueState.RUNNING
 
-                    if self._stop_q.is_set():
-                        done = False
-                        break
+                        if self._stop_q.is_set():
+                            break
 
-                    if not self._roots[id].done:
-                        self._roots[id].analyze()
-                    else:
-                        log.info(f"skipping {id}")
-                    done = True
+                        if not self._roots[id].done:
+                            self._roots[id].analyze()
+                        else:
+                            log.info(f"skipping {id}")
 
-                self._pause_q.clear()
-                self._stop_q.clear()
-                self._q_state = QueueState.STOPPED
-                return done
+                    self._pause_q.clear()
+                    self._stop_q.clear()
+                    self._q_state = QueueState.STOPPED
+                else:
+                    log.info(f"CAN'T ANALYZE FOR ALL ANALYZERS")
             else:
-                log.info(f"CAN'T ANALYZE FOR ALL ANALYZERS")
-                return False
-        else:
-            log.info(f"already started analyzing queue!")
-            return False
+                log.info(f"already started analyzing queue!")
+
+        self._q_thread = Thread(target=target)
+        self._q_thread.run()
 
     def q_stop(self):
         """Stop analysis queue"""
