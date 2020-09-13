@@ -150,7 +150,7 @@ export default {
   background: $gray-700 !important;
   /*color: $gray-800 !important;*/
   /*font-weight: bold;*/
-  pointer-events: none;
+  //pointer-events: none;
   i {
     color: theme-color("primary") !important;
   }

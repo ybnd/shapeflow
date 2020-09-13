@@ -74,6 +74,7 @@
     }
   }
   .nav-dropdown.open {
+    background: inherit !important;
     > .nav-dropdown-items {
       background: $sidebar-nav-dropdown-bg;
     }

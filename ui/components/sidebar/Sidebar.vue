@@ -17,6 +17,7 @@
       </div>
       <slot></slot>
     </nav>
+    <div class="opacity-gradient" />
     <SidebarFooter />
   </div>
 </template>
@@ -116,8 +117,20 @@ export default {
 @import "../../assets/scss/_core-variables";
 @import "node_modules/bootstrap/scss/functions";
 
+$shadow: 24px;
+
 .nav-link {
   cursor: pointer;
   color: $gray-100;
+}
+
+.sidebar {
+  .opacity-gradient {
+    height: $shadow;
+    margin-top: -$shadow;
+    mix-blend-mode: luminosity;
+    background: linear-gradient(transparent, $gray-800);
+    pointer-events: none;
+  }
 }
 </style>
