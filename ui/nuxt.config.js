@@ -77,6 +77,7 @@ module.exports = {
       "BPopover",
       "BTbody",
       "BCard",
+      "BAlert",
     ],
   },
 

@@ -1196,7 +1196,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         return self.get_config()
 
     @backend.expose(backend.set_filter_click)
-    def set_filter_click(self, relative_x: float, relative_y: float) -> dict:
+    def set_filter_click(self, relative_x: float, relative_y: float):
         log.debug(f'set_filter_click @ ({relative_x}, {relative_y})')
 
         response: Dict[str, Any] = {}
@@ -1236,16 +1236,13 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
             streams.update()
             self.commit()
-
-            response['color'] = color.to_dict()
         elif len(hits) == 0:
             log.debug(f"no hit for {click.idx}")
         elif len(hits) > 1:
-            response['message'] = f"Multiple valid options: " \
-                                  f"{[hit.name for hit in hits]}. " \
-                                  f"Select a point where masks don't overlap."
-            log.warning(response['message'])
-        return response
+            self.notice(
+                f"Multiple valid options: {[hit.name for hit in hits]}. "
+                f"Select a point where masks don't overlap."
+            )
 
     @stream
     @backend.expose(backend.get_state_frame)
@@ -1307,7 +1304,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                     result.update({k: values})
                     self.results[k].loc[frame_number] = [t] + values
             else:
-                log.warning(f"skipping unreadable frame {frame_number}")
+                self.notice(f"skipping unreadable frame {frame_number}")
 
         except cv2.error as e:
             log.error(str(e))
@@ -1318,7 +1315,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             assert isinstance(self._cancel, threading.Event)
 
             if self.model is None:
-                log.warning(f"{self} has no database model; result data may be lost")
+                self.notice(f"{self} has no database model; result data may be lost")
 
             with self.lock(), self.time(f"Analyzing {self.id}", log):
                 self._new_run()
@@ -1338,10 +1335,12 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             self._new_results()
 
         if self.canceled:
+            self.notice(f"analysis canceled.")
             self.clear_cancel()
             self.set_state(AnalyzerState.CANCELED)
 
         if self.errored:
+            self.notice(f"analysis aborted due to error.")
             self.clear_error()
             self.set_state(AnalyzerState.ERROR)
 

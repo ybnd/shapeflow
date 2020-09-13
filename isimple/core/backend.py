@@ -394,6 +394,7 @@ class BaseAnalyzerConfig(BaseConfig):
 class AnalyzerEvent(Enum):  # todo: make a 'toast' event -> frontend shows a message (e.g. warnings)
     STATUS = 'status'
     CONFIG = 'config'
+    NOTICE = 'notice'
 
 
 class AnalyzerState(IntEnum):
@@ -506,6 +507,13 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
         if self.eventstreamer is not None:
             self.eventstreamer.event(category.value, self.id, data)
+
+    def notice(self, message: str, persist: bool = False):
+        self.event(
+            AnalyzerEvent.NOTICE,
+            data={'message': message, 'persist': persist}
+        )
+        log.warning(f"{self.id}: {message}")
 
     @backend.expose(backend.commit)
     def commit(self) -> bool:

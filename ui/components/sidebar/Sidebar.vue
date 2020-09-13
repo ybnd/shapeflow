@@ -49,7 +49,7 @@ export default {
     SidebarNavItem,
     draggable,
   },
-  beforeMount() {
+  created() {
     this.init();
     this.interval_update = setInterval(this.updateQueue, 100);
     this.interval_sync = setInterval(this.sync, 1000);
@@ -60,8 +60,9 @@ export default {
       e.target.parentElement.classList.toggle("open");
     },
     init() {
-      this.$store.dispatch("analyzers/source");
-      this.sync();
+      this.$store.dispatch("analyzers/source").then(() => {
+        this.sync();
+      });
     },
     updateQueue() {
       this.queue = this.$store.getters["analyzers/getQueue"];
@@ -72,8 +73,6 @@ export default {
         this.$store.dispatch("analyzers/sync").then((ok) => {
           if (ok) {
             this.queue = this.$store.getters["analyzers/getQueue"];
-          } else {
-            console.warn("backend may be down");
           }
           this.waiting = false;
         });

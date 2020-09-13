@@ -1,6 +1,7 @@
 import Vue from "vue";
 import {
   EVENT_CATEGORIES,
+  NOTICE_LIMIT,
   QueueState,
   events,
   get_config,
@@ -11,6 +12,8 @@ import {
   set_config,
 } from "../static/api";
 
+import { uuidv4 } from "../static/util";
+
 import assert from "assert";
 
 import isEmpty from "lodash/isEmpty";
@@ -20,6 +23,7 @@ import cloneDeep from "lodash/cloneDeep";
 const CATEGORY_COMMIT = {
   status: "setAnalyzerStatus",
   config: "setAnalyzerConfig",
+  notice: "newNotice",
 };
 
 export const state = () => {
@@ -31,6 +35,7 @@ export const state = () => {
     config: {}, // id: analyzer config object
     result: {},
     source: {},
+    notices: [],
   };
 };
 
@@ -43,7 +48,7 @@ export const mutations = {
       assert(!(source === undefined), "no source provided");
       state.source = source;
     } catch (err) {
-      console.warn(`setSource failed: '${id}'`);
+      console.warn(`setSource failed: '${source}'`);
       console.warn(err);
     }
   },
@@ -127,6 +132,42 @@ export const mutations = {
       console.warn(`setAnalyzerConfig failed: '${id}', config: `);
       console.warn(config);
       console.warn(err);
+    }
+  },
+  newNotice(state, { id, notice }) {
+    console.log("analyzers/newNotice");
+    console.log(id);
+    console.log(notice);
+
+    let name = undefined;
+
+    if (id !== undefined) {
+      if (state.config[id] !== undefined && !isEmpty(state.config[id].name)) {
+        name = state.config[id].name;
+      }
+    }
+
+    if (!notice.uuid) {
+      // no uuid specified -> generate
+      notice = { ...notice, analyzer: name, uuid: uuidv4() };
+      state.notices.push(notice);
+    } else {
+      // uuid specified -> only push if it hasn't been pushed yet
+      const index = state.notices.findIndex((e) => e.uuid === notice.uuid);
+      if (index === -1) {
+        state.notices.push(notice);
+      }
+    }
+
+    state.notices = state.notices.slice(-NOTICE_LIMIT);
+  },
+  dismissNotice(state, { notice }) {
+    console.log("analyzers/dismissNotice");
+    console.log(notice);
+
+    const index = state.notices.findIndex((e) => e === notice);
+    if (index !== -1) {
+      state.notices.splice(index, 1);
     }
   },
   dropAnalyzer(state, { id }) {
@@ -217,14 +258,17 @@ export const getters = {
     return state.config[id].transform.roi;
   },
   getName: (state) => (id) => {
-    if (!isEmpty(state.config[id].name)) {
-      return state.config[id].name;
-    } else {
-      return "<unnamed>";
+    if (id !== undefined) {
+      if (state.config[id] !== undefined && !isEmpty(state.config[id].name)) {
+        return state.config[id].name;
+      }
     }
   },
   hasSource: (state) => {
     return isEmpty(state.source) && state.source.readyState !== 2;
+  },
+  getNotices: (state) => {
+    return state.notices;
   },
 };
 
@@ -244,8 +288,8 @@ export const actions = {
           assert(event.hasOwnProperty("id"));
           assert(event.hasOwnProperty("data"));
 
-          // console.log(`${event.category} event:`);
-          // console.log(event);
+          console.log(`${event.category} event:`);
+          console.log(event);
 
           commit(CATEGORY_COMMIT[event.category], {
             id: event.id,

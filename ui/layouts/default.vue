@@ -4,6 +4,7 @@
       <Sidebar />
       <main class="main">
         <nuxt />
+        <NoticeBox />
       </main>
     </div>
     <div v-if="tooSmall" class="too-small-message">
@@ -15,12 +16,14 @@
 
 <script>
 import { Sidebar } from "~/components/";
+import NoticeBox from "@/components/notice/NoticeBox";
 import { unload } from "../static/api";
 
 export default {
   name: "default-layout",
   components: {
     Sidebar,
+    NoticeBox,
   },
   beforeCreate() {
     this.$store.dispatch("schemas/sync"); // todo: is this really the place for this though?

@@ -668,8 +668,13 @@ class Main(isimple.core.Lockable):
         if self._pause_q.is_set():
             self._pause_q.clear()
         self._stop_q.set()
+        self.notice("stopping analysis queue.")
         if isimple.settings.app.cancel_on_q_stop:
             self.q_cancel()
+        else:
+            for root in self._roots.values():
+                if root.state == backend.AnalyzerState.ANALYZING:
+                    self.notice(f"waiting for {root.config.name} to finish")
 
     def q_cancel(self):
         for root in self._roots.values():
@@ -799,6 +804,11 @@ class Main(isimple.core.Lockable):
     @property
     def events(self) -> streaming.EventStreamer:
         return self._eventstreamer
+
+    def notice(self, message: str, persist: bool = False):
+        self._eventstreamer.event(
+            'notice', id='', data={'message': message, 'persist': persist}
+        )
 
 
 wsgi = Main()._app

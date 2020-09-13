@@ -21,6 +21,13 @@ $sidebar-nav-link-padding-x:          .5rem !default;
 $sidebar-footer-padding-y:            .5rem !default;
 $sidebar-footer-padding-x:            .5rem !default;
 
+
+/* Notices */
+$dismiss-width: 32px;
+$notice-gap: 4px;
+$notice-width: #{"min(50vw, 600px)"};
+$notice-box-max-height: #{"min(50vh), 400px"};
+
 /* Config sidebar */
 $config-sidebar-width: 300px;
 

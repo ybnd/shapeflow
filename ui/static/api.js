@@ -24,7 +24,10 @@ export const QueueState = {
   PAUSED: 2,
 };
 
-export const EVENT_CATEGORIES = ["status", "config"];
+export const EVENT_CATEGORIES = ["status", "config", "notice"];
+
+export const NOTICE_TIMEOUT = 10000;
+export const NOTICE_LIMIT = 8;
 
 export const endpoints = {
   GET_INVERSE_OVERLAID_FRAME: "get_inverse_overlaid_frame",
