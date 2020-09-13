@@ -148,14 +148,14 @@ export default {
       e.target.parentElement.classList.toggle("open");
     },
     handleOpen() {
-      console.log(`${this.id} got open event`); // todo: doesn't seem to work
+      // console.log(`${this.id} got open event`); // todo: doesn't seem to work
       this.$refs[this.ref].classList.add("open");
     },
     handleAnalyze() {
       this.$store.dispatch("analyzers/analyze", { id: this.id });
     },
     handleRemove() {
-      console.log(`sidebar: handling remove event (${this.id})`);
+      // console.log(`sidebar: handling remove event (${this.id})`);
       remove(this.id).then(() => {
         if (
           this.$route.query.id === this.id ||
@@ -167,7 +167,7 @@ export default {
       });
     },
     handleCancel() {
-      console.log(`sidebar: handling cancel event (${this.id})`);
+      // console.log(`sidebar: handling cancel event (${this.id})`);
       cancel(this.id).then(() => {
         this.$store.dispatch("analyzers/sync");
       });
@@ -178,7 +178,7 @@ export default {
       try {
         return this.$store.getters["analyzers/getName"](this.id);
       } catch (err) {
-        console.log(`no such analyzer: ${this.id}`);
+        // console.log(`no such analyzer: ${this.id}`);
         return "";
       }
     },
@@ -208,7 +208,7 @@ export default {
       try {
         return this.$store.getters["analyzers/getAnalyzerStatus"](this.id);
       } catch (err) {
-        console.log(`no such analyzer: ${this.id}`);
+        // console.log(`no such analyzer: ${this.id}`);
         return undefined;
       }
     },

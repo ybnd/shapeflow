@@ -56,15 +56,15 @@ export default {
   },
   computed: {
     implementation_schema() {
-      console.log(
-        `SchemaImplementation.implementation_schema() title=${this.title} type=${this.type}`
-      );
+      // console.log(
+      //   `SchemaImplementation.implementation_schema() title=${this.title} type=${this.type}`
+      // );
 
-      console.log("this.schema=");
-      console.log(this.schema);
+      // console.log("this.schema=");
+      // console.log(this.schema);
 
-      console.log("this.model=");
-      console.log(this.model);
+      // console.log("this.model=");
+      // console.log(this.model);
 
       return this.schema.implementations[this.type][this.model.type];
     },

@@ -165,7 +165,7 @@ export default {
   },
   methods: {
     handleInit() {
-      console.log("filter: handleInit()");
+      // console.log("filter: handleInit()");
       this.previous_id = this.id;
       this.$store.dispatch("analyzers/refresh", { id: this.id });
 
@@ -185,7 +185,7 @@ export default {
       }
     },
     handleCleanUp() {
-      console.log("filter: handleCleanUp()");
+      // console.log("filter: handleCleanUp()");
 
       stop_stream(this.previous_id, endpoints.GET_FRAME);
       stop_stream(this.previous_id, endpoints.GET_STATE_FRAME);
@@ -202,47 +202,47 @@ export default {
       };
     },
     getRefs() {
-      console.log("filter: getRefs()");
+      // console.log("filter: getRefs()");
 
-      console.log("this.ref_frame = ");
-      console.log(this.ref_frame);
+      // console.log("this.ref_frame = ");
+      // console.log(this.ref_frame);
 
-      console.log("this.$refs attrs = ");
-      console.log(Object.keys(this.$refs));
+      // console.log("this.$refs attrs = ");
+      // console.log(Object.keys(this.$refs));
 
-      console.log("this.$refs[this.ref_frame] = ");
-      console.log(this.$refs[this.ref_frame]);
+      // console.log("this.$refs[this.ref_frame] = ");
+      // console.log(this.$refs[this.ref_frame]);
 
       this.refs.frame = this.$refs[this.ref_frame];
     },
     getFeatures() {
-      console.log("filter: getFeatures()");
+      // console.log("filter: getFeatures()");
       this.features = this.$store.getters["analyzers/getFeatures"](this.id);
       this.feature = this.features[0];
       if (this.features.length !== 0) {
-        console.log("filter: getFeatures() -- clearing interval");
+        // console.log("filter: getFeatures() -- clearing interval");
         clearInterval(this.waitForFeatures);
       }
-      console.log(this.features);
+      // console.log(this.features);
     },
     updateFrame() {
-      console.log("filter: updateFrame");
+      // console.log("filter: updateFrame");
       try {
         let frame = this.refs.frame.getBoundingClientRect();
-        console.log(frame);
+        // console.log(frame);
         this.filter.frame = frame;
       } catch (err) {
-        console.warn(err);
+        // console.warn(err);
       }
     },
     updateFrameOnChange() {
-      console.log("filter: updateFrameOnChange");
+      // console.log("filter: updateFrameOnChange");
       const og_width = this.refs.frame.getBoundingClientRect().width;
 
       while (this.refs.frame.getBoundingClientRect().width === og_width) {
-        console.log("frame is still the same");
+        // console.log("frame is still the same");
       }
-      console.log("frame has changed");
+      // console.log("frame has changed");
       this.updateFrame();
     },
     updateFrameOnceHasRect() {
@@ -253,7 +253,7 @@ export default {
 
       if (!(this.waitUntilHasRect === undefined)) {
         if (this.refs.frame.getBoundingClientRect()["width"] > 50) {
-          console.log("HAS FRAME");
+          // console.log("HAS FRAME");
           this.updateFrame();
           frame_ok = true;
         }
@@ -268,14 +268,14 @@ export default {
         clickEventToRelativeCoordinate(e, this.filter.frame)
       ).then((data) => {
         if (data.message) {
-          console.log(`//PUT THIS IN A POPUP OR SOMETHING// ${data.message}`);
+          // console.log(`//PUT THIS IN A POPUP OR SOMETHING// ${data.message}`);
         }
       });
     },
     handleSetMask(mask, index) {
-      console.log("filter: handleSetMask()");
-      console.log(mask);
-      console.log(index);
+      // console.log("filter: handleSetMask()");
+      // console.log(mask);
+      // console.log(index);
       this.mask = index;
     },
     handleSetFilter(filter, index) {
@@ -308,7 +308,7 @@ export default {
   },
   watch: {
     "$route.query.id"() {
-      console.log(`id has changed ${this.id}`);
+      // console.log(`id has changed ${this.id}`);
 
       // this.$forceUpdate();
       this.handleCleanUp();
@@ -316,7 +316,7 @@ export default {
       this.updateFrame();
     },
     "refs.frame.class"() {
-      console.log("waaa this is a change");
+      // console.log("waaa this is a change");
     },
   },
   asyncComputed: {},
@@ -325,10 +325,10 @@ export default {
       return this.$route.query.id;
     },
     state_url() {
-      return api(this.$route.query.id, "stream", endpoints.GET_STATE_FRAME);
+      return api("stream", this.$route.query.id, endpoints.GET_STATE_FRAME);
     },
     frame_url() {
-      return api(this.$route.query.id, "stream", endpoints.GET_FRAME);
+      return api("stream", this.$route.query.id, endpoints.GET_FRAME);
     },
     overlay_url() {
       return api(this.$route.query.id, "call", endpoints.GET_OVERLAY_PNG);
@@ -357,8 +357,8 @@ export default {
       }
     },
     filter_options() {
-      console.log('this.$store.getters["schemas/getFilterOptions"]');
-      console.log(this.$store.getters["schemas/getFilterOptions"]);
+      // console.log('this.$store.getters["schemas/getFilterOptions"]');
+      // console.log(this.$store.getters["schemas/getFilterOptions"]);
       return this.$store.getters["schemas/getFilterOptions"];
     },
     filter_type() {

@@ -54,8 +54,8 @@ export default {
       get_db_id(this.id).then((id) => {
         this.db.id = id;
         get_result_list(this.db.id).then((list) => {
-          console.log(`get_result_list() callback: list =`);
-          console.log(list);
+          // console.log(`get_result_list() callback: list =`);
+          // console.log(list);
           this.db.list = list;
           if (list) {
             this.handleGetResult(Math.max(...Object.keys(list).map(Number)));
@@ -66,15 +66,15 @@ export default {
       });
     },
     handleGetResult(run) {
-      console.log(`result.handleGetResult() run=${run}`);
+      // console.log(`result.handleGetResult() run=${run}`);
       this.info = this.result_info(run);
       return get_colors(this.id).then((colors) => {
-        console.log(`result.handleGetResult() callback 1 colors=`);
-        console.log(colors);
+        // console.log(`result.handleGetResult() callback 1 colors=`);
+        // console.log(colors);
         this.colors = colors;
         get_result(this.db.id, run).then((result) => {
-          console.log(`result.handleGetResult() callback 2 result=`);
-          console.log(result);
+          // console.log(`result.handleGetResult() callback 2 result=`);
+          // console.log(result);
           this.result = result;
         });
       });

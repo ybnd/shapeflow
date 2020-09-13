@@ -1,4 +1,6 @@
 import axios from "axios";
+import ReconnectingEventSource from "reconnecting-eventsource/src";
+
 export { axios };
 
 export function api() {
@@ -24,7 +26,7 @@ export const QueueState = {
   PAUSED: 2,
 };
 
-export const EVENT_CATEGORIES = ["status", "config", "notice"];
+export const EVENT_CATEGORIES = ["status", "config", "notice", "close"];
 
 export const NOTICE_TIMEOUT = 10000;
 export const NOTICE_LIMIT = 8;
@@ -255,17 +257,29 @@ export async function stop_log() {
 }
 
 export async function stop_stream(id, endpoint) {
-  return axios.get(api(id, "stream", endpoint, "stop")).then(return_success);
+  return axios.post(api("stream", id, endpoint, "stop")).then(return_success);
 }
 
-export function events(callback) {
-  console.log(`registering EventSource for /api/stream/events`);
+export function events(onmessage, onerror, onopen) {
+  // console.log(`registering EventSource for /api/stream/events`);
 
   let evl = new EventSource(api("stream", "events"));
-  evl.onmessage = callback;
+  evl.addEventListener("message", onmessage);
 
-  console.log(evl);
+  if (onerror !== undefined) {
+    evl.addEventListener("error", onerror);
+  }
+  if (onopen) {
+    evl.addEventListener("open", onopen);
+  }
+
+  // console.log(evl);
   return evl;
+}
+
+export function close_events() {
+  // console.log("api.close_events()");
+  return axios.post(api("stream", "events", "stop")).then(return_success);
 }
 
 export async function clear_cache() {

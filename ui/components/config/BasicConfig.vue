@@ -267,7 +267,7 @@ export default {
       this.$emit("change");
     },
     hasParameterData(feature, parameter) {
-      console.log(`BasicConfig.hasParameterData(${feature}, ${parameter})`);
+      // console.log(`BasicConfig.hasParameterData(${feature}, ${parameter})`);
 
       let has_parameter_data = false;
       if (has(this.config.feature_parameters, feature)) {
@@ -279,8 +279,8 @@ export default {
       return has_parameter_data;
     },
     getConfig() {
-      console.log("BasicConfig.getconfig() -- this.config=");
-      console.log(this.config);
+      // console.log("BasicConfig.getconfig() -- this.config=");
+      // console.log(this.config);
       return Object.assign(this.config, {
         [`${this.config.frame_interval_setting}`]: Number(
           this.config[`${this.config.frame_interval_setting}`]
@@ -328,7 +328,7 @@ export default {
     selectFeature(index) {
       let feature = this.config.features[index];
 
-      console.log(`selectFeature(${index}) -> feature = ${feature}`);
+      // console.log(`selectFeature(${index}) -> feature = ${feature}`);
 
       if (this.features.options.includes(feature)) {
         // console.log("selecting feature");

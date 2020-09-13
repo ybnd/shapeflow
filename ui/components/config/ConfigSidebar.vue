@@ -64,14 +64,14 @@ export default {
     },
     handleCleanUp() {},
     handleGetConfig() {
-      console.log("ConfigSidebar.hangleGetConfig()");
+      // console.log("ConfigSidebar.hangleGetConfig()");
 
       this.config = this.$store.getters["analyzers/getAnalyzerConfigCopy"](
         this.id
       );
     },
     handleSetConfig() {
-      console.log("ConfigSidebar.hangleSetConfig()");
+      // console.log("ConfigSidebar.hangleSetConfig()");
 
       // send config to backend
       this.$store

@@ -45,7 +45,7 @@ export default {
   methods: {
     dismiss() {
       if (this.focus) {
-        console.log("defer pls");
+        // todo: defer again.
       } else {
         this.$store.commit("analyzers/dismissNotice", { notice: this.notice });
       }

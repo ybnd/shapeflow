@@ -97,8 +97,8 @@ export default {
       this.$root.$emit(events.sidebar.unhighlight(from.fullPath));
       this.$root.$emit(events.sidebar.highlight(to.fullPath));
 
-      console.log("to URL:");
-      console.log(to);
+      // console.log("to URL:");
+      // console.log(to);
 
       if (to.query.id !== undefined) {
         this.$root.$emit(events.sidebar.open(to.query.id));

@@ -181,7 +181,7 @@ export default {
   },
   methods: {
     handleInit() {
-      console.log("align: handleInit()");
+      // console.log("align: handleInit()");
       this.previous_id = this.id;
       this.$store.dispatch("analyzers/refresh", { id: this.id });
 
@@ -201,7 +201,7 @@ export default {
       }
     },
     handleCleanUp() {
-      console.log("align: handleCleanUp()");
+      // console.log("align: handleCleanUp()");
 
       stop_stream(this.previous_id, endpoints.GET_INVERSE_OVERLAID_FRAME);
 
@@ -224,7 +224,7 @@ export default {
       };
     },
     handleClearAlignment() {
-      console.log("align: handleClearAlignment");
+      // console.log("align: handleClearAlignment");
       commit(this.id).then((ok) => {
         if (ok) {
           clear_roi(this.id).then((ok) => {
@@ -251,20 +251,20 @@ export default {
       });
     },
     setRoi(roi) {
-      console.log("filter: setRoi()");
+      // console.log("filter: setRoi()");
 
-      console.log("roi");
-      console.log(roi);
+      // console.log("roi");
+      // console.log(roi);
 
       if (!(this.align.roi === roi)) {
         if (roiIsValid(roi)) {
-          console.log("is valid");
+          // console.log("is valid");
           if (this.moveableShow) {
             this.align.roi = roi;
             this.resolveTransform();
           } else {
             this.handleShowMoveable().then(() => {
-              console.log("setRoi() -- moveable should be exist & accessible");
+              // console.log("setRoi() -- moveable should be exist & accessible");
               this.align.roi = roi;
               this.resolveTransform();
 
@@ -281,32 +281,32 @@ export default {
             });
           }
         } else {
-          console.log("is invalid");
+          // console.log("is invalid");
           this.clearRoi();
         }
       }
     },
     clearRoi() {
-      console.log("filter: clearRoi()");
+      // console.log("filter: clearRoi()");
       this.handleHideMoveable();
       this.align.roi = null;
       this.align.transform = null;
     },
     resolveTransform() {
-      console.log("filter: resolveTransform()");
-      console.log("this.$refs.moveable = ");
-      console.log(this.$refs.moveable);
+      // console.log("filter: resolveTransform()");
+      // console.log("this.$refs.moveable = ");
+      // console.log(this.$refs.moveable);
 
       if (this.align.roi && this.align.frame && this.align.overlay) {
         clearInterval(this.waitUntilHasMoveable);
 
-        console.log(
-          `roi.BL = (x: ${this.align.roi.BL.x}, y: ${this.align.roi.BL.y})`
-        );
-        console.log("frame = ");
-        console.log(this.align.frame);
-        console.log("overlay = ");
-        console.log(this.align.overlay);
+        // console.log(
+        //   `roi.BL = (x: ${this.align.roi.BL.x}, y: ${this.align.roi.BL.y})`
+        // );
+        // console.log("frame = ");
+        // console.log(this.align.frame);
+        // console.log("overlay = ");
+        // console.log(this.align.overlay);
 
         this.align.transform = getInitialTransform(
           this.align.roi,
@@ -325,7 +325,7 @@ export default {
                 this.$refs.moveable.updateTarget();
                 clearInterval(this.waitUntilHasMoveable);
               } else {
-                console.log("oops no moveable");
+                // console.log("oops no moveable");
               }
             }, 50);
           } else {
@@ -364,7 +364,7 @@ export default {
       turn_ccw(this.id);
     },
     updateRoiCoordinates() {
-      console.log("align: updateRoiCoordinates");
+      // console.log("align: updateRoiCoordinates");
       if (this.align.frame) {
         this.align.roi = roiRectInfoToRelativeCoordinates(
           this.$refs.moveable.getRect(),
@@ -390,7 +390,7 @@ export default {
       })
     ),
     updateFrame() {
-      console.log("align: updateFrame");
+      // console.log("align: updateFrame");
       try {
         let frame = this.$refs.frame.getBoundingClientRect();
 
@@ -417,8 +417,8 @@ export default {
       }
     },
     toggleBounds() {
-      console.log("toggling bounds...");
-      console.log(this);
+      // console.log("toggling bounds...");
+      // console.log(this);
       if (this.enforceBounds) {
         this.enforceBounds = false;
         if (this.moveable.bounds) {
@@ -450,7 +450,7 @@ export default {
           }
         }
       } catch (err) {
-        console.log("oops @ updateFrameOnceHasRect");
+        // console.log("oops @ updateFrameOnceHasRect");
       }
     },
     stepForward() {
@@ -460,36 +460,36 @@ export default {
       this.$root.$emit(events.seek.step_bw(this.id));
     },
     async handleShowMoveable() {
-      console.log("align: handleShowMoveable()");
+      // console.log("align: handleShowMoveable()");
       return new Promise((resolve, reject) => {
         this.moveableShow = true;
         const wait = setInterval(() => {
-          console.log("checking if moveable exists");
+          // console.log("checking if moveable exists");
           if (this.$refs.moveable !== undefined) {
-            console.log("it does, resolving");
+            // console.log("it does, resolving");
             clearInterval(wait);
             resolve();
           } else {
-            console.log("it doesn't seem to...");
+            // console.log("it doesn't seem to...");
           }
         }, 5);
       });
     },
     handleHideMoveable() {
-      console.log("align: handleHideMoveable()");
+      // console.log("align: handleHideMoveable()");
       this.moveableShow = false;
     },
     handleStartRectangle(start_event) {
-      console.log("align: handleStartRectangle");
+      // console.log("align: handleStartRectangle");
       if (!this.moveableShow) {
         this.dragROI.started = true;
         this.dragROI.start_event = start_event;
       }
     },
     handleStopRectangle(stop_event) {
-      console.log("align: handleStopRectangle()");
+      // console.log("align: handleStopRectangle()");
       if (!this.moveableShow && this.dragROI.started) {
-        console.log("align: handleStopRectangle() -- setting ROI");
+        // console.log("align: handleStopRectangle() -- setting ROI");
 
         const rectangle = dragEventToRelativeRectangle(
           this.dragROI.start_event,
@@ -501,14 +501,15 @@ export default {
           this.setRoi(rectangle);
         }
       } else {
-        console.log(
-          "align: handleStopRectangle() -- moveable is already shown!"
-        );
+        console
+          .log
+          // "align: handleStopRectangle() -- moveable is already shown!"
+          ();
       }
     },
     handleSetTransform(transform, index) {
-      console.log(transform);
-      console.log({ transform: { type: transform } });
+      // console.log(transform);
+      // console.log({ transform: { type: transform } });
       this.$store.dispatch("analyzers/set_config", {
         id: this.id,
         config: { transform: { type: transform } },
@@ -517,7 +518,7 @@ export default {
   },
   watch: {
     "$route.query.id"() {
-      console.log(`id changed to ${this.id}`);
+      // console.log(`id changed to ${this.id}`);
 
       this.handleCleanUp();
       this.handleInit();
@@ -542,8 +543,8 @@ export default {
     },
     overlaid_url() {
       return api(
-        this.$route.query.id,
         "stream",
+        this.$route.query.id,
         endpoints.GET_INVERSE_OVERLAID_FRAME
       );
     },
@@ -561,9 +562,9 @@ export default {
       ); // todo: cleaner
     },
     transform_options() {
-      console.log("transform_options computed property");
-      console.log('this.$store.getters["schemas/getTransformOptions"]=');
-      console.log(this.$store.getters["schemas/getTransformOptions"]);
+      // console.log("transform_options computed property");
+      // console.log('this.$store.getters["schemas/getTransformOptions"]=');
+      // console.log(this.$store.getters["schemas/getTransformOptions"]);
       return this.$store.getters["schemas/getTransformOptions"];
     },
     transform() {

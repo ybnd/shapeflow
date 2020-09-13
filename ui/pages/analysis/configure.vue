@@ -166,7 +166,7 @@ export default {
     },
     handleCleanUp() {},
     handleGetConfig() {
-      console.log("configure.hangleGetConfig()");
+      // console.log("configure.hangleGetConfig()");
 
       this.config = this.$store.getters["analyzers/getAnalyzerConfigCopy"](
         this.id
@@ -198,7 +198,7 @@ export default {
   },
   watch: {
     "$route.query.id"() {
-      console.log(`id has changed ${this.id}`);
+      // console.log(`id has changed ${this.id}`);
 
       // this.$forceUpdate();
       this.handleCleanUp();

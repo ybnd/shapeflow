@@ -40,9 +40,9 @@ export default {
     },
   },
   mounted() {
-    console.log(`SidebarHeader.mounted() -> queue_state = ${this.queue_state}`);
-    console.log(this.queue_state === QueueState.RUNNING);
-    console.log(this.queue_state === QueueState.STOPPED);
+    // console.log(`SidebarHeader.mounted() -> queue_state = ${this.queue_state}`);
+    // console.log(this.queue_state === QueueState.RUNNING);
+    // console.log(this.queue_state === QueueState.STOPPED);
   },
   computed: {
     queue_state() {

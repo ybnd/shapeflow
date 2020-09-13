@@ -357,7 +357,7 @@ class Main(isimple.core.Lockable):
                 return respond(result)
 
         # API: streaming
-        @app.route('/api/<id>/stream/<endpoint>', methods=['GET'])
+        @app.route('/api/stream/<id>/<endpoint>', methods=['GET'])
         def stream(id: str, endpoint: str):
             """Start streaming data ~ id & endpoint
 
@@ -376,7 +376,7 @@ class Main(isimple.core.Lockable):
             else:
                 return respond(None)
 
-        @app.route('/api/<id>/stream/<endpoint>/stop', methods=['GET'])
+        @app.route('/api/stream/<id>/<endpoint>/stop', methods=['POST'])
         def stop_stream(id: str, endpoint: str):
             """Stop streaming data ~ id & endpoint
 
@@ -391,10 +391,16 @@ class Main(isimple.core.Lockable):
         def stream_events():
             """Stream application events (
             """
+            log.debug('streaming events')
             return Response(
                 self.events.stream(),
                 mimetype = self.events.mime_type()
             )
+
+        @app.route('/api/stream/events/stop', methods=['POST'])
+        def stop_events_stream():
+            self.events.stop()
+            return respond(True)
 
         # API: utility
         @app.route('/api/app_state', methods=['GET'])

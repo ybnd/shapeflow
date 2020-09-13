@@ -113,7 +113,7 @@ export default {
       let formatted_results = {};
 
       for (const feature of Object.keys(this.raw_result)) {
-        console.log(`feature = ${feature}`);
+        // console.log(`feature = ${feature}`);
         let feature_results = [];
         if (this.raw_result.hasOwnProperty(feature)) {
           let masks = this.raw_result[feature].columns.slice(1);
@@ -121,7 +121,7 @@ export default {
           for (let m = 0; m < masks.length; m++) {
             let data = [];
 
-            console.log(this.raw_result[feature].data.length);
+            // console.log(this.raw_result[feature].data.length);
 
             for (let i = 0; i < this.raw_result[feature].data.length; i++) {
               data = [

@@ -10,6 +10,7 @@ import {
   launch,
   get_app_state,
   set_config,
+  close_events,
 } from "../static/api";
 
 import { uuidv4 } from "../static/util";
@@ -24,6 +25,7 @@ const CATEGORY_COMMIT = {
   status: "setAnalyzerStatus",
   config: "setAnalyzerConfig",
   notice: "newNotice",
+  close: "closeSource",
 };
 
 export const state = () => {
@@ -34,7 +36,7 @@ export const state = () => {
     status: {}, // id: analyzer status object
     config: {}, // id: analyzer config object
     result: {},
-    source: {},
+    source: null,
     notices: [],
   };
 };
@@ -44,9 +46,11 @@ export const mutations = {
     state.last_heard_from_backend = Date.now();
   },
   setSource(state, { source }) {
+    // console.log("analyzers/setSource");
     try {
       assert(!(source === undefined), "no source provided");
       state.source = source;
+      // console.log(state.source);
     } catch (err) {
       console.warn(`setSource failed: '${source}'`);
       console.warn(err);
@@ -54,10 +58,11 @@ export const mutations = {
   },
 
   closeSource(state) {
+    // console.log("analyzers/closeSource");
     try {
-      if (!isEmpty(state.source)) {
+      if (state.source !== null) {
         state.source.close();
-        state.source = {};
+        state.source = null;
       }
     } catch (err) {
       console.warn(`closeSource failed`);
@@ -110,9 +115,9 @@ export const mutations = {
   },
 
   setAnalyzerConfig(state, { id, config }) {
-    console.log("analyzers/setAnalyzerConfig");
-    console.log(id);
-    console.log(config);
+    // console.log("analyzers/setAnalyzerConfig");
+    // console.log(id);
+    // console.log(config);
     try {
       assert(!(id === undefined), "no id provided");
       assert(!(config === undefined), "no config");
@@ -135,9 +140,9 @@ export const mutations = {
     }
   },
   newNotice(state, { id, notice }) {
-    console.log("analyzers/newNotice");
-    console.log(id);
-    console.log(notice);
+    // console.log("analyzers/newNotice");
+    // console.log(id);
+    // console.log(notice);
 
     let name = undefined;
 
@@ -162,8 +167,8 @@ export const mutations = {
     state.notices = state.notices.slice(-NOTICE_LIMIT);
   },
   dismissNotice(state, { notice }) {
-    console.log("analyzers/dismissNotice");
-    console.log(notice);
+    // console.log("analyzers/dismissNotice");
+    // console.log(notice);
 
     const index = state.notices.findIndex((e) => e === notice);
     if (index !== -1) {
@@ -265,7 +270,19 @@ export const getters = {
     }
   },
   hasSource: (state) => {
-    return isEmpty(state.source) && state.source.readyState !== 2;
+    // console.log("analyzers/hasSource");
+    // console.log(state.source);
+
+    let has_source;
+    if (state.source !== null) {
+      has_source =
+        !state.source.hasOwnProperty("url") && state.source.readyState !== 2;
+    } else {
+      has_source = false;
+    }
+
+    // console.log(has_source);
+    return has_source;
   },
   getNotices: (state) => {
     return state.notices;
@@ -273,44 +290,60 @@ export const getters = {
 };
 
 export const actions = {
-  source({ commit, getters }) {
-    if (getters["hasSource"]) {
+  async source({ commit, getters, dispatch }) {
+    // console.log("analyzers/source");
+
+    return close_events().then(() => {
       commit("closeSource");
-    }
-    commit("setSource", {
-      source: events(function (message) {
-        commit("backendIsUp");
-        try {
-          let event = JSON.parse(message.data);
+      commit("setSource", {
+        source: events(
+          function (message) {
+            commit("backendIsUp");
 
-          assert(event.hasOwnProperty("category"));
-          assert(includes(EVENT_CATEGORIES, event.category));
-          assert(event.hasOwnProperty("id"));
-          assert(event.hasOwnProperty("data"));
+            // console.log(message);
 
-          console.log(`${event.category} event:`);
-          console.log(event);
+            try {
+              let event = JSON.parse(message.data);
 
-          commit(CATEGORY_COMMIT[event.category], {
-            id: event.id,
-            [event.category]: event.data,
-          });
-        } catch (err) {
-          console.warn(`backend event callback failed`);
-          console.warn(err);
-        }
-      }),
+              assert(event.hasOwnProperty("category"));
+              assert(includes(EVENT_CATEGORIES, event.category));
+              assert(event.hasOwnProperty("id"));
+              assert(event.hasOwnProperty("data"));
+
+              // console.log(`${event.category} event:`);
+              // console.log(event);
+
+              commit(CATEGORY_COMMIT[event.category], {
+                id: event.id,
+                [event.category]: event.data,
+              });
+            } catch (err) {
+              console.warn(`backend event callback failed`);
+              console.warn(err);
+            }
+          },
+          function (target) {
+            console.warn("backend event error something something");
+            console.warn(target);
+            // dispatch("source");
+          },
+          function ({ target }) {
+            // console.log("backend event source opened");
+            // console.log(target);
+          }
+        ),
+      });
     });
   },
 
   async queue({ commit, dispatch }, { id }) {
-    console.log(`action: analyzers.queue (id=${id})`);
+    // console.log(`action: analyzers.queue (id=${id})`);
     commit("addAnalyzer", { id: id });
     commit("addToQueue", { id: id });
   },
 
   unqueue({ commit }, { id }) {
-    console.log(`action: analyzers.unqueue (id=${id})`);
+    // console.log(`action: analyzers.unqueue (id=${id})`);
     commit("dropFromQueue", { id: id });
     commit("dropAnalyzer", { id: id });
   },
@@ -335,7 +368,7 @@ export const actions = {
               //   `action: analyzers.init -- callback ~ api.launch (id=${id})`
               // );
               if (ok) {
-                console.log(`Launched '${id}'`);
+                // console.log(`Launched '${id}'`);
                 return id;
               } else {
                 dispatch("unqueue", { id: id });
@@ -403,6 +436,8 @@ export const actions = {
       });
     } catch (e) {
       console.warn("backend may be down; refresh to check again");
+      console.warn(e);
+      commit("closeSource");
       return false;
     }
   },
@@ -432,7 +467,7 @@ export const actions = {
   async refresh({ getters, dispatch }, { id }) {
     try {
       assert(id !== undefined, "no id provided");
-      console.log(`action: analyzers.refresh (id=${id})`);
+      // console.log(`action: analyzers.refresh (id=${id})`);
 
       if (getters["getAnalyzerConfig"](id) === undefined) {
         dispatch("get_config", { id: id });

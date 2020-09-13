@@ -128,6 +128,10 @@ class EventStreamer(JsonStreamer):
         log.debug(f"pushing event - id:{id} category:{category} data:{data}")
         self.push({'category': category, 'id': id, 'data': data})
 
+    def stop(self):
+        self.push({'categroy': 'close', 'data': ''})
+        super().stop()
+
 
 class FrameStreamer(BaseStreamer):
     _boundary = b"frame"

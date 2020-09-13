@@ -104,7 +104,7 @@ export function dragEventToRelativeRectangle(down, up, frame) {
 
   // Assuming any area smaller than 1% of the frame is an error
 
-  console.log(`Area is ${A}`);
+  // console.log(`Area is ${A}`);
 
   if (A > 0.01) {
     const h = [co0.x, co1.x].sort();

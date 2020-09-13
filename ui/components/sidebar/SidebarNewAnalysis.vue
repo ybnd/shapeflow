@@ -69,7 +69,7 @@ export default {
   components: { BasicConfig },
   methods: {
     handleUpdatePopover() {
-      console.log("UPDATING POPOVER");
+      // console.log("UPDATING POPOVER");
     },
     handleNewAnalysis() {
       let config = this.$refs.new_analyzer_form.getConfig();
@@ -86,7 +86,9 @@ export default {
               this.$router.push(`/analysis/align?id=${id}`);
             });
         } else {
-          console.log("FORM IS NOT COMPLETE");
+          this.$store.commit("analyzers/newNotice", {
+            notice: { message: "Form is incomplete." },
+          });
         }
       });
     },

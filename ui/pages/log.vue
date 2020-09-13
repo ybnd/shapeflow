@@ -99,19 +99,19 @@ export default {
           let matches = [];
           let raw_matches = lines[i].matchAll(RegExp(this.filter, "g"));
 
-          console.log(lines[i]);
+          // console.log(lines[i]);
 
           for (match in raw_matches) {
-            console.log(`line ${i} match: ${match}`);
+            // console.log(`line ${i} match: ${match}`);
             matches = [...matches, match];
           }
 
           for (const match of matches) {
-            console.log(
-              `Found ${match[0]} start=${match.index} end=${
-                match.index + match[0].length
-              }.`
-            );
+            // console.log(
+            //   `Found ${match[0]} start=${match.index} end=${
+            //     match.index + match[0].length
+            //   }.`
+            // );
           }
 
           if (matches.length > 0) {

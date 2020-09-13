@@ -143,11 +143,11 @@ export default {
           .map((v) => this.model.hasOwnProperty(v))
           .reduce((g, v) => g && v);
         if (!fields_ok) {
-          console.warn(
-            "SchemaDefinition.match(): model doesn't include required fields"
-          );
-          console.log(this.model);
-          console.log(fields[this.definition]);
+          // console.warn(
+          //   "SchemaDefinition.match(): model doesn't include required fields"
+          // );
+          // console.log(this.model);
+          // console.log(fields[this.definition]);
         }
         return fields_ok;
       } else {

@@ -87,13 +87,13 @@ export default {
     },
     type_style() {
       if (this.style_ !== undefined) {
-        console.log(`SchemaField.type_style() type=${this.type}`);
-        console.log("default=");
-        console.log(this.default_style[this.type]);
-        console.log("style=");
-        console.log(this.style_);
-        console.log("=>");
-        console.log({ ...this.default_style[this.type], ...this.style_ });
+        // console.log(`SchemaField.type_style() type=${this.type}`);
+        // console.log("default=");
+        // console.log(this.default_style[this.type]);
+        // console.log("style=");
+        // console.log(this.style_);
+        // console.log("=>");
+        // console.log({ ...this.default_style[this.type], ...this.style_ });
       }
 
       return { ...this.default_style[this.type], ...this.style_ };

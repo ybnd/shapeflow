@@ -36,8 +36,8 @@ export default {
     },
   },
   created() {
-    console.log("SidebarNavDropdown listening for open events on ");
-    console.log(this.event.open);
+    // console.log("SidebarNavDropdown listening for open events on ");
+    // console.log(this.event.open);
     this.$root.$on(this.event.open, this.handleOpen);
   },
   destroyed() {
@@ -54,7 +54,7 @@ export default {
       e.target.parentElement.classList.toggle("open");
     },
     handleOpen() {
-      console.log("SidebarNavDropdown -- handling open event");
+      // console.log("SidebarNavDropdown -- handling open event");
       this.$refs[this.ref].classList.add("open");
     },
   },

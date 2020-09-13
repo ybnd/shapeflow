@@ -39,14 +39,14 @@ export default {
   },
   methods: {
     checkIfTooSmall() {
-      console.log(`default.checkIfTooSmall`);
-      console.log(`width=${window.innerWidth} height=${window.innerHeight}`);
+      // console.log(`default.checkIfTooSmall`);
+      // console.log(`width=${window.innerWidth} height=${window.innerHeight}`);
 
       this.tooSmall = window.innerWidth < 707 || window.innerHeight < 360;
       // width: sidebar + new analysis popover render correctly
       // height: arbitrary
 
-      console.log(`tooSmall = ${this.tooSmall}`);
+      // console.log(`tooSmall = ${this.tooSmall}`);
     },
   },
   data() {

@@ -109,7 +109,7 @@ export default {
   },
   computed: {
     classList() {
-      console.log(`${this.id} - ${this.name} -> disabled = ${this.disabled}`);
+      // console.log(`${this.id} - ${this.name} -> disabled = ${this.disabled}`);
 
       return [
         "nav-link",

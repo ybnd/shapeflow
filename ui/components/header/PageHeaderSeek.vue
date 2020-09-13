@@ -70,12 +70,12 @@ export default {
       100,
       true,
       debounce(25, true, function () {
-        console.log(`PageHeaderSeek.handleSeek()`);
+        // console.log(`PageHeaderSeek.handleSeek()`);
         this.setSeekPosition();
       })
     ),
     resetSeekPosition() {
-      console.log(`PageHeaderSeek.resetSeek()`);
+      // console.log(`PageHeaderSeek.resetSeek()`);
       this.position = null;
       this.handleSeek();
     },
