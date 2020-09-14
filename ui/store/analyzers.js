@@ -31,6 +31,7 @@ const CATEGORY_COMMIT = {
 };
 
 const MAX_TIME_WITHOUT_CONTACT = 1500;
+const SYNC_INTERVAL = 1000;
 
 export const state = () => {
   return {
@@ -43,6 +44,7 @@ export const state = () => {
     result: {},
     source: null,
     notices: [],
+    interval: [],
   };
 };
 
@@ -226,6 +228,9 @@ export const mutations = {
   setQueue(state, { queue }) {
     state.queue = queue;
   },
+  setInterval(state, { interval }) {
+    state.interval = interval;
+  },
 };
 
 export const getters = {
@@ -237,7 +242,7 @@ export const getters = {
   },
   getQueue: (state) => {
     // Clone instead of returning reference
-    return [...state.queue];
+    return cloneDeep(state.queue);
   },
   getQueueState: (state) => {
     return state.queue_state;
@@ -298,9 +303,25 @@ export const getters = {
   getNotices: (state) => {
     return state.notices;
   },
+  getInterval: (state) => {
+    return state.interval;
+  },
 };
 
 export const actions = {
+  loop({ commit, dispatch }) {
+    dispatch("sync");
+    commit("setInterval", {
+      interval: setInterval(() => {
+        dispatch("sync");
+      }, SYNC_INTERVAL),
+    });
+  },
+
+  stop({ getters }) {
+    clearInterval(getters["getInterval"]);
+  },
+
   connection({ commit, getters }, { ok }) {
     console.log("analyzers/connection");
     if (ok) {

@@ -50,44 +50,33 @@ export default {
     draggable,
   },
   created() {
-    this.init();
-    this.interval_update = setInterval(this.updateQueue, 100);
-    this.interval_sync = setInterval(this.sync, 1000);
+    this.$store.dispatch("settings/sync");
+    this.$store.dispatch("analyzers/loop");
+  },
+  destroyed() {
+    this.$store.dispatch("analyzers/stop");
   },
   methods: {
     handleClick(e) {
       e.preventDefault();
       e.target.parentElement.classList.toggle("open");
     },
-    init() {
-      this.$store.dispatch("settings/sync");
-      this.$store.dispatch("analyzers/source").then(() => {
-        this.sync();
-      });
-    },
-    updateQueue() {
-      this.queue = this.$store.getters["analyzers/getQueue"];
-    },
-    sync() {
-      if (!this.waiting) {
-        this.waiting = true;
-        this.$store.dispatch("analyzers/sync").then((ok) => {
-          if (ok) {
-            this.queue = this.$store.getters["analyzers/getQueue"];
-          }
-          this.waiting = false;
-        });
-      } else {
-        // console.warn("backend may be down");
-      }
-    },
     handleReorderQueue() {
       this.$store.commit("analyzers/setQueue", { queue: this.queue });
     },
   },
+  computed: {
+    queue: {
+      get() {
+        return this.$store.getters["analyzers/getQueue"];
+      },
+      set(q) {
+        this.$store.commit("analyzers/setQueue", { queue: q });
+      },
+    },
+  },
   data: () => {
     return {
-      queue: [], // local copy of queue
       interval_update: null,
       interval_sync: null,
       waiting: false,
