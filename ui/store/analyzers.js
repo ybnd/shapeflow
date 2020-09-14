@@ -323,19 +323,19 @@ export const actions = {
   },
 
   connection({ commit, getters }, { ok }) {
-    console.log("analyzers/connection");
+    // console.log("analyzers/connection");
     if (ok) {
-      console.log("up");
+      // console.log("up");
       commit("backendIsUp");
       commit("setIsConnected", { connected: true });
     } else if (
       Date.now() - getters["getLastBackendContact"] <
       MAX_TIME_WITHOUT_CONTACT
     ) {
-      console.log("up...");
+      // console.log("up...");
       commit("setIsConnected", { connected: true });
     } else {
-      console.log("down");
+      // console.log("down");
       commit("setIsConnected", { connected: false });
     }
   },

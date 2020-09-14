@@ -6,6 +6,8 @@ $sidebar-width: 120px;
 $sidebar-compact-width: 120px;
 $mobile-sidebar-width: 120px;
 
+
+
 $sidebar-bg: $gray-800;
 $sidebar-header-bg: rgba(0,0,0,.2) !default;
 $sidebar-footer-bg: rgba(0,0,0,.2) !default;
@@ -21,6 +23,8 @@ $sidebar-nav-link-padding-x:          .5rem !default;
 $sidebar-footer-padding-y:            .5rem !default;
 $sidebar-footer-padding-x:            .5rem !default;
 
+$content-width: calc(#{100vw} - #{$sidebar-width});
+$content-height: calc(#{100vh} - #{$header-height});
 
 /* Notices */
 $dismiss-width: 32px;

@@ -56,7 +56,7 @@
           </b-input-group>
         </b-row>
       </b-card>
-      <b-card class="basic-config isimple-form-section">
+      <b-card class="basic-config-container isimple-form-section">
         <div class="basic-config-gap">
           <BasicConfig
             ref="BasicConfig"
@@ -292,6 +292,13 @@ $description-height: 64px;
 
 .description-label-row {
   margin-bottom: -5px;
+}
+
+.basic-config-container {
+  padding: 2px;
+  .card-body {
+    padding: 0;
+  }
 }
 
 .basic-config-gap {

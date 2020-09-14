@@ -139,7 +139,14 @@ export default {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import "../../assets/scss/_bootstrap-variables";
+@import "../../assets/scss/_core-variables";
+@import "node_modules/bootstrap/scss/functions";
+
+$max-width: 800px;
+$popover-width: Min(Calc(#{$content-width} - 16px), #{$max-width});
+
 .hovertext * {
   color: transparent;
 }
@@ -148,6 +155,7 @@ export default {
 
 .popover {
   /*width: 600px;*/
+  width: $popover-width;
   max-width: none;
   z-index: 9000;
   /* Should be drawn over moveable, which is @ z-index 3000 */
@@ -157,12 +165,11 @@ export default {
   display: flex !important;
 }
 .popover-form-container {
-  /* todo: should be a single component for the dashboard cards & this popover! Then we can recycle a bunch of stuff. */
   flex-direction: column;
   display: flex;
-  padding-top: 1px;
+  padding-top: 0;
   padding-left: 12px;
-  padding-right: 24px;
+  padding-right: 8px;
   margin-bottom: -1px;
 }
 .popover-buttons {
