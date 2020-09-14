@@ -6,23 +6,23 @@ import abc
 import time
 import threading
 from contextlib import contextmanager
-from typing import Any, Callable, List, Optional, Union, Tuple, Dict, Type
+from typing import Any, List, Optional, Tuple, Dict, Type, Mapping
 
 import numpy as np
 import pandas as pd
 
-from pydantic import Field, FilePath, DirectoryPath
+from pydantic import Field
 
 from isimple import settings, get_logger, get_cache
 from isimple.endpoints import BackendRegistry
 
 from isimple.core import RootException, SetupError, RootInstance, Described
-from isimple.maths.colors import Color, HsvColor, convert, as_hsv
+from isimple.maths.colors import Color, HsvColor, as_hsv
 from isimple.util.meta import describe_function
-from isimple.util import Timer, Timing, hash_file, timed
+from isimple.util import Timer, Timing
 from isimple.core.db import BaseAnalysisModel
-from isimple.core.config import Factory, untag, BaseConfig, Instance, Configurable
-from isimple.core.streaming import stream, streams, EventStreamer
+from isimple.core.config import Factory, BaseConfig, Instance, Configurable
+from isimple.core.streaming import EventStreamer
 
 from isimple.core.interface import InterfaceFactory
 
@@ -173,28 +173,8 @@ class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB 
             self.__exit__(*sys.exc_info())
 
 
-class Handler(abc.ABC):
-    _implementation: Configurable
-    _implementation_factory: Type[InterfaceFactory]
-    _implementation_class: Type[Configurable]
-
-    def set_implementation(self, implementation: str) -> str:
-        impl_type: type = self._implementation_factory(implementation).get()
-        assert issubclass(impl_type, self._implementation_class)
-
-        self._implementation = impl_type()
-        return self._implementation_factory.get_str(  # todo: this is not necessary when using @extend(<Factory>)
-            self._implementation.__class__
-        )
-
-    def get_implementation(self) -> str:
-        return self._implementation.__class__.__qualname__
-
-    def implementation_config(self) -> BaseConfig:
-        pass
-
-
 class FeatureConfig(BaseConfig, abc.ABC):
+    """Feature parameters"""
     pass
 
 
@@ -207,7 +187,6 @@ class Feature(abc.ABC, Configurable):  # todo: should probably use Config for pa
 
     _label: str = ''  # todo: keep these in the config instead?
     _unit: str = ''
-    _description: str = ''
     _elements: Tuple[Instance, ...] = ()
 
     _config: Optional[FeatureConfig]
@@ -288,10 +267,6 @@ class Feature(abc.ABC, Configurable):  # todo: should probably use Config for pa
         """
         raise NotImplementedError
 
-    @classmethod
-    def description(cls) -> str:
-        return cls._description
-
     @property
     def config(self):
         if self._config is not None:
@@ -300,9 +275,10 @@ class Feature(abc.ABC, Configurable):  # todo: should probably use Config for pa
             return self._global_config
 
 
-class FeatureSet(object):
+class FeatureSet(Configurable):
     _feature: Tuple[Feature, ...]
     _colors: Tuple[Color, ...]
+    _config_class = FeatureConfig
 
     def __init__(self, features: Tuple[Feature, ...]):
         self._features = features
@@ -365,33 +341,37 @@ class FeatureSet(object):
         return values, state
 
 
-class FeatureType(Factory):  # todo: nest in Feature?
+class FeatureType(InterfaceFactory):
     _type = Feature
-    _mapping: Dict[str, Type[Described]] = {}
+    _mapping: Mapping[str, Type[Feature]] = {}
+    _config_type = FeatureConfig
 
     def get(self) -> Type[Feature]:
         feature = super().get()
-
-        if issubclass(feature, Feature):
-            return feature
-        else:
-            raise TypeError(
-                f"'{self.__class__.__name__}' tried to return an unexpected type '{feature}'. "
-                f"This is very weird and shouldn't happen, really."
-            )
+        assert issubclass(feature, Feature)
+        return feature
 
     def config_schema(self) -> dict:
         return self.get().config_schema()
 
+    @classmethod
+    def __modify_schema__(cls, field_schema):
+        super().__modify_schema__(field_schema)
+        field_schema.update(
+            units=[option._unit for option in cls._mapping.values()],
+            labels=[option._label for option in cls._mapping.values()]
+        )
+
 
 class BaseAnalyzerConfig(BaseConfig):
+    """Abstract analyzer configuration"""
     video_path: Optional[str] = Field(default=None)
     design_path: Optional[str] = Field(default=None)
     name: Optional[str] = Field(default=None)
     description: Optional[str] = Field(default=None)
 
 
-class AnalyzerEvent(Enum):  # todo: make a 'toast' event -> frontend shows a message (e.g. warnings)
+class PushEvent(Enum):
     STATUS = 'status'
     CONFIG = 'config'
     NOTICE = 'notice'
@@ -497,7 +477,7 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     def set_eventstreamer(self, eventstreamer: EventStreamer = None):
         self._eventstreamer = eventstreamer
 
-    def event(self, category: AnalyzerEvent, data: dict):
+    def event(self, category: PushEvent, data: dict):
         """Push an event
 
         :param category: event category
@@ -510,7 +490,7 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
     def notice(self, message: str, persist: bool = False):
         self.event(
-            AnalyzerEvent.NOTICE,
+            PushEvent.NOTICE,
             data={'message': message, 'persist': persist}
         )
         log.warning(f"{self.id}: {message}")
@@ -673,7 +653,7 @@ class BaseVideoAnalyzer(Instance, RootInstance):
         return status
 
     def push_status(self):
-        self.event(AnalyzerEvent.STATUS, self.status())
+        self.event(PushEvent.STATUS, self.status())
 
 
     @backend.expose(backend.get_config)
@@ -703,7 +683,7 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
                 # Push events
                 self.set_state(AnalyzerState.LAUNCHED)
-                self.event(AnalyzerEvent.CONFIG, self.get_config())
+                self.event(PushEvent.CONFIG, self.get_config())
 
                 # State transition (may change from LAUNCHED ~ config)
                 self.state_transition()
@@ -781,7 +761,7 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
 class AnalyzerType(Factory):
     _type = BaseVideoAnalyzer
-    _mapping: Dict[str, Type[Described]] = {}
+    _mapping: Mapping[str, Type[Described]] = {}
 
     def get(self) -> Type[BaseVideoAnalyzer]:
         t = super().get()

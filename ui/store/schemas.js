@@ -1,16 +1,21 @@
 import Vue from "vue";
 import axios from "axios";
-import { get_options, AnalyzerState } from "../static/api";
+import { AnalyzerState, get_schemas } from "../static/api";
 import assert from "assert";
+
+import { get_reference, dereference } from "static/util";
 
 import isEmpty from "lodash/isEmpty";
 import isEqual from "lodash/isEqual";
 
 export const state = () => ({
-  analyzer: [], // todo: can be merged with config à la rest of things
   analyzer_state: {
     options: AnalyzerState,
     match: null,
+  },
+  frame_interval_setting: {
+    options: [],
+    descriptions: {},
   },
   feature: {
     options: [],
@@ -20,10 +25,6 @@ export const state = () => ({
     parameters: {},
     parameter_defaults: {},
     parameter_descriptions: {},
-  },
-  frame_interval_setting: {
-    options: [],
-    descriptions: {},
   },
   transform: {
     options: [],
@@ -36,8 +37,9 @@ export const state = () => ({
     // todo: add schemas for FilterConfig
   },
   config: {
-    // AnalyzerType: AnalyzerConfig schema  todo: this also makes more sense for filter/transform/feature
+    // AnalyzerConfig schema  todo: this also makes more sense for filter/transform/feature
   },
+  settings: undefined,
 });
 
 export const mutations = {
@@ -82,7 +84,7 @@ export const mutations = {
     }
   },
   setTransformOptions(state, { options }) {
-    // console.log("schema/setTransformOptions");
+    // console.log("schemas/setTransformOptions");
     try {
       assert(!(options === undefined), "no options provided");
       state.transform = options;
@@ -102,42 +104,132 @@ export const mutations = {
       console.warn(err);
     }
   },
-  setConfigOptions(state, { options }) {
+  setSettingsSchema(state, { schema }) {
     try {
-      assert(!(options === undefined), "no options provided");
-      state.config = options;
-      // console.log(state);
+      assert(!(schema === undefined), "no schema provided");
+      state.settings = schema;
     } catch (err) {
-      console.warn(`setConfigOptions failed`);
+      console.warn(`setSettingsSchema failed`);
+      console.warn("schema=");
+      console.warn(schema);
+      console.warn(err);
+    }
+  },
+  setConfigSchema(state, { schema }) {
+    try {
+      assert(!(schema === undefined), "no schema provided");
+      state.config = schema;
+
+      state.frame_interval_setting = {
+        options: schema.properties.frame_interval_setting.enum,
+        descriptions: schema.properties.frame_interval_setting.descriptions,
+      };
+
+      state.feature = {
+        options: schema.properties.features.items.enum,
+        descriptions: schema.properties.features.items.descriptions,
+        labels: schema.properties.features.items.labels,
+        units: schema.properties.features.items.units,
+        parameters: schema.properties.features.items.enum.map((v) =>
+          Object.keys(
+            schema.implementations[schema.properties.features.items.interface][
+              v
+            ].properties
+          )
+        ),
+        parameter_defaults: schema.properties.features.items.enum.reduce(
+          // todo: way too convoluted, refactor BasicConfig!
+          function (o, v) {
+            return {
+              ...o,
+              [v]: Object.keys(
+                schema.implementations[
+                  schema.properties.features.items.interface
+                ][v].properties
+              ).reduce(function (p, w) {
+                return {
+                  ...p,
+                  [w]:
+                    schema.implementations[
+                      schema.properties.features.items.interface
+                    ][v].properties[w].default,
+                };
+              }, {}),
+            };
+          },
+          {}
+        ),
+        parameter_descriptions: schema.properties.features.items.enum.reduce(
+          // todo: way too convoluted, refactor BasicConfig!
+          function (o, v) {
+            return {
+              ...o,
+              [v]: Object.keys(
+                schema.implementations[
+                  schema.properties.features.items.interface
+                ][v].properties
+              ).reduce(function (p, w) {
+                return {
+                  ...p,
+                  [w]:
+                    schema.implementations[
+                      schema.properties.features.items.interface
+                    ][v].properties[w].description,
+                };
+              }, {}),
+            };
+          },
+          {}
+        ),
+      };
+
+      const transform_schema = dereference(
+        schema,
+        get_reference(schema.properties.transform)
+      );
+      state.transform = {
+        options: transform_schema.properties.type.enum,
+        descriptions: transform_schema.properties.type.enum.map(
+          (v) =>
+            schema.implementations[transform_schema.properties.type.interface][
+              v
+            ].description
+        ),
+      };
+
+      const filter_schema = dereference(
+        schema,
+        get_reference(
+          dereference(schema, get_reference(schema.properties.masks)).properties
+            .filter
+        )
+      );
+      state.filter = {
+        options: filter_schema.properties.type.enum,
+        descriptions: filter_schema.properties.type.enum.map(
+          (v) =>
+            schema.implementations[filter_schema.properties.type.interface][v]
+              .description
+        ),
+      };
+    } catch (err) {
+      console.warn(`setConfigSchema failed`);
+      console.warn("schema=");
+      console.warn(schema);
       console.warn(err);
     }
   },
 };
 
 export const getters = {
-  hasNoAnalyzerOptions: (state) => {
-    return isEmpty(state.analyzer);
-  },
-  hasNoAnalyzerStateMatch: (state) => {
-    return state.analyzer_state.match === null;
-  },
-  hasNoFrameIntervalSettingOptions: (state) => {
-    return isEmpty(state.frame_interval_setting.options);
-  },
-  hasNoFeatureOptions: (state) => {
-    return isEmpty(state.feature.options);
-  },
-  hasNoTransformOptions: (state) => {
-    return isEmpty(state.transform.options);
-  },
-  hasNoFilterOptions: (state) => {
-    return isEmpty(state.filter.options);
-  },
-  hasNoConfigSchemas: (state) => {
-    return isEmpty(state.config);
+  isNotInitialized: (state) => {
+    return isEmpty(state.config); // todo: more checks?
   },
   getConfigSchema: (state) => {
     return state.config;
+  },
+  getSettingsSchema: (state) => {
+    return state.settings;
   },
   getTransformOptions: (state) => {
     return state.transform;
@@ -145,67 +237,21 @@ export const getters = {
   getFilterOptions: (state) => {
     return state.filter;
   },
+  getFeature: (state) => {
+    return state.feature;
+  },
+  getFrameIntervalSetting: (state) => {
+    return state.frame_interval_setting;
+  },
 };
 
 export const actions = {
   async sync({ commit, getters }) {
-    if (getters["hasNoAnalyzerOptions"]) {
-      get_options("analyzer").then((options) => {
-        // console.log(options);
-        commit("setAnalyzerOptions", { options: options });
-      });
-    }
-
-    if (getters["hasNoAnalyzerStateMatch"]) {
-      get_options("state").then((options) => {
-        try {
-          assert(
-            isEqual(options, AnalyzerState),
-            "AnalyzerState definition mismatch between frontend and backend"
-          );
-          commit("setAnalyzerStateMatch", { match: true });
-        } catch (e) {
-          console.warn("backend AnalyzerState:");
-          console.warn(options);
-          console.warn("frontend AnalyzerState:");
-          console.warn(AnalyzerState);
-          commit("setAnalyzerStateMatch", { match: false });
-        }
-      });
-    }
-
-    if (getters["hasNoFrameIntervalSettingOptions"]) {
-      get_options("frame_interval_setting").then((options) => {
-        // console.log(options);
-        commit("setFrameIntervalSettingOptions", { options: options });
-      });
-    }
-
-    if (getters["hasNoFeatureOptions"]) {
-      get_options("feature").then((options) => {
-        // console.log(options);
-        commit("setFeatureOptions", { options: options });
-      });
-    }
-
-    if (getters["hasNoTransformOptions"]) {
-      get_options("transform").then((options) => {
-        // console.log(options);
-        commit("setTransformOptions", { options: options });
-      });
-    }
-
-    if (getters["hasNoFilterOptions"]) {
-      get_options("filter").then((options) => {
-        // console.log(options);
-        commit("setFilterOptions", { options: options });
-      });
-    }
-
-    if (getters["hasNoConfigSchemas"]) {
-      get_options("config").then((options) => {
-        // console.log(options);
-        commit("setConfigOptions", { options: options });
+    if (getters["isNotInitialized"]) {
+      get_schemas().then((schemas) => {
+        commit("setConfigSchema", { schema: schemas.config });
+        commit("setSettingsSchema", { schema: schemas.settings });
+        // todo: include sanity checks
       });
     }
   },

@@ -1,16 +1,4 @@
 <template>
-  <!--      <b-col>-->
-  <!--        &lt;!&ndash; todo: would be cool to have a triangl/triangle combo thumbnail that reveals the video/design fully on hover&ndash;&gt;-->
-  <!--        <div class="thumbnail column-container">-->
-  <!--          <b-img fluid-grow :src="`/api/roi/thumbnail-design/${id}`" />-->
-  <!--          &lt;!&ndash; todo: connect to file input instead: https://stackoverflow.com/questions/49106045 &ndash;&gt;-->
-  <!--        </div>-->
-  <!--      </b-col>-->
-  <!--      <b-col>-->
-  <!--        <div class="thumbnail column-container">-->
-  <!--          <b-img fluid-grow :src="`/api/roi/thumbnail-design/${id}`" />-->
-  <!--        </div>-->
-  <!--      </b-col>-->
   <b-container class="column-container">
     <b-row class="card-form-row path-row">
       <b-form-group>
@@ -218,8 +206,8 @@ import {
   select_video_path,
   check_design_path,
   check_video_path,
-  get_options,
   resolve_paths,
+  get_recent_paths,
 } from "../../static/api";
 
 import AsyncComputed from "vue-async-computed";
@@ -430,16 +418,19 @@ export default {
   },
   computed: {
     features() {
-      return JSON.parse(JSON.stringify(this.$store.state.schemas.feature)); // todo: replace with getter
+      return this.$store.getters["schemas/getFeature"];
     },
     frame_interval_settings() {
-      return this.$store.state.schemas.frame_interval_setting; // todo: replace with getter
+      return this.$store.getters["schemas/getFrameIntervalSetting"];
+    },
+    schema() {
+      return this.$store.getters["settings/getSchemaCopy"];
     },
   },
   asyncComputed: {
     path_options: {
       async get() {
-        return get_options("paths").then((options) => {
+        return get_recent_paths().then((options) => {
           if (!this.config.video_path) {
             this.config.video_path = options.video_path[0];
             this.checkVideoPath();

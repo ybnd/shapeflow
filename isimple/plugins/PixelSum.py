@@ -10,9 +10,9 @@ from isimple.video import MaskFunction, Feature, FeatureType
 
 @extend(FeatureType)
 class PixelSum(MaskFunction):
+    "Masked & filtered area as number of pixels"
     _label = "Pixels"
     _unit = "#"
-    _description = "Masked & filtered area as number of pixels"
 
     def _function(self, frame: np.ndarray) -> int:
         return area_pixelsum(frame)

@@ -15,6 +15,8 @@ _RGB = 'rgb'
 WRAP = 180
 
 class Color(BaseConfig):
+    """A color"""
+
     _colorspace: str = ''
     _conversion_map: Dict = {}
 

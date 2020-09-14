@@ -10,9 +10,9 @@ from isimple.video import MaskFunction, Feature, FeatureType, FeatureConfig
 
 @extend(FeatureType)
 class Area_mm2(MaskFunction):
+    "Area ~ masked & filtered pixels"
     _label = "Area"
     _unit = "mm²"
-    _description = "Area ~ masked & filtered pixels"
 
     def _function(self, frame: np.ndarray) -> float:
         return self.pxsq2mmsq(area_pixelsum(frame))

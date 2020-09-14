@@ -142,7 +142,7 @@ class FileModel(DbModel):
 
     @property
     def resolved(self) -> bool:
-        """Whether the ``FileModel`` has been resolved."""
+        """Whether the ``FileModel`` has been resolved"""
         return self._resolved
 
     def _queue_hash(self, path: str) -> None:

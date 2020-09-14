@@ -31,7 +31,7 @@ class SetupError(RootException):
     pass
 
 
-class EnforcedStr(str):  # todo: should derive from enum.StrEnum instead
+class EnforcedStr(str):
     _options: List[str] = ['']
     _descriptions: Dict[str, str] = {}
     _str: str
@@ -83,6 +83,15 @@ class EnforcedStr(str):  # todo: should derive from enum.StrEnum instead
     def __hash__(self):  # todo: why?
         return hash(str(self))
 
+    @classmethod
+    def __modify_schema__(cls, field_schema):
+        # pydantic
+        temp = cls()
+        field_schema.update(
+            enum=temp.options,
+            descriptions=temp.descriptions
+        )
+
 
 class _Streaming(EnforcedStr):
     _options = ['off', 'image', 'json']
@@ -91,6 +100,7 @@ class _Streaming(EnforcedStr):
 stream_off = _Streaming('off')
 stream_image = _Streaming('image')
 stream_json = _Streaming('json')
+
 
 class Endpoint(object):
     _name: str
@@ -237,6 +247,8 @@ class ImmutableRegistry(EndpointRegistry):
 
 
 class Described(object):
+    """..."""
+
     @classmethod
     def _description(cls):
         if cls.__doc__ is not None:

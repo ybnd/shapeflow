@@ -18,12 +18,12 @@ from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     FrameIntervalSetting, BaseAnalyzerConfig, FlipConfig
 from isimple.core import Lockable
 from isimple.core.backend import Instance, CachingInstance, \
-    Handler, BaseVideoAnalyzer, BackendSetupError, AnalyzerType, Feature, \
+    BaseVideoAnalyzer, BackendSetupError, AnalyzerType, Feature, \
     FeatureSet, \
-    FeatureType, backend, AnalyzerState, AnalyzerEvent, FeatureConfig
+    FeatureType, backend, AnalyzerState, PushEvent, FeatureConfig
 from isimple.core.config import extend, __meta_ext__, __meta_sheet__
 from isimple.core.interface import TransformInterface, FilterConfig, \
-    FilterInterface, FilterType, TransformType
+    FilterInterface, FilterType, TransformType, Handler
 from isimple.core.streaming import stream, streams
 from isimple.maths.colors import Color, HsvColor, BgrColor, convert, css_hex
 from isimple.maths.images import to_mask, crop_mask, ckernel, \
@@ -1083,7 +1083,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 config = self.get_config()
 
                 # Push config event
-                self.event(AnalyzerEvent.CONFIG, config)
+                self.event(PushEvent.CONFIG, config)
 
                 # Push streams
                 streams.update()
@@ -1149,7 +1149,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         self.transform.estimate(roi_config)
 
         self.state_transition()
-        self.event(AnalyzerEvent.CONFIG, self.get_config())
+        self.event(PushEvent.CONFIG, self.get_config())
 
         if roi_config is not None:
             return roi_config.dict()
@@ -1231,7 +1231,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             self.get_colors()
 
             self.state_transition()
-            self.event(AnalyzerEvent.CONFIG, self.get_config())
+            self.event(PushEvent.CONFIG, self.get_config())
             self.commit()
 
             streams.update()

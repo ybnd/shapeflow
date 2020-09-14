@@ -24,7 +24,7 @@ from pydantic.errors import PathNotExistsError, PathNotADirectoryError, PathNotA
 import diskcache
 
 # Library version
-__version__: str = '0.3.17'
+__version__: str = '0.3.18'
 
 # Get root directory
 _user_dir = str(pathlib.Path.home())  
@@ -120,8 +120,7 @@ class _Settings(BaseModel):
                         schema['properties'][field.alias][
                             'title'] = field.field_info.title
                     if field.field_info.description is not None and 'description' not in schema['properties'][field.alias]:
-                        schema['properties'][field.alias][
-                            'description'] = field.field_info.description
+                        schema['properties'][field.alias]['description'] = field.field_info.description
                 if issubclass(field.type_, _Settings):
                     # recurse into nested _Settings classes
                     _inject(field.type_, definitions[field.type_.__name__], definitions)

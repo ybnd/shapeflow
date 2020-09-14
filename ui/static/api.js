@@ -97,12 +97,8 @@ export async function cancel(id) {
   return axios.post(api(id, "cancel")).then(return_data);
 }
 
-export async function get_schemas(id) {
-  return axios.get(api(id, "call/get_schemas")).then(return_data);
-}
-
-export async function get_options(for_type) {
-  return axios.get(api("options", for_type)).then(return_data);
+export async function get_schemas() {
+  return axios.get(api("schemas")).then(return_data);
 }
 
 export async function select_video_path() {
@@ -308,6 +304,10 @@ export async function get_result(analysis, run) {
   return axios
     .post(api("db", "get_result"), { analysis: analysis, run: run })
     .then(return_data);
+}
+
+export async function get_recent_paths() {
+  return axios.get(api("db", "get_recent_paths")).then(return_data);
 }
 
 export async function q_start(ids) {

@@ -7,7 +7,6 @@ import assert from "assert";
 export const state = () => {
   return {
     settings: undefined,
-    schema: undefined,
   };
 };
 
@@ -21,15 +20,6 @@ export const mutations = {
       console.warn(err);
     }
   },
-  setSchema(state, { schema }) {
-    try {
-      assert(schema !== undefined);
-      state.schema = schema;
-    } catch (err) {
-      console.warn(`settings.setSchema() failed`);
-      console.warn(err);
-    }
-  },
 };
 
 export const getters = {
@@ -38,12 +28,6 @@ export const getters = {
   },
   getSettingsCopy: (state) => {
     return cloneDeep(state.settings);
-  },
-  getSchema: (state) => {
-    return state.schema;
-  },
-  getSchemaCopy: (state) => {
-    return cloneDeep(state.schema);
   },
   isUndefined: (state) => {
     return state.settings === undefined && state.schema === undefined;
@@ -54,25 +38,18 @@ export const actions = {
   async get({ commit, getters }) {
     return get_settings().then((settings) => {
       commit("setSettings", { settings: settings });
-      return getters["getSettings"];
+      return getters["getSettingsCopy"];
     });
   },
   async set({ commit, getters }, { settings = {} }) {
     return set_settings(settings).then((settings) => {
       commit("setSettings", { settings: settings });
-      return getters["getSettings"];
-    });
-  },
-  async schema({ commit, getters }) {
-    return settings_schema().then((schema) => {
-      commit("setSchema", { schema: schema });
-      // console.log("settings.schema() callback");
-      return getters["getSchema"];
+      return getters["getSettingsCopy"];
     });
   },
   async sync({ dispatch }) {
     return dispatch("get").then(() => {
-      return dispatch("schema");
+      return true;
     });
   },
 };

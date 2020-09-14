@@ -81,28 +81,6 @@ def application(keep: bool = False):
 
 class MainTest(unittest.TestCase):
     """Test Main methods -- global"""
-    def test_schemas(self):
-        with application() as (server, client, settings):
-            # Test 'legal' options
-            for for_type in ['state', 'analyzer', 'feature',
-                             'frame_interval_setting', 'filter', 'transform',
-                             'paths', 'config']:
-                r = client.get(f'/api/options/{for_type}')
-                self.assertEqual(200, r.status_code)
-                self.assertLess(0, len(r.data))
-
-            # Test 'illegal' options
-            for for_type in ['slate', '', '1234564523786']:
-                try:
-                    client.get(f'/api/options/{for_type}')
-                except ValueError:
-                    pass
-
-            # Test settings_schema
-            r = client.get('/api/settings_schema')
-            self.assertEqual(200, r.status_code)
-            self.assertEqual(settings.schema(), json.loads(r.data))
-
     def test_file_checks(self):
         with application() as (server, client, settings):
             # Check real files

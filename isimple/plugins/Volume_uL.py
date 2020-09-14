@@ -15,9 +15,10 @@ class Volume_uL_Config(FeatureConfig):
 
 @extend(FeatureType)
 class Volume_uL(MaskFunction):
+    "Volume ~ masked & filtered area multiplied by channel height"
+
     _label = "Volume"
     _unit = "µL"
-    _description = "Volume ~ masked & filtered area multiplied by channel height"
 
     _config_class = Volume_uL_Config
 

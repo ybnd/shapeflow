@@ -34,19 +34,21 @@ class FrameIntervalSetting(EnforcedStr):
 
 @extend(ConfigType)
 class VideoFileHandlerConfig(BaseConfig):
-    """Video file"""
+    """Video file handler configuration"""
     pass
 
 
 class FlipConfig(BaseConfig):
-    """Flip"""
+    """Flip the selected ROI before estimating the transform"""
+
     vertical: bool = Field(default=False)
     horizontal: bool = Field(default=False)
 
 
 @extend(ConfigType)
 class TransformHandlerConfig(HandlerConfig):
-    """Transform"""
+    """Transform handler configuration"""
+
     type: TransformType = Field(default_factory=TransformType)
     data: TransformConfig = Field(default_factory=TransformConfig)
 
@@ -57,7 +59,8 @@ class TransformHandlerConfig(HandlerConfig):
 
 @extend(ConfigType)
 class FilterHandlerConfig(HandlerConfig):
-    """Filter"""
+    """Filter handler configuration"""
+
     type: FilterType = Field(default_factory=FilterType)
     data: FilterConfig = Field(default_factory=FilterConfig)
 
@@ -68,7 +71,8 @@ class FilterHandlerConfig(HandlerConfig):
 
 @extend(ConfigType)
 class MaskConfig(BaseConfig):
-    """Mask"""
+    """Mask configuration"""
+
     name: str = Field(default=None)
     skip: bool = Field(default=False)
     filter: FilterHandlerConfig = Field(default_factory=FilterHandlerConfig)
@@ -86,7 +90,8 @@ class MaskConfig(BaseConfig):
 
 @extend(ConfigType)
 class DesignFileHandlerConfig(BaseConfig):
-    """Design file"""
+    """Design file handler configuration"""
+
     dpi: int = Field(default=400, ge=50, le=1200)
 
     overlay_alpha: float = Field(default=0.1, ge=0.0, le=1.0)
@@ -100,7 +105,7 @@ class DesignFileHandlerConfig(BaseConfig):
 
 @extend(ConfigType)
 class VideoAnalyzerConfig(BaseAnalyzerConfig):
-    """Video analyzer"""
+    """Video analyzer configuration"""
 
     frame_interval_setting: FrameIntervalSetting = Field(default_factory=FrameIntervalSetting)
     dt: Optional[float] = Field(default=5.0)

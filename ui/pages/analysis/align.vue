@@ -124,7 +124,6 @@
 import {
   estimate_transform,
   clear_roi,
-  get_options,
   commit,
   api,
   get_relative_roi, // todo: handle ~ VueX store

@@ -3,7 +3,7 @@ import copy
 import json
 
 import numpy as np
-from typing import Optional, Union, Type, Dict, Any
+from typing import Optional, Union, Type, Dict, Any, Mapping
 from functools import partial
 
 from isimple import get_logger, __version__
@@ -30,7 +30,7 @@ __meta_sheet__ = 'metadata'
 
 
 class Factory(EnforcedStr):  # todo: add a _class & issubclass check
-    _mapping: Dict[str, Type[Described]]
+    _mapping: Mapping[str, Type[Described]] = {}
     _default: Optional[str] = None
     _type: Type[Described] = Described
 
@@ -72,6 +72,8 @@ class Factory(EnforcedStr):  # todo: add a _class & issubclass check
     def _extend(cls, key: str, extension: Type[Described]):
         if not hasattr(cls, '_mapping'):
             cls._mapping = {}
+
+        assert isinstance(cls._mapping, dict)  # to put MyPy at ease
 
         if issubclass(extension, cls._type):
             log.debug(f"Extending Factory '{cls.__name__}' "
@@ -120,8 +122,8 @@ class NpArray(np.ndarray):
 
 
 class BaseConfig(BaseModel, Described):
-    """Abstract class for configuration data.
-
+    """Abstract configuration"""
+    """
     * Usage, where `SomeConfig` is a subclass of `BaseConfig`:
         * Instantiating:
             ```
@@ -288,7 +290,7 @@ class BaseConfig(BaseModel, Described):
 
 class ConfigType(Factory):
     _type = BaseConfig
-    _mapping: Dict[str, Type[Described]] = {}
+    _mapping: Mapping[str, Type[Described]] = {}
 
     def get(self) -> Type[BaseConfig]:
         config = super().get()

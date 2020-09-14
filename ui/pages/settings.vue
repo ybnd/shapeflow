@@ -10,7 +10,7 @@
         <b-button @click="clearCache">Clear cache ({{ size.cache }})</b-button>
       </PageHeaderItem>
     </PageHeader>
-    <div class="scrollable">
+    <div class="scrollable" v-if="settings && schema">
       <b-card class="isimple-settings-box isimple-form-section">
         <SchemaForm
           :data="settings"
@@ -44,27 +44,21 @@ export default {
     SchemaForm,
   },
   mounted() {
-    if (this.$store.getters["settings/isUndefined"]) {
-      this.$store.dispatch("settings/sync").then(() => {
-        // workaround to (re)load frontend on the settings page
-        // => settings/sync action called in layouts/default is not resolved yet
-        this.settings = this.$store.getters["settings/getSettingsCopy"];
-        this.schema = this.$store.getters["settings/getSchemaCopy"];
-      });
-    } else {
-      this.settings = this.$store.getters["settings/getSettingsCopy"];
-      this.schema = this.$store.getters["settings/getSchemaCopy"];
-    }
+    this.$store.dispatch("settings/sync");
     this.getDiskSize();
     setInterval(this.getDiskSize, 1000);
   },
+  computed: {
+    settings() {
+      return this.$store.getters["settings/getSettingsCopy"];
+    },
+    schema() {
+      return this.$store.getters["schemas/getSettingsSchema"];
+    },
+  },
   methods: {
     setSettings() {
-      this.$store
-        .dispatch("settings/set", { settings: this.settings })
-        .then(() => {
-          this.settings = this.$store.getters["settings/getSettingsCopy"];
-        });
+      this.$store.dispatch("settings/set", { settings: this.settings });
     },
     clearCache() {
       clear_cache().then(this.getDiskSize);
@@ -79,14 +73,6 @@ export default {
   },
   data() {
     return {
-      settings: {
-        cache: {},
-        db: {},
-        format: {},
-        log: {},
-        render: {},
-      },
-      schema: {},
       size: {
         cache: null,
         db: null,

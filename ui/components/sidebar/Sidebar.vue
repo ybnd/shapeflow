@@ -60,6 +60,7 @@ export default {
       e.target.parentElement.classList.toggle("open");
     },
     init() {
+      this.$store.dispatch("settings/sync");
       this.$store.dispatch("analyzers/source").then(() => {
         this.sync();
       });

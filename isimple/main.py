@@ -222,61 +222,19 @@ class Main(isimple.core.Lockable):
             log.debug(f"get options for '{for_type}'")
             if for_type == "state":
                 return respond(dict(video.AnalyzerState.__members__))
-            elif for_type == "analyzer":
-                return respond(video.AnalyzerType().options)
-            elif for_type == "feature":
-                ft = video.FeatureType()
-                features = [video.FeatureType(k).get() for k in ft.options]
-                return respond({
-                    'options': ft.options,
-                    'labels': {
-                        k: feature.label() for k, feature
-                        in zip(ft.options, features)
-                    },
-                    'units': {
-                        k: feature.unit() for k, feature
-                        in zip(ft.options, features)
-                    },
-                    'descriptions': {
-                        k: feature.description() for k, feature
-                        in zip(ft.options, features)
-                    },
-                    'parameters': {  # todo: replace with JSON schema ~ pydantic
-                        k: list(feature._config_class.__fields__.keys()) for k, feature
-                        in zip(ft.options, features)
-                    },
-                    'parameter_defaults': {  # todo: replace with JSON schema ~ pydantic
-                        k: {par: field.default for par, field in feature._config_class.__fields__.items()} for k, feature
-                        in zip(ft.options, features)
-                    },
-                    'parameter_descriptions': {  # todo: replace with JSON schema ~ pydantic
-                        k: {par: field.field_info.description for par, field in feature._config_class.__fields__.items()} for k, feature
-                        in zip(ft.options, features)
-                    },
-                })
-            elif for_type == "frame_interval_setting":
-                fis = video.FrameIntervalSetting()
-                return respond(
-                    {'options': fis.options, 'descriptions': fis.descriptions}
-                )
-            elif for_type == "filter":
-                return respond({
-                    'options': video.FilterType().options,
-                    'descriptions': video.FilterType().descriptions
-                })
-            elif for_type == "transform":
-                return respond({
-                    'options': video.TransformType().options,
-                    'descriptions': video.TransformType().descriptions
-                })
-            elif for_type == "paths":
-                return respond(self._history.get_paths())
             elif for_type == "config":
-                return respond(
-                    backend.AnalyzerType().config_schema()  # todo: { AnalyzerType:<schema> }
-                )
+                return respond(backend.AnalyzerType().config_schema())
             else:
                 raise ValueError(f"No options for '{for_type}'")
+
+        @app.route('/api/schemas', methods=['GET'])
+        def get_schemas():
+            return {
+                'config': video.VideoAnalyzerConfig.schema(),
+                'settings': isimple.settings.schema(),
+                'analyzer_state': dict(backend.AnalyzerState.__members__),
+                'queue_state': dict(QueueState.__members__),
+            }
 
         @app.route('/api/select_video_path', methods=['GET'])
         def select_video():

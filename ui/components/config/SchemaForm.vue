@@ -100,19 +100,6 @@
         </template>
         <template v-else>
           <SchemaField
-            v-if="p_is_implementation_selector(property)"
-            :title="p_title(property)"
-            :value="p_model(property)"
-            @input="p_set(resolve_context(property), $event)"
-            type="enum"
-            :key="property"
-            :options="{
-              ...p_options(property),
-              ...p_implementation_options(property),
-            }"
-          />
-          <SchemaField
-            v-else
             :title="p_title(property)"
             :value="p_model(property)"
             @input="p_set(resolve_context(property), $event)"
@@ -587,35 +574,6 @@ export default {
         // console.log(`is_implementation=${is_implementation}`);
 
         return is_implementation;
-      },
-      p_is_implementation_selector: (p) => {
-        // console.log(
-        //   `SchemaForm.p_is_implementation_selector() p=${this.resolve_context(
-        //     p
-        //   )}`
-        // );
-
-        let is_selector = p === "type" && this.p_is_implementation("data");
-
-        // console.log(`is_selector=${is_selector}`);
-
-        return is_selector;
-      },
-      p_implementation_options: (p) => {
-        // console.log(
-        //   `SchemaForm.implementation_options() p=${this.resolve_context(p)}`
-        // );
-
-        const category = this.p_reference("data").split("/").pop();
-        const options = Object.keys(this.schema.implementations[category]);
-
-        // console.log(`category=${category}`);
-        // console.log("options=");
-        // console.log(options);
-
-        return {
-          enum_options: options,
-        };
       },
       p_has_parameters: () => {
         // console.log(`SchemaForm.p_has_parameters()`);

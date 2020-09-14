@@ -1,5 +1,5 @@
 import abc
-from typing import Type, Tuple, Optional, Dict
+from typing import Type, Tuple, Optional, Dict, Mapping
 
 import numpy as np
 
@@ -15,8 +15,9 @@ log = get_logger(__name__)
 
 
 class InterfaceFactory(Factory):
-    _type = Configurable
-    _mapping: Dict[str, Type[Described]] = {}
+    _type: Type[Configurable]
+    _mapping: Mapping[str, Type[Configurable]] = {}
+    _config_type: Type[BaseConfig] = BaseConfig
 
     def get(self) -> Type[Configurable]:
         interface = super().get()
@@ -26,8 +27,36 @@ class InterfaceFactory(Factory):
     def config_schema(self) -> dict:
         return self.get().config_schema()
 
+    @classmethod
+    def __modify_schema__(cls, field_schema):
+        super().__modify_schema__(field_schema)
+        field_schema.update(interface=cls._config_type.__name__)
+
+
+class Handler(abc.ABC):  # todo: move to isimple.core.interface?
+    _implementation: Configurable
+    _implementation_factory: Type[InterfaceFactory]
+    _implementation_class: Type[Configurable]
+
+    def set_implementation(self, implementation: str) -> str:
+        impl_type: type = self._implementation_factory(implementation).get()
+        assert issubclass(impl_type, self._implementation_class)
+
+        self._implementation = impl_type()
+        return self._implementation_factory.get_str(  # todo: this is not necessary when using @extend(<Factory>)
+            self._implementation.__class__
+        )
+
+    def get_implementation(self) -> str:
+        return self._implementation.__class__.__qualname__
+
+    def implementation_config(self) -> BaseConfig:
+        pass
+
 
 class HandlerConfig(BaseConfig, abc.ABC):
+    """Abstract handler configuration"""
+
     type: InterfaceFactory
     data: BaseConfig
 
@@ -49,7 +78,7 @@ class HandlerConfig(BaseConfig, abc.ABC):
 
 
 class TransformConfig(BaseConfig):
-    """Undefined transform"""
+    """Transform configuration"""
     pass
 
 
@@ -86,7 +115,7 @@ class TransformInterface(Configurable, abc.ABC):
 
 
 class FilterConfig(BaseConfig):
-    """Undefined filter"""
+    """Filter configuration"""
 
     @property
     def ready(self):
@@ -97,8 +126,7 @@ class FilterConfig(BaseConfig):
 
 
 class FilterInterface(Configurable, abc.ABC):
-    """Handles pixel filtering operations
-    """
+    """Handles pixel filtering operations"""
 
     @abc.abstractmethod
     def set_filter(self, filter, color: Color):
@@ -115,7 +143,8 @@ class FilterInterface(Configurable, abc.ABC):
 
 class FilterType(InterfaceFactory):
     _type = FilterInterface
-    _mapping: Dict[str, Type[Described]] = {}
+    _mapping: Mapping[str, Type[FilterInterface]] = {}
+    _config_type = FilterConfig
 
     def get(self) -> Type[FilterInterface]:
         interface = super().get()
@@ -125,7 +154,8 @@ class FilterType(InterfaceFactory):
 
 class TransformType(InterfaceFactory):
     _type = TransformInterface
-    _mapping: Dict[str, Type[Described]] = {}
+    _mapping: Mapping[str, Type[TransformInterface]] = {}
+    _config_type = TransformConfig
 
     def get(self) -> Type[TransformInterface]:
         interface = super().get()

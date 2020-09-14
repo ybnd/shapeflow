@@ -123,7 +123,6 @@
 
 <script>
 import {
-  get_options,
   set_filter,
   api,
   undo_config,

@@ -10,8 +10,8 @@ from isimple.core.config import BaseConfig
 
 
 class Coo(BaseConfig):
-    """Image coordinate
-    """
+    """Image coordinate (relative)"""
+
     x: float = Field(default = 0)
     y: float = Field(default = 0)
 
@@ -96,6 +96,7 @@ class ShapeCoo(Coo):
 
 class Roi(BaseConfig):
     """Region of interest"""
+
     BL: Coo = Field(default=None)
     TL: Coo = Field(default=None)
     TR: Coo = Field(default=None)
