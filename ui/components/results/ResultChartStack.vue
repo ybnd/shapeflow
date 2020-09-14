@@ -5,12 +5,12 @@
     ref="container"
     :key="charts_key"
   >
-    <template v-for="(feature_data, feature) in result">
+    <template v-for="(feature_data, feature, index) in result">
       <div class="result" :class="result_class" :key="`result-${feature}`">
         <ResultChart
           :chart-data="{
             datasets: feature_data,
-            unit: $store.state.schemas.feature.units[feature],
+            unit: features.units[index],
           }"
           :options="{
             ...options,
@@ -38,7 +38,7 @@
                 {
                   scaleLabel: {
                     display: true,
-                    labelString: `${$store.state.schemas.feature.labels[feature]} (${$store.state.schemas.feature.units[feature]})`,
+                    labelString: `${features.labels[index]} (${features.units[index]})`,
                     fontStyle: 'bold',
                     fontSize: 14,
                   },
@@ -152,6 +152,10 @@ export default {
       }
 
       return formatted_results;
+    },
+    features() {
+      console.log(this.$store.getters["schemas/getFeature"]);
+      return this.$store.getters["schemas/getFeature"];
     },
   },
   data() {
