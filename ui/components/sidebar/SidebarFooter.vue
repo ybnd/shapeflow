@@ -28,26 +28,6 @@ export default {
     SidebarNavItem,
     SidebarNavLink,
   },
-  mounted() {
-    this.check_interval = setInterval(this.checkConnection, 1000);
-  },
-  destroyed() {
-    clearInterval(this.check_interval);
-  },
-  methods: {
-    checkConnection() {
-      if (
-        Date.now() - this.$store.getters["analyzers/getLastBackendContact"] <
-        500
-      ) {
-        this.connected = true;
-      } else {
-        ping().then((ok) => {
-          this.connected = ok;
-        });
-      }
-    },
-  },
   computed: {
     restart() {
       return api("restart");
@@ -55,12 +35,9 @@ export default {
     quit() {
       return api("quit");
     },
-  },
-  data() {
-    return {
-      check_interval: null,
-      connected: false,
-    };
+    connected() {
+      return this.$store.getters["analyzers/isConnected"];
+    },
   },
 };
 </script>

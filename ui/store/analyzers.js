@@ -30,9 +30,12 @@ const CATEGORY_COMMIT = {
   close: "closeSource",
 };
 
+const MAX_TIME_WITHOUT_CONTACT = 1500;
+
 export const state = () => {
   return {
     last_heard_from_backend: null,
+    is_connected: false,
     queue: [], // array of analyzer ids (uuid strings)
     queue_state: QueueState.STOPPED,
     status: {}, // id: analyzer status object
@@ -46,6 +49,9 @@ export const state = () => {
 export const mutations = {
   backendIsUp(state) {
     state.last_heard_from_backend = Date.now();
+  },
+  setIsConnected(state, { connected }) {
+    state.is_connected = connected;
   },
   setSource(state, { source }) {
     // console.log("analyzers/setSource");
@@ -226,6 +232,9 @@ export const getters = {
   getLastBackendContact: (state) => {
     return state.last_heard_from_backend;
   },
+  isConnected: (state) => {
+    return state.is_connected;
+  },
   getQueue: (state) => {
     // Clone instead of returning reference
     return [...state.queue];
@@ -292,53 +301,76 @@ export const getters = {
 };
 
 export const actions = {
+  connection({ commit, getters }, { ok }) {
+    console.log("analyzers/connection");
+    if (ok) {
+      console.log("up");
+      commit("backendIsUp");
+      commit("setIsConnected", { connected: true });
+    } else if (
+      Date.now() - getters["getLastBackendContact"] <
+      MAX_TIME_WITHOUT_CONTACT
+    ) {
+      console.log("up...");
+      commit("setIsConnected", { connected: true });
+    } else {
+      console.log("down");
+      commit("setIsConnected", { connected: false });
+    }
+  },
+
   async source({ commit, getters, dispatch }) {
     // console.log("analyzers/source");
 
-    return close_events().then(() => {
+    return close_events().then((ok) => {
+      dispatch("connection", { ok: ok });
       commit("closeSource");
-      commit("setSource", {
-        source: events(
-          function (message) {
-            commit("backendIsUp");
 
-            // console.log(message);
+      if (ok) {
+        commit("setSource", {
+          source: events(
+            function (message) {
+              dispatch("connection", { ok: ok });
 
-            try {
-              let event = JSON.parse(message.data);
+              // console.log(message);
 
-              assert(event.hasOwnProperty("category"));
-              assert(includes(EVENT_CATEGORIES, event.category));
-              assert(event.hasOwnProperty("id"));
-              assert(event.hasOwnProperty("data"));
+              try {
+                let event = JSON.parse(message.data);
 
-              // console.log(`${event.category} event:`);
-              // console.log(event);
+                assert(event.hasOwnProperty("category"));
+                assert(includes(EVENT_CATEGORIES, event.category));
+                assert(event.hasOwnProperty("id"));
+                assert(event.hasOwnProperty("data"));
 
-              commit(CATEGORY_COMMIT[event.category], {
-                id: event.id,
-                [event.category]: event.data,
-              });
-            } catch (err) {
-              console.warn(`backend event callback failed`);
-              console.warn(err);
+                // console.log(`${event.category} event:`);
+                // console.log(event);
+
+                commit(CATEGORY_COMMIT[event.category], {
+                  id: event.id,
+                  [event.category]: event.data,
+                });
+              } catch (err) {
+                console.warn(`backend event callback failed`);
+                console.warn(err);
+              }
+            },
+            function (target) {
+              console.warn("backend event error something something");
+              console.warn(target);
+              // dispatch("source");
+            },
+            function ({ target }) {
+              // console.log("backend event source opened");
+              // console.log(target);
             }
-          },
-          function (target) {
-            console.warn("backend event error something something");
-            console.warn(target);
-            // dispatch("source");
-          },
-          function ({ target }) {
-            // console.log("backend event source opened");
-            // console.log(target);
-          }
-        ),
-      });
+          ),
+        });
+      }
     });
   },
 
   async queue({ commit, dispatch }, { id }) {
+    // todo: doesn't need to be async
     // console.log(`action: analyzers.queue (id=${id})`);
     commit("addAnalyzer", { id: id });
     commit("addToQueue", { id: id });
@@ -350,52 +382,66 @@ export const actions = {
     commit("dropAnalyzer", { id: id });
   },
 
-  q_start({ commit, getters }) {
+  q_start({ commit, getters, dispatch }) {
     // console.log("action: analyzers.q_start");
-    return q_start(getters["getQueue"]).then((app_state) => {
-      commit("setQueueState", { queue_state: app_state.q_state });
-    });
+    return q_start(getters["getQueue"])
+      .then((app_state) => {
+        dispatch("connection", { ok: true });
+        commit("setQueueState", { queue_state: app_state.q_state });
+      })
+      .catch((reason) => {
+        dispatch("connection", { ok: false });
+      });
   },
 
-  q_stop({ commit }) {
+  q_stop({ commit, dispatch }) {
     // console.log("action: analyzers.q_stop");
-    return q_stop().then((app_state) => {
-      commit("setQueueState", { queue_state: app_state.q_state });
-    });
+    return q_stop()
+      .then((app_state) => {
+        dispatch("connection", { ok: true });
+        commit("setQueueState", { queue_state: app_state.q_state });
+      })
+      .catch((reason) => {
+        dispatch("connection", { ok: false });
+      });
   },
 
   async init({ commit, dispatch }, { config = {} }) {
     // console.log(`action: analyzers.init`);
-    return init().then((id) => {
-      commit("backendIsUp");
-      // console.log(`action: analyzers.init -- callback ~ api.init (id=${id})`);
-      return dispatch("queue", { id: id }).then(() => {
-        // console.log(
-        //   `action: analyzers.init -- callback ~ analyzers.queue (id=${id})`
-        // );
-        return dispatch("set_config", { id: id, config: config }).then(
-          (config) => {
-            // console.log(
-            //   `action: analyzers.init -- callback ~ analyzers.set_config (id=${id})`
-            // );
-            return launch(id).then((ok) => {
-              commit("backendIsUp");
+    return init()
+      .then((id) => {
+        dispatch("connection", { ok: true });
+        // console.log(`action: analyzers.init -- callback ~ api.init (id=${id})`);
+        return dispatch("queue", { id: id }).then(() => {
+          // console.log(
+          //   `action: analyzers.init -- callback ~ analyzers.queue (id=${id})`
+          // );
+          return dispatch("set_config", { id: id, config: config }).then(
+            (config) => {
               // console.log(
-              //   `action: analyzers.init -- callback ~ api.launch (id=${id})`
+              //   `action: analyzers.init -- callback ~ analyzers.set_config (id=${id})`
               // );
-              if (ok) {
-                // console.log(`Launched '${id}'`);
-                return id;
-              } else {
-                dispatch("unqueue", { id: id });
-                console.warn(`Could not launch '${id}'`);
-              }
-              dispatch("sync");
-            });
-          }
-        );
+              return launch(id).then((ok) => {
+                dispatch("connection", { ok: true });
+                // console.log(
+                //   `action: analyzers.init -- callback ~ api.launch (id=${id})`
+                // );
+                if (ok) {
+                  // console.log(`Launched '${id}'`);
+                  return id;
+                } else {
+                  dispatch("unqueue", { id: id });
+                  console.warn(`Could not launch '${id}'`);
+                }
+                dispatch("sync");
+              });
+            }
+          );
+        });
+      })
+      .catch((reason) => {
+        dispatch("connection", { ok: false });
       });
-    });
   },
 
   async sync({ commit, dispatch, getters }) {
@@ -406,74 +452,81 @@ export const actions = {
         dispatch("source");
       }
 
-      return await get_app_state().then((app_state) => {
-        commit("backendIsUp");
-        // console.log(`action: analyzers.sync -- callback ~ api.get_app_state`);
+      return await get_app_state()
+        .then((app_state) => {
+          dispatch("connection", { ok: true });
+          // console.log(`action: analyzers.sync -- callback ~ api.get_app_state`);
 
-        commit("setQueueState", { queue_state: app_state.q_state });
+          commit("setQueueState", { queue_state: app_state.q_state });
 
-        // unqueue old ids
-        let q = getters["getQueue"];
-        if (q.length > 0) {
-          for (let i = 0; i < q.length; i++) {
-            if (!app_state.ids.includes(q[i])) {
-              dispatch("unqueue", { id: q[i] });
+          // unqueue old ids
+          let q = getters["getQueue"];
+          if (q.length > 0) {
+            for (let i = 0; i < q.length; i++) {
+              if (!app_state.ids.includes(q[i])) {
+                dispatch("unqueue", { id: q[i] });
+              }
             }
           }
-        }
-        // queue new ids
-        if (app_state.ids.length > 0) {
-          let q = getters["getQueue"];
-          for (let i = 0; i < app_state.ids.length; i++) {
-            if (!q.includes(app_state.ids[i])) {
-              dispatch("queue", { id: app_state.ids[i] }).then(() => {
-                // console.log(
-                //   `action: analyzers.sync -- callback ~ analyzers.queue (id=${ids[i]})`
-                // );
-                dispatch("get_config", { id: app_state.ids[i] });
+          // queue new ids
+          if (app_state.ids.length > 0) {
+            let q = getters["getQueue"];
+            for (let i = 0; i < app_state.ids.length; i++) {
+              if (!q.includes(app_state.ids[i])) {
+                dispatch("queue", { id: app_state.ids[i] }).then(() => {
+                  // console.log(
+                  //   `action: analyzers.sync -- callback ~ analyzers.queue (id=${ids[i]})`
+                  // );
+                  dispatch("get_config", { id: app_state.ids[i] });
+                });
+              }
+              commit("setAnalyzerStatus", {
+                id: app_state.ids[i],
+                status: app_state.status[i],
               });
             }
-            commit("setAnalyzerStatus", {
-              id: app_state.ids[i],
-              status: app_state.status[i],
-            });
           }
-        }
 
-        // for any id with get_configconfig[id] is undefined, dispatch get_config
-        q = getters["getQueue"];
-        for (let i = 0; i < q.length; i++) {
-          if (getters["getAnalyzerConfig"](q[i]) === undefined) {
-            dispatch("get_config", { id: q[i] });
+          // for any id with get_configconfig[id] is undefined, dispatch get_config
+          q = getters["getQueue"];
+          for (let i = 0; i < q.length; i++) {
+            if (getters["getAnalyzerConfig"](q[i]) === undefined) {
+              dispatch("get_config", { id: q[i] });
+            }
           }
-        }
 
-        return true;
-      });
+          return true;
+        })
+        .catch((reason) => {
+          dispatch("connection", { ok: false });
+        });
     } catch (e) {
-      console.warn("backend may be down; refresh to check again");
-      console.warn(e);
+      dispatch("connection", { ok: false });
       commit("closeSource");
       return false;
     }
   },
 
-  async get_config({ commit }, { id }) {
+  async get_config({ commit, dispatch }, { id }) {
     try {
       assert(!(id === undefined), "no id provided");
       // console.log(`action: analyzers.get_config (id=${id})`);
 
-      return get_config(id).then((config) => {
-        commit("backendIsUp");
-        // console.log(
-        //   `action: analyzers.get_config -- callback ~ api.get_config (id=${id})`
-        // );
-        commit("setAnalyzerConfig", {
-          id: id,
-          config: config,
+      return get_config(id)
+        .then((config) => {
+          dispatch("connection", { ok: true });
+          // console.log(
+          //   `action: analyzers.get_config -- callback ~ api.get_config (id=${id})`
+          // );
+          commit("setAnalyzerConfig", {
+            id: id,
+            config: config,
+          });
+          return config;
+        })
+        .catch((reason) => {
+          dispatch("connection", { ok: false });
         });
-        return config;
-      });
     } catch (e) {
       console.warn(`could not get config for ${id}`);
       return undefined;
@@ -495,48 +548,56 @@ export const actions = {
     } catch (e) {}
   },
 
-  async get_status({ commit }, { id }) {
+  async get_status({ commit, dispatch }, { id }) {
     try {
       assert(!(id === undefined), "no id provided");
       // console.log(`action: analyzers.get_status (id=${id})`);
 
-      return get_status(id).then((status) => {
-        commit("backendIsUp");
-        // console.log(
-        //   `action: analyzers.get_status -- callback ~ api.get_status (id=${id})`
-        // );
-        commit("setAnalyzerStatus", { id: id, status: status });
-      });
+      return get_status(id)
+        .then((status) => {
+          dispatch("connection", { ok: true });
+          // console.log(
+          //   `action: analyzers.get_status -- callback ~ api.get_status (id=${id})`
+          // );
+          commit("setAnalyzerStatus", { id: id, status: status });
+        })
+        .catch((reason) => {
+          dispatch("connection", { ok: false });
+        });
     } catch (e) {
       console.warn(`could not get status for ${id}`);
       return undefined;
     }
   },
 
-  async set_config({ commit }, { id, config }) {
+  async set_config({ commit, dispatch }, { id, config }) {
     try {
       assert(!(id === undefined), "no id provided");
       assert(!(config === undefined), "no config");
       // console.log(`action: analyzers.set_config (id=${id})`);
 
-      return set_config(id, config).then((config) => {
-        commit("backendIsUp");
-        // console.log(
-        //   `action: analyzers.set_config -- callback ~ api.set_config (id=${id})`
-        // );
-        commit("setAnalyzerConfig", {
-          id: id,
-          config: config,
+      return set_config(id, config)
+        .then((config) => {
+          dispatch("connection", { ok: true });
+          // console.log(
+          //   `action: analyzers.set_config -- callback ~ api.set_config (id=${id})`
+          // );
+          commit("setAnalyzerConfig", {
+            id: id,
+            config: config,
+          });
+          return config;
+        })
+        .catch((reason) => {
+          dispatch("connection", { ok: false });
         });
-        return config;
-      });
     } catch (e) {
       console.warn(`could not set config for ${id}`);
       return undefined;
     }
   },
 
-  async turn({ commit, getters }, { id, direction }) {
+  async turn({ commit, getters, dispatch }, { id, direction }) {
     try {
       assert(!(id === undefined), "no id provided");
       if (direction === undefined) {
@@ -553,17 +614,21 @@ export const actions = {
         config.transform.turn -= 1;
       }
 
-      set_config(id, config).then((config) => {
-        commit("backendIsUp");
-        // console.log(
-        //   `action: analyzers.set_config -- callback ~ api.set_config (id=${id})`
-        // );
-        commit("setAnalyzerConfig", {
-          id: id,
-          config: config,
+      set_config(id, config)
+        .then((config) => {
+          dispatch("connection", { ok: true });
+          // console.log(
+          //   `action: analyzers.set_config -- callback ~ api.set_config (id=${id})`
+          // );
+          commit("setAnalyzerConfig", {
+            id: id,
+            config: config,
+          });
+          return config;
+        })
+        .catch((reason) => {
+          dispatch("connection", { ok: false });
         });
-        return config;
-      });
     } catch (e) {
       console.warn(`could not turn ${id}`);
     }
