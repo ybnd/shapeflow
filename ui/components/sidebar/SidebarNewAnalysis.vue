@@ -13,33 +13,44 @@
         container="body"
       >
         <div class="popover-form-container">
-          <b-row>
-            <BasicConfig ref="new_analyzer_form" />
-          </b-row>
+          <template v-if="isConnected">
+            <b-row>
+              <BasicConfig ref="new_analyzer_form" />
+            </b-row>
 
-          <b-row class="popover-form-row">
-            <b-form-group>
-              <b-input-group>
-                <!--                <b-form-input id="name" type="text" placeholder="Analysis 7"></b-form-input>-->
-                <div class="popover-buttons">
-                  <b-button
-                    variant="primary"
-                    @click="handleNewAnalysis"
-                    class="popover-ok"
-                  >
-                    <i class="fa fa-check" /> Add analysis
-                  </b-button>
-                  <b-button
-                    variant="danger"
-                    @click="show = false"
-                    class="popover-cancel"
-                  >
-                    <i class="fa fa-times" />
-                  </b-button>
-                </div>
-              </b-input-group>
-            </b-form-group>
-          </b-row>
+            <b-row class="popover-form-row">
+              <b-form-group>
+                <b-input-group>
+                  <!--                <b-form-input id="name" type="text" placeholder="Analysis 7"></b-form-input>-->
+                  <div class="popover-buttons">
+                    <b-button
+                      variant="primary"
+                      @click="handleNewAnalysis"
+                      class="popover-ok"
+                    >
+                      <i class="fa fa-check" /> Add analysis
+                    </b-button>
+                    <b-button
+                      variant="danger"
+                      @click="show = false"
+                      class="popover-cancel"
+                    >
+                      <i class="fa fa-times" />
+                    </b-button>
+                  </div>
+                </b-input-group>
+              </b-form-group>
+            </b-row>
+          </template>
+          <template v-else>
+            <div class="no-connection-message">
+              <h6>
+                <i class="fa fa-exclamation-triangle" /> &nbsp;
+                <b>Not connected to the application!</b>
+              </h6>
+              <p>Restart the server by running `app.py` or `server.py`</p>
+            </div>
+          </template>
         </div>
       </b-popover>
     </div>
@@ -48,7 +59,6 @@
 
 <script>
 import BasicConfig from "../config/BasicConfig";
-import { set_config, launch } from "../../static/api";
 
 export default {
   name: "sidebar-nav-link",
@@ -112,6 +122,9 @@ export default {
     form_ref() {
       return id + "form";
     },
+    isConnected() {
+      return this.$store.getters["analyzers/isConnected"];
+    },
   },
   data() {
     return {
@@ -153,5 +166,11 @@ export default {
   margin-bottom: -1px;
 }
 .popover-buttons {
+}
+
+.no-connection-message {
+  margin-bottom: -12px;
+  margin-left: -4px;
+  margin-right: -18px;
 }
 </style>
