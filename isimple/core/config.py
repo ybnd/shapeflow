@@ -56,7 +56,7 @@ class Factory(EnforcedStr):  # todo: add a _class & issubclass check
 
     @property
     def descriptions(self):
-        return [self._mapping[o]._description() for o in self.options]
+        return { k:v._description() for k,v in self._mapping.items() }
 
     @property
     def default(self):
@@ -165,6 +165,7 @@ class BaseConfig(BaseModel, Described):
         validate_assignment = True
         json_encoders = {
             np.ndarray: list,
+            EnforcedStr: str,
         }
 
     @classmethod

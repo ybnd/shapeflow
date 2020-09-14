@@ -89,6 +89,7 @@ class EnforcedStr(str):
         temp = cls()
         field_schema.update(
             enum=temp.options,
+            default=temp.default,
             descriptions=temp.descriptions
         )
 

@@ -381,8 +381,8 @@ export const actions = {
               // dispatch("source");
             },
             function ({ target }) {
-              // console.log("backend event source opened");
-              // console.log(target);
+              console.log("backend event source opened");
+              console.log(target);
             }
           ),
         });
@@ -437,8 +437,8 @@ export const actions = {
           // console.log(
           //   `action: analyzers.init -- callback ~ analyzers.queue (id=${id})`
           // );
-          return dispatch("set_config", { id: id, config: config }).then(
-            (config) => {
+          return dispatch("set_config", { id: id, config: config })
+            .then((config) => {
               // console.log(
               //   `action: analyzers.init -- callback ~ analyzers.set_config (id=${id})`
               // );
@@ -456,8 +456,20 @@ export const actions = {
                 }
                 dispatch("sync");
               });
-            }
-          );
+            })
+            .catch((error) => {
+              console.warn(
+                "aborted 'analyzers/init' before 'analyzers/launch' call." // todo: should remove analyzer!
+              );
+              return remove(id).then((ok) => {
+                console.log(`remove -> ok=${ok}`);
+                if (ok) {
+                  return undefined;
+                } else {
+                  throw error;
+                }
+              });
+            });
         });
       })
       .catch((reason) => {
@@ -609,8 +621,10 @@ export const actions = {
           });
           return config;
         })
-        .catch((reason) => {
+        .catch((error) => {
+          console.warn(`/api/${id}/set_config failed`);
           dispatch("connection", { ok: false });
+          throw error;
         });
     } catch (e) {
       console.warn(`could not set config for ${id}`);

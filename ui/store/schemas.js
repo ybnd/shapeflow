@@ -23,22 +23,9 @@ export const state = () => ({
     units: {},
     descriptions: {},
     parameters: {},
-    parameter_defaults: {},
-    parameter_descriptions: {},
+    defaults: {},
   },
-  transform: {
-    options: [],
-    descriptions: {},
-    // todo: add schemas for TransformConfig
-  },
-  filter: {
-    options: [],
-    descriptions: {},
-    // todo: add schemas for FilterConfig
-  },
-  config: {
-    // AnalyzerConfig schema  todo: this also makes more sense for filter/transform/feature
-  },
+  config: undefined,
   settings: undefined,
 });
 
@@ -63,47 +50,6 @@ export const mutations = {
       console.warn(err);
     }
   },
-  setFrameIntervalSettingOptions(state, { options: options }) {
-    try {
-      assert(!(options === undefined), "no options provided");
-      state.frame_interval_setting = options;
-      // console.log(state);
-    } catch (err) {
-      console.warn(`setFrameIntervalSettingOptions failed`);
-      console.warn(err);
-    }
-  },
-  setFeatureOptions(state, { options }) {
-    try {
-      assert(!(options === undefined), "no options provided");
-      state.feature = options;
-      // console.log(state);
-    } catch (err) {
-      console.warn(`setFeatureOptions failed`);
-      console.warn(err);
-    }
-  },
-  setTransformOptions(state, { options }) {
-    // console.log("schemas/setTransformOptions");
-    try {
-      assert(!(options === undefined), "no options provided");
-      state.transform = options;
-      // console.log(state);
-    } catch (err) {
-      console.warn(`setTransformOptions failed`);
-      console.warn(err);
-    }
-  },
-  setFilterOptions(state, { options }) {
-    try {
-      assert(!(options === undefined), "no options provided");
-      state.filter = options;
-      // console.log(state);
-    } catch (err) {
-      console.warn(`setFilterOptions failed`);
-      console.warn(err);
-    }
-  },
   setSettingsSchema(state, { schema }) {
     try {
       assert(!(schema === undefined), "no schema provided");
@@ -125,93 +71,38 @@ export const mutations = {
         descriptions: schema.properties.frame_interval_setting.descriptions,
       };
 
+      const features = schema.properties.features.items.enum;
+      const implementations =
+        schema.implementations[schema.properties.features.items.interface];
+
       state.feature = {
-        options: schema.properties.features.items.enum,
+        options: features,
         descriptions: schema.properties.features.items.descriptions,
         labels: schema.properties.features.items.labels,
         units: schema.properties.features.items.units,
-        parameters: schema.properties.features.items.enum.map((v) =>
-          Object.keys(
-            schema.implementations[schema.properties.features.items.interface][
-              v
-            ].properties
-          )
-        ),
-        parameter_defaults: schema.properties.features.items.enum.reduce(
-          // todo: way too convoluted, refactor BasicConfig!
-          function (o, v) {
-            return {
-              ...o,
-              [v]: Object.keys(
-                schema.implementations[
-                  schema.properties.features.items.interface
-                ][v].properties
-              ).reduce(function (p, w) {
-                return {
-                  ...p,
-                  [w]:
-                    schema.implementations[
-                      schema.properties.features.items.interface
-                    ][v].properties[w].default,
-                };
-              }, {}),
-            };
-          },
-          {}
-        ),
-        parameter_descriptions: schema.properties.features.items.enum.reduce(
-          // todo: way too convoluted, refactor BasicConfig!
-          function (o, v) {
-            return {
-              ...o,
-              [v]: Object.keys(
-                schema.implementations[
-                  schema.properties.features.items.interface
-                ][v].properties
-              ).reduce(function (p, w) {
-                return {
-                  ...p,
-                  [w]:
-                    schema.implementations[
-                      schema.properties.features.items.interface
-                    ][v].properties[w].description,
-                };
-              }, {}),
-            };
-          },
-          {}
-        ),
+
+        parameters: features.reduce(function (o, v) {
+          return {
+            ...o,
+            [v]: implementations[v].properties,
+          };
+        }, {}),
+
+        defaults: features.reduce(function (o, v) {
+          const props = Object.keys(implementations[v].properties);
+          return {
+            ...o,
+            [v]: props.reduce(function (p, w) {
+              return {
+                ...p,
+                [w]: implementations[v].properties[w].default,
+              };
+            }, {}),
+          };
+        }, {}),
       };
 
-      const transform_schema = dereference(
-        schema,
-        get_reference(schema.properties.transform)
-      );
-      state.transform = {
-        options: transform_schema.properties.type.enum,
-        descriptions: transform_schema.properties.type.enum.map(
-          (v) =>
-            schema.implementations[transform_schema.properties.type.interface][
-              v
-            ].description
-        ),
-      };
-
-      const filter_schema = dereference(
-        schema,
-        get_reference(
-          dereference(schema, get_reference(schema.properties.masks)).properties
-            .filter
-        )
-      );
-      state.filter = {
-        options: filter_schema.properties.type.enum,
-        descriptions: filter_schema.properties.type.enum.map(
-          (v) =>
-            schema.implementations[filter_schema.properties.type.interface][v]
-              .description
-        ),
-      };
+      console.log(state);
     } catch (err) {
       console.warn(`setConfigSchema failed`);
       console.warn("schema=");
@@ -230,12 +121,6 @@ export const getters = {
   },
   getSettingsSchema: (state) => {
     return state.settings;
-  },
-  getTransformOptions: (state) => {
-    return state.transform;
-  },
-  getFilterOptions: (state) => {
-    return state.filter;
   },
   getFeature: (state) => {
     return state.feature;

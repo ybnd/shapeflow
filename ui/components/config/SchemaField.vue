@@ -14,10 +14,7 @@
       :style="type_style"
       v-model="field"
       :options="
-        // enum options
-        type_options.hasOwnProperty('enum_options')
-          ? type_options.enum_options
-          : undefined
+        type_options.hasOwnProperty('enum') ? type_options.enum : undefined
       "
       :step="
         // numeric input step
@@ -64,6 +61,11 @@ export default {
         return undefined;
       },
     },
+    class_: {
+      type: String,
+      required: false,
+      default: "",
+    },
     new_row: {
       type: Boolean,
       default() {
@@ -75,15 +77,26 @@ export default {
     // console.log(`SchemaField ~ title=${this.title} type=${this.type}`);
   },
   computed: {
+    type_() {
+      if (
+        this.options.hasOwnProperty("enum") &&
+        this.options.enum !== undefined &&
+        this.options.enum.length > 0
+      ) {
+        return "enum";
+      } else {
+        return this.type;
+      }
+    },
     type_component() {
       // console.log(`SchemaField.type_component() type=${this.type}`);
-      return this.components[this.type];
+      return this.components[this.type_];
     },
     type_class() {
-      return this.classes[this.type];
+      return [...this.classes[this.type_], this.class_].join(" ");
     },
     type_options() {
-      return { ...this.default_options[this.type], ...this.options };
+      return { ...this.default_options[this.type_], ...this.options };
     },
     type_style() {
       if (this.style_ !== undefined) {
@@ -96,22 +109,22 @@ export default {
         // console.log({ ...this.default_style[this.type], ...this.style_ });
       }
 
-      return { ...this.default_style[this.type], ...this.style_ };
+      return { ...this.default_style[this.type_], ...this.style_ };
     },
     type_type() {
-      return this.types[this.type];
+      return this.types[this.type_];
     },
     field: {
       get() {
         // console.log(`SchemaForm.get() type=${this.type}`);
-        return this.parse[this.type](this.value);
+        return this.parse[this.type_](this.value);
       },
       set(v) {
         // console.log(`SchemaForm.set() type=${this.type}`);
         // console.log("v=");
         // console.log(v);
 
-        this.$emit("input", this.parse[this.type](v));
+        this.$emit("input", this.parse[this.type_](v));
       },
     },
   },
@@ -126,12 +139,12 @@ export default {
         [types.BOOLEAN]: "b-form-checkbox",
       },
       classes: {
-        [types.ENUM]: "isimple-form-field-auto",
-        [types.STRING]: "isimple-form-field-input",
-        [types.INTEGER]: "isimple-form-field-auto isimple-noarrow",
-        [types.FLOAT]: "isimple-form-field-auto isimple-noarrow",
-        [types.NUMBER]: "isimple-form-field-auto isimple-noarrow",
-        [types.BOOLEAN]: "isimple-form-field-checkbox",
+        [types.ENUM]: ["isimple-form-field-auto"],
+        [types.STRING]: ["isimple-form-field-auto"],
+        [types.INTEGER]: ["isimple-form-field-auto", "isimple-noarrow"],
+        [types.FLOAT]: ["isimple-form-field-auto", "isimple-noarrow"],
+        [types.NUMBER]: ["isimple-form-field-auto", "isimple-noarrow"],
+        [types.BOOLEAN]: ["isimple-form-field-checkbox"],
       },
       types: {
         [types.ENUM]: "",

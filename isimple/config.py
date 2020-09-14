@@ -196,8 +196,8 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
         parameters = []
         for index, feature in enumerate(features):
             if index < len(value):
-                if isinstance(value[index], dict):
-                    # Resolve dict to FeatureConfig
+                if value[index] and isinstance(value[index], dict):
+                    # Resolve non-empty dict to FeatureConfig
                     parameters.append(
                         feature.get()._config_class(**value[index])
                     )

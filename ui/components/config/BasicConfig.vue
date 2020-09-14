@@ -59,14 +59,14 @@
         <b-row class="basic-config-row">
           <b-input-group>
             <b-form-select
-              class="fis-selector"
+              class="fis-selector isimple-form-field-auto"
               ref="frame_interval_setting"
               v-model="config.frame_interval_setting"
               @change="selectFrameIntervalSetting"
               :plain="false"
               :options="frame_interval_settings.options"
             />
-            <b-input-group-text class="basic-config-label">
+            <b-input-group-text class="basic-config-label isimple-form-label">
               {{
                 frame_interval_settings.descriptions[
                   config.frame_interval_setting
@@ -74,7 +74,7 @@
               }}
             </b-input-group-text>
             <b-form-input
-              class="fis-value"
+              class="fis-value isimple-form-field-auto"
               ref="interval"
               type="number"
               v-model="config[config.frame_interval_setting]"
@@ -86,7 +86,7 @@
       </b-col>
     </b-row>
 
-    <!--    FEATURES FOR REAL NOW-->
+    <!--    FEATURES   -->
     <b-row
       v-for="(feature, index) in config.features"
       :key="index"
@@ -100,30 +100,54 @@
       <b-col class="feature-col">
         <b-row class="basic-config-row">
           <b-form-select
-            class="feature-selector"
+            class="feature-selector isimple-form-field-auto"
             v-model="config.features[index]"
             :options="features.options"
-            @input="selectFeature(index)"
+            @input="(v) => selectFeature(index, v)"
             :plain="false"
           />
         </b-row>
       </b-col>
       <b-col class="parameter-col">
         <b-row class="basic-config-row">
+          <!--          <b-input-group-->
+          <!--            v-for="(value, parameter) in config.feature_parameters[feature]"-->
+          <!--            :key="parameter"-->
+          <!--            class="parameter-group"-->
+          <!--          >-->
+          <!--            <b-input-group-text class="basic-config-label">-->
+          <!--              {{ features.parameters[feature][parameter].description }}-->
+          <!--            </b-input-group-text>-->
+          <!--            &lt;!&ndash;          todo: connect to schema !!&ndash;&gt;-->
+          <!--            <b-form-input-->
+          <!--              class="parameter-field"-->
+          <!--              ref="interval"-->
+          <!--              type="text"-->
+          <!--              v-model="config.feature_parameters[feature][parameter]"-->
+          <!--            />-->
+          <!--          </b-input-group>-->
           <b-input-group
             v-for="(value, parameter) in config.feature_parameters[index]"
             :key="parameter"
             class="parameter-group"
           >
-            <b-input-group-text class="basic-config-label">
-              {{ features.parameter_descriptions[feature][parameter] }}
+            <b-input-group-text class="basic-config-label isimple-form-label">
+              {{ features.parameters[feature][parameter].description }}
             </b-input-group-text>
-            <!--          todo: connect to schema !!-->
-            <b-form-input
-              class="parameter-field"
-              ref="interval"
-              type="text"
-              v-model="config.feature_parameters[index][parameter]"
+            <SchemaField
+              :class_="'parameter-field'"
+              :type="features.parameters[feature][parameter].type"
+              :value="config.feature_parameters[index][parameter]"
+              :options="features.parameters[feature][parameter]"
+              @input="(v) => setParameter(index, parameter, v)"
+              :new_row="false"
+              :style_="{
+                'max-width': ['number', 'integer', 'float'].includes(
+                  features.parameters[feature][parameter].type
+                )
+                  ? '60px'
+                  : undefined,
+              }"
             />
           </b-input-group>
         </b-row>
@@ -174,13 +198,18 @@ import {
 
 import AsyncComputed from "vue-async-computed";
 import Vue from "vue";
+import SchemaField from "@/components/config/SchemaField";
 
 import has from "lodash/has";
+import cloneDeep from "lodash/cloneDeep";
 
 Vue.use(AsyncComputed);
 
 export default {
   name: "BasicConfig",
+  components: {
+    SchemaField,
+  },
   props: {
     staticPaths: {
       type: Boolean,
@@ -209,17 +238,30 @@ export default {
   },
   methods: {
     emitChange() {
+      console.log(this.config);
       this.$emit("change");
     },
+    setParameter(index, parameter, value) {
+      // console.log(
+      //   `BasicConfig.setParameter() feature=${feature} parameter=${parameter}, value=${value}`
+      // );
+      this.config.feature_parameters[index][parameter] = value;
+      this.emitChange();
+    },
     getConfig() {
-      // console.log("BasicConfig.getconfig() -- this.config=");
-      // console.log(this.config);
-      return Object.assign(this.config, {
+      console.log("BasicConfig.getconfig() -- this.config=");
+      console.log(this.config);
+
+      let config = Object.assign(this.config, {
         [`${this.config.frame_interval_setting}`]: Number(
           this.config[`${this.config.frame_interval_setting}`] // todo: is this really necessary? maybe just gather both.
           //todo: also: see this text -> number conversion, that's why parameters can't be set!
         ),
       });
+
+      console.log(config);
+
+      return config;
     },
     selectFrameIntervalSetting(setting) {
       // console.log("selecting frame_interval_setting");
@@ -243,31 +285,28 @@ export default {
         this.config.feature_parameters = [];
       }
 
-      this.config.features = [...this.config.features, feature];
+      this.config.features = cloneDeep([...this.config.features, feature]);
 
       try {
         this.config.feature_parameters = [
           ...this.config.feature_parameters,
-          this.features.parameter_defaults[feature],
+          cloneDeep(this.features.defaults[feature]),
         ];
       } catch (e) {
+        console.warn(e);
         this.config.feature_parameters = [];
       }
-
-      // console.log(this.config);
       this.emitChange();
     },
-    selectFeature(index) {
-      let feature = this.config.features[index];
-
-      // console.log(`selectFeature(${index}) -> feature = ${feature}`);
+    selectFeature(index, feature) {
+      console.log(`selectFeature(${index}) -> feature = ${feature}`);
 
       if (this.features.options.includes(feature)) {
-        // console.log("selecting feature");
-        // console.log(feature);
-        this.config.feature_parameters[
-          index
-        ] = this.features.parameter_defaults[feature];
+        console.log(this.features);
+
+        this.config.feature_parameters[index] = cloneDeep(
+          this.features.defaults[feature]
+        );
       }
       this.emitChange();
     },
@@ -427,7 +466,7 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
 @import "../../assets/scss/_bootstrap-variables";
 @import "../../assets/scss/_core-variables";
 @import "node_modules/bootstrap/scss/functions";
@@ -529,6 +568,8 @@ $add-button-width: 120px;
   }
 
   .feature-selector {
+    width: $feature-selector-width;
+    padding: $gap;
   }
 }
 
@@ -539,9 +580,6 @@ $add-button-width: 120px;
     padding: 0;
     .parameter-group {
       width: auto;
-      .parameter-field {
-        max-width: $parameter-field-width;
-      }
       margin-right: $gap;
       margin-bottom: $gap;
     }

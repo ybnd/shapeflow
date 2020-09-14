@@ -149,8 +149,10 @@ $form-color: theme-color('gray-700');
 
 .isimple-form-label {
   margin-bottom: 0;
-  display: inline;
-  vertical-align: middle;
+  height: $form-field-height;
+  padding: $form-gap;
+  padding-left: 6px;
+  padding-right: 6px;
 }
 
 .isimple-form-row {
@@ -202,8 +204,17 @@ $form-color: theme-color('gray-700');
 
 .isimple-form-field-auto {
   height: $form-field-height;
-  display: block;
+  display: inline-block;
   width: auto;
+  flex-shrink: 1;
+  flex-grow: 0;
+}
+
+.isimple-form-field-fit {
+  height: $form-field-height;
+  display: block;
+  width: auto !important;
+  max-width: 200px !important;
   flex-shrink: 1;
   flex-grow: 0;
 }
