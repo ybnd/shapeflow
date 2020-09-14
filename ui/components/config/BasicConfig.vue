@@ -246,6 +246,7 @@ export default {
     },
   },
   mounted() {
+    this.$store.dispatch("schemas/sync");
     if ("features" in this.config && this.config.features.length === 0) {
       this.handleAddFeature();
     }
