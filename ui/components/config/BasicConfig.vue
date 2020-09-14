@@ -33,6 +33,7 @@
             type="text"
             v-model="config.video_path"
             class="path-form"
+            placeholder="video file path"
             :readonly="staticPaths"
             v-bind:class="{
               'is-valid': validVideo === true,
@@ -76,6 +77,7 @@
             ref="design_path"
             type="text"
             class="path-form"
+            placeholder="design file path"
             v-model="config.design_path"
             :readonly="staticPaths"
             v-bind:class="{
