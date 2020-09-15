@@ -155,7 +155,11 @@ export default {
       this.$store.dispatch("analyzers/analyze", { id: this.id });
     },
     handleRemove() {
-      // console.log(`sidebar: handling remove event (${this.id})`);
+      console.log(`sidebar: handling remove event (${this.id})`);
+      if (this.$route.query.id === this.id) {
+        // navigate away from closed analyzer
+        this.$router.push("/");
+      }
       this.$store.dispatch("analyzers/remove", { id: this.id });
     },
     handleCancel() {
