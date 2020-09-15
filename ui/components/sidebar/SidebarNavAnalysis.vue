@@ -148,7 +148,7 @@ export default {
       e.target.parentElement.classList.toggle("open");
     },
     handleOpen() {
-      console.log(`${this.id} got open event`);
+      // console.log(`${this.id} got open event`);
       this.$refs[this.ref].classList.add("open");
     },
     handleAnalyze() {

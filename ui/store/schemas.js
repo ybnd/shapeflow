@@ -102,7 +102,7 @@ export const mutations = {
         }, {}),
       };
 
-      console.log(state);
+      // console.log(state);
     } catch (err) {
       console.warn(`setConfigSchema failed`);
       console.warn("schema=");

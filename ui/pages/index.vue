@@ -84,6 +84,7 @@ export default {
     },
     clear() {
       this.$store.dispatch("analyzers/q_clear");
+      this.hide_clear_popover();
     },
   },
   computed: {
@@ -149,6 +150,7 @@ $clear-popover-arrow-nudge: 2px; // align arrow with center of button
   }
 }
 .queue-info {
+  margin-left: 4px;
   font-family: monospace;
 }
 
