@@ -1,27 +1,20 @@
 <template>
-  <div class="nav-item nav-dropdown" :ref="ref" v-if="status !== undefined">
+  <div
+    class="nav-item nav-dropdown nav-analysis"
+    :ref="ref"
+    v-if="status !== undefined"
+  >
     <div
       class="nav-link nav-dropdown-toggle"
       @click="handleDropdownClick"
       :id="ref"
     >
-      <!--      <b-popover-->
-      <!--        class="analysis-info-popover"-->
-      <!--        :target="'dropdown-' + id"-->
-      <!--        container="body"-->
-      <!--        placement="right"-->
-      <!--        boundary="viewport"-->
-      <!--        triggers="hover focus click"-->
-      <!--        :delay="{ show: 500, hide: 25 }"-->
-      <!--      >-->
-      <!--        <div class="analysis-info-line">-->
-      <!--          <i class="fa fa-file-video-o" /> {{ config.video_path }}-->
-      <!--        </div>-->
-      <!--        <div class="analysis-info-line">-->
-      <!--          <i class="fa fa-file-code-o" /> {{ config.design_path }}-->
-      <!--        </div>-->
-      <!--      </b-popover>-->
-      {{ name }}
+      <template v-if="name !== undefined">
+        <div class="analysis-name">{{ name }}</div>
+        <div class="analysis-name-fade" />
+      </template>
+
+      <Waiting v-else />
     </div>
     <b-progress
       height="2px"
@@ -110,6 +103,8 @@
 
 <script>
 import SidebarNavAnalysisLink from "./SidebarNavAnalysisLink";
+import Waiting from "@/components/sidebar/Waiting";
+
 import { AnalyzerState as ast, analyze, close, cancel } from "../../static/api";
 
 import { events } from "../../static/events";
@@ -124,6 +119,7 @@ export default {
   },
   components: {
     SidebarNavAnalysisLink,
+    Waiting,
   },
   created() {
     // this.$root.$on(this.event.status, this.handleUpdateStatus);
@@ -150,7 +146,7 @@ export default {
       this.$store.dispatch("analyzers/analyze", { id: this.id });
     },
     handleRemove() {
-      console.log(`sidebar: handling close event (${this.id})`);
+      // console.log(`sidebar: handling close event (${this.id})`);
       if (this.$route.query.id === this.id) {
         // navigate away from closed analyzer
         this.$router.push("/");
@@ -166,11 +162,12 @@ export default {
   },
   computed: {
     name() {
+      var name;
       try {
         return this.$store.getters["analyzers/getName"](this.id);
       } catch (err) {
-        // console.log(`no such analyzer: ${this.id}`);
-        return "";
+        console.log(`no such analyzer: ${this.id}`);
+        return undefined;
       }
     },
     ref() {
@@ -218,10 +215,46 @@ export default {
 };
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
 @import "../../assets/scss/_bootstrap-variables";
 @import "../../assets/scss/_core-variables";
 @import "node_modules/bootstrap/scss/functions";
+
+$padding: 0.5rem; // CoreUI
+$fade: 1.5rem;
+$spacing: 1.85rem;
+$name-height: calc(#{$header-height} - 2 * #{$padding});
+$fade-margin: -$name-height;
+$name-width: calc(#{$sidebar-width} - #{$spacing});
+
+.analysis-name {
+  pointer-events: none;
+  box-sizing: border-box;
+  max-height: $name-height;
+  max-width: $name-width;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: clip;
+  -o-text-overflow: ellipsis; /* opera */
+}
+
+.analysis-name-fade {
+  pointer-events: none;
+  background: ghostwhite;
+  min-height: $name-height;
+  max-width: $fade;
+  min-width: $fade;
+  margin-top: calc(#{$name-height} * -1);
+  margin-left: calc(#{$sidebar-width} - #{$fade} - #{$spacing});
+  mix-blend-mode: darken;
+  background: linear-gradient(to right, transparent, $gray-800);
+}
+
+.sidebar .nav-link:hover {
+  .analysis-name-fade {
+    background: linear-gradient(to right, transparent, theme-color("primary"));
+  }
+}
 
 .sidebar-progress * {
   /*transition-duration: 0.25s !important;*/

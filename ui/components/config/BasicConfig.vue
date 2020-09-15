@@ -238,7 +238,7 @@ export default {
   },
   methods: {
     emitChange() {
-      console.log(this.config);
+      // console.log(this.config);
       this.$emit("change");
     },
     setParameter(index, parameter, value) {
@@ -249,8 +249,8 @@ export default {
       this.emitChange();
     },
     getConfig() {
-      console.log("BasicConfig.getconfig() -- this.config=");
-      console.log(this.config);
+      // console.log("BasicConfig.getconfig() -- this.config=");
+      // console.log(this.config);
 
       let config = Object.assign(this.config, {
         [`${this.config.frame_interval_setting}`]: Number(
@@ -259,7 +259,7 @@ export default {
         ),
       });
 
-      console.log(config);
+      // console.log(config);
 
       return config;
     },
@@ -299,10 +299,10 @@ export default {
       this.emitChange();
     },
     selectFeature(index, feature) {
-      console.log(`selectFeature(${index}) -> feature = ${feature}`);
+      // console.log(`selectFeature(${index}) -> feature = ${feature}`);
 
       if (this.features.options.includes(feature)) {
-        console.log(this.features);
+        // console.log(this.features);
 
         this.config.feature_parameters[index] = cloneDeep(
           this.features.defaults[feature]

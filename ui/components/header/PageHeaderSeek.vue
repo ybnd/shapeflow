@@ -69,7 +69,7 @@ export default {
       this.position = position;
       setTimeout(() => {
         this.isLoading = false;
-        console.log(this.isLoading);
+        // console.log(this.isLoading);
       }, LOADING_INTERVAL);
     },
     doSeek() {

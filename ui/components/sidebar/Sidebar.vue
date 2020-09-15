@@ -68,7 +68,16 @@ export default {
   computed: {
     queue: {
       get() {
-        return this.$store.getters["analyzers/getQueue"];
+        console.log("Sidebar.queue.get()");
+        const queue = this.$store.getters["analyzers/getQueue"];
+
+        for (const id of queue) {
+          console.log(
+            `${id} -> ${this.$store.getters["analyzers/getName"](id)}`
+          );
+        }
+
+        return queue;
       },
       set(q) {
         this.$store.commit("analyzers/setQueue", { queue: q });

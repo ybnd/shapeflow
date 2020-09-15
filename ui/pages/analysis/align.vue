@@ -258,6 +258,10 @@ export default {
       // console.log("roi");
       // console.log(roi);
 
+      if (roi === undefined) {
+        roi = this.config.roi;
+      }
+
       if (!(this.align.roi === roi)) {
         if (roiIsValid(roi)) {
           // console.log("is valid");
@@ -271,13 +275,7 @@ export default {
               this.resolveTransform();
 
               // don't update if this.align.roi hasn't changed
-              if (
-                !isEqual(
-                  this.align.roi,
-                  this.$store.getters["analyzers/getAnalyzerConfig"](this.id)
-                    .transform.roi
-                )
-              ) {
+              if (!isEqual(this.align.roi, this.config.roi)) {
                 this.handleUpdate();
               }
             });
@@ -349,8 +347,6 @@ export default {
       // todo:    -> this suggests that this issue may be solved by setting the initial shape of the moveable
       // todo:       to the size of the design!
 
-      // todo: temporarily disable bounds during rotation?
-
       target.style.transform = transform;
     },
     handleFlipH() {
@@ -375,6 +371,7 @@ export default {
 
         if (this.align.roi !== undefined) {
           if (this.report_change) {
+            // todo: why is this here? seems like a backend thing
             state_transition(this.id).then(() => {
               estimate_transform(this.id, this.align.roi);
             });
@@ -503,19 +500,8 @@ export default {
           this.setRoi(rectangle);
         }
       } else {
-        console
-          .log
-          // "align: handleStopRectangle() -- moveable is already shown!"
-          ();
+        // console.log("align: handleStopRectangle() -- moveable is already shown!");
       }
-    },
-    handleSetTransform(transform, index) {
-      // console.log(transform);
-      // console.log({ transform: { type: transform } });
-      this.$store.dispatch("analyzers/set_config", {
-        id: this.id,
-        config: { transform: { type: transform } },
-      });
     },
   },
   watch: {
@@ -569,12 +555,24 @@ export default {
       // console.log(this.$store.getters["schemas/getTransformOptions"]);
       return this.$store.getters["schemas/getTransformOptions"];
     },
-    transform() {
-      let config = this.$store.getters["analyzers/getAnalyzerConfig"](this.id);
-      if (config !== undefined) {
-        return config.transform.type;
+    config() {
+      const config = this.$store.getters["analyzers/getAnalyzerConfig"](
+        this.id
+      );
+      if (config.hasOwnProperty("transform")) {
+        return {
+          roi: config.transform.hasOwnProperty("roi")
+            ? config.transform.roi
+            : undefined,
+          flip: config.transform.hasOwnProperty("flip")
+            ? config.transform.flip
+            : undefined,
+          turn: config.transform.hasOwnProperty("turn")
+            ? config.transform.turn
+            : undefined,
+        };
       } else {
-        return undefined;
+        return { roi: undefined, flip: undefined, turn: undefined };
       }
     },
   },

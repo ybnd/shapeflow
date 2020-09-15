@@ -154,7 +154,7 @@ export default {
       return formatted_results;
     },
     features() {
-      console.log(this.$store.getters["schemas/getFeature"]);
+      // console.log(this.$store.getters["schemas/getFeature"]);
       return this.$store.getters["schemas/getFeature"];
     },
   },

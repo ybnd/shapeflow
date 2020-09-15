@@ -382,8 +382,8 @@ export const actions = {
               // dispatch("source");
             },
             function ({ target }) {
-              console.log("backend event source opened");
-              console.log(target);
+              // console.log("backend event source opened");
+              // console.log(target);
             }
           ),
         });
@@ -434,7 +434,7 @@ export const actions = {
     // console.log("action: analyzers.q_clear");
     const queue = getters["getQueue"];
     for (var id of queue) {
-      console.log(id);
+      // console.log(id);
       await dispatch("close", { id: id });
     }
   },
@@ -443,6 +443,7 @@ export const actions = {
     // console.log(`action: analyzers.init`);
     return init().then((id) => {
       dispatch("connection", { ok: true });
+      dispatch("queue", { id: id });
       // console.log(`action: analyzers.init -- callback ~ api.init (id=${id})`);
       return dispatch("set_config", { id: id, config: config })
         .then((config) => {
@@ -456,7 +457,6 @@ export const actions = {
             // );
             if (ok) {
               // console.log(`Launched '${id}'`);
-              dispatch("queue", { id: id });
               return id;
             } else {
               dispatch("unqueue", { id: id });
@@ -482,11 +482,11 @@ export const actions = {
 
   async close({ commit, dispatch }, { id }) {
     try {
-      console.log(`action: analyzers/close (id=${id})`);
+      // console.log(`action: analyzers/close (id=${id})`);
       assert(!(id === undefined), "no id provided");
 
       return close(id).then((ok) => {
-        console.log("close action callback");
+        // console.log("close action callback");
         dispatch("unqueue", { id: id });
         return ok;
       });
@@ -652,40 +652,6 @@ export const actions = {
     }
   },
 
-  async turn({ commit, getters, dispatch }, { id, direction }) {
-    try {
-      assert(!(id === undefined), "no id provided");
-      if (direction === undefined) {
-        direction = "CW";
-      }
-
-      let config = {
-        transform: { turn: getters["getAnalyzerConfig"](id).transform.turn },
-      };
-
-      if (direction === "CW") {
-        config.transform.turn += 1;
-      } else if (direction === "CCW") {
-        config.transform.turn -= 1;
-      }
-
-      set_config(id, config)
-        .then((config) => {
-          dispatch("connection", { ok: true });
-          // console.log(
-          //   `action: analyzers.set_config -- callback ~ api.set_config (id=${id})`
-          // );
-          commit("setAnalyzerConfig", {
-            id: id,
-            config: config,
-          });
-          return config;
-        })
-        .catch((reason) => {
-          dispatch("connection", { ok: false });
-        });
-    } catch (e) {
-      console.warn(`could not turn ${id}`);
-    }
-  },
+  // todo: add undo_config
+  // todo: add redo_config
 };
