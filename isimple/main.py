@@ -637,7 +637,6 @@ class Main(isimple.core.Lockable):
         if self._pause_q.is_set():
             self._pause_q.clear()
         self._stop_q.set()
-        self.notice("stopping analysis queue.")
         if isimple.settings.app.cancel_on_q_stop:
             self.q_cancel()
         else:
