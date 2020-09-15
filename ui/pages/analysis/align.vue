@@ -84,6 +84,9 @@
         >
           <i
             :class="enforceBounds ? 'icon-size-fullscreen' : 'icon-size-actual'"
+            :style="{
+              'margin-top': '-4px' /* alignment */,
+            }"
           />
         </b-button>
       </PageHeaderItem>

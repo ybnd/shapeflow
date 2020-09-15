@@ -8,6 +8,7 @@ import {
   get_status,
   init,
   launch,
+  remove,
   get_app_state,
   set_config,
   close_events,
@@ -427,6 +428,15 @@ export const actions = {
       });
   },
 
+  async q_clear({ commit, getters, dispatch }) {
+    // console.log("action: analyzers.q_clear");
+    const queue = getters["getQueue"];
+    for (var id of queue) {
+      console.log(id);
+      await dispatch("remove", { id: id });
+    }
+  },
+
   async init({ commit, dispatch }, { config = {} }) {
     // console.log(`action: analyzers.init`);
     return init()
@@ -434,6 +444,7 @@ export const actions = {
         dispatch("connection", { ok: true });
         // console.log(`action: analyzers.init -- callback ~ api.init (id=${id})`);
         return dispatch("queue", { id: id }).then(() => {
+          // todo: only queue after set_config call
           // console.log(
           //   `action: analyzers.init -- callback ~ analyzers.queue (id=${id})`
           // );
@@ -461,8 +472,7 @@ export const actions = {
               console.warn(
                 "aborted 'analyzers/init' before 'analyzers/launch' call." // todo: should remove analyzer!
               );
-              return remove(id).then((ok) => {
-                console.log(`remove -> ok=${ok}`);
+              dispatch("remove", { id: id }).then((ok) => {
                 if (ok) {
                   return undefined;
                 } else {
@@ -475,6 +485,23 @@ export const actions = {
       .catch((reason) => {
         dispatch("connection", { ok: false });
       });
+  },
+
+  async remove({ commit, dispatch }, { id }) {
+    try {
+      console.log(`action: analyzers.remove (id=${id})`);
+      assert(!(id === undefined), "no id provided");
+
+      return remove(id).then((ok) => {
+        console.log("remove action callback");
+        dispatch("unqueue", { id: id });
+        return ok;
+      });
+    } catch (err) {
+      console.warn(`could not remove ${id}`);
+      console.warn(err);
+      return undefined;
+    }
   },
 
   async sync({ commit, dispatch, getters }) {

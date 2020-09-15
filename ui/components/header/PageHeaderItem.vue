@@ -48,15 +48,17 @@ $item-height: calc(#{$header-height - 8px});
 .header-button-icon {
   width: $item-height;
   font-size: 14px;
-  display: flex;
+  vertical-align: middle;
+  padding: 0 !important;
+  * {
+    max-height: calc(#{$item-height} - 8px);
+    max-width: calc(#{$item-height} - 8px);
+    margin: 0;
+    padding: 0;
+  }
 }
-.header-button-icon i {
-  max-height: calc(#{$item-height} - 8px);
-  max-width: calc(#{$item-height} - 8px);
-  margin: 0;
-  padding: 0;
-  padding-top: 4px;
-  flex-shrink: 1;
-  flex-grow: 1;
+
+.header-text {
+  padding: 5px;
 }
 </style>
