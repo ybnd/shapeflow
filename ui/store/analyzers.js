@@ -406,6 +406,7 @@ export const actions = {
 
   q_start({ commit, getters, dispatch }) {
     // console.log("action: analyzers.q_start");
+    commit("setQueueState", { queue_state: QueueState.RUNNING });
     return q_start(getters["getQueue"])
       .then((app_state) => {
         dispatch("connection", { ok: true });
@@ -418,6 +419,7 @@ export const actions = {
 
   q_stop({ commit, dispatch }) {
     // console.log("action: analyzers.q_stop");
+    // shouldn't commit 'setQueueState' before callback; buttons may flash otherwise
     return q_stop()
       .then((app_state) => {
         dispatch("connection", { ok: true });
