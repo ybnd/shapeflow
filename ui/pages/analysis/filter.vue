@@ -7,7 +7,7 @@
           class="header-button-icon"
           @click="handleClearFilters"
           data-toggle="tooltip"
-          title="Clear alignment"
+          title="Clear filters"
         >
           <i class="icon-ban" />
         </b-button>
@@ -286,7 +286,10 @@ export default {
       });
     },
     handleClearFilters() {
-      console.warn("NOT IMPLEMENTED YET");
+      this.$store.commit("analyzers/newNotice", {
+        id: this.id,
+        notice: { message: "clearing filters has not been implemented yet!" },
+      });
     },
     handleUndoFilters() {
       undo_config(this.id, "masks");

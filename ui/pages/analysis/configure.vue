@@ -5,8 +5,8 @@
         <b-button
           class="header-button-icon"
           data-toggle="tooltip"
-          title="Reset to defaults (DOES NOTHING FOR NOW)"
-          @click="undefined"
+          title="Reset to defaults"
+          @click="handleResetToDefaults"
         >
           <i class="icon-ban" />
         </b-button>
@@ -195,6 +195,14 @@ export default {
         this.handleSetConfig();
       })
     ),
+    handleResetToDefaults() {
+      this.$store.commit("analyzers/newNotice", {
+        id: this.id,
+        notice: {
+          message: "resetting config to defaults has not been implemented yet!",
+        },
+      });
+    },
   },
   watch: {
     "$route.query.id"() {
