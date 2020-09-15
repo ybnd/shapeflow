@@ -618,6 +618,7 @@ class Main(isimple.core.Lockable):
                         if not self._roots[id].done:
                             self._roots[id].analyze()
                         else:
+                            self._roots[id].notice('already analyzed with the current configuration.')
                             log.info(f"skipping {id}")
 
                     self._pause_q.clear()
