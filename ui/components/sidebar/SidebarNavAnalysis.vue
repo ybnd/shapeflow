@@ -105,7 +105,13 @@
 import SidebarNavAnalysisLink from "./SidebarNavAnalysisLink";
 import Waiting from "@/components/sidebar/Waiting";
 
-import { AnalyzerState as ast, analyze, close, cancel } from "../../static/api";
+import {
+  AnalyzerState as ast,
+  analyze,
+  close,
+  cancel,
+  AnalyzerState,
+} from "../../static/api";
 
 import { events } from "../../static/events";
 
@@ -215,7 +221,8 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
+// should not be scoped!
 @import "../../assets/scss/_bootstrap-variables";
 @import "../../assets/scss/_core-variables";
 @import "node_modules/bootstrap/scss/functions";
@@ -261,17 +268,14 @@ $name-width: calc(#{$sidebar-width} - #{$spacing});
   transition: none !important;
 }
 
-/* todo: make sure this overrides busy */
 .sidebar-progress.error * {
   background-color: theme-color("danger") !important;
 }
 
-/* todo: make sure this overrides busy */
 .sidebar-progress.done * {
   background-color: theme-color("success") !important;
 }
 
-/* todo: make sure this overrides busy */
 .sidebar-progress.canceled * {
   background-color: theme-color("warning") !important;
 }
