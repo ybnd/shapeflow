@@ -166,6 +166,6 @@ export default {
 }
 
 .sidebar-analysis-link {
-  font-size: 85%;
+  font-size: 90%;
 }
 </style>
