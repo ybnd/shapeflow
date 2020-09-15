@@ -7,7 +7,11 @@
           data-toggle="tooltip"
           title="Start the queue"
           @click="start"
-          :disabled="queue_state === QueueState.RUNNING"
+          :disabled="
+            queue_state === QueueState.RUNNING ||
+            queue.length === 0 ||
+            !connected
+          "
         >
           <i class="fa fa-play" />
         </b-button>
@@ -16,7 +20,7 @@
           data-toggle="tooltip"
           title="Stop the queue"
           @click="stop"
-          :disabled="queue_state === QueueState.STOPPED"
+          :disabled="queue_state === QueueState.STOPPED || !connected"
         >
           <i class="fa fa-stop" />
         </b-button>
@@ -25,7 +29,11 @@
           data-toggle="tooltip"
           title="Clear the queue"
           @click="show_clear_popover"
-          :disabled="queue_state === QueueState.RUNNING || queue.length === 0"
+          :disabled="
+            queue_state === QueueState.RUNNING ||
+            queue.length === 0 ||
+            !connected
+          "
           id="clear-queue"
         >
           <i class="fa fa-trash" />
@@ -88,6 +96,9 @@ export default {
     },
   },
   computed: {
+    connected() {
+      return this.$store.getters["analyzers/isConnected"];
+    },
     queue() {
       return this.$store.getters["analyzers/getQueue"];
     },
@@ -142,7 +153,7 @@ export default {
 @import "../assets/scss/_core-variables";
 @import "node_modules/bootstrap/scss/functions";
 
-$clear-popover-scoot: 17px; // align popover 'ok' button with left edge of 'remove' button
+$clear-popover-scoot: 17px; // align popover 'ok' button with left edge of 'close' button
 $clear-popover-arrow-nudge: 2px; // align arrow with center of button
 
 .queue-button {
