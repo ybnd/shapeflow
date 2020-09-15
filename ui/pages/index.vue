@@ -100,16 +100,20 @@ export default {
       const N = this.queue.length;
       const done = this.queue.reduce(
         function (done, id) {
-          if (status[id].state === AnalyzerState.DONE) {
-            return {
-              N: done.N + 1,
-              progress: done.progress + status[id].progress,
-            };
+          if (status.hasOwnProperty(id)) {
+            if (status[id].state === AnalyzerState.DONE) {
+              return {
+                N: done.N + 1,
+                progress: done.progress + status[id].progress,
+              };
+            } else {
+              return {
+                ...done,
+                progress: done.progress + status[id].progress,
+              };
+            }
           } else {
-            return {
-              ...done,
-              progress: done.progress + status[id].progress,
-            };
+            return done;
           }
         },
         { N: 0, progress: 0 }
