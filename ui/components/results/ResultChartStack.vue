@@ -5,12 +5,12 @@
     ref="container"
     :key="charts_key"
   >
-    <template v-for="(feature_data, feature, index) in result">
+    <template v-for="(feature_data, feature) in result">
       <div class="result" :class="result_class" :key="`result-${feature}`">
         <ResultChart
           :chart-data="{
             datasets: feature_data,
-            unit: features.units[index],
+            unit: features.units[feature],
           }"
           :options="{
             ...options,
@@ -38,7 +38,7 @@
                 {
                   scaleLabel: {
                     display: true,
-                    labelString: `${features.labels[index]} (${features.units[index]})`,
+                    labelString: `${features.labels[feature]} (${features.units[feature]})`,
                     fontStyle: 'bold',
                     fontSize: 14,
                   },
