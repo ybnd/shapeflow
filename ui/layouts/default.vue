@@ -10,6 +10,12 @@
     <div v-if="tooSmall" class="too-small-message">
       <i class="fa fa-exclamation-triangle" />
       Window size too small to properly render the application!
+      <div style="margin: 16px; font-size: 1px;">
+        (so I'm not even trying)
+      </div>
+      <div style="margin: 32px; font-size: 3px;">
+        (zoom out maybe)
+      </div>
     </div>
   </div>
 </template>
@@ -42,7 +48,7 @@ export default {
       // console.log(`default.checkIfTooSmall`);
       // console.log(`width=${window.innerWidth} height=${window.innerHeight}`);
 
-      this.tooSmall = window.innerWidth < 707 || window.innerHeight < 360;
+      this.tooSmall = window.innerWidth < 720 || window.innerHeight < 360;
       // width: sidebar + new analysis popover render correctly
       // height: arbitrary
 

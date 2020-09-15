@@ -142,7 +142,7 @@ export default {
 @import "node_modules/bootstrap/scss/functions";
 
 $max-width: 800px;
-$popover-width: Min(Calc(#{$content-width} - 16px), #{$max-width});
+$popover-width: Min(Calc(#{$content-width} - 40px), #{$max-width});
 
 .hovertext * {
   color: transparent;
@@ -158,7 +158,7 @@ $popover-width: Min(Calc(#{$content-width} - 16px), #{$max-width});
   /* Should be drawn over moveable, which is @ z-index 3000 */
   /* https://github.com/daybrush/moveable/blob/master/handbook/handbook.md#toc-custom-css */
   &:connected {
-    width: $popover-width;
+    width: $popover-width !important;
   }
   &:not-connected {
   }
