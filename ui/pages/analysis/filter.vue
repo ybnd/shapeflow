@@ -5,14 +5,6 @@
       <PageHeaderItem>
         <b-button
           class="header-button-icon"
-          @click="handleHideConfigSidebar"
-          data-toggle="tooltip"
-          title="Toggle configuration sidebar"
-        >
-          <i class="icon-menu" />
-        </b-button>
-        <b-button
-          class="header-button-icon"
           @click="handleClearFilters"
           data-toggle="tooltip"
           title="Clear alignment"
@@ -40,6 +32,14 @@
       </PageHeaderItem>
       <PageHeaderSeek :id="id" :key="id" />
       <PageHeaderItem>
+        <b-button
+          class="header-button-icon"
+          @click="handleHideConfigSidebar"
+          data-toggle="tooltip"
+          title="Toggle configuration sidebar"
+        >
+          <i class="icon-menu" />
+        </b-button>
         <b-button
           class="header-button-icon"
           :variant="hideVideoFrame ? 'danger' : null"
