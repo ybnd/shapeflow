@@ -172,7 +172,7 @@ export default {
       try {
         return this.$store.getters["analyzers/getName"](this.id);
       } catch (err) {
-        console.log(`no such analyzer: ${this.id}`);
+        console.warn(`no such analyzer: ${this.id}`);
         return undefined;
       }
     },

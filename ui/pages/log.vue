@@ -52,7 +52,7 @@
 
 <script>
 import { get_log, stop_log } from "../static/api";
-import { throttle, debounce } from "throttle-debounce";
+import { debounce, throttle } from "throttle-debounce";
 import PageHeader from "../components/header/PageHeader";
 import PageHeaderItem from "../components/header/PageHeaderItem";
 
@@ -109,12 +109,12 @@ export default {
     },
     scrolled_down() {
       if (this.$refs.log !== undefined) {
-        const scrolled_down =
+        return (
           Math.abs(
             this.$refs.log.$el.scrollTop - this.$refs.log.$el.scrollTopMax
           ) < SCROLL_TOLERANCE_V &&
-          this.$refs.log.$el.scrollLeft < SCROLL_TOLERANCE_H;
-        return scrolled_down;
+          this.$refs.log.$el.scrollLeft < SCROLL_TOLERANCE_H
+        );
       } else {
         return false;
       }
@@ -147,7 +147,7 @@ export default {
       this.filterLog();
     },
     filterLog() {
-      console.log("log.filterLog()");
+      // console.log("log.filterLog()");
       this.filter = this.filter.trim();
 
       if (this.filter) {
@@ -170,21 +170,9 @@ export default {
             ? [...lines[i].matchAll(re)]
             : [...lines[i].toLowerCase().matchAll(re)];
 
-          // console.log(raw_matches);
-          // console.log(lines[i]);
-
           for (let match in raw_matches) {
-            // console.log(`line ${i} match: ${match}`);
             matches = [...matches, match];
           }
-
-          // for (const match of matches) {
-          //   console.log(
-          //     `Found ${match[0]} start=${match.index} end=${
-          //       match.index + match[0].length
-          //     }.`
-          //   );
-          // }
 
           if (matches.length > 0) {
             filtered_lines = [...filtered_lines, lines[i]];
