@@ -561,14 +561,12 @@ class History(SessionWrapper, RootInstance):
     def clean(self) -> None:
         """Clean the database
 
+        * remove 'video_file & 'design_file' entries with <null> path
+           * resolve entries with <null> hash
         * remove 'analysis' entries with ``<null>`` config
-
         * remove 'config' entries with ``<null>`` json
-
         * for 'analysis' entries older than ``settings.db.cleanup_interval``
-
            * remove all non-primary 'config' entries
-
            * remove all non-primary 'results' entries
         """
         log.debug(f"cleaning history")
@@ -577,6 +575,15 @@ class History(SessionWrapper, RootInstance):
         )
 
         with self.session() as s:
+            s.query(VideoFileModel).filter_by(path=None).delete()
+            s.query(DesignFileModel).filter_by(path=None).delete()
+
+            unhashed = list(s.query(VideoFileModel).filter_by(hash=None)) \
+                       + list(s.query(DesignFileModel).filter_by(hash=None))
+
+            for f in unhashed:
+                f._queue_hash(f.path)
+
             s.query(ConfigModel).filter_by(json=None).delete()
             s.query(AnalysisModel).filter_by(config=None).delete()
 
@@ -589,6 +596,11 @@ class History(SessionWrapper, RootInstance):
                 s.query(ResultModel). \
                     filter(ResultModel.analysis == old.id). \
                     filter(ResultModel.id != old.results).delete()
+
+            for f in unhashed:
+                f.connect(self)
+                f.resolve()
+
 
     @history.expose(history.forget)
     def forget(self) -> None:

@@ -8,6 +8,7 @@ import datetime
 
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import scoped_session
+from sqlalchemy.orm.util import object_state  # type: ignore
 from sqlalchemy.sql.schema import Column
 from sqlalchemy.sql.sqltypes import Integer, String, DateTime
 
@@ -51,7 +52,6 @@ class SessionWrapper(object):
             session.close()
 
 
-
 class DbModel(Base, SessionWrapper):
     """Abstract database model class.
 
@@ -77,7 +77,7 @@ class DbModel(Base, SessionWrapper):
         """SQLAlchemy session context manager.
 
         Opens a SQLAlchemy session and commits after the block is done.
-        Changes are rolled back if an exception is raised. Usage::
+        Changes are rolled back if an exception is raised. Usage:
 
             with self.session() as s:
                 # interact with the database here
@@ -130,7 +130,7 @@ class FileModel(DbModel):
 
     id = Column(Integer, primary_key=True)
 
-    hash = Column(String)
+    hash = Column(String, unique=True)
     path = Column(String)
 
     used = Column(DateTime)
@@ -143,7 +143,10 @@ class FileModel(DbModel):
     @property
     def resolved(self) -> bool:
         """Whether the ``FileModel`` has been resolved"""
-        return self._resolved
+        if hasattr(self, '_resolved'):
+            return self._resolved
+        else:
+            return False
 
     def _queue_hash(self, path: str) -> None:
         self._path = path
@@ -200,6 +203,8 @@ class FileModel(DbModel):
                 else:
                     file = match
                     file.connect(self)
+                    if object_state(self).persistent:
+                        s.delete(self)
                 file._resolved = True
                 file.used = datetime.datetime.now()
             return file
