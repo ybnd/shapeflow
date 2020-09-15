@@ -6,7 +6,9 @@
         'slider-container-loading': isLoading,
       }"
     >
-      <span class="slider-caption">{{ currentTime }} / {{ totalTime }}</span>
+      <span class="header-text slider-caption"
+        >{{ currentTime }} / {{ totalTime }}</span
+      >
       <vue-slider
         v-model="position"
         v-bind="options"
