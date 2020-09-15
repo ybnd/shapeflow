@@ -441,52 +441,43 @@ export const actions = {
 
   async init({ commit, dispatch }, { config = {} }) {
     // console.log(`action: analyzers.init`);
-    return init()
-      .then((id) => {
-        dispatch("connection", { ok: true });
-        // console.log(`action: analyzers.init -- callback ~ api.init (id=${id})`);
-        return dispatch("queue", { id: id }).then(() => {
-          // todo: only queue after set_config call
+    return init().then((id) => {
+      dispatch("connection", { ok: true });
+      // console.log(`action: analyzers.init -- callback ~ api.init (id=${id})`);
+      return dispatch("set_config", { id: id, config: config })
+        .then((config) => {
           // console.log(
-          //   `action: analyzers.init -- callback ~ analyzers.queue (id=${id})`
+          //   `action: analyzers.init -- callback ~ analyzers.set_config (id=${id})`
           // );
-          return dispatch("set_config", { id: id, config: config })
-            .then((config) => {
-              // console.log(
-              //   `action: analyzers.init -- callback ~ analyzers.set_config (id=${id})`
-              // );
-              return launch(id).then((ok) => {
-                dispatch("connection", { ok: true });
-                // console.log(
-                //   `action: analyzers.init -- callback ~ api.launch (id=${id})`
-                // );
-                if (ok) {
-                  // console.log(`Launched '${id}'`);
-                  return id;
-                } else {
-                  dispatch("unqueue", { id: id });
-                  console.warn(`Could not launch '${id}'`);
-                }
-                dispatch("sync");
-              });
-            })
-            .catch((error) => {
-              console.warn(
-                "aborted 'analyzers/init' before 'analyzers/launch' call." // todo: should remove analyzer!
-              );
-              dispatch("remove", { id: id }).then((ok) => {
-                if (ok) {
-                  return undefined;
-                } else {
-                  throw error;
-                }
-              });
-            });
+          return launch(id).then((ok) => {
+            dispatch("connection", { ok: true });
+            // console.log(
+            //   `action: analyzers.init -- callback ~ api.launch (id=${id})`
+            // );
+            if (ok) {
+              // console.log(`Launched '${id}'`);
+              dispatch("queue", { id: id });
+              return id;
+            } else {
+              dispatch("unqueue", { id: id });
+              console.warn(`Could not launch '${id}'`);
+            }
+            dispatch("sync");
+          });
+        })
+        .catch((error) => {
+          console.warn(
+            "aborted 'analyzers/init' before 'analyzers/launch' call." // todo: should remove analyzer!
+          );
+          dispatch("remove", { id: id }).then((ok) => {
+            if (ok) {
+              return undefined;
+            } else {
+              throw error;
+            }
+          });
         });
-      })
-      .catch((reason) => {
-        dispatch("connection", { ok: false });
-      });
+    });
   },
 
   async remove({ commit, dispatch }, { id }) {
