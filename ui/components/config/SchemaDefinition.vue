@@ -15,7 +15,7 @@
         <b-input-group class="isimple-form-group">
           <label
             class="mr-sm-2 isimple-form-label"
-            :style="{ width: '60px', 'margin-right': '-10px !important' }"
+            :style="{ width: '60px', 'margin-right': '0 !important' }"
           >
             {{ title }} (x,y)
           </label>
@@ -40,28 +40,38 @@
         <b-input-group class="isimple-form-group">
           <label
             class="mr-sm-2 isimple-form-label"
-            :style="{ width: '80px', 'margin-right': '-8px !important' }"
+            :style="{ width: '90px', 'margin-right': '0 !important' }"
           >
             {{ title }} (h,s,v)
           </label>
+          <!-- todo: alignment issues  -- fields jump down by 2px -->
           <SchemaField
             :value="model.h"
             @input="p_set('h', $event)"
-            :style_="{ width: '50px' }"
+            :style_="{
+              width: '50px',
+              'margin-top': '-2px' /* todo: alignment issue */,
+            }"
             type="integer"
           ></SchemaField>
           <div class="isimple-form-gap" />
           <SchemaField
             :value="model.s"
             @input="p_set('s', $event)"
-            :style_="{ width: '50px' }"
+            :style_="{
+              width: '50px',
+              'margin-top': '-2px' /* todo: alignment issue */,
+            }"
             type="integer"
           ></SchemaField>
           <div class="isimple-form-gap" />
           <SchemaField
             :value="model.v"
             @input="p_set('v', $event)"
-            :style_="{ width: '50px' }"
+            :style_="{
+              width: '50px',
+              'margin-top': '-2px' /* todo: alignment issue */,
+            }"
             type="integer"
           ></SchemaField>
         </b-input-group>
@@ -70,7 +80,10 @@
     <template v-else-if="match(def.FLIPCONFIG)">
       <b-row class="isimple-form-row">
         <b-input-group class="isimple-form-group">
-          <label class="mr-sm-2 isimple-form-label">
+          <label
+            class="mr-sm-2 isimple-form-label"
+            :style="{ 'margin-right': '0 !important', 'padding-top': '4px' }"
+          >
             {{ title }} horizontally
           </label>
           <SchemaField
@@ -78,7 +91,10 @@
             @input="p_set('horizontal', $event)"
             type="boolean"
           ></SchemaField>
-          <label class="mr-sm-2 isimple-form-label">
+          <label
+            class="mr-sm-2 isimple-form-label"
+            :style="{ 'margin-right': '0 !important', 'padding-top': '4px' }"
+          >
             vertically
           </label>
           <SchemaField

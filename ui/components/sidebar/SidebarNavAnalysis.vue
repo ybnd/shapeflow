@@ -148,7 +148,7 @@ export default {
       e.target.parentElement.classList.toggle("open");
     },
     handleOpen() {
-      // console.log(`${this.id} got open event`); // todo: doesn't seem to work
+      // console.log(`${this.id} got open event`);
       this.$refs[this.ref].classList.add("open");
     },
     handleAnalyze() {
@@ -156,15 +156,7 @@ export default {
     },
     handleRemove() {
       // console.log(`sidebar: handling remove event (${this.id})`);
-      remove(this.id).then(() => {
-        if (
-          this.$route.query.id === this.id ||
-          this.$route.query.id === undefined
-        ) {
-          this.$router.push("/");
-        }
-        this.$store.dispatch("analyzers/sync"); // todo: this doesn't help
-      });
+      this.$store.dispatch("analyzers/remove", { id: this.id });
     },
     handleCancel() {
       // console.log(`sidebar: handling cancel event (${this.id})`);

@@ -82,7 +82,7 @@ export default {
     result_info(run) {
       run = Number(run);
       if (Number.isInteger(run)) {
-        return `Run ${run}, ${this.db.list[run]}`;
+        return `${this.name}, Run ${run}, ${this.db.list[run]}`;
       } else {
         return "Select a run to display";
       }
@@ -96,6 +96,9 @@ export default {
   computed: {
     id() {
       return this.$route.query.id;
+    },
+    name() {
+      return this.$store.getters["analyzers/getName"](this.id);
     },
   },
   data() {

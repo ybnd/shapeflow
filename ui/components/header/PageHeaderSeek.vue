@@ -1,14 +1,18 @@
 <template>
   <PageHeaderItem>
-    <div class="slider-container">
-      <div class="slider-caption">{{ currentTime }} / {{ totalTime }}</div>
-      <!--      todo: should format number into '00:00'-->
-      &ensp;
+    <div
+      :class="{
+        'slider-container': !isLoading,
+        'slider-container-loading': isLoading,
+      }"
+    >
+      <span class="slider-caption">{{ currentTime }} / {{ totalTime }}</span>
       <vue-slider
         v-model="position"
         v-bind="options"
-        ref="slider"
         @change="handleSeek"
+        @drag-start="handleDragStart"
+        @drag-end="handleDragEnd"
       />
     </div>
   </PageHeaderItem>
@@ -29,6 +33,8 @@ import Vue from "vue";
 
 Vue.use(VueHotkey);
 
+const LOADING_INTERVAL = 100;
+
 export default {
   name: "PageHeaderSeek",
   props: {
@@ -41,27 +47,32 @@ export default {
   components: { VueSlider, PageHeaderItem },
   beforeMount() {
     get_seek_position(this.id).then((position) => {
-      this.position = position;
+      this.setPosition(position);
     });
     get_total_time(this.id).then((total) => {
       this.totalSeconds = total;
     });
 
     this.$root.$on(events.seek.set(this.id), this.handleSeek);
-    this.$root.$on(events.seek.reset(this.id), this.resetSeekPosition);
+    this.$root.$on(events.seek.reset(this.id), this.resetSeek);
     this.$root.$on(events.seek.step_fw(this.id), this.stepForward);
     this.$root.$on(events.seek.step_bw(this.id), this.stepBackward);
   },
   beforeDestroy() {
-    this.position = null;
-
     this.$root.$off(events.seek.set(this.id), this.handleSeek);
-    this.$root.$off(events.seek.reset(this.id), this.resetSeekPosition);
+    this.$root.$off(events.seek.reset(this.id), this.resetSeek);
     this.$root.$off(events.seek.step_fw(this.id), this.stepForward);
     this.$root.$off(events.seek.step_bw(this.id), this.stepBackward);
   },
   methods: {
-    setSeekPosition() {
+    setPosition(position) {
+      this.position = position;
+      setTimeout(() => {
+        this.isLoading = false;
+        console.log(this.isLoading);
+      }, LOADING_INTERVAL);
+    },
+    doSeek() {
       seek(this.id, this.position).then((position) => {
         this.position = position;
       });
@@ -71,12 +82,12 @@ export default {
       true,
       debounce(25, true, function () {
         // console.log(`PageHeaderSeek.handleSeek()`);
-        this.setSeekPosition();
+        this.doSeek();
       })
     ),
-    resetSeekPosition() {
+    resetSeek() {
       // console.log(`PageHeaderSeek.resetSeek()`);
-      this.position = null;
+      this.setPosition(null);
       this.handleSeek();
     },
     stepForward() {
@@ -87,6 +98,12 @@ export default {
       this.position = this.position - this.step;
       this.handleSeek();
     },
+    handleDragStart() {
+      this.isDragging = true;
+    },
+    handleDragEnd() {
+      this.isDragging = false;
+    },
   },
   computed: {
     keymap() {
@@ -96,21 +113,34 @@ export default {
       };
     },
     currentTime() {
-      return seconds2timestr(this.position * this.totalSeconds);
+      if (this.position !== null && this.totalSeconds !== null) {
+        return seconds2timestr(this.position * this.totalSeconds);
+      } else {
+        return "";
+      }
     },
     totalTime() {
-      return seconds2timestr(this.totalSeconds);
+      if (this.totalSeconds !== null) {
+        return seconds2timestr(this.totalSeconds);
+      } else {
+        return "";
+      }
+    },
+    dotSize() {
+      return this.isLoading ? 0 : 14;
     },
   },
   data() {
     return {
+      isLoading: true,
+      isDragging: false,
       position: null,
       step: 0.01,
       options: {
         dotSize: 14,
         width: 120,
         height: 4,
-        contained: false,
+        contained: true,
         direction: "ltr",
         data: null,
         min: 0.0,
@@ -118,19 +148,16 @@ export default {
         interval: 0.01,
         disabled: false,
         clickable: true,
-        duration: 0.05,
+        duration: (LOADING_INTERVAL - 10) / 1000,
         adsorb: false,
         lazy: false,
         useKeyboard: true,
         keydownHook: null,
         dragOnClick: false,
-        enableCross: true,
-        fixed: false,
-        order: true,
         marks: false,
         process: false,
       },
-      totalSeconds: 0,
+      totalSeconds: null,
     };
   },
 };
@@ -141,32 +168,58 @@ export default {
 @import "../../assets/scss/_core-variables";
 @import "node_modules/bootstrap/scss/functions";
 
-.vue-slider {
-  padding: 4px 4px;
-}
-
-.vue-slider-rail {
-  background: $gray-100 !important;
-}
-
-.vue-slider-dot {
-  background: darken(theme-color("primary"), 10%);
-  border-radius: 50%;
-}
-
-.vue-slider-dot-tooltip {
-}
-
 .slider-container {
   display: flex;
   flex-direction: row;
-  padding-top: 4px;
-  padding-left: 4px;
-  padding-right: 4px;
-}
+  padding-top: 5px;
 
-.slider-caption {
-  height: 14px;
-  margin-bottom: 4px;
+  .slider-caption {
+    height: 14px;
+    min-width: 100px;
+    max-width: 200px;
+    margin-bottom: 4px;
+    margin-right: 4px;
+  }
+
+  .vue-slider {
+    .vue-slider-rail {
+      background: $gray-100 !important;
+      cursor: pointer;
+
+      .vue-slider-dot {
+        background: darken(theme-color("primary"), 10%);
+        border-radius: 50%;
+        cursor: ew-resize;
+      }
+    }
+  }
+}
+/* todo: can't get this to work with a 'loading' pseudo-class */
+.slider-container-loading {
+  display: flex;
+  flex-direction: row;
+  padding-top: 5px;
+
+  .slider-caption {
+    height: 14px;
+    min-width: 100px;
+    max-width: 200px;
+    margin-bottom: 4px;
+    margin-right: 4px;
+  }
+
+  .vue-slider {
+    cursor: pointer;
+    pointer-events: all;
+    .vue-slider-rail {
+      background: $gray-100 !important;
+      .vue-slider-dot {
+        //background: darken(theme-color("primary"), 10%);
+        border-radius: 50%;
+        cursor: ew-resize;
+        transition: background 1s !important; /* todo doesn't work ~ changing the whole class... */
+      }
+    }
+  }
 }
 </style>

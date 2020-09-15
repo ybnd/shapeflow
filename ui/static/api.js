@@ -90,7 +90,7 @@ export async function init() {
 }
 
 export async function remove(id) {
-  return axios.post(api(id, "remove")).then(return_data);
+  return axios.post(api(id, "remove")).then(return_success);
 }
 
 export async function cancel(id) {
@@ -148,7 +148,8 @@ export async function get_relative_roi(id) {
 export async function set_config(id, config) {
   return axios
     .post(api(id, "call/set_config"), { config: config })
-    .then(return_data);
+    .then(return_data)
+    .catch();
 }
 
 export async function state_transition(id) {

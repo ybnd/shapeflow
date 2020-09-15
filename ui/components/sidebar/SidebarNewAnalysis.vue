@@ -11,8 +11,9 @@
         boundary="viewport"
         class="new-analysis-popover"
         container="body"
+        :class="{ connected: isConnected, 'not-connected': !isConnected }"
       >
-        <div class="popover-form-container">
+        <div class="popover-form-container" v-if="isConnected">
           <b-row>
             <BasicConfig ref="new_analyzer_form" />
           </b-row>
@@ -41,6 +42,13 @@
             </b-form-group>
           </b-row>
         </div>
+        <div v-else class="no-connection-message">
+          <h6>
+            <i class="fa fa-exclamation-triangle" /> &nbsp;
+            <b>Not connected to the application!</b>
+          </h6>
+          <p>Restart the server by running `app.py` or `server.py`</p>
+        </div>
       </b-popover>
     </div>
   </div>
@@ -48,7 +56,6 @@
 
 <script>
 import BasicConfig from "../config/BasicConfig";
-import { set_config, launch } from "../../static/api";
 
 export default {
   name: "sidebar-nav-link",
@@ -112,6 +119,9 @@ export default {
     form_ref() {
       return id + "form";
     },
+    isConnected() {
+      return this.$store.getters["analyzers/isConnected"];
+    },
   },
   data() {
     return {
@@ -126,7 +136,14 @@ export default {
 };
 </script>
 
-<style scoped>
+<style lang="scss" scoped>
+@import "../../assets/scss/_bootstrap-variables";
+@import "../../assets/scss/_core-variables";
+@import "node_modules/bootstrap/scss/functions";
+
+$max-width: 800px;
+$popover-width: Min(Calc(#{$content-width} - 16px), #{$max-width});
+
 .hovertext * {
   color: transparent;
 }
@@ -135,23 +152,33 @@ export default {
 
 .popover {
   /*width: 600px;*/
+
   max-width: none;
   z-index: 9000;
   /* Should be drawn over moveable, which is @ z-index 3000 */
   /* https://github.com/daybrush/moveable/blob/master/handbook/handbook.md#toc-custom-css */
+  &:connected {
+    width: $popover-width;
+  }
+  &:not-connected {
+  }
 }
 .popover-body {
   display: flex !important;
 }
 .popover-form-container {
-  /* todo: should be a single component for the dashboard cards & this popover! Then we can recycle a bunch of stuff. */
+  width: $popover-width;
   flex-direction: column;
   display: flex;
-  padding-top: 1px;
+  padding-top: 0;
   padding-left: 12px;
-  padding-right: 24px;
+  padding-right: 8px;
   margin-bottom: -1px;
 }
 .popover-buttons {
+}
+
+.no-connection-message {
+  margin-bottom: -16px;
 }
 </style>

@@ -35,14 +35,6 @@ export default {
       default: 0,
     },
   },
-  created() {
-    // console.log("SidebarNavDropdown listening for open events on ");
-    // console.log(this.event.open);
-    this.$root.$on(this.event.open, this.handleOpen);
-  },
-  destroyed() {
-    this.$root.$off(this.event.open, this.handleOpen);
-  },
   methods: {
     closedByDefault(e) {
       e.preventDefault();

@@ -428,7 +428,7 @@ export default {
           // console.log("p_schema=");
           // console.log(p_schema);
 
-          type = p_schema.enum ? "enum" : p_schema.type;
+          type = p_schema.hasOwnProperty("enum") ? "enum" : p_schema.type;
 
           if (type === undefined) {
             let def = this.p_definition(p);
@@ -436,7 +436,7 @@ export default {
               // console.log("def=");
               // console.log(def);
 
-              type = def.enum ? "enum" : def.type;
+              type = def.hasOwnProperty("enum") ? "enum" : def.type;
             }
           }
         } else {
@@ -490,7 +490,7 @@ export default {
 
         if (p_schema !== undefined) {
           return {
-            enum_options: p_schema.enum,
+            enum: p_schema.enum,
             // todo: is there some kind of float/int 'step' in the schema?
           };
         } else {

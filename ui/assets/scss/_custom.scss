@@ -148,9 +148,14 @@ $form-color: theme-color('gray-700');
 }
 
 .isimple-form-label {
-  margin-bottom: 0;
-  display: inline;
-  vertical-align: middle;
+  margin: 0;
+  height: $form-field-height;
+  padding: $form-gap;
+  padding-top: 2px;
+  padding-left: 6px;
+  padding-right: 6px;
+  padding-bottom: 2px;
+  box-sizing: border-box;
 }
 
 .isimple-form-row {
@@ -175,6 +180,9 @@ $form-color: theme-color('gray-700');
 
 .isimple-form-group {
   flex-grow: 0;
+  height: $form-field-height;
+  margin: 0;
+  padding: 0
 }
 
 .isimple-form-gap {
@@ -202,8 +210,17 @@ $form-color: theme-color('gray-700');
 
 .isimple-form-field-auto {
   height: $form-field-height;
-  display: block;
+  display: inline-block;
   width: auto;
+  flex-shrink: 1;
+  flex-grow: 0;
+}
+
+.isimple-form-field-fit {
+  height: $form-field-height;
+  display: block;
+  width: auto !important;
+  max-width: 200px !important;
   flex-shrink: 1;
   flex-grow: 0;
 }
@@ -216,9 +233,10 @@ $form-color: theme-color('gray-700');
 .isimple-form-field-checkbox {
   //height: $form-field-height;
   display: block;
-  vertical-align: center;
+  vertical-align: middle;
   flex-shrink: 1;
   flex-grow: 0;
+  padding-top: 3px;
 }
 
 .isimple-form-path-input {

@@ -12,6 +12,7 @@
           <b-popover
             :target="id"
             triggers="hover"
+            :delay="{ show: 50, hide: 200 }"
             :id="`popover-${id}`"
             :show.sync="show_popup"
             @ok="handleClick"
@@ -20,7 +21,8 @@
             boundary="viewport"
           >
             <b-button variant="primary" @click="handleClickStageTwo">
-              <i class="fa fa-check" />{{ name }}
+              <i class="fa fa-check" />
+              &nbsp; {{ name }}
             </b-button>
             <b-button variant="danger" @click="handleHideStageTwo">
               <i class="fa fa-times" />

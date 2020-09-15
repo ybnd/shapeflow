@@ -358,8 +358,8 @@ class FeatureType(InterfaceFactory):
     def __modify_schema__(cls, field_schema):
         super().__modify_schema__(field_schema)
         field_schema.update(
-            units=[option._unit for option in cls._mapping.values()],
-            labels=[option._label for option in cls._mapping.values()]
+            units={ k:v._unit for k,v in cls._mapping.items() },
+            labels={ k:v._label for k,v in cls._mapping.items() }
         )
 
 
