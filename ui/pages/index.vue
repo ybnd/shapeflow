@@ -25,7 +25,7 @@
           data-toggle="tooltip"
           title="Clear the queue"
           @click="show_clear_popover"
-          :disabled="queue_state === QueueState.RUNNING"
+          :disabled="queue_state === QueueState.RUNNING || queue.length === 0"
           id="clear-queue"
         >
           <i class="fa fa-trash" />
@@ -88,15 +88,17 @@ export default {
     },
   },
   computed: {
+    queue() {
+      return this.$store.getters["analyzers/getQueue"];
+    },
     queue_state() {
       return this.$store.getters["analyzers/getQueueState"];
     },
     queue_info() {
-      const queue = this.$store.getters["analyzers/getQueue"];
       const status = this.$store.getters["analyzers/getFullStatus"];
 
-      const N = queue.length;
-      const done = queue.reduce(
+      const N = this.queue.length;
+      const done = this.queue.reduce(
         function (done, id) {
           if (status[id].state === AnalyzerState.DONE) {
             return {
