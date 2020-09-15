@@ -11,46 +11,43 @@
         boundary="viewport"
         class="new-analysis-popover"
         container="body"
+        :class="{ connected: isConnected, 'not-connected': !isConnected }"
       >
-        <div class="popover-form-container">
-          <template v-if="isConnected">
-            <b-row>
-              <BasicConfig ref="new_analyzer_form" />
-            </b-row>
+        <div class="popover-form-container" v-if="isConnected">
+          <b-row>
+            <BasicConfig ref="new_analyzer_form" />
+          </b-row>
 
-            <b-row class="popover-form-row">
-              <b-form-group>
-                <b-input-group>
-                  <!--                <b-form-input id="name" type="text" placeholder="Analysis 7"></b-form-input>-->
-                  <div class="popover-buttons">
-                    <b-button
-                      variant="primary"
-                      @click="handleNewAnalysis"
-                      class="popover-ok"
-                    >
-                      <i class="fa fa-check" /> Add analysis
-                    </b-button>
-                    <b-button
-                      variant="danger"
-                      @click="show = false"
-                      class="popover-cancel"
-                    >
-                      <i class="fa fa-times" />
-                    </b-button>
-                  </div>
-                </b-input-group>
-              </b-form-group>
-            </b-row>
-          </template>
-          <template v-else>
-            <div class="no-connection-message">
-              <h6>
-                <i class="fa fa-exclamation-triangle" /> &nbsp;
-                <b>Not connected to the application!</b>
-              </h6>
-              <p>Restart the server by running `app.py` or `server.py`</p>
-            </div>
-          </template>
+          <b-row class="popover-form-row">
+            <b-form-group>
+              <b-input-group>
+                <!--                <b-form-input id="name" type="text" placeholder="Analysis 7"></b-form-input>-->
+                <div class="popover-buttons">
+                  <b-button
+                    variant="primary"
+                    @click="handleNewAnalysis"
+                    class="popover-ok"
+                  >
+                    <i class="fa fa-check" /> Add analysis
+                  </b-button>
+                  <b-button
+                    variant="danger"
+                    @click="show = false"
+                    class="popover-cancel"
+                  >
+                    <i class="fa fa-times" />
+                  </b-button>
+                </div>
+              </b-input-group>
+            </b-form-group>
+          </b-row>
+        </div>
+        <div v-else class="no-connection-message">
+          <h6>
+            <i class="fa fa-exclamation-triangle" /> &nbsp;
+            <b>Not connected to the application!</b>
+          </h6>
+          <p>Restart the server by running `app.py` or `server.py`</p>
         </div>
       </b-popover>
     </div>
@@ -155,16 +152,22 @@ $popover-width: Min(Calc(#{$content-width} - 16px), #{$max-width});
 
 .popover {
   /*width: 600px;*/
-  width: $popover-width;
+
   max-width: none;
   z-index: 9000;
   /* Should be drawn over moveable, which is @ z-index 3000 */
   /* https://github.com/daybrush/moveable/blob/master/handbook/handbook.md#toc-custom-css */
+  &:connected {
+    width: $popover-width;
+  }
+  &:not-connected {
+  }
 }
 .popover-body {
   display: flex !important;
 }
 .popover-form-container {
+  width: $popover-width;
   flex-direction: column;
   display: flex;
   padding-top: 0;
@@ -176,8 +179,6 @@ $popover-width: Min(Calc(#{$content-width} - 16px), #{$max-width});
 }
 
 .no-connection-message {
-  margin-bottom: -12px;
-  margin-left: -4px;
-  margin-right: -18px;
+  margin-bottom: -16px;
 }
 </style>
