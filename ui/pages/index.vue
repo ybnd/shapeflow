@@ -92,39 +92,35 @@ export default {
     },
     queue_info() {
       const queue = this.$store.getters["analyzers/getQueue"];
-      const N = queue.length;
+      const status = this.$store.getters["analyzers/getFullStatus"];
 
-      console.log(queue);
-      console.log(N);
+      const N = queue.length;
+      const done = queue.reduce(
+        function (done, id) {
+          if (status[id].state === AnalyzerState.DONE) {
+            return {
+              N: done.N + 1,
+              progress: done.progress + status[id].progress,
+            };
+          } else {
+            return {
+              ...done,
+              progress: done.progress + status[id].progress,
+            };
+          }
+        },
+        { N: 0, progress: 0 }
+      );
 
       if (this.queue_state === QueueState.RUNNING) {
-        const status = this.$store.getters["analyzers/getFullStatus"];
-
-        const done = queue.reduce(
-          function (done, id) {
-            if (status[id].state === AnalyzerState.DONE) {
-              console.log("done");
-              return {
-                N: done.N + 1,
-                progress: done.progress + status[id].progress,
-              };
-            } else {
-              console.log("not done");
-              return {
-                ...done,
-                progress: done.progress + status[id].progress,
-              };
-            }
-          },
-          { N: 0, progress: 0 }
-        );
-
         const percentage = Math.round((done.progress / N) * 100);
-
         return `Analyzing queue: ${percentage}% (${done.N}/${N} done)`;
       } else {
-        const analyzers = N === 1 ? "analyzer" : "analyzers";
-        return `${N === 0 ? "No" : N} ${analyzers} queued.`;
+        return `${N === 0 ? "No" : N} ${
+          N === 1 ? "analyzer" : "analyzers"
+        } queued`.concat(
+          done.N !== 0 ? ` (${done.N !== N ? done.N : "all"} done).` : "."
+        );
       }
     },
   },
