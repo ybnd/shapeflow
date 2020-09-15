@@ -20,8 +20,8 @@ export let events = {
     status(analyzer_id) {
       return `sidebar-status-${analyzer_id}`;
     },
-    remove(analyzer_id) {
-      return `sidebar-remove-${analyzer_id}`;
+    close(analyzer_id) {
+      return `sidebar-close-${analyzer_id}`;
     },
     cancel(analyzer_id) {
       return `sidebar-cancel-${analyzer_id}`;

@@ -89,8 +89,8 @@ export async function init() {
   return axios.post(api("init")).then(return_data);
 }
 
-export async function remove(id) {
-  return axios.post(api(id, "remove")).then(return_success);
+export async function close(id) {
+  return axios.post(api(id, "close")).then(return_success);
 }
 
 export async function cancel(id) {

@@ -70,7 +70,7 @@ def application(keep: bool = False):
         # Explicitly remove any leftover analyzers
         app_state = json.loads(client.get('/api/app_state').data)
         for id in app_state['ids']:
-            client.post(f'/api/{id}/remove')
+            client.post(f'/api/{id}/close')
 
         del main
         del settings
@@ -290,7 +290,7 @@ class MainAnalyzerTest(unittest.TestCase):
                     server._roots[id].config.features[0]].isna().all().all()
             )
 
-            client.post(f'/api/{id}/remove')
+            client.post(f'/api/{id}/close')
             self.assertNotIn(id, server._roots)
 
     def test_analyzer_roi_flip(self):
@@ -385,7 +385,7 @@ class MainAnalyzerTest(unittest.TestCase):
                 data=json.dumps({"roi": self.ROI})
             )
 
-            client.post(f'/api/{id1}/remove')
+            client.post(f'/api/{id1}/close')
 
             id2 = json.loads(client.post('/api/init').data)
 

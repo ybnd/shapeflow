@@ -8,7 +8,7 @@ import {
   get_status,
   init,
   launch,
-  remove,
+  close,
   get_app_state,
   set_config,
   close_events,
@@ -435,7 +435,7 @@ export const actions = {
     const queue = getters["getQueue"];
     for (var id of queue) {
       console.log(id);
-      await dispatch("remove", { id: id });
+      await dispatch("close", { id: id });
     }
   },
 
@@ -467,9 +467,9 @@ export const actions = {
         })
         .catch((error) => {
           console.warn(
-            "aborted 'analyzers/init' before 'analyzers/launch' call." // todo: should remove analyzer!
+            "aborted 'analyzers/init' before 'analyzers/launch' call." // todo: should close analyzer!
           );
-          dispatch("remove", { id: id }).then((ok) => {
+          dispatch("close", { id: id }).then((ok) => {
             if (ok) {
               return undefined;
             } else {
@@ -480,18 +480,18 @@ export const actions = {
     });
   },
 
-  async remove({ commit, dispatch }, { id }) {
+  async close({ commit, dispatch }, { id }) {
     try {
-      console.log(`action: analyzers.remove (id=${id})`);
+      console.log(`action: analyzers/close (id=${id})`);
       assert(!(id === undefined), "no id provided");
 
-      return remove(id).then((ok) => {
-        console.log("remove action callback");
+      return close(id).then((ok) => {
+        console.log("close action callback");
         dispatch("unqueue", { id: id });
         return ok;
       });
     } catch (err) {
-      console.warn(`could not remove ${id}`);
+      console.warn(`could not close ${id}`);
       console.warn(err);
       return undefined;
     }

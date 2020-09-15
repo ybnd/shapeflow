@@ -294,9 +294,9 @@ class Main(isimple.core.Lockable):
         def get_state(id: str):
             return respond(self._roots[id].state)
 
-        @app.route('/api/<id>/remove', methods=['POST'])
+        @app.route('/api/<id>/close', methods=['POST'])
         def remove(id: str):
-            return respond(self.remove_instance(id))
+            return respond(self.close_instance(id))
 
         @app.route('/api/<id>/call/<endpoint>', methods=['GET','PUT','POST'])
         def call(id: str, endpoint: str):
@@ -538,7 +538,7 @@ class Main(isimple.core.Lockable):
         return False
 
     def add_instance(self, type: video.AnalyzerType = None) -> str:
-        """Add a new  analyzer instance
+        """Add a new analyzer instance
 
         Parameters
         ----------
@@ -565,13 +565,13 @@ class Main(isimple.core.Lockable):
         self.save_state()
         return analyzer.id
 
-    def remove_instance(self, id: str) -> bool:
-        """Remove a analyzer instance
+    def close_instance(self, id: str) -> bool:
+        """Close an analyzer instance
 
         Parameters
         ----------
         id: str
-            The ``id`` of the analyzer to remove
+            The ``id`` of the analyzer to close
         """
         with self.lock():
             if self.valid(id):

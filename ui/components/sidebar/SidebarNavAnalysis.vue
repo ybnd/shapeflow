@@ -98,10 +98,10 @@
         "
       />
       <SidebarNavAnalysisLink
-        name="Remove"
-        icon="icon-trash"
+        name="Close"
+        icon="icon-close"
         :two_stage="true"
-        :id="event.remove"
+        :id="event.close"
         :disabled="[undefined, ast.ANALYZING].includes(status.state)"
       />
     </ul>
@@ -110,12 +110,7 @@
 
 <script>
 import SidebarNavAnalysisLink from "./SidebarNavAnalysisLink";
-import {
-  AnalyzerState as ast,
-  analyze,
-  remove,
-  cancel,
-} from "../../static/api";
+import { AnalyzerState as ast, analyze, close, cancel } from "../../static/api";
 
 import { events } from "../../static/events";
 
@@ -132,13 +127,13 @@ export default {
   },
   created() {
     // this.$root.$on(this.event.status, this.handleUpdateStatus);
-    this.$root.$on(this.event.remove, this.handleRemove);
+    this.$root.$on(this.event.close, this.handleRemove);
     this.$root.$on(this.event.cancel, this.handleCancel);
     this.$root.$on(this.event.open, this.handleOpen);
   },
   destroyed() {
     // this.$root.$off(this.event.status, this.handleUpdateStatus);
-    this.$root.$off(this.event.remove, this.handleRemove);
+    this.$root.$off(this.event.close, this.handleRemove);
     this.$root.$off(this.event.cancel, this.handleCancel);
     this.$root.$off(this.event.open, this.handleOpen);
   },
@@ -155,12 +150,12 @@ export default {
       this.$store.dispatch("analyzers/analyze", { id: this.id });
     },
     handleRemove() {
-      console.log(`sidebar: handling remove event (${this.id})`);
+      console.log(`sidebar: handling close event (${this.id})`);
       if (this.$route.query.id === this.id) {
         // navigate away from closed analyzer
         this.$router.push("/");
       }
-      this.$store.dispatch("analyzers/remove", { id: this.id });
+      this.$store.dispatch("analyzers/close", { id: this.id });
     },
     handleCancel() {
       // console.log(`sidebar: handling cancel event (${this.id})`);
@@ -196,7 +191,7 @@ export default {
       return {
         status: events.sidebar.status(this.id),
         cancel: events.sidebar.cancel(this.id),
-        remove: events.sidebar.remove(this.id),
+        close: events.sidebar.close(this.id),
         open: events.sidebar.open(this.id),
       };
     },
