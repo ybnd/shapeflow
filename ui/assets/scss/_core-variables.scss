@@ -10,8 +10,10 @@ $sidebar-bg: $gray-800;
 $sidebar-header-bg: rgba(0,0,0,.2) !default;
 $sidebar-footer-bg: rgba(0,0,0,.2) !default;
 
-$header-height: 38px; /* match sidebar header height with one link, hacky */
-$header-contrast: 0;
+$header-height: 38px;
+$header-item-gap: 4px;
+$header-item-height: calc(#{$header-height} - 2 * #{$header-item-gap});
+$header-icon-height: calc(#{$header-item-height} - 2 * #{$header-item-gap});
 
 $sidebar-nav-title-padding-y:         .5rem !default;
 $sidebar-nav-title-padding-x:         .5rem !default;

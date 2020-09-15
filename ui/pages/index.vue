@@ -32,9 +32,9 @@
           <b-popover
             v-if="show_popover"
             target="clear-queue"
+            custom-class="queue-popover"
             id="clear-queue-popover"
             :show.sync="show_popover"
-            triggers="hover"
             :delay="{ show: 50, hide: 200 }"
             placement="bottomright"
             container="main"
@@ -134,7 +134,14 @@ export default {
 };
 </script>
 
-<style lang="scss" scoped>
+<style lang="scss">
+@import "../assets/scss/_bootstrap-variables";
+@import "../assets/scss/_core-variables";
+@import "node_modules/bootstrap/scss/functions";
+
+$clear-popover-scoot: 17px; // align popover 'ok' button with left edge of 'remove' button
+$clear-popover-arrow-nudge: 2px; // align arrow with center of button
+
 .queue-button {
   font-size: 16px;
   vertical-align: middle;
@@ -147,5 +154,14 @@ export default {
 }
 .queue-info {
   font-family: monospace;
+}
+
+.queue-popover {
+  margin-left: -$clear-popover-scoot;
+  .arrow {
+    left: calc(
+      #{$clear-popover-scoot} - #{$clear-popover-arrow-nudge}
+    ) !important;
+  }
 }
 </style>

@@ -15,13 +15,11 @@ export default {
 @import "../../assets/scss/_core-variables";
 @import "node_modules/bootstrap/scss/functions";
 
-$item-height: calc(#{$header-height - 8px});
-
 .page-header-item {
   flex: 0 1 auto;
 
-  margin-top: 4px;
-  margin-bottom: 4px;
+  margin-top: $header-item-gap;
+  margin-bottom: $header-item-gap;
 
   background: $gray-200;
   display: flex;
@@ -29,30 +27,30 @@ $item-height: calc(#{$header-height - 8px});
 
   overflow: visible;
 
-  height: $item-height;
-  min-height: $item-height;
-  max-height: $item-height;
+  height: $header-item-height;
+  min-height: $header-item-height;
+  max-height: $header-item-height;
 
   min-width: 20px;
 }
 .page-header-item .btn {
-  height: $item-height;
-  padding: 4px;
+  height: $header-item-height;
+  padding: $header-item-gap;
 }
 .page-header-item > * {
-  height: $item-height;
-  max-height: $item-height;
-  margin-right: 4px;
+  height: $header-item-height;
+  max-height: $header-item-height;
+  margin-right: $header-item-gap;
 }
 
 .header-button-icon {
-  width: $item-height;
+  width: $header-item-height;
   font-size: 14px;
   vertical-align: middle;
   padding: 0 !important;
   * {
-    max-height: calc(#{$item-height} - 8px);
-    max-width: calc(#{$item-height} - 8px);
+    max-height: $header-icon-height;
+    max-width: $header-icon-height;
     margin: 0;
     padding: 0;
   }
