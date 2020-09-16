@@ -183,7 +183,7 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
             for feature in value
         ])
 
-    @validator('feature_parameters')
+    @validator('feature_parameters', pre=True)
     def _validate_parameters(cls, value, values):
         # todo: not called if `feature_parameters` is not set
         #        -> should be called in that case if `features` is set!
@@ -207,7 +207,7 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
                 else:
                     # Resolve anything else to default FeatureConfig and complain
                     parameters.append(feature.get()._config_class())
-                    log.warning(
+                    log.error(
                         f"{feature}: parameters should be specified as "
                         f"a list of dict / array of object instead of "
                         f"{value[index]} -- set to default")
