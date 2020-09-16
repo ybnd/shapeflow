@@ -149,10 +149,12 @@ class Main(isimple.core.Lockable):
             return send_from_directory(UI, 'index.html')
 
         @app.route('/<file>')
-        @app.route('/<directory1>/<file>')
-        @app.route('/<directory1>/<directory2>/<file>')
-        def get_file(file, directory1 = '', directory2 = ''):
-            directory = os.path.join(UI, directory1, directory2)
+        @app.route('/<d1>/<file>')
+        @app.route('/<d1>/<d2>/<file>')
+        @app.route('/<d1>/<d2>/<d3>/<file>')
+        @app.route('/<d1>/<d2>/<d3>/<d4>/<file>')
+        def get_file(file, d1 ='', d2 ='', d3 ='', d4=''):
+            directory = os.path.join(UI, d1, d2, d3, d4)
             log.debug(f"Serving '{os.path.join(directory,file)}'")
             return send_from_directory(directory, file)
 
