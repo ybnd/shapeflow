@@ -374,7 +374,7 @@ class AnalysisModel(BaseAnalysisModel):
                         return {context: config[context]}
         return None
 
-    def undo_config(self, context: str = None):
+    def get_undo_config(self, context: str = None) -> Optional[dict]:
         """Undo configuration. If a ``context`` is supplied, ensure that the
         ``context`` field changes, but the other fields remain the same
 
@@ -389,17 +389,15 @@ class AnalysisModel(BaseAnalysisModel):
             If ``context`` is not a ``VideoAnalyzer`` field
         """
         if context is None or context in VideoAnalyzerConfig.__fields__:
-            config = self._step_config(
+            return self._step_config(
                 ConfigModel.added < self._added(context),
                 ConfigModel.added.desc(),
                 context
             )
-            if self._analyzer is not None and config is not None:
-                self._analyzer.set_config(config=config, silent=(context is None))
         else:
             raise ValueError(f"Invalid undo context '{context}'")
 
-    def redo_config(self, context: str = None):
+    def get_redo_config(self, context: str = None) -> Optional[dict]:
         """Redo configuration. If a ``context`` is supplied, ensure that the
         ``context`` field changes, but the other fields remain the same
 
@@ -414,13 +412,11 @@ class AnalysisModel(BaseAnalysisModel):
             If ``context`` is not a ``VideoAnalyzer`` field
         """
         if context is None or context in VideoAnalyzerConfig.__fields__:
-            config = self._step_config(
+            return self._step_config(
                 ConfigModel.added > self._added(context),
                 ConfigModel.added,
                 context
             )
-            if self._analyzer is not None and config is not None:
-                self._analyzer.set_config(config=config, silent=(context is None))
         else:
             raise ValueError(f"Invalid redo context '{context}'")
 
@@ -431,6 +427,7 @@ class History(SessionWrapper, RootInstance):
     _instance_class = SessionWrapper
 
     def __init__(self, path: Path = None):
+        log.info('launching a history')
         super().__init__()
         self._gather_instances()
 
@@ -440,6 +437,9 @@ class History(SessionWrapper, RootInstance):
         self._engine = create_engine(f'sqlite:///{str(path)}')
         Base.metadata.create_all(self._engine)
         self._session_factory = scoped_session(sessionmaker(bind=self._engine))
+
+        # todo: diagnostic
+        self._session_factory.history_uuid = self.id
 
     def add_video_file(self, path: str) -> VideoFileModel:
         """Add a video file to the database. Duplicate files are resolved

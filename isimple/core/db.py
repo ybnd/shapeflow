@@ -92,17 +92,20 @@ class DbModel(Base, SessionWrapper):
         """
         log.vdebug(f'opening session')
         session = self._session_factory()
-        if add:
-            for model in self._models:
-                session.add(model)
+
         try:
+            if add:
+                for model in self._models:
+                    session.add(model)
+
             self._pre()
             yield session
             self._post()
             log.vdebug('committing')
             session.commit()
-        except:
-            log.warning('rolling back')
+        except Exception as e:
+            log.error(f"error during session: {e.args}")
+            log.error('rolling back')
             session.rollback()
             raise
         finally:
@@ -112,10 +115,11 @@ class DbModel(Base, SessionWrapper):
     def _pre(self):
         if hasattr(self, 'added') and self.added is None:
             self.added = datetime.datetime.now()
-
-    def _post(self):
         if hasattr(self, 'modified'):
             self.modified = datetime.datetime.now()
+
+    def _post(self):
+        pass
 
 
 class FileModel(DbModel):
@@ -231,13 +235,13 @@ class BaseAnalysisModel(DbModel):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def undo_config(self, context: str = None) -> Optional[dict]:
+    def get_undo_config(self, context: str = None) -> Optional[dict]:
         """Undo configuration. If a ``context`` is supplied, ensure that the
         ``context`` field changes, but the other fields remain the same"""
         raise NotImplementedError
 
     @abc.abstractmethod
-    def redo_config(self, context: str = None) -> Optional[dict]:
+    def get_redo_config(self, context: str = None) -> Optional[dict]:
         """Redo configuration. If a ``context`` is supplied, ensure that the
         ``context`` field changes, but the other fields remain the same"""
         raise NotImplementedError

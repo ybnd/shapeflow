@@ -1187,13 +1187,15 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
     @backend.expose(backend.undo_config)
     def undo_config(self, context: str = None) -> dict:  # todo: implement undo/redo context (e.g. transform, masks)
-        self.model.undo_config(context)
-        return self.get_config()
+        with self.lock():
+            undo = self.model.get_undo_config(context)
+        return self.set_config(undo, silent=(context is None))
 
     @backend.expose(backend.redo_config)
     def redo_config(self, context: str = None) -> dict:
-        self.model.redo_config(context)
-        return self.get_config()
+        with self.lock():
+            redo = self.model.get_redo_config(context)
+        return self.set_config(redo, silent=(context is None))
 
     @backend.expose(backend.set_filter_click)
     def set_filter_click(self, relative_x: float, relative_y: float):
