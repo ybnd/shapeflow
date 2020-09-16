@@ -721,13 +721,18 @@ class Main(isimple.core.Lockable):
         if self.valid(id):
             t0 = time.time()
             log.debug(f"{self._roots[id]}: call '{endpoint}'")
-            # todo: sanity check this
-            method = self._roots[id].get(getattr(backend.backend, endpoint))
 
-            result = method(**data)
-            log.debug(f"{self._roots[id]}: return '{endpoint}' "
-                      f"({time.time() - t0} s elapsed)")
-            return result
+            try:
+                method = self._roots[id].get(getattr(backend.backend, endpoint))
+                result = method(**data)
+
+                log.debug(f"{self._roots[id]}: return '{endpoint}' "
+                          f"({time.time() - t0} s elapsed)")
+                return result
+
+            except Exception as e:
+                self._roots[id].notice(f"Error @ '{endpoint}': {e.args}")
+                return False
         else:
             return None
 
@@ -736,8 +741,13 @@ class Main(isimple.core.Lockable):
             data = {}
 
         log.debug(f"db: call '{endpoint}' {data}")
-        method = self._history.get(getattr(db.history, endpoint))
-        result = method(**data)
+        try:
+            method = self._history.get(getattr(db.history, endpoint))
+            result = method(**data)
+        except Exception as e:
+            self.notice(f"Error @ '{endpoint}': {e.args}")
+            return False
+
         return result
 
     def stream(self, id: str, endpoint: str) -> Optional[streaming.BaseStreamer]:  # todo: extend to handle json streaming also
