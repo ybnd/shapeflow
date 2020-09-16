@@ -90,6 +90,16 @@
           />
         </b-button>
       </PageHeaderItem>
+      <page-header-item>
+        <b-button
+          class="header-button-icon"
+          @click="moveableShow = !moveableShow"
+          data-toggle="tooltip"
+          title="Rotate 90° counter-clockwise"
+        >
+          <i class="fa fa-rotate-left" />
+        </b-button>
+      </page-header-item>
     </PageHeader>
     <div class="align-content">
       <div
@@ -104,20 +114,19 @@
           class="streamed-image-a"
           ref="frame"
         />
-        <template v-if="moveableShow">
-          <Moveable
-            class="moveable"
-            ref="moveable"
-            v-bind="moveable"
-            @drag="handleTransform"
-            @scale="handleTransform"
-            @rotate="handleRotate"
-            @warp="handleTransform"
-            @render="handleUpdate"
-            @renderEnd="handleSaveAlignment"
-          >
-          </Moveable>
-        </template>
+        <Moveable
+          class="moveable"
+          :className="moveableShow ? '' : 'hidden-moveable'"
+          ref="moveable"
+          v-bind="moveable"
+          @drag="handleTransform"
+          @scale="handleTransform"
+          @rotate="handleRotate"
+          @warp="handleTransform"
+          @render="handleUpdate"
+          @renderEnd="handleSaveAlignment"
+        >
+        </Moveable>
       </div>
     </div>
   </div>
@@ -231,9 +240,8 @@ export default {
         if (ok) {
           clear_roi(this.id).then((ok) => {
             if (ok) {
-              this.handleHideMoveable();
-              this.clearRoi;
-              this.handleUpdate();
+              this.clearRoi();
+              // this.handleUpdate();
             }
           });
         }
@@ -265,21 +273,8 @@ export default {
       if (!(this.align.roi === roi)) {
         if (roiIsValid(roi)) {
           // console.log("is valid");
-          if (this.moveableShow) {
-            this.align.roi = roi;
-            this.resolveTransform();
-          } else {
-            this.handleShowMoveable().then(() => {
-              // console.log("setRoi() -- moveable should be exist & accessible");
-              this.align.roi = roi;
-              this.resolveTransform();
-
-              // don't update if this.align.roi hasn't changed
-              if (!isEqual(this.align.roi, this.config.roi)) {
-                this.handleUpdate();
-              }
-            });
-          }
+          this.align.roi = roi;
+          this.resolveTransform();
         } else {
           // console.log("is invalid");
           this.clearRoi();
@@ -315,24 +310,24 @@ export default {
         );
 
         // todo: sanity check transform
-        if (this.moveableShow) {
-          if (this.$refs.moveable === undefined) {
-            this.waitUntilHasMoveable = setInterval(() => {
-              // todo: try to do ~ Promise instead?
-              if (this.$refs.moveable !== undefined) {
-                this.$refs.moveable.$el.style.transform = this.align.transform;
-                this.$refs.moveable.updateRect();
-                this.$refs.moveable.updateTarget();
-                clearInterval(this.waitUntilHasMoveable);
-              } else {
-                // console.log("oops no moveable");
-              }
-            }, 50);
-          } else {
-            this.$refs.moveable.$el.style.transform = this.align.transform;
-            this.$refs.moveable.updateRect();
-            this.$refs.moveable.updateTarget();
-          }
+
+        if (this.$refs.moveable === undefined) {
+          this.waitUntilHasMoveable = setInterval(() => {
+            // todo: try to do ~ Promise instead?
+            if (this.$refs.moveable !== undefined) {
+              this.$refs.moveable.$el.style.transform = this.align.transform;
+              this.$refs.moveable.updateRect();
+              this.$refs.moveable.updateTarget();
+              clearInterval(this.waitUntilHasMoveable);
+            } else {
+              // console.log("oops no moveable");
+            }
+          }, 50);
+        } else {
+          this.$refs.moveable.$el.style.transform = this.align.transform;
+          this.$refs.moveable.updateRect();
+          this.$refs.moveable.updateTarget();
+          this.moveableShow = true;
         }
       } else {
       }
@@ -498,6 +493,7 @@ export default {
 
         if (rectangle !== null) {
           this.setRoi(rectangle);
+          this.handleUpdate();
         }
       } else {
         // console.log("align: handleStopRectangle() -- moveable is already shown!");
@@ -707,5 +703,9 @@ export default {
   /*background: #ff0000;*/
   flex-grow: 1;
   height: calc(100vh - #{$header-height});
+}
+
+.hidden-moveable > * {
+  visibility: hidden !important;
 }
 </style>
