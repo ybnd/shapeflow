@@ -185,9 +185,6 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
 
     @validator('feature_parameters', pre=True)
     def _validate_parameters(cls, value, values):
-        # todo: not called if `feature_parameters` is not set
-        #        -> should be called in that case if `features` is set!
-
         if 'features' in values:
             features = values['features']
         else:
@@ -220,24 +217,20 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
     _validate_fis = validator('frame_interval_setting')(BaseConfig._resolve_enforcedstr)
 
 
-def load(path: str) -> VideoAnalyzerConfig:
-    log.debug(f'Loading VideoAnalyzerConfig from {path}')
-    with open(path, 'r') as f:  # todo: assuming it is yaml, sanity check?
-        d = yaml.safe_load(f)
-    d = normalize_config(d)
-
-    return VideoAnalyzerConfig(**d)
-
-
 def loads(config: str) -> BaseConfig:
     d = json.loads(config)
 
     try:
         config_cls = ConfigType(d[CLASS]).get()
     except KeyError:
+        log.error('')
         config_cls = VideoAnalyzerConfig
 
-    d = normalize_config(d)
+    try:
+        d = normalize_config(d)
+    except NotImplementedError:
+        log.warning(f"can't normalize '{config_cls.__name__}'")
+
     return config_cls(**d)
 
 
@@ -266,7 +259,11 @@ def normalize_config(d: dict) -> dict:
     # VideoAnalyzerConfig is the only class that should be deserialized!
     #    -> other classes are contained within it or should only be used
     #       internally. Otherwise, this function would have to be a lot
-    #       more complex.
+    #       more complex.  todo: actually, no.
+    #                            Just add some nested functions for the
+    #                            internal fields, switch ~ class.
+    #                            Some classes can use multiple functions;
+    #                            go over the fields and pick out functions.
     if d[CLASS] == VideoAnalyzerConfig.__name__:
         if before_version(d[VERSION], '0.2.1'):
             normalizing_to('0.2.1')
@@ -413,12 +410,3 @@ def normalize_config(d: dict) -> dict:
     untag(d)
 
     return d
-
-
-def dump(config: VideoAnalyzerConfig, path:str):
-    with open(path, 'w+') as f:
-        yaml.safe_dump(config.to_dict(do_tag=True),f, width=999)
-
-
-def dumps(config: VideoAnalyzerConfig) -> str:
-    return yaml.safe_dump(config.to_dict(do_tag=True), width=999)

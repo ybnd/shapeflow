@@ -14,7 +14,7 @@ from OnionSVG import OnionSVG, check_svg
 from isimple import get_logger, settings, ResultSaveMode
 from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     FilterHandlerConfig, MaskConfig, \
-    DesignFileHandlerConfig, VideoAnalyzerConfig, dump, \
+    DesignFileHandlerConfig, VideoAnalyzerConfig, \
     FrameIntervalSetting, BaseAnalyzerConfig, FlipConfig
 from isimple.core import Lockable
 from isimple.core.backend import Instance, CachingInstance, \
