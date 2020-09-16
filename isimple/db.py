@@ -345,7 +345,7 @@ class AnalysisModel(BaseAnalysisModel):
             else:
                 return self._added_by_context[context]
 
-    def _step_config(self, filter, order, context: str = None) -> Optional[dict]:
+    def _step_config(self, filter, order, context: str = None) -> Tuple[Optional[dict], Optional[int]]:
         with self.session() as s:
             q = list(
                 s.query(ConfigModel).\
@@ -354,6 +354,8 @@ class AnalysisModel(BaseAnalysisModel):
                 filter(filter).\
                 order_by(order)
             )
+
+
 
             for match in q:
                 assert isinstance(match, ConfigModel)
@@ -364,17 +366,17 @@ class AnalysisModel(BaseAnalysisModel):
                     self._config = match
                     self._config.connect(self)
                     s.add(self._config)
-                    return config
+                    return config, match.id
                 else:
                     assert self._analyzer is not None
-                    if context in config and config[context] != self._analyzer.config.to_dict()[context]:
+                    if context in config and config[context] != self._analyzer.get_config()[context]:
                         self._config = None
                         assert isinstance(match.added, datetime.datetime)
                         self._added_by_context[context] = match.added
-                        return {context: config[context]}
-        return None
+                        return {context: config[context]}, match.id
+        return None, None
 
-    def get_undo_config(self, context: str = None) -> Optional[dict]:
+    def get_undo_config(self, context: str = None) -> Tuple[Optional[dict], Optional[int]]:
         """Undo configuration. If a ``context`` is supplied, ensure that the
         ``context`` field changes, but the other fields remain the same
 
@@ -397,7 +399,7 @@ class AnalysisModel(BaseAnalysisModel):
         else:
             raise ValueError(f"Invalid undo context '{context}'")
 
-    def get_redo_config(self, context: str = None) -> Optional[dict]:
+    def get_redo_config(self, context: str = None) -> Tuple[Optional[dict], Optional[int]]:
         """Redo configuration. If a ``context`` is supplied, ensure that the
         ``context`` field changes, but the other fields remain the same
 

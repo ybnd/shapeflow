@@ -561,8 +561,17 @@ class BaseVideoAnalyzer(Instance, RootInstance):
                 self.set_state(AnalyzerState.CAN_FILTER, push)
             elif self.launched:
                 self.set_state(AnalyzerState.LAUNCHED, push)
+        else:
+            if self.can_analyze():
+                self.set_state(AnalyzerState.CAN_ANALYZE, push)
+            elif self.can_filter():
+                self.set_state(AnalyzerState.CAN_FILTER, push)
+            elif self.launched:
+                self.set_state(AnalyzerState.LAUNCHED, push)
             elif self.can_launch():
                 self.set_state(AnalyzerState.CAN_LAUNCH, push)
+            else:
+                self.set_state(AnalyzerState.ERROR)
 
         return int(self.state)
 

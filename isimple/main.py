@@ -737,18 +737,19 @@ class Main(isimple.core.Lockable):
             return None
 
     def db_call(self, endpoint: str, data: dict = None) -> Any:
-        if data is None:
-            data = {}
+        with self.lock():
+            if data is None:
+                data = {}
 
-        log.debug(f"db: call '{endpoint}' {data}")
-        try:
-            method = self._history.get(getattr(db.history, endpoint))
-            result = method(**data)
-        except Exception as e:
-            self.notice(f"Error @ '{endpoint}': {e.args}")
-            return False
+            log.debug(f"db: call '{endpoint}' {data}")
+            try:
+                method = self._history.get(getattr(db.history, endpoint))
+                result = method(**data)
+            except Exception as e:
+                self.notice(f"Error @ '{endpoint}': {e.args}")
+                return False
 
-        return result
+            return result
 
     def stream(self, id: str, endpoint: str) -> Optional[streaming.BaseStreamer]:  # todo: extend to handle json streaming also
         with self.lock():

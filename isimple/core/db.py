@@ -235,13 +235,13 @@ class BaseAnalysisModel(DbModel):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_undo_config(self, context: str = None) -> Optional[dict]:
+    def get_undo_config(self, context: str = None) -> Tuple[Optional[dict], Optional[int]]:
         """Undo configuration. If a ``context`` is supplied, ensure that the
         ``context`` field changes, but the other fields remain the same"""
         raise NotImplementedError
 
     @abc.abstractmethod
-    def get_redo_config(self, context: str = None) -> Optional[dict]:
+    def get_redo_config(self, context: str = None) -> Tuple[Optional[dict], Optional[int]]:
         """Redo configuration. If a ``context`` is supplied, ensure that the
         ``context`` field changes, but the other fields remain the same"""
         raise NotImplementedError

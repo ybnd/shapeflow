@@ -1191,13 +1191,19 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     @backend.expose(backend.undo_config)
     def undo_config(self, context: str = None) -> dict:  # todo: implement undo/redo context (e.g. transform, masks)
         with self.lock():
-            undo = self.model.get_undo_config(context)
+            undo, id = self.model.get_undo_config(context)
+        if undo is not None and id is not None:
+            # self.notice(f"undo: grabbed config {id}")
+            self.state_transition()
         return self.set_config(undo, silent=(context is None))
 
     @backend.expose(backend.redo_config)
     def redo_config(self, context: str = None) -> dict:
         with self.lock():
-            redo = self.model.get_redo_config(context)
+            redo, id = self.model.get_redo_config(context)
+        if redo is not None and id is not None:
+            # self.notice(f"redo: grabbed config {id}")
+            self.state_transition()
         return self.set_config(redo, silent=(context is None))
 
     @backend.expose(backend.set_filter_click)
@@ -1254,6 +1260,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         for mask in self.masks:
             mask.clear_filter()
 
+        self.set_state(AnalyzerState.CAN_FILTER)
         self.state_transition()
         self.event(PushEvent.CONFIG, self.get_config())
         self.commit()
