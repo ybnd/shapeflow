@@ -34,6 +34,9 @@ const CATEGORY_COMMIT = {
 const MAX_TIME_WITHOUT_CONTACT = 1500;
 const SYNC_INTERVAL = 1000;
 
+const OPENED_AT = Date.now();
+const LOAD_INTERVAL = 1000;
+
 export const state = () => {
   return {
     last_heard_from_backend: null,
@@ -250,6 +253,13 @@ export const getters = {
   },
   getIndex: (state) => (id) => {
     return state.queue.indexOf(id);
+  },
+  isValidId: (state) => (id) => {
+    if (Math.abs(Date.now() - OPENED_AT) > LOAD_INTERVAL) {
+      return state.queue.indexOf(id) !== -1;
+    } else {
+      return undefined;
+    }
   },
   getFullStatus: (state) => {
     return state.status;

@@ -172,7 +172,7 @@ export default {
       this.opened_at = Date.now();
 
       // Check if this.id is queued. If not, navigate to /
-      if (this.$store.getters["analyzers/getIndex"](this.id) === -1) {
+      if (this.$store.getters["analyzers/isValidId"](this.id) === false) {
         this.$router.push(`/`);
       } else {
         this.$root.$emit(events.sidebar.open(this.id));
@@ -270,20 +270,6 @@ export default {
         if (data.message) {
           // console.log(`//PUT THIS IN A POPUP OR SOMETHING// ${data.message}`);
         }
-      });
-    },
-    handleSetMask(mask, index) {
-      // console.log("filter: handleSetMask()");
-      // console.log(mask);
-      // console.log(index);
-      this.mask = index;
-    },
-    handleSetFilter(filter, index) {
-      this.config.masks[this.mask].filter.type = filter;
-
-      this.$store.dispatch("analyzers/set_config", {
-        id: this.id,
-        config: this.config,
       });
     },
     handleClearFilters() {

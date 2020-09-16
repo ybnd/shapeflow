@@ -66,6 +66,7 @@
       <b-card class="basic-config-container isimple-form-section">
         <div class="basic-config-gap">
           <BasicConfig
+            v-if="this.ready.schema && this.ready.config"
             ref="BasicConfig"
             :config="config"
             :static-paths="true"
@@ -94,7 +95,7 @@
         <!--          />-->
 
         <SchemaForm
-          v-if="config"
+          v-if="this.ready.schema && this.ready.config"
           :data="config"
           :schema="schema"
           :skip="[
@@ -149,10 +150,10 @@ export default {
     BasicConfig,
     SchemaForm,
   },
-  beforeMount() {
+  mounted() {
     this.handleInit();
   },
-  beforeDestroy() {
+  destroyed() {
     this.handleCleanUp();
   },
   methods: {
@@ -178,23 +179,59 @@ export default {
       redo_config(this.id).then(this.handleGetConfig());
     },
     handleInit() {
+      console.log(`configure.handleInit() id=${this.id}`);
       this.previous_id = this.id;
 
-      if (this.$store.getters["analyzers/getIndex"](this.id) === -1) {
+      console.log(this.$store.getters["analyzers/isValidId"](this.id));
+
+      if (this.$store.getters["analyzers/isValidId"](this.id) === false) {
         this.$router.push(`/`);
       } else {
+        console.log("initializing");
         this.$root.$emit(events.sidebar.open(this.id));
-        this.handleGetConfig();
+
+        if (!this.ready.config) {
+          this.$store
+            .dispatch("analyzers/get_config", { id: this.id })
+            .then(() => {
+              console.log("handleInit callback");
+              this.handleCheckSchema();
+              this.handleGetConfig();
+            });
+        } else {
+          this.handleCheckSchema();
+          this.handleGetConfig();
+        }
       }
     },
     handleCleanUp() {},
+    handleCheckConfig() {
+      const ok =
+        this.config.hasOwnProperty("features") &&
+        this.config.features !== undefined; // this is just the first field that comes up as an error otherwise
+      console.log(`config is ok? ${ok}`);
+      this.ready.config = ok;
+      return ok;
+    },
+    handleCheckSchema() {
+      const ok =
+        this.schema.hasOwnProperty("properties") &&
+        this.schema.properties !== undefined;
+      console.log(`schema is ok? ${ok}`);
+      this.ready.schema = ok;
+      return ok;
+    },
     handleGetConfig() {
       // console.log("configure.hangleGetConfig()");
 
       this.config = this.$store.getters["analyzers/getAnalyzerConfigCopy"](
         this.id
       );
+      this.ready.config = this.handleCheckConfig();
       this.waiting = false;
+
+      console.log(`ready: ${this.ready.config && this.ready.schema}`);
+      console.log(this.ready);
 
       // console.log("config=");
       // console.log(this.config);
@@ -235,8 +272,13 @@ export default {
       this.handleCleanUp();
       this.handleInit();
     },
-    store_config: function () {
+    store_config() {
+      console.log("config changed");
       this.handleGetConfig();
+    },
+    schema() {
+      console.log("schema changed");
+      this.ready.schema = this.handleCheckSchema();
     },
   },
   computed: {
@@ -255,9 +297,19 @@ export default {
     store_config() {
       return this.$store.getters["analyzers/getAnalyzerConfig"](this.id);
     },
+    isReady() {
+      console.log(
+        `configure.isReady() ${this.ready.schema && this.ready.config}`
+      );
+      return this.ready.schema && this.ready.config;
+    },
   },
   data() {
     return {
+      ready: {
+        schema: false,
+        config: false,
+      },
       config: {},
       waiting: true,
       out: {
