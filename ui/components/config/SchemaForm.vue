@@ -486,13 +486,11 @@ export default {
         }
       },
       p_options: (p) => {
+        // console.log(`SchemaForm.p_options() p=${p}`);
         const p_schema = this.get_from_schema(p);
 
         if (p_schema !== undefined) {
-          return {
-            enum: p_schema.enum,
-            // todo: is there some kind of float/int 'step' in the schema?
-          };
+          return p_schema;
         } else {
           return undefined;
         }

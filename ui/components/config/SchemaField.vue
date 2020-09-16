@@ -3,7 +3,11 @@
     :is="new_row ? 'b-form-row' : 'div'"
     :class="new_row ? 'isimple-form-row' : ''"
   >
-    <label class="mr-sm-2 isimple-form-label" v-if="title !== ''">
+    <label
+      class="mr-sm-2 isimple-form-label"
+      v-if="title !== ''"
+      :style="type_label_style"
+    >
       {{ title }}
     </label>
     <component
@@ -33,6 +37,7 @@ import { COMMIT, ENTER_FOCUSOUT_INTERVAL } from "../../static/events";
 const types = {
   ENUM: "enum",
   STRING: "string",
+  PATH: "path",
   INTEGER: "integer",
   FLOAT: "float",
   NUMBER: "number",
@@ -110,12 +115,20 @@ export default {
   },
   computed: {
     type_() {
+      // console.log(`SchemaField.type_() title=${this.title}`);
+      // console.log(this.options);
+
       if (
         this.options.hasOwnProperty("enum") &&
         this.options.enum !== undefined &&
         this.options.enum.length > 0
       ) {
-        return "enum";
+        return types.ENUM;
+      } else if (
+        this.options.hasOwnProperty("format") &&
+        ["directory-path", "file-path"].includes(this.options.format)
+      ) {
+        return types.PATH;
       } else {
         return this.type;
       }
@@ -146,6 +159,9 @@ export default {
 
       return { ...this.default_style[this.type_], ...this.style_ };
     },
+    type_label_style() {
+      return this.label_style[this.type_];
+    },
     type_type() {
       return this.types[this.type_];
     },
@@ -171,6 +187,7 @@ export default {
       commit: {
         [types.ENUM]: false,
         [types.STRING]: true,
+        [types.PATH]: true,
         [types.INTEGER]: true,
         [types.FLOAT]: true,
         [types.NUMBER]: true,
@@ -179,6 +196,7 @@ export default {
       components: {
         [types.ENUM]: "b-form-select",
         [types.STRING]: "b-form-input",
+        [types.PATH]: "b-form-input",
         [types.INTEGER]: "b-form-input",
         [types.FLOAT]: "b-form-input",
         [types.NUMBER]: "b-form-input",
@@ -187,6 +205,7 @@ export default {
       classes: {
         [types.ENUM]: ["isimple-form-field-auto"],
         [types.STRING]: ["isimple-form-field-auto"],
+        [types.PATH]: ["isimple-form-field-wide"],
         [types.INTEGER]: ["isimple-form-field-auto", "isimple-noarrow"],
         [types.FLOAT]: ["isimple-form-field-auto", "isimple-noarrow"],
         [types.NUMBER]: ["isimple-form-field-auto", "isimple-noarrow"],
@@ -195,6 +214,7 @@ export default {
       types: {
         [types.ENUM]: "",
         [types.STRING]: "text",
+        [types.PATH]: "text",
         [types.INTEGER]: "number",
         [types.FLOAT]: "number",
         [types.NUMBER]: "number",
@@ -203,6 +223,7 @@ export default {
       default_options: {
         [types.ENUM]: {},
         [types.STRING]: {},
+        [types.PATH]: {},
         [types.INTEGER]: {},
         [types.FLOAT]: { step: 0.001 },
         [types.NUMBER]: { step: 0.001 },
@@ -211,9 +232,19 @@ export default {
       default_style: {
         [types.ENUM]: {},
         [types.STRING]: {},
+        [types.PATH]: {},
         [types.INTEGER]: { "max-width": "90px" },
         [types.FLOAT]: { "max-width": "150px" },
         [types.NUMBER]: { "max-width": "90px" },
+        [types.BOOLEAN]: {},
+      },
+      label_style: {
+        [types.ENUM]: {},
+        [types.STRING]: {},
+        [types.PATH]: { "padding-bottom": "0", "margin-bottom": "-10px" },
+        [types.INTEGER]: {},
+        [types.FLOAT]: {},
+        [types.NUMBER]: {},
         [types.BOOLEAN]: {},
       },
       parse: {
@@ -221,6 +252,9 @@ export default {
           return v;
         },
         [types.STRING]: (v) => {
+          return v;
+        },
+        [types.PATH]: (v) => {
           return v;
         },
         [types.INTEGER]: (v) => {

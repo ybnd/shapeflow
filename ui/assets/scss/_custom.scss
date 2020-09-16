@@ -216,11 +216,11 @@ $form-color: theme-color('gray-700');
   flex-grow: 0;
 }
 
-.isimple-form-field-fit {
+.isimple-form-field-wide {
   height: $form-field-height;
-  display: block;
-  width: auto !important;
-  max-width: 200px !important;
+  //display: block;
+  //width: auto !important;
+  //min-width: 400px !important;
   flex-shrink: 1;
   flex-grow: 0;
 }
