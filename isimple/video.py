@@ -544,7 +544,7 @@ class Mask(Instance):
         self._config(**config)
         self.filter.set_config(self.config.filter.to_dict())
 
-    def set_filter(self, color: HsvColor):
+    def set_filter(self, color: Optional[HsvColor]):
         self.filter.set(color=color)
         self.config.filter(**self.filter.config.to_dict())  # todo: otherwise, mask config is not updated!
 
@@ -570,6 +570,9 @@ class Mask(Instance):
             )
         else:
             return False
+
+    def clear_filter(self):
+        self.set_filter(color=None)
 
     @property
     def design(self):
@@ -1201,8 +1204,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     def set_filter_click(self, relative_x: float, relative_y: float):
         log.debug(f'set_filter_click @ ({relative_x}, {relative_y})')
 
-        response: Dict[str, Any] = {}
-
         click = ShapeCoo(
             x = relative_x,
             y = relative_y,
@@ -1245,6 +1246,21 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 f"Multiple valid options: {[hit.name for hit in hits]}. "
                 f"Select a point where masks don't overlap."
             )
+
+    @backend.expose(backend.clear_filters)
+    def clear_filters(self) -> bool:
+        log.debug(f"clearing filters")
+
+        for mask in self.masks:
+            mask.clear_filter()
+
+        self.state_transition()
+        self.event(PushEvent.CONFIG, self.get_config())
+        self.commit()
+
+        streams.update()
+
+        return True
 
     @stream
     @backend.expose(backend.get_state_frame)

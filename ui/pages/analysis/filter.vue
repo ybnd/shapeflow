@@ -130,6 +130,7 @@ import {
   analyze,
   stop_stream,
   endpoints,
+  clear_filters,
 } from "../../static/api";
 import { events } from "../../static/events";
 
@@ -286,10 +287,7 @@ export default {
       });
     },
     handleClearFilters() {
-      this.$store.commit("analyzers/newNotice", {
-        id: this.id,
-        notice: { message: "clearing filters has not been implemented yet!" },
-      });
+      clear_filters(this.id);
     },
     handleUndoFilters() {
       undo_config(this.id, "masks");

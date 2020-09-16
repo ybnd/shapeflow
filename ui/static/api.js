@@ -228,6 +228,10 @@ export async function set_filter(id, relative_coordinate) {
     .then(return_data);
 }
 
+export async function clear_filters(id) {
+  return axios.post(api(id, "call/clear_filters")).then(return_success);
+}
+
 export async function commit(id) {
   return axios.post(api(id, "call/commit")).then(return_success);
 }

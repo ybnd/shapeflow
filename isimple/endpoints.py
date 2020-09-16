@@ -63,6 +63,7 @@ class BackendRegistry(ImmutableRegistry):
     get_dpi = Endpoint(Callable[[], float])
     get_mask_rects = Endpoint(Callable[[], Dict[str, np.ndarray]])
     get_db_id = Endpoint(Callable[[], int])
+    clear_filters = Endpoint(Callable[[], bool])
 
 
 class HistoryRegistry(ImmutableRegistry):
