@@ -135,7 +135,7 @@ export default {
         return `Analyzing queue: ${percentage}% (${done.N}/${N} done)`;
       } else {
         return `${N === 0 ? "No" : N} ${
-          N === 1 ? "analyzer" : "analyzers"
+          N === 1 ? "analysis" : "analyses"
         } queued`.concat(
           done.N !== 0 ? ` (${done.N !== N ? done.N : "all"} done).` : "."
         );
