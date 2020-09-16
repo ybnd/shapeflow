@@ -21,14 +21,14 @@
           </label>
           <SchemaField
             :value="model.x"
-            @input="p_set('x', $event)"
+            @commit="p_set('x', $event)"
             type="float"
             :options="{ step: 1e-24 }"
           ></SchemaField>
           <div class="isimple-form-gap" />
           <SchemaField
             :value="model.y"
-            @input="p_set('y', $event)"
+            @commit="p_set('y', $event)"
             type="float"
             :options="{ step: 1e-24 }"
           ></SchemaField>
@@ -47,7 +47,7 @@
           <!-- todo: alignment issues  -- fields jump down by 2px -->
           <SchemaField
             :value="model.h"
-            @input="p_set('h', $event)"
+            @commit="p_set('h', $event)"
             :style_="{
               width: '50px',
               'margin-top': '-2px' /* todo: alignment issue */,
@@ -57,7 +57,7 @@
           <div class="isimple-form-gap" />
           <SchemaField
             :value="model.s"
-            @input="p_set('s', $event)"
+            @commit="p_set('s', $event)"
             :style_="{
               width: '50px',
               'margin-top': '-2px' /* todo: alignment issue */,
@@ -67,7 +67,7 @@
           <div class="isimple-form-gap" />
           <SchemaField
             :value="model.v"
-            @input="p_set('v', $event)"
+            @commit="p_set('v', $event)"
             :style_="{
               width: '50px',
               'margin-top': '-2px' /* todo: alignment issue */,
@@ -88,7 +88,7 @@
           </label>
           <SchemaField
             :value="model.horizontal"
-            @input="p_set('horizontal', $event)"
+            @commit="p_set('horizontal', $event)"
             type="boolean"
           ></SchemaField>
           <label
@@ -99,7 +99,7 @@
           </label>
           <SchemaField
             :value="model.vertical"
-            @input="p_set('vertical', $event)"
+            @commit="p_set('vertical', $event)"
             type="boolean"
           ></SchemaField>
         </b-input-group>
@@ -111,6 +111,8 @@
 <script>
 import SchemaField from "./SchemaField";
 import set from "lodash/set";
+
+import { COMMIT } from "static/events";
 
 const def = {
   COO: "#/definitions/Coo",
@@ -172,7 +174,8 @@ export default {
     },
     p_set(p, a) {
       set(this.model, p, a);
-      this.$emit("input");
+      console.log("SchemaDefinition.p_set()");
+      this.$emit(COMMIT);
     },
   },
   data() {

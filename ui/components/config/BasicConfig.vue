@@ -79,7 +79,7 @@
               type="number"
               v-model="config[config.frame_interval_setting]"
               :placeholder="config.frame_interval_setting"
-              @change="emitChange"
+              @change="onChange"
             />
           </b-input-group>
         </b-row>
@@ -140,6 +140,7 @@
               :value="config.feature_parameters[index][parameter]"
               :options="features.parameters[feature][parameter]"
               @input="(v) => setParameter(index, parameter, v)"
+              @commit="onChange"
               :new_row="false"
               :style_="{
                 'max-width': ['number', 'integer', 'float'].includes(
@@ -202,6 +203,7 @@ import SchemaField from "@/components/config/SchemaField";
 
 import has from "lodash/has";
 import cloneDeep from "lodash/cloneDeep";
+import { COMMIT, ENTER_FOCUSOUT_INTERVAL } from "static/events";
 
 Vue.use(AsyncComputed);
 
@@ -237,16 +239,37 @@ export default {
     }
   },
   methods: {
-    emitChange() {
+    onChange(v) {
       // console.log(this.config);
-      this.$emit("change");
+      this.$emit(COMMIT);
+    },
+    onKeyUp(e) {
+      console.log(e);
+      if (this.type_commit && e.key === "Enter") {
+        this.lastEnter = Date.now();
+        if (this.valueOut !== this.value) {
+          console.log("SchemaField.onKeyUp() 'Enter' -> commit");
+          this.$emit(COMMIT);
+        }
+      }
+    },
+    onFocusOut(e) {
+      console.log(e);
+      if (
+        this.type_commit &&
+        Math.abs(Date.now() - this.lastEnter) > ENTER_FOCUSOUT_INTERVAL
+      ) {
+        if (this.valueOut !== this.value) {
+          console.log("SchemaField.onFocusOut() -> commit");
+          this.$emit(COMMIT);
+        }
+      }
     },
     setParameter(index, parameter, value) {
       // console.log(
       //   `BasicConfig.setParameter() feature=${feature} parameter=${parameter}, value=${value}`
       // );
       this.config.feature_parameters[index][parameter] = value;
-      this.emitChange();
     },
     getConfig() {
       // console.log("BasicConfig.getconfig() -- this.config=");
@@ -269,11 +292,11 @@ export default {
       if (setting in this.frame_interval_settings) {
         this.config.frame_interval_setting = setting;
       }
-      this.emitChange();
+      this.onChange();
     },
     handleRemoveFeature(index) {
       this.config.features.splice(index, 1);
-      this.emitChange();
+      this.onChange();
     },
     handleAddFeature() {
       const feature = this.features.options[0];
@@ -296,7 +319,7 @@ export default {
         console.warn(e);
         this.config.feature_parameters = [];
       }
-      this.emitChange();
+      this.onChange();
     },
     selectFeature(index, feature) {
       // console.log(`selectFeature(${index}) -> feature = ${feature}`);
@@ -308,7 +331,7 @@ export default {
           this.features.defaults[feature]
         );
       }
-      this.emitChange();
+      this.onChange();
     },
     selectVideoFile() {
       select_video_path().then((path) => {

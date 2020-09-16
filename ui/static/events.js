@@ -1,4 +1,4 @@
-export let events = {
+export const events = {
   seek: {
     get(analyzer_id) {
       return `seek-sync-${analyzer_id}`;
@@ -47,3 +47,6 @@ export let events = {
     },
   },
 };
+
+export const COMMIT = "commit";
+export const ENTER_FOCUSOUT_INTERVAL = 1000;

@@ -20,7 +20,7 @@
             :open="p_overridden_parameters(property)"
             :emit_toggle="true"
             @toggle="p_toggle_override_parameters(property)"
-            :clickable="clickable_categories"
+            :clickable="true"
           >
             <template v-if="p_overridden_parameters(property)">
               <SchemaForm
@@ -32,7 +32,7 @@
                 :context="array_context(property, index)"
                 :property_as_title="property_as_title"
                 :key="index"
-                @input="p_change"
+                @commit="p_change"
                 :clickable_categories="clickable_categories"
               />
             </template>
@@ -53,7 +53,7 @@
               :context="array_context(property, index)"
               :property_as_title="property_as_title"
               :key="index"
-              @input="p_change"
+              @commit="p_change"
               :clickable_categories="clickable_categories"
             />
           </SchemaCategory>
@@ -70,7 +70,7 @@
             :definition="p_reference(property)"
             :context="resolve_context(property)"
             :key="property"
-            @input="p_change"
+            @commit="p_change"
           />
           <SchemaForm
             v-else-if="p_is_implementation(property)"
@@ -82,7 +82,7 @@
             :context="resolve_context(property)"
             :property_as_title="property_as_title"
             :key="property"
-            @input="p_change"
+            @commit="p_change"
             :clickable_categories="clickable_categories"
           />
           <SchemaForm
@@ -94,7 +94,7 @@
             :context="resolve_context(property)"
             :property_as_title="property_as_title"
             :key="property"
-            @input="p_change"
+            @commit="p_change"
             :clickable_categories="clickable_categories"
           />
         </template>
@@ -102,7 +102,7 @@
           <SchemaField
             :title="p_title(property)"
             :value="p_model(property)"
-            @input="p_set(resolve_context(property), $event)"
+            @commit="p_set(resolve_context(property), $event)"
             :type="p_type(property)"
             :key="property"
             :options="p_options(property)"
@@ -113,7 +113,7 @@
         <SchemaField
           :title="p_title()"
           :value="p_model()"
-          @input="p_set(resolve_context(), $event)"
+          @commit="p_set(resolve_context(), $event)"
           :type="p_type()"
           :options="p_options()"
       /></template>
@@ -126,7 +126,7 @@
 
 <script>
 import SchemaDefinition from "./SchemaDefinition";
-import SchemaImplementation from "./SchemaImplementation";
+
 import SchemaField from "./SchemaField";
 import SchemaCategory from "./SchemaCategory";
 
@@ -134,11 +134,11 @@ import get from "lodash/get";
 import set from "lodash/set";
 import isEmpty from "lodash/isEmpty";
 import pointer from "json-pointer";
+import { COMMIT } from "static/events";
 
 export default {
   name: "SchemaForm",
   components: {
-    SchemaImplementation,
     SchemaDefinition,
     SchemaField,
     SchemaCategory,
@@ -375,22 +375,22 @@ export default {
       return get(this.data, this.resolve_context(p));
     },
     p_set(p, a) {
-      // console.log(`SchemaForm.p_set()`);
-      // console.log("p=");
-      // console.log(p);
-      // console.log(`a=`);
-      // console.log(a);
+      console.log(`SchemaForm.p_set()`);
+      console.log("p=");
+      console.log(p);
+      console.log(`a=`);
+      console.log(a);
 
       set(this.data, p, a);
 
       // console.log("this.data=");
       // console.log(this.data);
 
-      this.$emit("input", this.data);
+      this.p_change();
     },
     p_change(v) {
       // console.log(`SchemaForm.p_change()`);
-      this.$emit("input", v);
+      this.$emit(COMMIT);
     },
   },
   data() {

@@ -29,6 +29,11 @@
           <i class="icon-action-redo" />
         </b-button>
       </PageHeaderItem>
+      <PageHeaderItem>
+        <div class="header-button-icon config-spinner">
+          <i :class="{ 'fa fa-spinner fa-spin': waiting }" />
+        </div>
+      </PageHeaderItem>
     </PageHeader>
     <div class="scrollable">
       <b-card class="name-config isimple-form-section">
@@ -39,8 +44,9 @@
             >
             <b-form-input
               class="isimple-form-field-text"
-              v-model.lazy="config.name"
-              @change="handleUpdate"
+              v-model="config.name"
+              @keyup="onKeyUp"
+              @focusout="onFocusOut"
             ></b-form-input>
           </b-input-group>
         </b-row>
@@ -49,9 +55,10 @@
             <!--todo: not flushed properly when switching analyzers-->
             <b-form-textarea
               class="isimple-form-field-text description-box"
-              v-model.lazy="config.description"
+              v-model="config.description"
+              spellcheck="false"
               placeholder="add a description here"
-              @change="handleUpdate"
+              @focusout="onFocusOut"
             ></b-form-textarea>
           </b-input-group>
         </b-row>
@@ -62,7 +69,7 @@
             ref="BasicConfig"
             :config="config"
             :static-paths="true"
-            @change="handleUpdate"
+            @commit="handleUpdate"
           />
         </div>
       </b-card>
@@ -85,6 +92,7 @@
         <!--              },-->
         <!--            }"-->
         <!--          />-->
+
         <SchemaForm
           v-if="config"
           :data="config"
@@ -108,7 +116,7 @@
           ]"
           class="config-form-container"
           :property_as_title="true"
-          @input="handleUpdate"
+          @commit="handleUpdate"
         />
       </b-card>
     </div>
@@ -123,7 +131,7 @@ import SchemaForm from "../../components/config/SchemaForm";
 
 import { undo_config, redo_config } from "../../static/api";
 
-import { events } from "../../static/events";
+import { events, ENTER_FOCUSOUT_INTERVAL, COMMIT } from "../../static/events";
 
 import cloneDeep from "lodash/cloneDeep";
 
@@ -148,10 +156,25 @@ export default {
     this.handleCleanUp();
   },
   methods: {
+    onKeyUp(e) {
+      if (e.key === "Enter") {
+        console.log("configure.onKeyUp() 'Enter'");
+        this.lastEnter = Date.now();
+        this.handleUpdate();
+      }
+    },
+    onFocusOut() {
+      console.log("configure.onFocusOut()");
+      if (Math.abs(Date.now() - this.lastEnter) > ENTER_FOCUSOUT_INTERVAL) {
+        this.handleUpdate();
+      }
+    },
     undoConfig() {
+      this.waiting = true;
       undo_config(this.id).then(this.handleGetConfig());
     },
     redoConfig() {
+      this.waiting = true;
       redo_config(this.id).then(this.handleGetConfig());
     },
     handleInit() {
@@ -171,21 +194,21 @@ export default {
       this.config = this.$store.getters["analyzers/getAnalyzerConfigCopy"](
         this.id
       );
+      this.waiting = false;
 
       // console.log("config=");
       // console.log(this.config);
     },
     handleSetConfig() {
-      // send config to backend
+      console.log("configure.handleSetConfig()");
+      this.waiting = true;
       this.$store
         .dispatch("analyzers/set_config", {
           id: this.id,
           config: this.config,
         })
         .then(() => {
-          this.config = this.$store.getters["analyzers/getAnalyzerConfigCopy"](
-            this.id
-          );
+          this.handleGetConfig();
         });
     },
     handleUpdate: throttle(
@@ -236,6 +259,12 @@ export default {
   data() {
     return {
       config: {},
+      waiting: true,
+      out: {
+        name: null,
+        description: null,
+      },
+      lastEnter: false,
     };
   },
 };
@@ -312,5 +341,14 @@ $description-height: 64px;
 .basic-config-gap {
   padding-left: 4px;
   padding-top: 4px;
+}
+
+.config-spinner {
+  font-size: 18px;
+  color: theme-color("gray-700");
+}
+
+.unclickable * {
+  pointer-events: none !important;
 }
 </style>

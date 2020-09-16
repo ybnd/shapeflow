@@ -1,14 +1,19 @@
 <template>
   <div class="config-sidebar">
-    <SchemaForm
-      v-if="config"
-      :data="config"
-      :schema="schema"
-      :skip="skip"
-      class="config-form-container"
-      :property_as_title="true"
-      @input="handleUpdate"
-    />
+    <div class="header-button-icon config-spinner">
+      <i :class="{ 'fa fa-spinner fa-spin': waiting }" />
+    </div>
+    <div class="sidebar-form-container">
+      <SchemaForm
+        v-if="config"
+        :data="config"
+        :schema="schema"
+        :skip="skip"
+        class="config-form-container"
+        :property_as_title="true"
+        @commit="handleUpdate"
+      />
+    </div>
   </div>
 </template>
 
@@ -69,20 +74,20 @@ export default {
       this.config = this.$store.getters["analyzers/getAnalyzerConfigCopy"](
         this.id
       );
+      this.waiting = false;
     },
     handleSetConfig() {
       // console.log("ConfigSidebar.hangleSetConfig()");
 
       // send config to backend
+      this.waiting = true;
       this.$store
         .dispatch("analyzers/set_config", {
           id: this.id,
           config: this.config,
         })
         .then(() => {
-          this.config = this.$store.getters["analyzers/getAnalyzerConfigCopy"](
-            this.id
-          );
+          this.handleGetConfig();
         });
     },
     handleUpdate: throttle(
@@ -110,6 +115,7 @@ export default {
     return {
       config: {},
       ui_schema: [],
+      waiting: true,
     };
   },
 };
@@ -137,6 +143,16 @@ export default {
 }
 
 .sidebar-form-container {
+  margin-top: -30px;
   width: $config-sidebar-width;
+}
+.config-spinner {
+  position: relative;
+  bottom: 0px;
+  left: calc(#{$config-sidebar-width} - 30px);
+  font-size: 18px;
+  color: theme-color("gray-700");
+  width: 30px !important;
+  height: 30px !important;
 }
 </style>

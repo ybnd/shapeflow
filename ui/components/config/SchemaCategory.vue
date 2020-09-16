@@ -41,11 +41,19 @@ export default {
       default: true,
     },
   },
+  mounted() {
+    console.log(`SchemaCategory.mounted() title='${this.title}'`);
+  },
   methods: {
     handleToggle: debounce(100, true, function () {
-      // console.log(`SchemaCategory.handleToggle() title=${this.title}`);
+      console.log(`SchemaCategory.handleToggle() title='${this.title}'`);
       this.$emit("toggle");
     }),
+  },
+  watch: {
+    open() {
+      console.log(`SchemaCategory.watch.open() title='${this.title}'`);
+    },
   },
 };
 </script>

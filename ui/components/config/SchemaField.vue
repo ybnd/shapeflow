@@ -20,12 +20,15 @@
         // numeric input step
         type_options.hasOwnProperty('step') ? type_options.step : undefined
       "
+      @keyup="onKeyUp"
+      @focusout="onFocusOut"
+      @change="onChange"
     />
   </component>
 </template>
 
 <script>
-import events from "../../static/events";
+import { COMMIT, ENTER_FOCUSOUT_INTERVAL } from "../../static/events";
 
 const types = {
   ENUM: "enum",
@@ -75,6 +78,35 @@ export default {
   },
   mounted() {
     // console.log(`SchemaField ~ title=${this.title} type=${this.type}`);
+    this.valueOut = this.parse[this.type_](this.value);
+  },
+  methods: {
+    onKeyUp(e) {
+      if (this.type_commit && e.key === "Enter") {
+        this.lastEnter = Date.now();
+        if (this.valueOut !== this.value) {
+          // console.log("SchemaField.onKeyUp() 'Enter' -> commit");
+          this.$emit(COMMIT, this.valueOut);
+        }
+      }
+    },
+    onFocusOut() {
+      if (
+        this.type_commit &&
+        Math.abs(Date.now() - this.lastEnter) > ENTER_FOCUSOUT_INTERVAL
+      ) {
+        if (this.valueOut !== this.value) {
+          // console.log("SchemaField.onFocusOut() -> commit");
+          this.$emit(COMMIT, this.valueOut);
+        }
+      }
+    },
+    onChange(v) {
+      if (!this.type_commit) {
+        // console.log(`SchemaField.onChange() v=${v} -> commit`);
+        this.$emit(COMMIT, v);
+      }
+    },
   },
   computed: {
     type_() {
@@ -87,6 +119,9 @@ export default {
       } else {
         return this.type;
       }
+    },
+    type_commit() {
+      return this.commit[this.type_];
     },
     type_component() {
       // console.log(`SchemaField.type_component() type=${this.type}`);
@@ -124,12 +159,23 @@ export default {
         // console.log("v=");
         // console.log(v);
 
-        this.$emit("input", this.parse[this.type_](v));
+        this.valueOut = this.parse[this.type_](v);
       },
     },
   },
   data() {
     return {
+      valueOut: null,
+      valueBefore: null,
+      lastEnter: 0,
+      commit: {
+        [types.ENUM]: false,
+        [types.STRING]: true,
+        [types.INTEGER]: true,
+        [types.FLOAT]: true,
+        [types.NUMBER]: true,
+        [types.BOOLEAN]: false,
+      },
       components: {
         [types.ENUM]: "b-form-select",
         [types.STRING]: "b-form-input",
