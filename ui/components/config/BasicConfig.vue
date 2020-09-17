@@ -179,7 +179,7 @@
               'is-invalid': hasFeatures === false,
             }"
           >
-            <i class="fa fa-plus" /> &nbsp; add feature...
+            <i class="fa fa-plus" /> &nbsp; Add feature...
           </b-button>
         </b-row>
       </b-col>

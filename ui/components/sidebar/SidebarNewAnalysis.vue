@@ -1,8 +1,14 @@
 <template>
   <div class="hovertext">
-    <div @click="show = true" :class="classList" id="new-analysis">
-      <i :class="'fa fa-plus'"></i>
-      Analysis...
+    <div
+      @click="show = true"
+      :class="classList"
+      id="new-analysis"
+      style="white-space: nowrap; margin-left: -4px;"
+    >
+      <i :class="'fa fa-plus'" style="margin-right: -4px;"></i>
+
+      New analysis...
       <b-popover
         target="new-analysis"
         :show.sync="show"
