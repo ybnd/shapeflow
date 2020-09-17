@@ -15,7 +15,7 @@ const changeLoaderOptions = (loaders) => {
 
 module.exports = {
   head: {
-    title: "isimple",
+    title: "shapeflow",
     meta: [
       { charset: "utf-8" },
       {

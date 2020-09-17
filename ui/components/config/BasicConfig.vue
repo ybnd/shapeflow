@@ -60,14 +60,14 @@
         <b-row class="basic-config-row">
           <b-input-group>
             <b-form-select
-              class="fis-selector isimple-form-field-auto"
+              class="fis-selector shapeflow-form-field-auto"
               ref="frame_interval_setting"
               v-model="config.frame_interval_setting"
               @change="selectFrameIntervalSetting"
               :plain="false"
               :options="frame_interval_settings.options"
             />
-            <b-input-group-text class="basic-config-label isimple-form-label">
+            <b-input-group-text class="basic-config-label shapeflow-form-label">
               {{
                 frame_interval_settings.descriptions[
                   config.frame_interval_setting
@@ -75,7 +75,7 @@
               }}
             </b-input-group-text>
             <b-form-input
-              class="fis-value isimple-form-field-auto"
+              class="fis-value shapeflow-form-field-auto"
               ref="interval"
               type="number"
               v-model="config[config.frame_interval_setting]"
@@ -101,7 +101,7 @@
       <b-col class="feature-col">
         <b-row class="basic-config-row">
           <b-form-select
-            class="feature-selector isimple-form-field-auto"
+            class="feature-selector shapeflow-form-field-auto"
             v-model="config.features[index]"
             :options="features.options"
             @input="(v) => selectFeature(index, v)"
@@ -132,7 +132,7 @@
             :key="parameter"
             class="parameter-group"
           >
-            <b-input-group-text class="basic-config-label isimple-form-label">
+            <b-input-group-text class="basic-config-label shapeflow-form-label">
               {{ features.parameters[feature][parameter].description }}
             </b-input-group-text>
             <SchemaField

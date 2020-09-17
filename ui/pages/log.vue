@@ -15,7 +15,7 @@
       <PageHeaderItem>
         <b-input-group>
           <b-form-input
-            class="isimple-form-field-auto filter-field"
+            class="shapeflow-form-field-auto filter-field"
             v-model="filter"
             @input="filterLog"
             placeholder="Filter log..."

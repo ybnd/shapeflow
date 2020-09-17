@@ -130,7 +130,7 @@ $form-color: theme-color('gray-700');
   margin-bottom: $form-gap;
 }
 
-.isimple-form-section {
+.shapeflow-form-section {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -141,7 +141,7 @@ $form-color: theme-color('gray-700');
   width: 600px;
 }
 
-.isimple-form-section-full {
+.shapeflow-form-section-full {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -152,7 +152,7 @@ $form-color: theme-color('gray-700');
   width: $full-width;
 }
 
-.isimple-form-section-fit {
+.shapeflow-form-section-fit {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
@@ -178,7 +178,7 @@ $form-color: theme-color('gray-700');
   padding-left: 0;
 }
 
-.isimple-form-indent {
+.shapeflow-form-indent {
   margin-left: $form-indent;
   //margin-right: $form-gap;
   padding-left: $form-gap;
@@ -187,7 +187,7 @@ $form-color: theme-color('gray-700');
   border-left-style: solid;
 }
 
-.isimple-form-label {
+.shapeflow-form-label {
   margin: 0;
   height: $form-field-height;
   padding: $form-gap;
@@ -198,7 +198,7 @@ $form-color: theme-color('gray-700');
   box-sizing: border-box;
 }
 
-.isimple-form-row {
+.shapeflow-form-row {
   margin-top: $form-gap;
   margin-left: $form-gap;
   min-height: 16px;
@@ -210,7 +210,7 @@ $form-color: theme-color('gray-700');
   align-content: flex-start;
 }
 
-.isimple-form-chevron {
+.shapeflow-form-chevron {
   height: 18px;
   width: 18px;
   padding: 0;
@@ -218,18 +218,18 @@ $form-color: theme-color('gray-700');
   border: transparent;
 }
 
-.isimple-form-group {
+.shapeflow-form-group {
   flex-grow: 0;
   height: $form-field-height;
   margin: 0;
   padding: 0
 }
 
-.isimple-form-gap {
+.shapeflow-form-gap {
   width: $form-gap;
 }
 
-.isimple-form-field-text {
+.shapeflow-form-field-text {
   border-radius: 0;
   margin-right: -1px;
   height: $form-field-height;
@@ -238,7 +238,7 @@ $form-color: theme-color('gray-700');
   justify-content: right;
 }
 
-.isimple-form-field-input {
+.shapeflow-form-field-input {
   height: $form-field-height;
   display: block;
   min-width: 120px;
@@ -248,7 +248,7 @@ $form-color: theme-color('gray-700');
   -moz-appearance: textfield;
 }
 
-.isimple-form-field-auto {
+.shapeflow-form-field-auto {
   height: $form-field-height;
   display: inline-block;
   width: auto;
@@ -256,7 +256,7 @@ $form-color: theme-color('gray-700');
   flex-grow: 0;
 }
 
-.isimple-form-field-wide {
+.shapeflow-form-field-wide {
   height: $form-field-height;
   //display: block;
   //width: auto !important;
@@ -265,12 +265,12 @@ $form-color: theme-color('gray-700');
   flex-grow: 0;
 }
 
-.isimple-noarrow {
+.shapeflow-noarrow {
   -webkit-appearance: none;
   -moz-appearance: textfield;
 }
 
-.isimple-form-field-checkbox {
+.shapeflow-form-field-checkbox {
   //height: $form-field-height;
   display: block;
   vertical-align: middle;
@@ -279,7 +279,7 @@ $form-color: theme-color('gray-700');
   padding-top: 3px;
 }
 
-.isimple-form-path-input {
+.shapeflow-form-path-input {
   height: $form-field-height;
   display: block;
   min-width: 60px;

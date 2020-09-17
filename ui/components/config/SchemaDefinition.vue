@@ -1,9 +1,9 @@
 <template>
   <div>
     <template v-if="model === undefined">
-      <b-row class="isimple-form-row">
-        <b-input-group class="isimple-form-group">
-          <label class="mr-sm-2 isimple-form-label">
+      <b-row class="shapeflow-form-row">
+        <b-input-group class="shapeflow-form-group">
+          <label class="mr-sm-2 shapeflow-form-label">
             {{ title }} (undefined)
           </label>
         </b-input-group>
@@ -11,10 +11,10 @@
     </template>
     <template v-else-if="match(def.COO)">
       <!--      todo: check if model fits definition? -->
-      <b-row class="isimple-form-row">
-        <b-input-group class="isimple-form-group">
+      <b-row class="shapeflow-form-row">
+        <b-input-group class="shapeflow-form-group">
           <label
-            class="mr-sm-2 isimple-form-label"
+            class="mr-sm-2 shapeflow-form-label"
             :style="{ width: '60px', 'margin-right': '0 !important' }"
           >
             {{ title }} (x,y)
@@ -25,7 +25,7 @@
             type="float"
             :options="{ step: 1e-24 }"
           ></SchemaField>
-          <div class="isimple-form-gap" />
+          <div class="shapeflow-form-gap" />
           <SchemaField
             :value="model.y"
             @commit="p_set('y', $event)"
@@ -36,10 +36,10 @@
       </b-row>
     </template>
     <template v-else-if="match(def.HSVCOLOR)">
-      <b-row class="isimple-form-row">
-        <b-input-group class="isimple-form-group">
+      <b-row class="shapeflow-form-row">
+        <b-input-group class="shapeflow-form-group">
           <label
-            class="mr-sm-2 isimple-form-label"
+            class="mr-sm-2 shapeflow-form-label"
             :style="{ width: '90px', 'margin-right': '0 !important' }"
           >
             {{ title }} (h,s,v)
@@ -54,7 +54,7 @@
             }"
             type="integer"
           ></SchemaField>
-          <div class="isimple-form-gap" />
+          <div class="shapeflow-form-gap" />
           <SchemaField
             :value="model.s"
             @commit="p_set('s', $event)"
@@ -64,7 +64,7 @@
             }"
             type="integer"
           ></SchemaField>
-          <div class="isimple-form-gap" />
+          <div class="shapeflow-form-gap" />
           <SchemaField
             :value="model.v"
             @commit="p_set('v', $event)"
@@ -78,10 +78,10 @@
       </b-row>
     </template>
     <template v-else-if="match(def.FLIPCONFIG)">
-      <b-row class="isimple-form-row">
-        <b-input-group class="isimple-form-group">
+      <b-row class="shapeflow-form-row">
+        <b-input-group class="shapeflow-form-group">
           <label
-            class="mr-sm-2 isimple-form-label"
+            class="mr-sm-2 shapeflow-form-label"
             :style="{ 'margin-right': '0 !important', 'padding-top': '4px' }"
           >
             {{ title }} horizontally
@@ -92,7 +92,7 @@
             type="boolean"
           ></SchemaField>
           <label
-            class="mr-sm-2 isimple-form-label"
+            class="mr-sm-2 shapeflow-form-label"
             :style="{ 'margin-right': '0 !important', 'padding-top': '4px' }"
           >
             vertically

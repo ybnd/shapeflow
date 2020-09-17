@@ -1,14 +1,14 @@
 <template>
   <b-form-group>
     <details
-      class="isimple-form-section-fit"
+      class="shapeflow-form-section-fit"
       :open="open"
       v-on="{ toggle: emit_toggle ? handleToggle : () => {} }"
     >
       <summary class="category-title" :class="{ unclickable: !clickable }">
         <b>{{ title }}</b>
       </summary>
-      <div class="isimple-form-indent">
+      <div class="shapeflow-form-indent">
         <slot></slot>
       </div>
     </details>

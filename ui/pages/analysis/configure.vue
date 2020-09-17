@@ -36,25 +36,25 @@
       </PageHeaderItem>
     </PageHeader>
     <div class="scrollable">
-      <b-card class="name-config isimple-form-section">
-        <b-row class="isimple-form-row">
-          <b-input-group class="isimple-form-group">
-            <b-input-group-text class="isimple-form-field-text"
+      <b-card class="name-config shapeflow-form-section">
+        <b-row class="shapeflow-form-row">
+          <b-input-group class="shapeflow-form-group">
+            <b-input-group-text class="shapeflow-form-field-text"
               >name</b-input-group-text
             >
             <b-form-input
-              class="isimple-form-field-text"
+              class="shapeflow-form-field-text"
               v-model="config.name"
               @keyup="onKeyUp"
               @focusout="onFocusOut"
             ></b-form-input>
           </b-input-group>
         </b-row>
-        <b-row class="isimple-form-row description-row">
-          <b-input-group class="isimple-form-group">
+        <b-row class="shapeflow-form-row description-row">
+          <b-input-group class="shapeflow-form-group">
             <!--todo: not flushed properly when switching analyzers-->
             <b-form-textarea
-              class="isimple-form-field-text description-box"
+              class="shapeflow-form-field-text description-box"
               v-model="config.description"
               spellcheck="false"
               placeholder="add a description here"
@@ -63,7 +63,7 @@
           </b-input-group>
         </b-row>
       </b-card>
-      <b-card class="basic-config-container isimple-form-section">
+      <b-card class="basic-config-container shapeflow-form-section">
         <div class="basic-config-gap">
           <BasicConfig
             v-if="this.ready.schema && this.ready.config"
@@ -75,7 +75,7 @@
         </div>
       </b-card>
       <b-card
-        class="isimple-form-section advanced-config-box advanced-config-collapse"
+        class="shapeflow-form-section advanced-config-box advanced-config-collapse"
       >
         <!--          <VueFormJsonSchema-->
         <!--            v-model="config"-->

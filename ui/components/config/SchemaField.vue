@@ -1,10 +1,10 @@
 <template>
   <component
     :is="new_row ? 'b-form-row' : 'div'"
-    :class="new_row ? 'isimple-form-row' : ''"
+    :class="new_row ? 'shapeflow-form-row' : ''"
   >
     <label
-      class="mr-sm-2 isimple-form-label"
+      class="mr-sm-2 shapeflow-form-label"
       v-if="title !== ''"
       :style="type_label_style"
     >
@@ -203,13 +203,13 @@ export default {
         [types.BOOLEAN]: "b-form-checkbox",
       },
       classes: {
-        [types.ENUM]: ["isimple-form-field-auto"],
-        [types.STRING]: ["isimple-form-field-auto"],
-        [types.PATH]: ["isimple-form-field-wide"],
-        [types.INTEGER]: ["isimple-form-field-auto", "isimple-noarrow"],
-        [types.FLOAT]: ["isimple-form-field-auto", "isimple-noarrow"],
-        [types.NUMBER]: ["isimple-form-field-auto", "isimple-noarrow"],
-        [types.BOOLEAN]: ["isimple-form-field-checkbox"],
+        [types.ENUM]: ["shapeflow-form-field-auto"],
+        [types.STRING]: ["shapeflow-form-field-auto"],
+        [types.PATH]: ["shapeflow-form-field-wide"],
+        [types.INTEGER]: ["shapeflow-form-field-auto", "shapeflow-noarrow"],
+        [types.FLOAT]: ["shapeflow-form-field-auto", "shapeflow-noarrow"],
+        [types.NUMBER]: ["shapeflow-form-field-auto", "shapeflow-noarrow"],
+        [types.BOOLEAN]: ["shapeflow-form-field-checkbox"],
       },
       types: {
         [types.ENUM]: "",

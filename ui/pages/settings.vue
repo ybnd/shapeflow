@@ -11,7 +11,7 @@
       </PageHeaderItem>
     </PageHeader>
     <div class="scrollable" v-if="settings && schema">
-      <b-card class="isimple-settings-box isimple-form-section">
+      <b-card class="shapeflow-settings-box shapeflow-form-section">
         <SchemaForm
           :data="settings"
           :schema="schema"
@@ -99,7 +99,7 @@ $form-element-width: 600px;
   flex-grow: 0;
 }
 
-.isimple-settings-box {
+.shapeflow-settings-box {
   margin-top: 2px;
   margin-bottom: 2px;
   overflow-y: scroll;
