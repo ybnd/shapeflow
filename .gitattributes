@@ -1,5 +1,7 @@
-ui/assets/scss/core/* liguist-vendored
+ui/assets/scss/core/* linguist-vendored
 ui/assets/scss/vendors/* linguist-vendored
-ui/assets/scss/styles.css linguist-generated
+ui/assets/scss/vendors/chart.js/* linguist-vendored
+ui/assets/scss/style.css linguist-generated
 ui/dist/* linguist-generated
+ui/dist/_nuxt/* linguist-generated
 docs/* linguist-documentation
