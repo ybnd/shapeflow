@@ -4,53 +4,22 @@
 
 /* Overrides */
 
-#body {
-  // hide scrollbars
-  -ms-overflow-style: none; /* IE 11 */
-  overflow: hidden;
-  scrollbar-width: none; /* Firefox 64 */
-}
-#body::-webkit-scrollbar {
-  display: none;
-}
-
 .fixed-page {
   height: $content-height;
   max-height: $content-height;
   width: $content-width;
   max-width: $content-width;
-  // hide scrollbars
-  -ms-overflow-style: none; /* IE 11 */
-  overflow: hidden;
-  scrollbar-width: none; /* Firefox 64 */
-}
-.fixed-page::-webkit-scrollbar {
-  display: none;
 }
 
 
 .app-body {
   margin-top: 0 !important;
-  // hide scrollbars
-  -ms-overflow-style: none; /* IE 11 */
-  overflow: hidden;
-  scrollbar-width: none; /* Firefox 64 */
-}
-.app-body::-webkit-scrollbar {
-  display: none;
 }
 
 .app-body .main {
   height: 100vh;
   width: calc(100vw - #{$sidebar-width});
-  margin-left: $sidebar-width !important;  // fix main below sidebar @ narrow window
-  // hide scrollbars
-  -ms-overflow-style: none; /* IE 11 */
-  overflow: hidden;
-  scrollbar-width: none; /* Firefox 64 */
-}
-.app-body .main::-webkit-scrollbar {
-  display: none;
+  margin-left: $sidebar-width !important; // fix main below sidebar @ narrow window
 }
 
 
