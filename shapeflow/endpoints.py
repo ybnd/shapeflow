@@ -1,9 +1,9 @@
 from typing import Dict, Optional, List, Callable, Tuple, Type
 import numpy as np
 
-from isimple.core import ImmutableRegistry, Endpoint, stream_image, stream_json
-from isimple.core.interface import FilterConfig
-from isimple.maths.colors import HsvColor
+from shapeflow.core import ImmutableRegistry, Endpoint, stream_image, stream_json
+from shapeflow.core.interface import FilterConfig
+from shapeflow.maths.colors import HsvColor
 
 
 class BackendRegistry(ImmutableRegistry):

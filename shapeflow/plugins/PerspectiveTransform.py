@@ -3,25 +3,25 @@ from typing import Optional, Tuple
 import cv2
 import numpy as np
 
-from isimple import get_logger, settings
-from isimple.config import extend, ConfigType, Field
+from shapeflow import get_logger, settings
+from shapeflow.config import extend, ConfigType, Field
 
-from isimple.core.interface import TransformConfig, TransformInterface, TransformType
+from shapeflow.core.interface import TransformConfig, TransformInterface, TransformType
 
-from isimple.maths.coordinates import ShapeCoo, Roi
+from shapeflow.maths.coordinates import ShapeCoo, Roi
 
 log = get_logger(__name__)
 
 @extend(ConfigType)
-class HomographyTransformConfig(TransformConfig):
+class PerspectiveTransformConfig(TransformConfig):
     pass
 
 
 @extend(TransformType)
-class HomographyTransform(TransformInterface):
-    """Homography transform"""
+class PerspectiveTransform(TransformInterface):
+    """Perspective transform"""
 
-    _config_class = HomographyTransformConfig
+    _config_class = PerspectiveTransformConfig
 
     def validate(self, matrix: Optional[np.ndarray]) -> bool:
         if matrix is not None:
@@ -42,10 +42,10 @@ class HomographyTransform(TransformInterface):
         return np.float32(
                 np.array(  # selection rectangle: bottom left to top right
                     [
-                        [0, to_shape[1]],           # BL: (x,y)
-                        [0, 0],                     # TL
-                        [to_shape[0], 0],           # TR
-                        [to_shape[0], to_shape[1]], # BR
+                        [0, to_shape[1]],          # BL: (x,y)
+                        [0, 0],                 # TL
+                        [to_shape[0], 0],          # TR
+                        [to_shape[0], to_shape[1]],   # BR
                     ]
                 )
             )
@@ -53,7 +53,7 @@ class HomographyTransform(TransformInterface):
     def estimate(self, roi: Roi, from_shape: tuple, to_shape: tuple) -> Optional[np.ndarray]:
         log.debug(f'Estimating transform ~ coordinates {roi} & shape {to_shape}')
 
-        matrix, status = cv2.findHomography(
+        matrix = cv2.getPerspectiveTransform(
             self.from_coordinates(roi, from_shape),
             self.to_coordinates(to_shape)
         )

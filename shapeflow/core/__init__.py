@@ -6,8 +6,8 @@ from contextlib import contextmanager
 
 import uuid
 
-from isimple import get_logger
-from isimple.util.meta import all_attributes, get_overridden_methods
+from shapeflow import get_logger
+from shapeflow.util.meta import all_attributes, get_overridden_methods
 
 
 log = get_logger(__name__)

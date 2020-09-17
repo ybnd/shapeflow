@@ -11,16 +11,16 @@ import shutil
 
 from OnionSVG import OnionSVG
 
-from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
+from shapeflow.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     DesignFileHandlerConfig, VideoAnalyzerConfig, TransformType
-from isimple.plugins.PerspectiveTransform import PerspectiveTransformConfig
+from shapeflow.plugins.PerspectiveTransform import PerspectiveTransformConfig
 
-from isimple.plugins import *
+from shapeflow.plugins import *
 
-from isimple.video import VideoFileHandler, VideoFileTypeError, \
+from shapeflow.video import VideoFileHandler, VideoFileTypeError, \
     CachingInstance, VideoAnalyzer
-from isimple import settings
-from isimple.core.config import *
+from shapeflow import settings
+from shapeflow.core.config import *
 
 
 # Get validation frames from test video ~ "raw" OpenCV
@@ -29,7 +29,7 @@ __DESIGN__ = 'test.svg'
 __DPI__ = 400
 
 # Point to right files in Travis CI build
-if os.getcwd() == '/home/travis/build/ybnd/isimple':
+if os.getcwd() == '/home/travis/build/ybnd/shapeflow':
     __VIDEO__ = 'test/' + __VIDEO__
     __DESIGN__ = 'test/' + __DESIGN__
 

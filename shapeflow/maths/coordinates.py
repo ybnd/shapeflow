@@ -6,7 +6,7 @@ import numpy as np
 import cv2
 from pydantic import Field, validator
 
-from isimple.core.config import BaseConfig
+from shapeflow.core.config import BaseConfig
 
 
 class Coo(BaseConfig):

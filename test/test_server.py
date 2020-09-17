@@ -6,7 +6,7 @@ import time
 import json
 import subprocess
 
-from isimple import settings, ROOTDIR, save_settings
+from shapeflow import settings, ROOTDIR, save_settings
 
 raise unittest.SkipTest('takes too long')
 

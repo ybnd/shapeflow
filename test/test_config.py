@@ -2,19 +2,19 @@ import unittest
 
 import yaml
 
-from isimple.plugins.HsvRangeFilter import HsvRangeFilter
-from isimple.video import *
-from isimple.core.config import Factory, Field, BaseConfig, validator, VERSION, CLASS
-from isimple.core import EnforcedStr
-from isimple.core.interface import FilterType
+from shapeflow.plugins.HsvRangeFilter import HsvRangeFilter
+from shapeflow.video import *
+from shapeflow.core.config import Factory, Field, BaseConfig, validator, VERSION, CLASS
+from shapeflow.core import EnforcedStr
+from shapeflow.core.interface import FilterType
 
-from isimple.config import normalize_config, ColorSpace
+from shapeflow.config import normalize_config, ColorSpace
 
 __VIDEO__ = 'test.mp4'
 __DESIGN__ = 'test.svg'
 
 # Point to right files in Travis CI build
-if os.getcwd() == '/home/travis/build/ybnd/isimple':
+if os.getcwd() == '/home/travis/build/ybnd/shapeflow':
     __VIDEO__ = 'test/' + __VIDEO__
     __DESIGN__ = 'test/' + __DESIGN__
 
@@ -159,7 +159,7 @@ class VideoAnalyzerConfigTest(unittest.TestCase):
         __OLD_CONFIG__ = 'old.meta'
 
         # Point to right files in Travis CI build
-        if os.getcwd() == '/home/travis/build/ybnd/isimple':
+        if os.getcwd() == '/home/travis/build/ybnd/shapeflow':
             __OLD_CONFIG__ = 'test/' + __OLD_CONFIG__
 
         with open(__OLD_CONFIG__, 'r') as f:

@@ -6,13 +6,13 @@ import datetime
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, ForeignKey
 
-from isimple.endpoints import HistoryRegistry
-from isimple.core import RootInstance
-from isimple.core.db import Base, DbModel, SessionWrapper, FileModel, BaseAnalysisModel
-from isimple import Settings, settings, get_logger
-from isimple.config import normalize_config, VideoAnalyzerConfig
+from shapeflow.endpoints import HistoryRegistry
+from shapeflow.core import RootInstance
+from shapeflow.core.db import Base, DbModel, SessionWrapper, FileModel, BaseAnalysisModel
+from shapeflow import Settings, settings, get_logger
+from shapeflow.config import normalize_config, VideoAnalyzerConfig
 
-from isimple.core.backend import BaseVideoAnalyzer, BaseAnalyzerConfig
+from shapeflow.core.backend import BaseVideoAnalyzer, BaseAnalyzerConfig
 
 
 log = get_logger(__name__)

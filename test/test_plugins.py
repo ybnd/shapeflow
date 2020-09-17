@@ -6,12 +6,12 @@ from typing import Type, Dict, List
 import cv2
 import numpy as np
 
-from isimple.maths.coordinates import Roi, Coo
-from isimple.maths.images import ckernel
-from isimple.core.config import Factory
-from isimple.config import TransformType, ConfigType, TransformConfig
-from isimple.plugins import *
-from isimple.video import *
+from shapeflow.maths.coordinates import Roi, Coo
+from shapeflow.maths.images import ckernel
+from shapeflow.core.config import Factory
+from shapeflow.config import TransformType, ConfigType, TransformConfig
+from shapeflow.plugins import *
+from shapeflow.video import *
 
 
 __VIDEO__ = 'test.mp4'
@@ -19,7 +19,7 @@ __DESIGN__ = 'test.svg'
 
 
 # Point to right files in Travis CI build
-if os.getcwd() == '/home/travis/build/ybnd/isimple':
+if os.getcwd() == '/home/travis/build/ybnd/shapeflow':
     __VIDEO__ = 'test/' + __VIDEO__
     __DESIGN__ = 'test/' + __DESIGN__
 

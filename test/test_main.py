@@ -16,11 +16,11 @@ __VIDEO__ = 'test.mp4'
 __DESIGN__ = 'test.svg'
 
 # Point to right files in Travis CI build
-if os.getcwd() == '/home/travis/build/ybnd/isimple':
+if os.getcwd() == '/home/travis/build/ybnd/shapeflow':
     __VIDEO__ = 'test/' + __VIDEO__
     __DESIGN__ = 'test/' + __DESIGN__
 
-from isimple import ROOTDIR
+from shapeflow import ROOTDIR
 
 
 CACHE = os.path.join(ROOTDIR, 'test_main-cache')
@@ -42,7 +42,7 @@ def clear_files():
 
 @contextmanager
 def application(keep: bool = False):
-    from isimple import settings, save_settings
+    from shapeflow import settings, save_settings
 
     if not keep:
         clear_files()
@@ -54,13 +54,13 @@ def application(keep: bool = False):
                 settings.log.override({'lvl_console': 'debug', 'lvl_file': 'debug'}):
             save_settings(settings)
 
-            # import from isimple.main here -> current settings are respected
-            import isimple.main
-            import isimple.db
+            # import from shapeflow.main here -> current settings are respected
+            import shapeflow.main
+            import shapeflow.db
 
-            main = isimple.main.Main()
+            main = shapeflow.main.Main()
             main._raise_call_exceptions = True
-            main._history = isimple.db.History(settings.db.path)
+            main._history = shapeflow.db.History(settings.db.path)
             main._app.testing = True
             client = main._app.test_client()
 
@@ -568,7 +568,7 @@ class MainAnalyzerTest(unittest.TestCase):
                         {'relative_x': CLICK[0], 'relative_y': CLICK[1]})
                 )
 
-            from isimple.db import ConfigModel
+            from shapeflow.db import ConfigModel
 
             with server._history.session() as s:
                 n_config_t0 = len(list(s.query(ConfigModel)))
@@ -702,7 +702,7 @@ class MainAnalyzerTest(unittest.TestCase):
 
 class DbCheckTest(unittest.TestCase):
     def test_db_check(self):
-        from isimple import settings, save_settings
+        from shapeflow import settings, save_settings
 
         with settings.db.override({'path': DB}):
             clear_files()
@@ -736,7 +736,7 @@ class DbCheckTest(unittest.TestCase):
             db.close()
 
             # runs check_history() on import, replaces invalid db
-            from isimple.main import db
+            from shapeflow.main import db
             import glob
 
             # db is now valid

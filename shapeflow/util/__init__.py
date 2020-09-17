@@ -15,7 +15,7 @@ import diskcache
 
 import numpy as np
 
-from isimple import get_logger, settings, Logger
+from shapeflow import get_logger, settings, Logger
 
 log = get_logger(__name__)
 

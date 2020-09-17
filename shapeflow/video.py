@@ -11,25 +11,25 @@ import numpy as np
 import pandas as pd
 from OnionSVG import OnionSVG, check_svg
 
-from isimple import get_logger, settings, ResultSaveMode
-from isimple.config import VideoFileHandlerConfig, TransformHandlerConfig, \
+from shapeflow import get_logger, settings, ResultSaveMode
+from shapeflow.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     FilterHandlerConfig, MaskConfig, \
     DesignFileHandlerConfig, VideoAnalyzerConfig, \
     FrameIntervalSetting, BaseAnalyzerConfig, FlipConfig
-from isimple.core import Lockable
-from isimple.core.backend import Instance, CachingInstance, \
+from shapeflow.core import Lockable
+from shapeflow.core.backend import Instance, CachingInstance, \
     BaseVideoAnalyzer, BackendSetupError, AnalyzerType, Feature, \
     FeatureSet, \
     FeatureType, backend, AnalyzerState, PushEvent, FeatureConfig
-from isimple.core.config import extend, __meta_ext__, __meta_sheet__
-from isimple.core.interface import TransformInterface, FilterConfig, \
+from shapeflow.core.config import extend, __meta_ext__, __meta_sheet__
+from shapeflow.core.interface import TransformInterface, FilterConfig, \
     FilterInterface, FilterType, TransformType, Handler
-from isimple.core.streaming import stream, streams
-from isimple.maths.colors import Color, HsvColor, BgrColor, convert, css_hex
-from isimple.maths.images import to_mask, crop_mask, ckernel, \
+from shapeflow.core.streaming import stream, streams
+from shapeflow.maths.colors import Color, HsvColor, BgrColor, convert, css_hex
+from shapeflow.maths.images import to_mask, crop_mask, ckernel, \
     overlay, rect_contains
-from isimple.maths.coordinates import ShapeCoo, Roi
-from isimple.util import frame_number_iterator
+from shapeflow.maths.coordinates import ShapeCoo, Roi
+from shapeflow.util import frame_number_iterator
 
 log = get_logger(__name__)
 

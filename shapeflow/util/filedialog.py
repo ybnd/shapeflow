@@ -53,7 +53,7 @@ def load_file_dialog(title: str = None, patterns: List[str] = None, patterns_str
             if len(patterns) > 0:
                 p = subprocess.Popen(
                     [
-                        'python', 'isimple/util/tk_filedialog.py',
+                        'python', 'shapeflow/util/tk_filedialog.py',
                         '--load', '--title', title, 
                         '--filetypes', ' '.join(patterns),
                         '--filedesc', patterns_str,
@@ -62,7 +62,7 @@ def load_file_dialog(title: str = None, patterns: List[str] = None, patterns_str
             else:
                 p = subprocess.Popen(
                     [
-                        'python', 'isimple/util/tk_filedialog.py',
+                        'python', 'shapeflow/util/tk_filedialog.py',
                         '--load', '--title', title, 
                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE
                 )
@@ -110,7 +110,7 @@ def save_file_dialog(title: str = None, patterns: List[str] = None, patterns_str
             if len(patterns) > 0:
                 p = subprocess.Popen(
                     [
-                        'python', 'isimple/util/tk_filedialog.py',
+                        'python', 'shapeflow/util/tk_filedialog.py',
                         '--save', '--title', title, 
                         '--filetypes', ' '.join(patterns),
                         '--filedesc', patterns_str,
@@ -119,7 +119,7 @@ def save_file_dialog(title: str = None, patterns: List[str] = None, patterns_str
             else:
                 p = subprocess.Popen(
                     [
-                        'python', 'isimple/util/tk_filedialog.py',
+                        'python', 'shapeflow/util/tk_filedialog.py',
                         '--save', '--title', title, 
                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE
                 )

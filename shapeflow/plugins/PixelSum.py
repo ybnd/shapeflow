@@ -1,11 +1,11 @@
 import numpy as np
 
-from isimple import get_logger, settings
-from isimple.config import extend, ConfigType, Field
+from shapeflow import get_logger, settings
+from shapeflow.config import extend, ConfigType, Field
 
-from isimple.maths.images import area_pixelsum
+from shapeflow.maths.images import area_pixelsum
 
-from isimple.video import MaskFunction, Feature, FeatureType
+from shapeflow.video import MaskFunction, Feature, FeatureType
 
 
 @extend(FeatureType)

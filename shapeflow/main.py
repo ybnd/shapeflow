@@ -17,17 +17,17 @@ import waitress
 
 from OnionSVG import check_svg
 
-import isimple
-import isimple.config
-import isimple.util as util
-import isimple.util.filedialog
-import isimple.core.backend as backend
-import isimple.core.streaming as streaming
-import isimple.db as db
-import isimple.video as video
-import isimple.plugins as plugins
+import shapeflow
+import shapeflow.config
+import shapeflow.util as util
+import shapeflow.util.filedialog
+import shapeflow.core.backend as backend
+import shapeflow.core.streaming as streaming
+import shapeflow.db as db
+import shapeflow.video as video
+import shapeflow.plugins as plugins
 
-log = isimple.get_logger(__name__)
+log = shapeflow.get_logger(__name__)
 UI = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     , 'ui', 'dist'
@@ -54,10 +54,10 @@ def check_history():
     if history.check():
         history.clean()
     else:
-        timestamp = datetime.datetime.fromtimestamp(time.time()).strftime(isimple.settings.format.datetime_format_fs)
-        backup_path = f"{isimple.settings.db.path}_broken_{timestamp}"
+        timestamp = datetime.datetime.fromtimestamp(time.time()).strftime(shapeflow.settings.format.datetime_format_fs)
+        backup_path = f"{shapeflow.settings.db.path}_broken_{timestamp}"
         log.warning(f"backing up old history database @ {backup_path}")
-        os.rename(isimple.settings.db.path, backup_path)
+        os.rename(shapeflow.settings.db.path, backup_path)
 
 
 check_history()
@@ -96,7 +96,7 @@ class QueueState(IntEnum):
     PAUSED = 2
 
 
-class Main(isimple.core.Lockable):
+class Main(shapeflow.core.Lockable):
     __metaclass__ = util.Singleton
     _app: Flask
 
@@ -202,11 +202,11 @@ class Main(isimple.core.Lockable):
 
         @app.route('/api/settings_schema')
         def settings_schema():
-            return respond(isimple.settings.schema())
+            return respond(shapeflow.settings.schema())
 
         @app.route('/api/get_settings', methods=['GET'])
         def get_settings():
-            return respond(isimple.settings.to_dict())
+            return respond(shapeflow.settings.to_dict())
 
         @app.route('/api/set_settings', methods=['POST'])
         def set_settings():
@@ -215,27 +215,27 @@ class Main(isimple.core.Lockable):
             new_settings = json.loads(request.data)['settings']
             log.info(f'setting settings: {new_settings}')
 
-            isimple.update_settings(new_settings)
+            shapeflow.update_settings(new_settings)
             restart()
 
-            return respond(isimple.settings.to_dict())
+            return respond(shapeflow.settings.to_dict())
 
         @app.route('/api/schemas', methods=['GET'])
         def get_schemas():
             return {
                 'config': video.VideoAnalyzerConfig.schema(),
-                'settings': isimple.settings.schema(),
+                'settings': shapeflow.settings.schema(),
                 'analyzer_state': dict(backend.AnalyzerState.__members__),
                 'queue_state': dict(QueueState.__members__),
             }
 
         @app.route('/api/select_video_path', methods=['GET'])
         def select_video():
-            return respond(isimple.util.filedialog.select_video())  # todo: should not be able to spawn multiple windows
+            return respond(shapeflow.util.filedialog.select_video())  # todo: should not be able to spawn multiple windows
 
         @app.route('/api/select_design_path', methods=['GET'])      # todo: should not be able to spawn multiple windows
         def select_design():
-            return respond(isimple.util.filedialog.select_design())
+            return respond(shapeflow.util.filedialog.select_design())
 
         @app.route('/api/check_video_path', methods=['PUT'])
         def check_video():
@@ -316,7 +316,7 @@ class Main(isimple.core.Lockable):
             """Start streaming data ~ id & endpoint
 
             :param id: analyzer UUID
-            :param endpoint: string corresponding to an attribute of isimple.endpoints.BackendRegistry
+            :param endpoint: string corresponding to an attribute of shapeflow.endpoints.BackendRegistry
             """
             # todo: sanity check if `endpoint' is streamable
             stream = self.stream(id, endpoint)
@@ -335,7 +335,7 @@ class Main(isimple.core.Lockable):
             """Stop streaming data ~ id & endpoint
 
             :param id: analyzer UUID
-            :param endpoint: string corresponding to an attribute of isimple.endpoints.BackendRegistry
+            :param endpoint: string corresponding to an attribute of shapeflow.endpoints.BackendRegistry
             """
             # todo: sanity check if `endpoint' is streamable
             self.stop_stream(id, endpoint)
@@ -367,7 +367,7 @@ class Main(isimple.core.Lockable):
         @app.route('/api/get_log')
         def get_log():
             # todo: move to core.streaming
-            # todo: try to refactor ~ isimple.core.streaming
+            # todo: try to refactor ~ shapeflow.core.streaming
             """Start streaming log file
             """
             # cheated off of https://stackoverflow.com/questions/35540885/
@@ -380,7 +380,7 @@ class Main(isimple.core.Lockable):
             self._stop_log.clear()
 
             def generate():
-                with open(isimple.settings.log.path) as f:
+                with open(shapeflow.settings.log.path) as f:
                     while not self._stop_log.is_set():
                         yield f.read()
                         time.sleep(1)
@@ -414,14 +414,14 @@ class Main(isimple.core.Lockable):
         @app.route('/api/cache/clear', methods=['POST'])
         def clear_cache():
             log.info('clearing cache')
-            cache = isimple.get_cache(isimple.settings)
+            cache = shapeflow.get_cache(shapeflow.settings)
             cache.clear()
             cache.close()
             return respond(True)
 
         @app.route('/api/cache/disk-size', methods=['GET'])
         def get_cache_size_mb():
-            cache = isimple.get_cache()
+            cache = shapeflow.get_cache()
             size = util.sizeof_fmt(cache.size)
             cache.close()
 
@@ -429,7 +429,7 @@ class Main(isimple.core.Lockable):
 
         @app.route('/api/db/disk-size', methods=['GET'])
         def get_db_size_mb():
-            return respond(util.sizeof_fmt(os.path.getsize(isimple.settings.db.path)))
+            return respond(util.sizeof_fmt(os.path.getsize(shapeflow.settings.db.path)))
 
         @app.route('/api/db/<endpoint>', methods=['GET', 'POST', 'PUT'])
         def db_call(endpoint):
@@ -631,7 +631,7 @@ class Main(isimple.core.Lockable):
         if self._pause_q.is_set():
             self._pause_q.clear()
         self._stop_q.set()
-        if isimple.settings.app.cancel_on_q_stop:
+        if shapeflow.settings.app.cancel_on_q_stop:
             self.q_cancel()
         else:
             for root in self._roots.values():
@@ -648,9 +648,9 @@ class Main(isimple.core.Lockable):
             root.commit()
 
     def save_state(self):
-        """Save application state to ``isimple.settings.app.state_path``
+        """Save application state to ``shapeflow.settings.app.state_path``
         """
-        if isimple.settings.app.save_state:
+        if shapeflow.settings.app.save_state:
             log.info("saving application state")
 
             self._commit()
@@ -661,18 +661,18 @@ class Main(isimple.core.Lockable):
                 if not root.done
             }
 
-            with open(isimple.settings.app.state_path, 'wb') as f:
+            with open(shapeflow.settings.app.state_path, 'wb') as f:
                 pickle.dump(s, f)
 
     def load_state(self):
-        """Load application state from ``isimple.settings.app.state_path``"""
-        if isimple.settings.app.load_state:
+        """Load application state from ``shapeflow.settings.app.state_path``"""
+        if shapeflow.settings.app.load_state:
             with self.lock():
                 log.info("loading application state")
                 # todo: check if instances retain reference to self._eventstreamer!
 
                 try:
-                    with open(isimple.settings.app.state_path, 'rb') as f:
+                    with open(shapeflow.settings.app.state_path, 'rb') as f:
                         S = pickle.load(f)
 
                     for id,model_id in S.items():
@@ -683,7 +683,7 @@ class Main(isimple.core.Lockable):
 
                         if model is not None:
                             model.connect(self._history)
-                            analyzer = video.init(isimple.config.loads(model.get_config_json()))
+                            analyzer = video.init(shapeflow.config.loads(model.get_config_json()))
                             analyzer._set_id(id)
                             analyzer.set_eventstreamer(self._eventstreamer)
 
@@ -705,7 +705,7 @@ class Main(isimple.core.Lockable):
         id: str
             Analyzer id
         endpoint: str
-            Endpoint name, should correspond to a :class:`isimple.endpoints.BackendRegistry`
+            Endpoint name, should correspond to a :class:`shapeflow.endpoints.BackendRegistry`
             attribute
         data
         """

@@ -12,9 +12,9 @@ from sqlalchemy.orm.util import object_state  # type: ignore
 from sqlalchemy.sql.schema import Column
 from sqlalchemy.sql.sqltypes import Integer, String, DateTime
 
-from isimple import get_logger
-from isimple.core import RootException, RootInstance, Lockable
-from isimple.util import hash_file
+from shapeflow import get_logger
+from shapeflow.core import RootException, RootInstance, Lockable
+from shapeflow.util import hash_file
 
 log = get_logger(__name__)
 Base = declarative_base()

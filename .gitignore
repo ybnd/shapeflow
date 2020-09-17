@@ -3,9 +3,9 @@
 .render/*.png
 *.png
 __pycache__/
-isimple/__pycache__/
+shapeflow/__pycache__/
 *.pyc
-isimple/*.pyc
+shapeflow/*.pyc
 *.csv
 examples/
 *.xlsx
@@ -13,9 +13,9 @@ examples/
 *.docx
 *.doc
 .history
-isimple/.history
+shapeflow/.history
 *.meta
-isimple/.last-update
+shapeflow/.last-update
 .cache/
 test/.cache/
 test/.log

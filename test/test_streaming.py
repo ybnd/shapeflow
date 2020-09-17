@@ -7,9 +7,9 @@ import time
 import cv2
 import numpy as np
 
-from isimple.core import ImmutableRegistry, Endpoint, RootInstance, stream_image
-from isimple.core.config import Instance, BaseConfig
-from isimple.core.streaming import BaseStreamer, JpegStreamer, JsonStreamer, streams, stream
+from shapeflow.core import ImmutableRegistry, Endpoint, RootInstance, stream_image
+from shapeflow.core.config import Instance, BaseConfig
+from shapeflow.core.streaming import BaseStreamer, JpegStreamer, JsonStreamer, streams, stream
 
 
 class StreamerThread(Thread):

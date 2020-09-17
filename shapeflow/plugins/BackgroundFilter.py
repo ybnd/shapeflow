@@ -1,12 +1,12 @@
 import numpy as np
 import cv2
 
-from isimple import get_logger, settings
-from isimple.config import extend, ConfigType, Field
+from shapeflow import get_logger, settings
+from shapeflow.config import extend, ConfigType, Field
 
-from isimple.core.interface import FilterConfig, FilterInterface, FilterType
+from shapeflow.core.interface import FilterConfig, FilterInterface, FilterType
 
-from isimple.maths.colors import Color, HsvColor, convert, WRAP
+from shapeflow.maths.colors import Color, HsvColor, convert, WRAP
 
 log = get_logger(__name__)
 

@@ -5,8 +5,8 @@ import json
 
 from typing import _GenericAlias, Union, Tuple, List, Dict, Optional  #type: ignore
 
-from isimple.util.meta import resolve_type_to_most_specific
-from isimple.config import VideoAnalyzerConfig
+from shapeflow.util.meta import resolve_type_to_most_specific
+from shapeflow.config import VideoAnalyzerConfig
 
 
 class ResolveTypeTest(unittest.TestCase):

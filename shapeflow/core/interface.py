@@ -3,11 +3,11 @@ from typing import Type, Tuple, Optional, Dict, Mapping
 
 import numpy as np
 
-from isimple import get_logger
-from isimple.core import Described
-from isimple.core.config import BaseConfig, Configurable, Factory
-from isimple.maths.colors import Color
-from isimple.maths.coordinates import ShapeCoo, Roi
+from shapeflow import get_logger
+from shapeflow.core import Described
+from shapeflow.core.config import BaseConfig, Configurable, Factory
+from shapeflow.maths.colors import Color
+from shapeflow.maths.coordinates import ShapeCoo, Roi
 
 from pydantic import validator
 
@@ -33,7 +33,7 @@ class InterfaceFactory(Factory):
         field_schema.update(interface=cls._config_type.__name__)
 
 
-class Handler(abc.ABC):  # todo: move to isimple.core.interface?
+class Handler(abc.ABC):  # todo: move to shapeflow.core.interface?
     _implementation: Configurable
     _implementation_factory: Type[InterfaceFactory]
     _implementation_class: Type[Configurable]

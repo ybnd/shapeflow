@@ -2,7 +2,7 @@ import re
 from collections import namedtuple
 from typing import Dict, Type, List
 
-from isimple.core.config import BaseConfig, Field, validator
+from shapeflow.core.config import BaseConfig, Field, validator
 
 import cv2
 import numpy as np

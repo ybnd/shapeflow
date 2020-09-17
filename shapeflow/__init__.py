@@ -29,9 +29,9 @@ __version__: str = '0.3.19'
 # Get root directory
 _user_dir = str(pathlib.Path.home())  
 if os.name == 'nt':  # if running on Windows
-    _subdirs = ['AppData', 'Roaming', 'isimple']
+    _subdirs = ['AppData', 'Roaming', 'shapeflow']
 else:
-    _subdirs = ['.local', 'share', 'isimple']
+    _subdirs = ['.local', 'share', 'shapeflow']
 
 ROOTDIR = os.path.join(_user_dir, os.path.join(*_subdirs))
 

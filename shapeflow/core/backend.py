@@ -13,18 +13,18 @@ import pandas as pd
 
 from pydantic import Field
 
-from isimple import settings, get_logger, get_cache
-from isimple.endpoints import BackendRegistry
+from shapeflow import settings, get_logger, get_cache
+from shapeflow.endpoints import BackendRegistry
 
-from isimple.core import RootException, SetupError, RootInstance, Described
-from isimple.maths.colors import Color, HsvColor, as_hsv
-from isimple.util.meta import describe_function
-from isimple.util import Timer, Timing
-from isimple.core.db import BaseAnalysisModel
-from isimple.core.config import Factory, BaseConfig, Instance, Configurable
-from isimple.core.streaming import EventStreamer
+from shapeflow.core import RootException, SetupError, RootInstance, Described
+from shapeflow.maths.colors import Color, HsvColor, as_hsv
+from shapeflow.util.meta import describe_function
+from shapeflow.util import Timer, Timing
+from shapeflow.core.db import BaseAnalysisModel
+from shapeflow.core.config import Factory, BaseConfig, Instance, Configurable
+from shapeflow.core.streaming import EventStreamer
 
-from isimple.core.interface import InterfaceFactory
+from shapeflow.core.interface import InterfaceFactory
 
 
 log = get_logger(__name__)
@@ -255,7 +255,7 @@ class Feature(abc.ABC, Configurable):  # todo: should probably use Config for pa
         """
         raise NotImplementedError
 
-    @abc.abstractmethod  # todo: we're dealing with frames explicitly, so maybe this should be an isimple.video thing...
+    @abc.abstractmethod  # todo: we're dealing with frames explicitly, so maybe this should be an shapeflow.video thing...
     def state(self, frame: np.ndarray, state: np.ndarray) -> np.ndarray:
         """Return the Feature instance's state image for a given frame
         """

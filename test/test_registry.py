@@ -2,7 +2,7 @@ import unittest
 
 from typing import Callable
 
-from isimple.core import Endpoint, EndpointRegistry, ImmutableRegistry, InstanceRegistry, RootInstance, SetupError
+from shapeflow.core import Endpoint, EndpointRegistry, ImmutableRegistry, InstanceRegistry, RootInstance, SetupError
 
 
 class EndpointTest(unittest.TestCase):

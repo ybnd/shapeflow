@@ -3,8 +3,8 @@ import cv2
 
 from typing import Tuple, Union
 
-from isimple.maths.coordinates import Coo, ShapeCoo
-from isimple.util import timed
+from shapeflow.maths.coordinates import Coo, ShapeCoo
+from shapeflow.util import timed
 
 
 def ckernel(size: int) -> np.ndarray:

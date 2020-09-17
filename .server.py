@@ -4,8 +4,8 @@ import socket
 import requests
 import webbrowser
 
-from isimple import get_logger
-from isimple.main import Main, Thread, time
+from shapeflow import get_logger
+from shapeflow.main import Main, Thread, time
 
 log = get_logger('.server.py')
 

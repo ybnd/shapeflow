@@ -1,8 +1,8 @@
 import unittest
 
-from isimple.maths.images import *
-from isimple.maths.colors import *
-from isimple.maths.coordinates import *
+from shapeflow.maths.images import *
+from shapeflow.maths.colors import *
+from shapeflow.maths.coordinates import *
 
 import numpy as np
 import cv2

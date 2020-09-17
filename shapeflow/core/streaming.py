@@ -3,11 +3,11 @@ import json
 from typing import Optional, Tuple, Generator, Callable, Dict, Type, Any, Union, List
 from functools import wraps
 
-from isimple import get_logger
-from isimple.core import _Streaming, Lockable
+from shapeflow import get_logger
+from shapeflow.core import _Streaming, Lockable
 
-from isimple.util import Singleton
-from isimple.util.meta import unbind
+from shapeflow.util import Singleton
+from shapeflow.util.meta import unbind
 import queue
 
 import threading

@@ -5,19 +5,19 @@ import json
 
 from pydantic import Field, validator
 
-from isimple import __version__
+from shapeflow import __version__
 
-from isimple.core.config import extend, ConfigType, \
+from shapeflow.core.config import extend, ConfigType, \
     log, VERSION, CLASS, untag, BaseConfig
-from isimple.core.backend import BaseAnalyzerConfig, \
+from shapeflow.core.backend import BaseAnalyzerConfig, \
     FeatureType, FeatureConfig
-from isimple.core import EnforcedStr
-from isimple.core.interface import FilterType, TransformType, TransformConfig, \
+from shapeflow.core import EnforcedStr
+from shapeflow.core.interface import FilterType, TransformType, TransformConfig, \
     FilterConfig, HandlerConfig
-from isimple.maths.coordinates import Roi
-from isimple.maths.colors import HsvColor
+from shapeflow.maths.coordinates import Roi
+from shapeflow.maths.colors import HsvColor
 
-from isimple.util import before_version
+from shapeflow.util import before_version
 
 
 class ColorSpace(EnforcedStr):
@@ -139,7 +139,7 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
                     for filter in FilterType().options
                 },
             },
-            'isimple_version': __version__,  # add version to schema
+            'shapeflow_version': __version__,  # add version to schema
         })
 
         # definitions in schema['implementations'] to top-level
@@ -235,7 +235,7 @@ def loads(config: str) -> BaseConfig:
 
 
 def normalize_config(d: dict) -> dict:
-    """Normalize a configuration dictionary to match the current version of `isimple.core.config`
+    """Normalize a configuration dictionary to match the current version of `shapeflow.core.config`
     :param d: configuration dictionary
     :return:
     """

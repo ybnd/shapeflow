@@ -6,10 +6,10 @@ import numpy as np
 from typing import Optional, Union, Type, Dict, Any, Mapping
 from functools import partial
 
-from isimple import get_logger, __version__
-from isimple.core import EnforcedStr, Described
-from isimple.util import ndarray2str, str2ndarray
-from isimple.util.meta import resolve_type_to_most_specific, is_optional
+from shapeflow import get_logger, __version__
+from shapeflow.core import EnforcedStr, Described
+from shapeflow.util import ndarray2str, str2ndarray
+from shapeflow.util.meta import resolve_type_to_most_specific, is_optional
 
 from pydantic import BaseModel, Field, root_validator, validator
 
@@ -150,7 +150,7 @@ class BaseConfig(BaseModel, Described):
             -
     ```
         from pydantic import Field
-        from isimple.core.config import BaseConfig
+        from shapeflow.core.config import BaseConfig
 
         @extend(ConfigType)
         class SomeConfig(BaseConfig):
