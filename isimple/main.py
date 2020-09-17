@@ -116,6 +116,8 @@ class Main(isimple.core.Lockable):
     _timeout_unload = 5  # todo: load from settings.yaml
     _timeout_loop = 0.1  # todo: load from settings.yaml
 
+    _raise_call_exceptions = False
+
     _stop_log: Event
 
     _eventstreamer = streaming.EventStreamer()
@@ -723,6 +725,8 @@ class Main(isimple.core.Lockable):
 
             except Exception as e:
                 self._roots[id].notice(f"Error @ '{endpoint}': {e.args}")
+                if self._raise_call_exceptions:
+                    raise
                 return False
         else:
             return None
@@ -738,6 +742,8 @@ class Main(isimple.core.Lockable):
                 result = method(**data)
             except Exception as e:
                 self.notice(f"Error @ '{endpoint}': {e.args}")
+                if self._raise_call_exceptions:
+                    raise
                 return False
 
             return result
