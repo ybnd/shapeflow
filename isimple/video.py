@@ -392,7 +392,7 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
         return roi
 
     def clear(self) -> None:
-        self.config(roi=None, flip=FlipConfig(), turn=0)
+        self.config(roi=None)
         self.set(None)
 
         streams.update()
