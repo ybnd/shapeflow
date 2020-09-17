@@ -2,7 +2,7 @@
   <header class="sidebar-header">
     <ul class="sidebar-header-items">
       <li class="nav-link home" @click="$router.push('/')">
-        isimple
+        shapeflow
       </li>
     </ul>
   </header>

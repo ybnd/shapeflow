@@ -90,16 +90,6 @@
           />
         </b-button>
       </PageHeaderItem>
-      <page-header-item>
-        <b-button
-          class="header-button-icon"
-          @click="moveableShow = !moveableShow"
-          data-toggle="tooltip"
-          title="Rotate 90° counter-clockwise"
-        >
-          <i class="fa fa-rotate-left" />
-        </b-button>
-      </page-header-item>
     </PageHeader>
     <div class="align-content">
       <div
@@ -236,7 +226,7 @@ export default {
       };
     },
     handleClearAlignment() {
-      console.log("align: handleClearAlignment");
+      // console.log("align: handleClearAlignment");
       commit(this.id).then((ok) => {
         if (ok) {
           clear_roi(this.id).then((ok) => {
@@ -477,14 +467,14 @@ export default {
       this.moveable.draggable = false;
     },
     handleStartRectangle(start_event) {
-      console.log("align: handleStartRectangle");
+      // console.log("align: handleStartRectangle");
       if (!this.moveableShow) {
         this.dragROI.started = true;
         this.dragROI.start_event = start_event;
       }
     },
     handleStopRectangle(stop_event) {
-      console.log("align: handleStopRectangle()");
+      // console.log("align: handleStopRectangle()");
       if (!this.moveableShow && this.dragROI.started) {
         // console.log("align: handleStopRectangle() -- setting ROI");
 
@@ -587,6 +577,7 @@ export default {
       throttleWarp: 0,
       snappable: true,
       bounds: {},
+      rotationPosition: "bottom", // becomes the top ~ transform, probably a coordinate mixup somewhere. works fine though
     },
     align: {
       frame: null,
@@ -626,26 +617,27 @@ export default {
   float: left;
   display: block;
   margin: 0 0 0 0;
-  width: calc(100vw - #{$sidebar-width});
-  height: calc(100vh - #{$header-height});
-  max-width: calc(100vw - #{$sidebar-width});
-  max-height: calc(100vh - #{$header-height});
+  width: $content-width;
+  height: $content-height;
+  max-width: $content-width;
+  max-height: $content-height;
   /* Disable double-click selection */
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   -o-user-select: none;
   user-select: none;
+  overflow: none;
 }
 
 .streamed-image-a {
   z-index: -100;
   pointer-events: none;
   display: block;
-  max-width: calc(100vw - #{$sidebar-width});
-  max-height: calc(100vh - #{$header-height});
   width: auto;
   height: auto;
+  max-width: $content-width;
+  max-height: $content-height;
   position: absolute;
 }
 

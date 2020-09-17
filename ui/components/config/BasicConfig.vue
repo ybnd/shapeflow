@@ -25,6 +25,7 @@
           >
             <b-dropdown-item
               v-for="path in path_options[file.model]"
+              class="path-dropdown-item"
               :key="`path-${path}`"
               @click="file.select(path)"
             >
@@ -244,23 +245,23 @@ export default {
       this.$emit(COMMIT);
     },
     onKeyUp(e) {
-      console.log(e);
+      // console.log(e);
       if (this.type_commit && e.key === "Enter") {
         this.lastEnter = Date.now();
         if (this.valueOut !== this.value) {
-          console.log("SchemaField.onKeyUp() 'Enter' -> commit");
+          // console.log("SchemaField.onKeyUp() 'Enter' -> commit");
           this.$emit(COMMIT);
         }
       }
     },
     onFocusOut(e) {
-      console.log(e);
+      // console.log(e);
       if (
         this.type_commit &&
         Math.abs(Date.now() - this.lastEnter) > ENTER_FOCUSOUT_INTERVAL
       ) {
         if (this.valueOut !== this.value) {
-          console.log("SchemaField.onFocusOut() -> commit");
+          // console.log("SchemaField.onFocusOut() -> commit");
           this.$emit(COMMIT);
         }
       }
@@ -685,5 +686,17 @@ $add-button-width: 120px;
   max-width: $fis-value-width;
   -webkit-appearance: none; // no arrows
   -moz-appearance: textfield;
+}
+
+.dropdown-menu {
+  border-radius: 0;
+}
+
+.path-dropdown-item {
+  max-width: calc(
+    #{$content-width} - 2 * #{$path-browse-width} - 3px
+  ) !important; // avoids
+  overflow: hidden;
+  text-overflow: ellipsis !important;
 }
 </style>

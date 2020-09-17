@@ -174,7 +174,7 @@ export default {
     },
     p_set(p, a) {
       set(this.model, p, a);
-      console.log("SchemaDefinition.p_set()");
+      // console.log("SchemaDefinition.p_set()");
       this.$emit(COMMIT);
     },
   },
