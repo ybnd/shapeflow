@@ -387,14 +387,15 @@ export default {
   /*float: left;*/
   /*display: block;*/
   margin: 0 0 0 0;
-  height: calc(100vh - #{$header-height});
-  width: calc(100vw - #{$sidebar-width});
+  height: $content-height;
+  width: $content-width;
   /* Disable double-click selection */
   -webkit-user-select: none;
   -moz-user-select: none;
   -ms-user-select: none;
   -o-user-select: none;
   user-select: none;
+  overflow: hidden;
 }
 
 .with-cs {
@@ -405,8 +406,8 @@ export default {
 
 .streamed-image-f {
   display: inline;
-  max-width: calc(100vw - #{$sidebar-width});
-  max-height: calc(100vh - #{$header-height});
+  max-width: $content-width;
+  max-height: $content-height;
   //width: auto;
   //height: auto;
   float: left;
@@ -416,8 +417,8 @@ export default {
 
 .overlay {
   display: inline;
-  max-width: calc(100vw - #{$sidebar-width});
-  max-height: calc(100vh - #{$header-height});
+  max-width: $content-width;
+  max-height: $content-height;
   //width: auto;
   //height: auto;
   float: left;
@@ -429,8 +430,8 @@ export default {
 .overlay-state {
   mix-blend-mode: multiply;
   display: inline;
-  max-width: calc(100vw - #{$sidebar-width});
-  max-height: calc(100vh - #{$header-height});
+  max-width: $content-width;
+  max-height: $content-height;
   //width: auto;
   //height: auto;
   float: left;

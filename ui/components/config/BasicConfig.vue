@@ -25,6 +25,7 @@
           >
             <b-dropdown-item
               v-for="path in path_options[file.model]"
+              class="path-dropdown-item"
               :key="`path-${path}`"
               @click="file.select(path)"
             >
@@ -685,5 +686,17 @@ $add-button-width: 120px;
   max-width: $fis-value-width;
   -webkit-appearance: none; // no arrows
   -moz-appearance: textfield;
+}
+
+.dropdown-menu {
+  border-radius: 0;
+}
+
+.path-dropdown-item {
+  max-width: calc(
+    #{$content-width} - 2 * #{$path-browse-width} - 3px
+  ) !important; // avoids
+  overflow: hidden;
+  text-overflow: ellipsis !important;
 }
 </style>

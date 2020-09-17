@@ -124,23 +124,25 @@ export default {
 @import "node_modules/bootstrap/scss/functions";
 
 .fullpage-result-container {
-  width: calc(100vw - #{$sidebar-width});
-  height: calc(100vh - #{$header-height});
+  width: $content-width;
+  height: $content-height;
+  max-width: $content-width;
+  max-height: $content-height;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 .fullpage-result {
   position: relative;
   flex-shrink: 1;
-  flex-basis: 100vh;
-  max-height: 100vh;
+  flex-grow: 1;
+  flex-basis: 400px;
+  max-height: $content-height;
   min-height: 200px;
   display: flex;
-  width: calc(100vw - #{$sidebar-width});
+  width: $content-width;
 }
 .fullpage-result canvas {
   /*flex-grow: 1;*/
-  width: calc(100vw - #{$sidebar-width});
+  width: $content-width;
 }
 </style>

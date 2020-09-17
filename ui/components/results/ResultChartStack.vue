@@ -176,14 +176,17 @@ export default {
 @import "node_modules/bootstrap/scss/functions";
 
 .result-container {
+  position: absolute;
+  padding-top: 8px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  padding-top: 8px;
+  margin: 0;
 }
 .result {
   position: relative;
   flex-shrink: 1;
-  display: flex;
+  flex-grow: 1;
+  display: relative;
 }
 </style>
