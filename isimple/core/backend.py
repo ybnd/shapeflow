@@ -454,10 +454,10 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
     def set_model(self, model: BaseAnalysisModel):
         self._model = model
-        if self.config.name is None:  # todo: move to AnalysisModel instead
-            self.config(name=self.model.get_name())
+        if self.config.name is None:
+            self.config(name=self.get_name())
 
-        self._runs = self._model.get_runs()
+        self._runs = self.model.get_runs()
 
     @property
     def model(self):
@@ -701,6 +701,9 @@ class BaseVideoAnalyzer(Instance, RootInstance):
             else:
                 log.warning(f"{self.__class__.__qualname__} can not be launched.")  # todo: try to be more verbose
                 return False
+
+    def get_name(self) -> str:
+        return self.model.get_name()
 
     @backend.expose(backend.get_db_id)
     def get_db_id(self) -> int:

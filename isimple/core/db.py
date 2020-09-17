@@ -13,7 +13,7 @@ from sqlalchemy.sql.schema import Column
 from sqlalchemy.sql.sqltypes import Integer, String, DateTime
 
 from isimple import get_logger
-from isimple.core import RootException, RootInstance
+from isimple.core import RootException, RootInstance, Lockable
 from isimple.util import hash_file
 
 log = get_logger(__name__)
@@ -52,7 +52,7 @@ class SessionWrapper(object):
             session.close()
 
 
-class DbModel(Base, SessionWrapper):
+class DbModel(Base, SessionWrapper, Lockable):
     """Abstract database model class.
 
     Subclasses should
@@ -90,27 +90,30 @@ class DbModel(Base, SessionWrapper):
         add: bool
             add model(s) after opening the session
         """
-        log.vdebug(f'opening session')
-        session = self._session_factory()
+        with self.lock():
+            log.vdebug(f'opening session')
+            session = self._session_factory()
 
-        try:
-            if add:
-                for model in self._models:
-                    session.add(model)
+            try:
+                if add:
+                    for model in self._models:
+                        session.add(model)
+                else:
+                    session.add(self)
 
-            self._pre()
-            yield session
-            self._post()
-            log.vdebug('committing')
-            session.commit()
-        except Exception as e:
-            log.error(f"error during session: {e.args}")
-            log.error('rolling back')
-            session.rollback()
-            raise
-        finally:
-            log.vdebug(f'closing session')
-            session.close()
+                self._pre()
+                yield session
+                self._post()
+                log.vdebug('committing')
+                session.commit()
+            except Exception as e:
+                log.error(f"error during session: {e.args}")
+                log.error('rolling back')
+                session.rollback()
+                raise
+            finally:
+                log.vdebug(f'closing session')
+                session.close()
 
     def _pre(self):
         if hasattr(self, 'added') and self.added is None:

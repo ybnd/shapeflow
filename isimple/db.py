@@ -110,19 +110,19 @@ class AnalysisModel(BaseAnalysisModel):
         """Name of the analysis from the database. Unset names are reset
         to '#{id}'
         """
-        with self.session():
+        with self.session(add=False):
             if self.name is None:
                 self.name = f"#{self.id}"
             return self.name
 
     def get_runs(self) -> int:
-        with self.session():
+        with self.session(add=False):
             if self.runs is None:
                 self.runs = 0
             return self.runs
 
     def get_id(self) -> int:
-        with self.session():
+        with self.session(add=False):
             return self.id
 
     def set_analyzer(self, analyzer: BaseVideoAnalyzer):
@@ -354,8 +354,6 @@ class AnalysisModel(BaseAnalysisModel):
                 filter(filter).\
                 order_by(order)
             )
-
-
 
             for match in q:
                 assert isinstance(match, ConfigModel)

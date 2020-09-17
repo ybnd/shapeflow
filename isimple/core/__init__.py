@@ -258,47 +258,73 @@ class Described(object):
             return cls.__name__
 
 
-class Lockable(abc.ABC):
+class Lockable(object):
     _lock: threading.Lock
     _cancel: threading.Event
     _error: threading.Event
 
-    def __init__(self):
-        self._lock = threading.Lock()
-        self._cancel = threading.Event()
-        self._error = threading.Event()
+    """Wrapper around threading.Lock & threading.Event    
+    Doesn't need to __init__(); lock & events are created when they're needed.
+    """
+
+    @property
+    def _ensure_lock(self) -> threading.Lock:
+        try:
+            return self._lock
+        except AttributeError:
+            self._lock = threading.Lock()
+            return self._lock
+
+    @property
+    def _ensure_cancel(self) -> threading.Event:
+        try:
+            return self._cancel
+        except AttributeError:
+            self._cancel = threading.Event()
+            return self._cancel
+
+    @property
+    def _ensure_error(self) -> threading.Event:
+        try:
+            return self._error
+        except AttributeError:
+            self._error = threading.Event()
+            return self._error
 
     @contextmanager
     def lock(self):
         log.vdebug(f"Acquiring lock {self}...")
-        lock = self._lock.acquire()
+        locked = self._ensure_lock.acquire()
+        original_lock = self._lock
         log.vdebug(f"Acquired lock {self}")
         try:
             log.vdebug(f"Locking {self}")
-            yield lock
+            yield locked
         finally:
             log.vdebug(f"Unlocking {self}")
+            # Make 'sure' nothing weird happened to self._lock
+            assert self._lock == original_lock
             self._lock.release()
 
     def cancel(self):
-        self._cancel.set()
+        self._ensure_cancel.set()
 
     def error(self):
-        self._error.set()
+        self._ensure_error.set()
 
     @property
     def canceled(self) -> bool:
-        return self._cancel.is_set()
+        return self._ensure_cancel.is_set()
 
     @property
     def errored(self) -> bool:
-        return self._error.is_set()
+        return self._ensure_error.is_set()
 
     def clear_cancel(self):
-        self._cancel.clear()
+        return self._ensure_cancel.clear()
 
     def clear_error(self):
-        self._error.clear()
+        return self._ensure_error.clear()
 
 
 class RootInstance(Lockable):
