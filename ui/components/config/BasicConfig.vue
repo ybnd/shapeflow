@@ -244,23 +244,23 @@ export default {
       this.$emit(COMMIT);
     },
     onKeyUp(e) {
-      console.log(e);
+      // console.log(e);
       if (this.type_commit && e.key === "Enter") {
         this.lastEnter = Date.now();
         if (this.valueOut !== this.value) {
-          console.log("SchemaField.onKeyUp() 'Enter' -> commit");
+          // console.log("SchemaField.onKeyUp() 'Enter' -> commit");
           this.$emit(COMMIT);
         }
       }
     },
     onFocusOut(e) {
-      console.log(e);
+      // console.log(e);
       if (
         this.type_commit &&
         Math.abs(Date.now() - this.lastEnter) > ENTER_FOCUSOUT_INTERVAL
       ) {
         if (this.valueOut !== this.value) {
-          console.log("SchemaField.onFocusOut() -> commit");
+          // console.log("SchemaField.onFocusOut() -> commit");
           this.$emit(COMMIT);
         }
       }

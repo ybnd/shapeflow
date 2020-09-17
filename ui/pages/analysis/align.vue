@@ -236,7 +236,7 @@ export default {
       };
     },
     handleClearAlignment() {
-      console.log("align: handleClearAlignment");
+      // console.log("align: handleClearAlignment");
       commit(this.id).then((ok) => {
         if (ok) {
           clear_roi(this.id).then((ok) => {
@@ -477,14 +477,14 @@ export default {
       this.moveable.draggable = false;
     },
     handleStartRectangle(start_event) {
-      console.log("align: handleStartRectangle");
+      // console.log("align: handleStartRectangle");
       if (!this.moveableShow) {
         this.dragROI.started = true;
         this.dragROI.start_event = start_event;
       }
     },
     handleStopRectangle(stop_event) {
-      console.log("align: handleStopRectangle()");
+      // console.log("align: handleStopRectangle()");
       if (!this.moveableShow && this.dragROI.started) {
         // console.log("align: handleStopRectangle() -- setting ROI");
 

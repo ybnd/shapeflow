@@ -375,11 +375,11 @@ export default {
       return get(this.data, this.resolve_context(p));
     },
     p_set(p, a) {
-      console.log(`SchemaForm.p_set()`);
-      console.log("p=");
-      console.log(p);
-      console.log(`a=`);
-      console.log(a);
+      // console.log(`SchemaForm.p_set()`);
+      // console.log("p=");
+      // console.log(p);
+      // console.log(`a=`);
+      // console.log(a);
 
       set(this.data, p, a);
 

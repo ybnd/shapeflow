@@ -159,13 +159,13 @@ export default {
   methods: {
     onKeyUp(e) {
       if (e.key === "Enter") {
-        console.log("configure.onKeyUp() 'Enter'");
+        // console.log("configure.onKeyUp() 'Enter'");
         this.lastEnter = Date.now();
         this.handleUpdate();
       }
     },
     onFocusOut() {
-      console.log("configure.onFocusOut()");
+      // console.log("configure.onFocusOut()");
       if (Math.abs(Date.now() - this.lastEnter) > ENTER_FOCUSOUT_INTERVAL) {
         this.handleUpdate();
       }
@@ -179,24 +179,24 @@ export default {
       redo_config(this.id).then(this.handleGetConfig());
     },
     handleInit() {
-      console.log(`configure.handleInit() id=${this.id}`);
+      // console.log(`configure.handleInit() id=${this.id}`);
       this.previous_id = this.id;
 
-      console.log(this.$store.getters["analyzers/isValidId"](this.id));
+      // console.log(this.$store.getters["analyzers/isValidId"](this.id));
 
       // Check if this.id is queued. If not, navigate to /
       // if (this.$store.getters["analyzers/isValidId"](this.id) === false) {
       if (this.$store.getters["analyzers/getIndex"](this.id) === -1) {
         this.$router.push(`/`);
       } else {
-        console.log("initializing");
+        // console.log("initializing");
         this.$root.$emit(events.sidebar.open(this.id));
 
         if (!this.ready.config) {
           this.$store
             .dispatch("analyzers/get_config", { id: this.id })
             .then(() => {
-              console.log("handleInit callback");
+              // console.log("handleInit callback");
               this.handleCheckSchema();
               this.handleGetConfig();
             });
@@ -211,7 +211,7 @@ export default {
       const ok =
         this.config.hasOwnProperty("features") &&
         this.config.features !== undefined; // this is just the first field that comes up as an error otherwise
-      console.log(`config is ok? ${ok}`);
+      // console.log(`config is ok? ${ok}`);
       this.ready.config = ok;
       return ok;
     },
@@ -219,7 +219,7 @@ export default {
       const ok =
         this.schema.hasOwnProperty("properties") &&
         this.schema.properties !== undefined;
-      console.log(`schema is ok? ${ok}`);
+      // console.log(`schema is ok? ${ok}`);
       this.ready.schema = ok;
       return ok;
     },
@@ -232,14 +232,14 @@ export default {
       this.ready.config = this.handleCheckConfig();
       this.waiting = false;
 
-      console.log(`ready: ${this.ready.config && this.ready.schema}`);
-      console.log(this.ready);
+      // console.log(`ready: ${this.ready.config && this.ready.schema}`);
+      // console.log(this.ready);
 
       // console.log("config=");
       // console.log(this.config);
     },
     handleSetConfig() {
-      console.log("configure.handleSetConfig()");
+      // console.log("configure.handleSetConfig()");
       this.waiting = true;
       this.$store
         .dispatch("analyzers/set_config", {
@@ -275,11 +275,11 @@ export default {
       this.handleInit();
     },
     store_config() {
-      console.log("config changed");
+      // console.log("config changed");
       this.handleGetConfig();
     },
     schema() {
-      console.log("schema changed");
+      // console.log("schema changed");
       this.ready.schema = this.handleCheckSchema();
     },
   },
@@ -300,9 +300,9 @@ export default {
       return this.$store.getters["analyzers/getAnalyzerConfig"](this.id);
     },
     isReady() {
-      console.log(
-        `configure.isReady() ${this.ready.schema && this.ready.config}`
-      );
+      // console.log(
+      //   `configure.isReady() ${this.ready.schema && this.ready.config}`
+      // );
       return this.ready.schema && this.ready.config;
     },
   },
