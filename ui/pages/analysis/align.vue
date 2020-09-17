@@ -236,7 +236,7 @@ export default {
       };
     },
     handleClearAlignment() {
-      // console.log("align: handleClearAlignment");
+      console.log("align: handleClearAlignment");
       commit(this.id).then((ok) => {
         if (ok) {
           clear_roi(this.id).then((ok) => {
@@ -328,7 +328,7 @@ export default {
           this.$refs.moveable.$el.style.transform = this.align.transform;
           this.$refs.moveable.updateRect();
           this.$refs.moveable.updateTarget();
-          this.moveableShow = true;
+          this.handleShowMoveable();
         }
       } else {
       }
@@ -458,6 +458,7 @@ export default {
       // console.log("align: handleShowMoveable()");
       return new Promise((resolve, reject) => {
         this.moveableShow = true;
+        this.moveable.draggable = true;
         const wait = setInterval(() => {
           // console.log("checking if moveable exists");
           if (this.$refs.moveable !== undefined) {
@@ -473,16 +474,17 @@ export default {
     handleHideMoveable() {
       // console.log("align: handleHideMoveable()");
       this.moveableShow = false;
+      this.moveable.draggable = false;
     },
     handleStartRectangle(start_event) {
-      // console.log("align: handleStartRectangle");
+      console.log("align: handleStartRectangle");
       if (!this.moveableShow) {
         this.dragROI.started = true;
         this.dragROI.start_event = start_event;
       }
     },
     handleStopRectangle(stop_event) {
-      // console.log("align: handleStopRectangle()");
+      console.log("align: handleStopRectangle()");
       if (!this.moveableShow && this.dragROI.started) {
         // console.log("align: handleStopRectangle() -- setting ROI");
 
