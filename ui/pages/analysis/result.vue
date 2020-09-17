@@ -45,12 +45,13 @@ export default {
   name: "result",
   components: { PageHeader, PageHeaderItem, ResultChartStack },
   mounted() {
-    this.colors = undefined;
-    this.result = undefined;
     this.sync();
   },
   methods: {
     sync() {
+      this.colors = undefined;
+      this.result = undefined;
+
       get_db_id(this.id).then((id) => {
         this.db.id = id;
         get_result_list(this.db.id).then((list) => {
