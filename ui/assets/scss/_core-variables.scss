@@ -1,0 +1,49 @@
+// core overrides
+
+$layout-transition-speed:             .05s !default;
+
+$sidebar-width: 120px;
+$sidebar-compact-width: 120px;
+$mobile-sidebar-width: 120px;
+
+$sidebar-bg: $gray-800;
+$sidebar-header-bg: rgba(0,0,0,.2) !default;
+$sidebar-footer-bg: rgba(0,0,0,.2) !default;
+
+$header-height: 38px;
+$header-item-gap: 4px;
+$header-item-height: calc(#{$header-height} - 2 * #{$header-item-gap});
+$header-icon-height: calc(#{$header-item-height} - 2 * #{$header-item-gap});
+
+$sidebar-nav-title-padding-y:         .5rem !default;
+$sidebar-nav-title-padding-x:         .5rem !default;
+
+$sidebar-nav-link-padding-y:          .5rem !default;
+$sidebar-nav-link-padding-x:          .5rem !default;
+
+$sidebar-footer-padding-y:            .5rem !default;
+$sidebar-footer-padding-x:            .5rem !default;
+
+$content-width: calc(#{100vw} - #{$sidebar-width});
+$content-height: calc(#{100vh} - #{$header-height});
+
+/* Notices */
+$dismiss-width: 32px;
+$notice-gap: 4px;
+$notice-width: #{"min(50vw, 600px)"};
+$notice-box-max-height: #{"min(50vh), 400px"};
+
+/* Config sidebar */
+$config-sidebar-width: 300px;
+
+
+/* Bootstrap form styles */
+
+$form-field-height: 30px;
+$form-gap: 2px;
+$form-indent: 3px; /* makes section border fit neatly under <details> twisty triangle*/
+$scrollbar-width: 12px;
+
+$fit-width: calc(100%  - #{$form-indent} + 3 * #{$form-gap});
+$half-width: calc((100vw - #{$sidebar-width} - 3 * #{$form-gap})/2);
+$full-width: calc(100vw - #{$sidebar-width} - 2 * #{$form-gap});

@@ -27,4 +27,6 @@ build/
 dist/
 ui/
 .venv/
+.local
+.~*.md
 .ploy

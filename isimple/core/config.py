@@ -1,24 +1,26 @@
-import os
-import re
-import yaml
-from yaml.representer import SafeRepresenter
-import json
-from ast import literal_eval as make_tuple
-import numpy as np
-from typing import List, Optional, Tuple, Union, NamedTuple, Type
-from dataclasses import dataclass
-from collections.abc import Iterable
-from collections import namedtuple
 import abc
-import datetime
+import copy
+import json
 
-from isimple.core.util import before_version, after_version
-from isimple.core.log import get_logger
+import numpy as np
+from typing import Optional, Union, Type, Dict, Any, Mapping
+from functools import partial
+
+from isimple import get_logger, __version__
+from isimple.core import EnforcedStr, Described
+from isimple.util import ndarray2str, str2ndarray
+from isimple.util.meta import resolve_type_to_most_specific, is_optional
+
+from pydantic import BaseModel, Field, root_validator, validator
 
 
 log = get_logger(__name__)
 
-__version__: str = '0.2.2'
+# Metadata tags
+VERSION: str = 'config_version'
+CLASS: str = 'config_class'
+
+TAGS = (VERSION, CLASS)
 
 # Extension
 __meta_ext__ = '.meta'
@@ -27,60 +29,16 @@ __meta_ext__ = '.meta'
 __meta_sheet__ = 'metadata'
 
 
-HsvColor = namedtuple('HsvColor', ('h', 's', 'v'))
-
-
-class EnforcedStr(object):
-    _options: List[str] = ['']
-    _str: str
-
-    def __init__(self, string: str = None):
-        if string is not None:
-            if string not in self.options:
-                log.debug(f"Illegal {self.__class__.__name__} '{string}', "
-                              f"should be one of {self.options}. "
-                              f"Defaulting to '{self.default}'.")
-                self._str = self.default
-            else:
-                self._str = str(string)
-        else:
-            self._str = self.default
-
-    def __repr__(self):
-        return f"<{self.__class__.__name__} '{self._str}'>"
-
-    def __str__(self):
-        return self._str
-
-    def __eq__(self, other):
-        if hasattr(other, '_str'):
-            return self._str == other._str
-        elif isinstance(other, str):
-            return self._str == other
-        else:
-            return False
-
-    @property
-    def options(self):
-        return self._options
-
-    @property
-    def default(self):
-        return self._options[0]
-
-    def __hash__(self):
-        return hash(str(self))
-
-
-class Factory(EnforcedStr):
-    _mapping: dict = {'': None}
+class Factory(EnforcedStr):  # todo: add a _class & issubclass check
+    _mapping: Mapping[str, Type[Described]] = {}
     _default: Optional[str] = None
+    _type: Type[Described] = Described
 
     def get(self) -> type:
         if self._str in self._mapping:
             return self._mapping[self._str]
         else:
-            raise ValueError(f"Factory {self.__class__.__name__} doesn't map"
+            raise ValueError(f"Factory {self.__class__.__name__} doesn't map "
                              f"{self._str} to a class.")
 
     @classmethod
@@ -97,106 +55,186 @@ class Factory(EnforcedStr):
         return list(self._mapping.keys())
 
     @property
+    def descriptions(self):
+        return { k:v._description() for k,v in self._mapping.items() }
+
+    @property
     def default(self):
         if self._default is not None:
             return self._default
         else:
-            if len(self._mapping):
+            if hasattr(self, '_mapping') and len(self._mapping):
                 return list(self._mapping.keys())[0]
             else:
                 return None
 
-    @classmethod  # todo: what about some kind of @extend(<FactoryClass>) decorator instead?
-    def extend(cls, mapping: dict):
-        # todo: sanity check this
-        log.debug(f"Extending Factory '{cls.__name__}' with {mapping}")
-        cls._mapping.update(mapping)
+    @classmethod
+    def _extend(cls, key: str, extension: Type[Described]):
+        if not hasattr(cls, '_mapping'):
+            cls._mapping = {}
+
+        assert isinstance(cls._mapping, dict)  # to put MyPy at ease
+
+        if issubclass(extension, cls._type):
+            log.debug(f"Extending Factory '{cls.__name__}' "
+                      f"with {{'{key}': {extension}}}")
+            cls._mapping.update({key: extension})
+        else:
+            raise TypeError(f"Attempting to extend Factory '{cls.__name__}' "
+                            f"with incompatible class {extension.__name__}")
+
+    @abc.abstractmethod
+    def config_schema(self) -> dict:
+        raise NotImplementedError
 
 
-class ColorSpace(EnforcedStr):
-    _options = ['hsv', 'bgr', 'rgb']
+class extend(object):  # todo: can this be a function instead? look at the @dataclass decorator, something weird is going on there with * and /
+    _factory: Type[Factory]
+    _key: Optional[str]
+
+    def __init__(self, factory: Type[Factory], key: Optional[str] = None):
+        self._factory = factory
+        self._key = key
+
+    def __call__(self, cls):
+        if self._key is None:
+            self._key = cls.__name__
+        self._factory._extend(self._key, cls)
+        return cls
 
 
-class FrameIntervalSetting(EnforcedStr):
-    _options = ['dt', 'Nf']
+def untag(d: dict) -> dict:
+    for tag in TAGS:
+        if tag in d:
+            d.pop(tag)
+    return d
 
 
-class TransformType(Factory):
-    _mapping: dict = {}
+class NpArray(np.ndarray):
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v: Any) -> str:
+        # validate data...
+        return v
 
 
-class FilterType(Factory):
-    _mapping: dict = {}
-
-
-class VideoFeatureType(Factory):
-    _mapping: dict = {}
-
-
-class BackendType(Factory):
-    _mapping: dict = {}
-
-
-@dataclass
-class Config(abc.ABC):
-    """Abstract class for configuration data.
-        * Default values for Config or Factory subclasses should be provided as
-            None and '' respectively; in this way they should be caught by
-            `self.resolve` and resolved at runtime. This is important to resolve
-            to the latest version of the Factory, as it may have been extended.
+class BaseConfig(BaseModel, Described):
+    """Abstract configuration"""
     """
+    * Usage, where `SomeConfig` is a subclass of `BaseConfig`:
+        * Instantiating:
+            ```
+                config = SomeConfig()
+                config = SomeConfig(field1=1.0, field2='text')
+                config = SomeConfig(**dict_with_fields_and_values)
+            ```
+        * Updating:
+            ```
+                config(field1=1.0, field2='text')
+                config(**dict_with_fields_and_values)
+            ```
 
-    def __init__(self, **kwargs):
-        """Initialize instance and call post-initialization method
-        """
-        for kw, arg in kwargs.items():
-            if hasattr(self, kw):
-                setattr(self, kw, arg)
-        self.__post_init__()
+        * Saving:
+            ```
+                dict_with_fields_and_values = config.to_dict()
+            ```
 
-    def __post_init__(self):
-        """Resolve attribute values here
-        """
-        pass
+    * Writing `BaseConfig` subclasses:
+        * Use the `@extends(ConfigType)` decorator to make your configuration
+            class accessible from the `ConfigType` Factory (defined below)
+        * Configuration keys are declared as pydantic `Field` instances
+            - Must be type-annotated for type resolution to work properly!
+            -
+    ```
+        from pydantic import Field
+        from isimple.core.config import BaseConfig
 
-    @staticmethod
-    def resolve(val, type, iter=False):
-        """Resolve the value of an attribute to match a specific type
-        :param val: current value
-        :param type: type to resolve to
-        :param iter: if True, interpret `val` as an iterable and resolve
-                     all elements of `val` to `type`
-        :return: the resolved value for `val`; this should be written to the
-                  original attribute, i.e. `self.attr = resolve(self.attr, type)`
-        """
-        def _resolve(val, type):
-            if isinstance(val, str):
-                if issubclass(type, EnforcedStr):
-                    val = type(val)
-                elif issubclass(type, tuple):
-                    val = Config.__str2namedtuple__(val, type)
-                elif type == np.ndarray:
-                    val = Config.__str2ndarray__(val)
-            if isinstance(val, list):
-                if type == np.ndarray:
-                    val = np.array(val)
-                else:
-                    val = type(val)
-            elif isinstance(val, dict) and issubclass(type, Config):
-                val = type(**val)
-            return val
+        @extend(ConfigType)
+        class SomeConfig(BaseConfig):
+            field1: int = Field(default=42)
+            field2: SomeNestedConfig = Field(default_factory=SomeOtherConfig)
+    ```
+    """
+    class Config:
+        """pydantic configuration class"""
+        arbitrary_types_allowed = False
+        use_enum_value = True
+        validate_assignment = True
+        json_encoders = {
+            np.ndarray: list,
+            EnforcedStr: str,
+        }
 
-        if not isinstance(val, type):
-            if iter and isinstance(val, Iterable):
-                # Resolve every elemen,t in `val`
-                val = [_resolve(v, type) for v in val]
+    @classmethod
+    def _resolve_enforcedstr(cls, value, field):
+        if isinstance(value, field.type_):
+            return value
+        elif isinstance(value, str):
+            return field.type_(value)
+        else:
+            raise NotImplementedError
+
+    @classmethod
+    def _odd_add(cls, value):
+        if value:
+            if not (value % 2):
+                return value + 1
             else:
-                # Resolve `val`
-                val = _resolve(val, type)
-        return val
+                return value
+        else:
+            return 0
 
-    def to_dict(self) -> dict:
-        """Return this instances value as a serializable dict.
+    @classmethod
+    def _int_limits(cls, value, field):
+        if field.field_info.le is not None and not value <= field.field_info.le:
+            return field.field_info.le
+        elif field.field_info.lt is not None and not value < field.field_info.lt:
+            return field.field_info.lt - 1
+        elif field.field_info.ge is not None and not value >= field.field_info.ge:
+            return field.field_info.ge
+        elif field.field_info.gt is not None and not value > field.field_info.gt:
+            return field.field_info.gt + 1
+        else:
+            return value
+
+    @classmethod
+    def _float_limits(cls, value, field):
+        if field.field_info.le is not None and not value <= field.field_info.le:
+            return field.field_info.le
+        elif field.field_info.lt is not None and not value < field.field_info.lt:
+            log.warning(f"resolving float 'lt' as 'le' for field {field}")
+            return field.field_info.lt
+        elif field.field_info.ge is not None and not value >= field.field_info.ge:
+            return field.field_info.ge
+        elif field.field_info.gt is not None and not value > field.field_info.gt:
+            log.warning(f"resolving float 'gt' as 'ge' for field {field}")
+            return field.field_info.gt
+        else:
+            return value
+
+
+    def __call__(self, **kwargs) -> None:
+        # iterate over fields to maintain validation order
+        for field in self.__fields__.keys():
+            if field in kwargs:  # todo: inefficient
+                if isinstance(getattr(self, field), BaseConfig) and isinstance(kwargs[field], dict):
+                    # If field is a BaseConfig instance, resolve in place
+                    getattr(self, field)(**kwargs[field])
+                else:
+                    # Otherwise, let the validators handle it
+                    setattr(self, field, kwargs[field])
+
+    @classmethod
+    def _get_field_type(cls, attr):
+        return resolve_type_to_most_specific(cls.__fields__[attr].outer_type_)
+
+    def to_dict(self, do_tag: bool = False) -> dict:  # todo: should be replaced by pydantic internals + serialization
+        """Return the configuration as a serializable dict.
+        :param do_tag: if `True`, add configuration class and version fields to the dict
+        :return: dict
         """
         output: dict = {}
         def _represent(obj) -> Union[dict, str]:
@@ -204,9 +242,9 @@ class Config(abc.ABC):
             :param obj: object
             :return:
             """
-            if isinstance(obj, Config):
-                # Recurse
-                return obj.to_dict()
+            if isinstance(obj, BaseConfig):
+                # Recurse, but don't tag
+                return obj.to_dict(do_tag = False)
             if isinstance(obj, EnforcedStr):
                 # Return str value
                 try:
@@ -214,218 +252,98 @@ class Config(abc.ABC):
                 except TypeError:
                     return ''
             if isinstance(obj, tuple):
-                # Convert to str & bypass YAML tuple representation
+                # Convert to str to bypass YAML tuple representation
                 return str(obj)
             if isinstance(obj, np.ndarray):
-                # Convert to str  & bypass YAML list representation
-                return Config.__ndarray2json__(obj)
+                # Convert to str to bypass YAML list representation
+                return ndarray2str(obj)
             else:
                 # Assume that `obj` is serializable
                 return obj
 
 
         for attr, val in self.__dict__.items():
-            if val is not None:
-                if (isinstance(val, list) or isinstance(val, tuple)) \
-                        and not (attr in ['c0', 'c1', 'radius']):  # Filter out color attributes
-                    output[attr] = []
-                    for v in val:
-                        output[attr].append(_represent(v))
-                else:
-                    output[attr] = _represent(val)
+            try:
+                if val is not None:
+                    if any([
+                        isinstance(val, list),
+                        isinstance(val, tuple),
+                    ]):
+                        output[_represent(attr)] = type(val)([*map(_represent, val)])
+                    elif isinstance(val, dict):
+                        output[_represent(attr)] = {_represent(k):_represent(v) for k,v in val.items()}
+                    else:
+                        output[_represent(attr)] = _represent(val)
+            except ValueError:
+                log.debug(f"Config.to_dict() - skipping '{attr}': {val}")
+
+        if do_tag:
+            # todo: should only tag at the top-level (lots of unnecessary info otherwise)
+            self.tag(output)
+
         return output
 
-    @staticmethod
-    def __ndarray2json__(array: np.ndarray) -> str:
-        return str(json.dumps(array.tolist()))
-
-    @staticmethod
-    def __str2ndarray__(string: str) -> np.ndarray:
-        return np.array(json.loads(str(string)))
-
-    @staticmethod
-    def __str2namedtuple__(t: str, type: Type[tuple]) -> tuple:
-        return type(
-            **{k:float(v.strip("'")) for k,v,_ in re.findall('([A-Za-z0-9]*)=(.*?)(,|\))', t)}  #type: ignore
-        )  # todo: we're assuming tuples of floats here, will break for cases that are not colors!
+    def tag(self, d: dict) -> dict:
+        d[VERSION] = __version__
+        d[CLASS] = self.__class__.__name__
+        return d
 
 
-class BackendInstanceConfig(Config):
-    pass
+class ConfigType(Factory):
+    _type = BaseConfig
+    _mapping: Mapping[str, Type[Described]] = {}
+
+    def get(self) -> Type[BaseConfig]:
+        config = super().get()
+        if issubclass(config, BaseConfig):
+            return config
+        else:
+            raise TypeError(
+                f"'{self.__class__.__name__}' tried to return an unexpected type '{config}'. "
+                f"This is very weird and shouldn't happen, really."
+            )
+
+    def config_schema(self) -> dict:
+        return self.get().schema()
 
 
-@dataclass
-class CachingBackendInstanceConfig(BackendInstanceConfig):
-    do_cache: bool = True
-    do_background: bool = False
+class Configurable(Described):
+    _config_class: Type[BaseConfig]
 
-    cache_dir: str = '.cache'
-    cache_size_limit: int = 2**32
+    @classmethod
+    def config_class(cls):
+        return cls._config_class
 
-    block_timeout: float = 1
-    cache_consumer: bool = False
-
-
-@dataclass
-class VideoFileHandlerConfig(CachingBackendInstanceConfig):
-    do_resolve_frame_number: bool = True
+    @classmethod
+    def config_schema(cls):
+        return cls.config_class().schema()
 
 
-@dataclass
-class TransformHandlerConfig(BackendInstanceConfig):
-    type: Union[TransformType,str] = ''
-    matrix: Union[np.ndarray,str] = np.eye(3)
-    coordinates: Union[list, str] = ''
+class Instance(Configurable):
+    _config: BaseConfig
 
-    def __post_init__(self):
-        self.type = self.resolve(self.type, TransformType)
-        self.matrix = self.resolve(self.matrix, np.ndarray)
-        if len(self.coordinates) > 0:
-            self.coordinates = self.resolve(self.coordinates, np.ndarray).tolist()
+    @property
+    def config(self) -> BaseConfig:
+        return self._config
 
+    def __init__(self, config: BaseConfig = None):
+        self._configure(config)
+        super(Instance, self).__init__()
 
-class FilterConfig(Config):
-    pass
+        log.debug(f'Initialized {self.__class__.__qualname__} with {self._config}')
 
+    def _configure(self, config: BaseConfig = None):   # todo: adapt to dataclass implementation
+        _type = self._config_class
 
-@dataclass
-class HsvRangeFilterConfig(FilterConfig):
-    radius: Union[HsvColor, str] = HsvColor(10, 75, 75)
-
-    c0: Union[HsvColor, str] = HsvColor(0, 0, 0)
-    c1: Union[HsvColor, str] = HsvColor(0, 0, 0)
-
-    def __post_init__(self):
-        self.radius = self.resolve(self.radius, HsvColor)
-        self.c0 = self.resolve(self.c0, HsvColor)
-        self.c1 = self.resolve(self.c1, HsvColor)
-
-
-@dataclass
-class FilterHandlerConfig(BackendInstanceConfig):
-    type: Union[FilterType,str] = ''
-    data: Union[FilterConfig, dict, None] = None
-
-    def __post_init__(self):
-        self.type = self.resolve(self.type, FilterType)
-        self.data = self.resolve(self.data, self.type.get()._config_class)  # todo: something something typing in Factory
-
-
-@dataclass
-class MaskConfig(BackendInstanceConfig):
-    name: Optional[str] = None
-    height: Optional[float] = None
-    filter: Union[FilterHandlerConfig,dict,None] = None
-
-    def __post_init__(self):
-        self.filter = self.resolve(self.filter, FilterHandlerConfig)
-
-
-@dataclass
-class DesignFileHandlerConfig(CachingBackendInstanceConfig):
-    render_dir: str = '.render'
-    keep_renders: bool = False
-    dpi: int = 400
-
-    overlay_alpha: float = 0.1
-    smoothing: int = 7
-
-
-@dataclass
-class BackendManagerConfig(BackendInstanceConfig):
-    pass
-
-
-@dataclass
-class VideoAnalyzerConfig(BackendManagerConfig):
-    video_path: Optional[str] = None
-    design_path: Optional[str] = None
-
-    frame_interval_setting: Union[FrameIntervalSetting,str] = ''
-    dt: Optional[float] = 5.0
-    Nf: Optional[int] = 100
-
-    height: float = 0.153e-3
-
-    video: Union[VideoFileHandlerConfig,dict,None] = None
-    design: Union[DesignFileHandlerConfig,dict,None] = None
-    transform: Union[TransformHandlerConfig,dict,None] = None
-    masks: Tuple[Union[MaskConfig,dict,None], ...] = (None,)
-    features: Tuple[Union[VideoFeatureType,str], ...] = ('',)
-
-    def __post_init__(self):
-        self.frame_interval_setting = self.resolve(self.frame_interval_setting, FrameIntervalSetting)
-        self.video = self.resolve(self.video, VideoFileHandlerConfig)
-        self.design = self.resolve(self.design, DesignFileHandlerConfig)
-        self.transform = self.resolve(self.transform, TransformHandlerConfig)
-        self.masks = tuple(self.resolve(self.masks, MaskConfig, iter=True))
-        self.features = tuple(self.resolve(self.features, VideoFeatureType, iter=True))
-
-
-def load(path: str) -> VideoAnalyzerConfig:  # todo: internals should be replaced with more sensible methods for setting; reuse those in UI etc.
-    log.debug(f'Loading VideoAnalyzerConfig from {path}')
-    with open(path, 'r') as f:  # todo: assuming it is yaml, sanity check?
-        d = yaml.safe_load(f)
-
-    # Normalize legacy configuration dictionaries
-    if 'version' not in d:
-        log.info(f"Normalizing legacy configuration file {path}")
-        # Pre-v0.2 .meta file
-        d = {
-            'video_path': d['video'],
-            'design_path': d['design'],
-            'transform': {'matrix': d['transform']},
-            'masks': [
-                {
-                    'name': mk,
-                    'filter': {
-                        'data': {'c0': HsvColor(*mv['from']), 'c1': HsvColor(*mv['to'])}
-                    }
-                }
-                for mk, mv in zip(
-                    d['colors'].keys(),
-                    [json.loads(mv) for mv in d['colors'].values()]
-                )
-            ]
-        }
-    else:
-        if before_version(d['version'], '0.2.1'):
-            # Rename mask[i].filter.filter to mask[].filter.data
-            for m in d['masks']:
-                m['filter']['data'] = m['filter'].pop('filter')
-        if before_version(d['version'], '0.2.2'):
-            # Convert tuple string color '(0,0,0)' to HsvColor string 'HsvColor(h=0, s=0, v=0)'
-            from ast import literal_eval as make_tuple  # todo: this is unsafe!
-            for m in d['masks']:
-                if 'c0' in m['filter']['data']:
-                    m['filter']['data']['c0'] = str(HsvColor(*make_tuple(m['filter']['data']['c0'])))
-                if 'c1' in m['filter']['data']:
-                    m['filter']['data']['c1'] = str(HsvColor(*make_tuple(m['filter']['data']['c1'])))
-                if 'radius' in m['filter']['data']:
-                    m['filter']['data']['radius'] = str(HsvColor(*make_tuple(m['filter']['data']['radius'])))
-
-    # Remove timestamp & version info
-    d.pop('timestamp', None)
-    d.pop('version', None)
-
-    return VideoAnalyzerConfig(**d)
-
-
-def _get_dict(config: VideoAnalyzerConfig) -> dict:
-    # Add timestamp & version info
-    d = {
-        'timestamp': datetime.datetime.now().strftime('%Y/%m/%d %H:%M:%S.%f'),
-        'version': __version__,
-    }
-    d.update(config.to_dict())
-
-    return d
-
-
-def dump(config: VideoAnalyzerConfig, path:str):
-    with open(path, 'w+') as f:
-        yaml.safe_dump(_get_dict(config),f, width=999)
-
-
-def dumps(config: VideoAnalyzerConfig) -> str:
-    return yaml.safe_dump(_get_dict(config), width=999)
+        if config is not None:
+            if isinstance(config, _type):
+                # Each instance should have a *copy* of the config, not references to the actual values
+                self._config = copy.deepcopy(config)
+            elif isinstance(config, dict):
+                log.warning(f"Initializing '{self.__class__.__name__}' from a dict, "
+                            f"please initialize from '{_type}' instead.")
+                self._config = _type(**untag(config))
+            else:
+                raise TypeError(f"Tried to initialize '{self.__class__.__name__}' with {type(config).__name__} '{config}'.")
+        else:
+            self._config = _type()

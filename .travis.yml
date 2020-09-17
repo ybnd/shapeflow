@@ -1,27 +1,45 @@
 # Cheated off of https://github.com/beetbox/beets/blob/master/.travis.yml
-language: python
-
 matrix:
   include:
-    - python: 3.7
+    - language: python
+      python: 3.7
       env: {TOX_ENV: py37-type}
-    - python: 3.7
+      install:
+        - travis_retry pip install tox
+        - travis_retry tox -e $TOX_ENV $SITE_PACKAGES --notest
+      script:
+        - tox -e $TOX_ENV $SITE_PACKAGES
+
+    - language: python
+      python: 3.7
       env: {TOX_ENV: py37-test}
-#    - python: 3.8
-#      env: {TOX_ENV: py38-test}
-    - python: 3.7
-      env: {TOX_ENV: py37-cover, COVERAGE: 1}
+      install:
+        - travis_retry pip install tox
+        - travis_retry tox -e $TOX_ENV $SITE_PACKAGES --notest
+      script:
+        - tox -e $TOX_ENV $SITE_PACKAGES
 
-install:
-    - "pip install --upgrade pip && pip install -r requirements.txt"
-    - travis_retry pip install tox
-    - travis_retry tox -e $TOX_ENV --notest
+    - language: python
+      python: 3.7
+      env: {TOX_ENV: py37-cover}
+      before_install:
+        - travis_retry pip install codecov
+      after_success:
+        - codecov
+      install:
+        - travis_retry pip install tox
+        - travis_retry tox -e $TOX_ENV $SITE_PACKAGES --notest
+      script:
+        - tox -e $TOX_ENV $SITE_PACKAGES
 
-script:
-  - tox -e $TOX_ENV $SITE_PACKAGES
-
-# Report coverage to codecov.io.
-before_install:
-    - "[ ! -z $COVERAGE ] && travis_retry pip install codecov || true"
-after_success:
-    - "[ ! -z $COVERAGE ] && codecov || true"
+#    # https://medium.com/faun/configuring-travis-ci-for-angular-application-34afee1715f
+#    - language: node_js   # https://stackoverflow.com/questions/27644586/
+#      node_js: 12
+#      cache:
+#        directories:
+#          - ./node_modules
+#      install:
+#        - cd ui && npm install
+#      script:
+#        - ng lint
+#        - npm run test-headless

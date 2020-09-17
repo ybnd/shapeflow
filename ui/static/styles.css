@@ -1,0 +1,9 @@
+.fixed-page {
+  height: 100vh;
+  max-height: 100vh;
+  width: calc(100vw - 160px);
+  max-width: calc(100vw - 160px);;
+  /*flex-direction: row;*/
+  -ms-overflow-style: none; /* IE 11 */
+  overflow: hidden;
+}

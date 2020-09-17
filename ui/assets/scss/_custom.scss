@@ -1,0 +1,262 @@
+@import "_bootstrap-variables";
+@import "_core-variables";
+@import "node_modules/bootstrap/scss/functions";
+
+/* Overrides */
+
+.app-body {
+  margin-top: 0 !important;
+}
+
+.app-body .main {
+  height: 100vh;
+  width: calc(100vw - #{$sidebar-width});
+  margin-left: $sidebar-width !important;  // fix main below sidebar @ narrow window
+}
+
+// Snappier animation
+.animated {
+  animation-duration: 0.2s !important;
+}
+.animated.hinge {
+  animation-duration: 0.2s !important;
+}
+
+// Sidebar styles
+.sidebar {
+  flex-wrap: nowrap !important;
+  max-width: $sidebar-width !important;
+  height: 100vh;
+  max-height: 100vh; // sidebar should not exceed viewport height
+  margin-left: 0 !important;
+  margin-right: - $sidebar-width; // compensate for narrow window main fix
+
+  .nav {
+    min-height: 0 !important;
+  }
+
+  .sidebar-nav {
+    min-height: 0 !important;
+    overflow-y: scroll !important;
+    flex-direction: column;
+    max-width: $sidebar-width;
+    flex-wrap: nowrap;
+    -ms-overflow-style: none; /* IE 11 */
+    scrollbar-width: none; /* Firefox 64 */
+  }
+  .sidebar-nav::-webkit-scrollbar {
+    display: none;
+  }
+  .sidebar-nav:hover {
+    overflow-y: auto;
+    -ms-overflow-style: none; /* IE 11 */
+    scrollbar-width: none; /* Firefox 64 */
+  }
+  .sidebar-nav:hover::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-item {
+    transition: background .1s ease-in-out !important;
+  }
+
+  .nav-dropdown-items {
+    transition: max-height .1s ease-in-out !important;
+  }
+  .nav-link {
+    user-select: none;         // https://stackoverflow.com/questions/924916/
+    -moz-user-select: none;
+    -webkit-user-select: none;
+  }
+  .nav-dropdown-toggle {
+    &::before {
+      transition: transform .2s !important;
+    }
+  }
+  .nav-dropdown.open {
+    background: inherit !important;
+    > .nav-dropdown-items {
+      background: $sidebar-nav-dropdown-bg;
+    }
+  }
+}
+
+
+/* Bootstrap form styles */
+
+$form-color: theme-color('gray-700');
+
+.form-group {
+  margin-bottom: $form-gap;
+}
+
+.isimple-form-section {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  border-radius: 0;
+  margin-top: $form-gap;
+  margin-bottom: 0;
+  margin-left: $form-gap;
+  width: 600px;
+}
+
+.isimple-form-section-full {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  border-radius: 0;
+  margin-top: $form-gap;
+  margin-bottom: 0;
+  margin-left: $form-gap;
+  width: $full-width;
+}
+
+.isimple-form-section-fit {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  border-radius: 0;
+  margin-top: 0;
+  margin-bottom: $form-gap;
+  margin-left: $form-gap;
+  width: $fit-width;
+  color: $form-color;
+}
+
+.card-header {
+  font-weight: bold;
+  padding-left: calc(#{$form-gap} + 1px);
+  padding-top: calc(#{$form-gap} + 1px);
+  height: $form-field-height;
+}
+
+.card-body {
+  padding-top: 0;
+  padding-bottom: $form-gap;
+  padding-right: 20px;  /* magic pixel-peeping */
+  padding-left: 0;
+}
+
+.isimple-form-indent {
+  margin-left: $form-indent;
+  //margin-right: $form-gap;
+  padding-left: $form-gap;
+  border-left-width: 1px;
+  border-left-color: theme-color("gray-200");
+  border-left-style: solid;
+}
+
+.isimple-form-label {
+  margin: 0;
+  height: $form-field-height;
+  padding: $form-gap;
+  padding-top: 2px;
+  padding-left: 6px;
+  padding-right: 6px;
+  padding-bottom: 2px;
+  box-sizing: border-box;
+}
+
+.isimple-form-row {
+  margin-top: $form-gap;
+  margin-left: $form-gap;
+  min-height: 16px;
+  //width: $fit-width;
+  display: flex;
+  flex-direction: row;
+  flex-shrink: 1;
+  flex-grow: 0;
+  align-content: flex-start;
+}
+
+.isimple-form-chevron {
+  height: 18px;
+  width: 18px;
+  padding: 0;
+  background: transparent;
+  border: transparent;
+}
+
+.isimple-form-group {
+  flex-grow: 0;
+  height: $form-field-height;
+  margin: 0;
+  padding: 0
+}
+
+.isimple-form-gap {
+  width: $form-gap;
+}
+
+.isimple-form-field-text {
+  border-radius: 0;
+  margin-right: -1px;
+  height: $form-field-height;
+  padding-left: 6px;
+  padding-right: 6px;
+  justify-content: right;
+}
+
+.isimple-form-field-input {
+  height: $form-field-height;
+  display: block;
+  min-width: 120px;
+  flex-shrink: 1;
+  flex-grow: 0;
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+}
+
+.isimple-form-field-auto {
+  height: $form-field-height;
+  display: inline-block;
+  width: auto;
+  flex-shrink: 1;
+  flex-grow: 0;
+}
+
+.isimple-form-field-wide {
+  height: $form-field-height;
+  //display: block;
+  //width: auto !important;
+  //min-width: 400px !important;
+  flex-shrink: 1;
+  flex-grow: 0;
+}
+
+.isimple-noarrow {
+  -webkit-appearance: none;
+  -moz-appearance: textfield;
+}
+
+.isimple-form-field-checkbox {
+  //height: $form-field-height;
+  display: block;
+  vertical-align: middle;
+  flex-shrink: 1;
+  flex-grow: 0;
+  padding-top: 3px;
+}
+
+.isimple-form-path-input {
+  height: $form-field-height;
+  display: block;
+  min-width: 60px;
+  flex-shrink: 1;
+  flex-grow: 1;
+}
+
+.custom-control {
+
+}
+
+.custom-control-input { /* Boootstrap checkbox */
+  position: absolute;
+  left: 0;
+  z-index: -1;
+  width: $form-field-height;
+  height: $form-field-height;
+  opacity: 0;
+}
+

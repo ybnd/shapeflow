@@ -8,6 +8,9 @@ omit =
     */test/*
     */og/*
     */scripts/*
+    */dist/*
+    ui/*
+    */dbcore/*
 exclude_lines =
     assert False
     raise NotImplementedError

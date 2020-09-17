@@ -1,6 +1,0 @@
-url: https://github.com/ybnd/isimple
-branch: master
-name: isimple-master
-setup: scripts/setup_windows.py
-wrap:
-    .video_gui.py: video_gui.py
