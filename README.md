@@ -3,7 +3,7 @@
 [![travis-ci](https://travis-ci.org/ybnd/isimple.svg?branch=master)](https://travis-ci.org/ybnd/isimple)
 [![codecov](https://codecov.io/gh/ybnd/isimple/branch/master/graph/badge.svg)](https://codecov.io/gh/ybnd/isimple)
 
-|| [Demo](###Demo) | [Installation](###Installation) | [Usage](###Usage) | [Troubleshooting](###Troubleshooting) | [Related literature](###Related-literature) | [Acknowledgements](###Acknowledgements) ||
+|| [Demo](#Demo) | [Installation](#Installation) | [Usage](#Usage) | [Troubleshooting](#Troubleshooting) | [Related literature](#Related-literature) | [Acknowledgements](#Acknowledgements) ||
 
 A tool for extracting time-series data from video footage of microfluidic devices with complex channel geometry.
 
