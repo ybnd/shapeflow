@@ -1,37 +1,42 @@
-# KUL Biosensors team - iSIMPLE
+# shapeflow
 
 [![travis-ci](https://travis-ci.org/ybnd/isimple.svg?branch=master)](https://travis-ci.org/ybnd/isimple)
 [![codecov](https://codecov.io/gh/ybnd/isimple/branch/master/graph/badge.svg)](https://codecov.io/gh/ybnd/isimple)
 
+|| [Demo](###Demo) | [Installation](###Installation) | [Usage](###Usage) | [Troubleshooting](###Troubleshooting) | [Related literature](###Related literature) | [Acknowledgements](### Acknowledgements) ||
 
-### Installation  
+A tool for extracting time-series data from video footage of microfluidic devices with complex channel geometry.
 
-0. Install [Python 3](https://www.python.org/downloads/) and [Git](https://git-scm.com/downloads) (or from the KUL Software Center)
+![abstract](https://i.imgur.com/YT9zN1B.gif)
 
-1. Download a deployment script [for the release you want](https://github.com/ybnd/isimple/releases) to the folder you want to install the application in
+By providing quantitative insight into the flow dynamics of self-powered microfluidic systems, shapeflow supports research involving the [SIMPLE platform](https://www.biw.kuleuven.be/biosyst/mebios/biosensors-group/research-topics/Microfluidics_folder/simple-platform). The software is developed in collaboration with the [KULeuven Biosensors lab](https://twitter.com/KULBiosensors).
 
-2. Execute the deployment script (just double-clicking is fine!)
+### Demo
+
+![demo](https://i.imgur.com/tla1pEK.gif)
+
+### Installation
+
+…
 
 ### Usage
 
-0. Run `app.py`.
-
-1. The server will start up and the application should open in a new browser window/tab.
-
-2. After closing this window/tab, the server will shut down automatically. The application's state is saved, so you shouldn't lose any work.
-
-3. If another instance of the server is already running when `app.py` is run, it will be shut down and replaced with a new instance at the same address.
+…
 
 ### Troubleshooting
 
-> The application is unresponsive
-- The server may have crashed, run `app.py` again.
+…
 
-> The images on the align/filter page don't load properly
-- Seek around the video to refresh the images
-- Move to a different page and back
-- Refresh
+### Related literature
 
-### Licensing
+…
+
+### Acknowledgements
+
+…
+
+The chips in the introduction and demo videos were designed by Francesco Dal Dosso, Henry Ordutowski and Lorenz van Hilleghem.
+
+### License
 
 As of now, an appropriate license for this repository has not been determined yet. All rights are held by KU Leuven.
