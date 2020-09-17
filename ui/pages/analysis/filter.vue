@@ -172,7 +172,8 @@ export default {
       this.opened_at = Date.now();
 
       // Check if this.id is queued. If not, navigate to /
-      if (this.$store.getters["analyzers/isValidId"](this.id) === false) {
+      // if (this.$store.getters["analyzers/isValidId"](this.id) === false) {
+      if (this.$store.getters["analyzers/getIndex"](this.id) === -1) {
         this.$router.push(`/`);
       } else {
         this.$root.$emit(events.sidebar.open(this.id));

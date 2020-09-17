@@ -184,7 +184,9 @@ export default {
 
       console.log(this.$store.getters["analyzers/isValidId"](this.id));
 
-      if (this.$store.getters["analyzers/isValidId"](this.id) === false) {
+      // Check if this.id is queued. If not, navigate to /
+      // if (this.$store.getters["analyzers/isValidId"](this.id) === false) {
+      if (this.$store.getters["analyzers/getIndex"](this.id) === -1) {
         this.$router.push(`/`);
       } else {
         console.log("initializing");
