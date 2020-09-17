@@ -974,7 +974,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         if 'masks' in config and hasattr(self, 'masks'):
             for mask, mask_config in zip(self.masks, config.pop('masks')):
                 mask._config(**mask_config)
-                mask.filter._config(**mask_config['filter'])
+                if 'filter' in mask_config:
+                    mask.filter._config(**mask_config['filter'])
 
         self._config(**config)
         self._gather_config()
@@ -1005,7 +1006,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                     self.transform.set_implementation(config['transform']['type'])   # todo: shouldn't do this every time
                 if hasattr(self, 'design') and 'masks' in config:
                     for i, mask in enumerate(self.design.masks):
-                        if 'type' in config['masks'][i]['filter']:
+                        if 'filter' in config['masks'][i] and 'type' in config['masks'][i]['filter']:
                             mask.filter.set_implementation(config['masks'][i]['filter']['type'])  # todo: shouldn't do this every time
 
                 self._set_config(config)
@@ -1336,6 +1337,9 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             self._error.set()
 
     def analyze(self):
+        if not self.can_analyze():
+            return False
+
         with self.busy_context(AnalyzerState.ANALYZING, AnalyzerState.DONE):
             assert isinstance(self._cancel, threading.Event)
 
@@ -1363,11 +1367,15 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             self.notice(f"analysis canceled.")
             self.clear_cancel()
             self.set_state(AnalyzerState.CANCELED)
+            return False
 
         if self.errored:
             self.notice(f"analysis aborted due to error.")
             self.clear_error()
             self.set_state(AnalyzerState.ERROR)
+            return False
+
+        return True
 
     def export(self):
         """Export video analysis results & metadata to .xlsx"""

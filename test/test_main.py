@@ -59,6 +59,7 @@ def application(keep: bool = False):
             import isimple.db
 
             main = isimple.main.Main()
+            main._raise_call_exceptions = True
             main._history = isimple.db.History(settings.db.path)
             main._app.testing = True
             client = main._app.test_client()
@@ -266,11 +267,7 @@ class MainAnalyzerTest(unittest.TestCase):
             )
 
             # Can't analyze yet since transform.roi is not set
-            self.assertRaises(AttributeError, client.post, f'/api/{id}/call/analyze')
-
-            self.assertTrue(
-                server._roots[id].results[server._roots[id].config.features[0]].isna().all().all()
-            )
+            self.assertFalse(json.loads(client.post(f'/api/{id}/call/analyze').data))
 
             client.post(
                 f'/api/{id}/call/estimate_transform',
@@ -282,7 +279,13 @@ class MainAnalyzerTest(unittest.TestCase):
                 server._roots[id].transform.config.roi
             )
 
-            client.post(f'/api/{id}/call/analyze')
+            # Ignore all masks
+            Nmasks = len(server._roots[id].config.masks)
+            server._roots[id].set_config(
+                    {'masks': [{'skip': True}] * Nmasks}
+                )
+
+            self.assertTrue(json.loads(client.post(f'/api/{id}/call/analyze').data))
 
             # Results are cleared after analyzing  todo: assert that results are in database
             self.assertTrue(
