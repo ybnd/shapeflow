@@ -438,9 +438,6 @@ class History(SessionWrapper, RootInstance):
         Base.metadata.create_all(self._engine)
         self._session_factory = scoped_session(sessionmaker(bind=self._engine))
 
-        # todo: diagnostic
-        self._session_factory.history_uuid = self.id
-
     def add_video_file(self, path: str) -> VideoFileModel:
         """Add a video file to the database. Duplicate files are resolved
         to the original entry."""

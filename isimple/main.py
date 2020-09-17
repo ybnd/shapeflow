@@ -218,17 +218,6 @@ class Main(isimple.core.Lockable):
 
             return respond(isimple.settings.to_dict())
 
-        @app.route('/api/options/<for_type>', methods=['GET'])
-        def get_options(for_type):  # todo: should be a single-call endpoint, /api/schemas
-            active()
-            log.debug(f"get options for '{for_type}'")
-            if for_type == "state":
-                return respond(dict(video.AnalyzerState.__members__))
-            elif for_type == "config":
-                return respond(backend.AnalyzerType().config_schema())
-            else:
-                raise ValueError(f"No options for '{for_type}'")
-
         @app.route('/api/schemas', methods=['GET'])
         def get_schemas():
             return {
