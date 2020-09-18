@@ -10,7 +10,7 @@ Because the original repository was a bit too large, its git history was rewritt
 
 * Removed compiled Javascript from `ui/dist/`
 
-* [An accidentally huge screenshot](https://github.com/ybnd/isimple/commit/b65a0fe914a44bff6b2bba4ed155a9cd24d54e10)
+* [An accidentally huge screenshot, mysteriously named datetime](https://github.com/ybnd/isimple/commit/b65a0fe914a44bff6b2bba4ed155a9cd24d54e10)
 * [An accidentally huge BMP file](https://github.com/ybnd/isimple/commit/af1b251b90efcd670d220de8f25975ff7bc8321d)
 
 ```shell
