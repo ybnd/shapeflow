@@ -24,7 +24,7 @@ from pydantic.errors import PathNotExistsError, PathNotADirectoryError, PathNotA
 import diskcache
 
 # Library version
-__version__: str = '0.3.19'
+__version__: str = '0.4.0'
 
 # Get root directory
 _user_dir = str(pathlib.Path.home())  
