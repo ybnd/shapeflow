@@ -7,13 +7,13 @@
 
 A tool for extracting time-series data from video footage of microfluidic devices with complex channel geometry.
 
-<img src="https://i.postimg.cc/xTMZzYnj/abstract5-720x540.gif" width="600"/>
+<img src="https://i.postimg.cc/xTMZzYnj/abstract5-720x540.gif" width="100%"/>
 
 By providing quantitative insight into the flow dynamics of self-powered microfluidic systems, shapeflow supports research involving the [SIMPLE platform](https://www.biw.kuleuven.be/biosyst/mebios/biosensors-group/research-topics/Microfluidics_folder/simple-platform). 
 
 This software is developed in collaboration with the [KULeuven Biosensors lab](https://twitter.com/KULBiosensors).
 
-<img src="https://i.postimg.cc/W3qF15rK/demo-final-30fps-600x400.gif" width="600"/>
+<img src="https://i.postimg.cc/W3qF15rK/demo-final-30fps-600x400.gif" width="100%"/>
 
 ### Installation & usage
 
