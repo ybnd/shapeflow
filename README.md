@@ -25,14 +25,17 @@ This software is developed in collaboration with the [KULeuven Biosensors lab](h
 5. Once the installation is done, you can start the application by running `app.py`.
    A new browser window or tab should open for the user interface.
 
-A tutorial: [docs/tutorial.md](docs/tutorial.md)
-To resolve common issues: [docs/troubleshooting.md](docs/troubleshooting.md)
+* A tutorial: [docs/tutorial.md](docs/tutorial.md)
+
+* To resolve common issues: [docs/troubleshooting.md](docs/troubleshooting.md)
 
 ### Development
 
-About the Python library: [docs/shapeflow.md](docs/shapeflow.md)
-Generating deployment scripts [docs/deployment.md](docs/deployment.md)
-Setting up the development environment for the user interface: [ui/README.md](ui/README.md)
+* About the Python library: [docs/shapeflow.md](docs/shapeflow.md)
+
+* Generating deployment scripts [docs/deployment.md](docs/deployment.md)
+
+* Setting up the development environment for the user interface: [ui/README.md](ui/README.md)
 
 ### Related literature
 
@@ -43,7 +46,6 @@ Setting up the development environment for the user interface: [ui/README.md](ui
   Francesco Dal Dosso, Tadej Kokalj, Jaroslav Belotserkovsky, Dragana Spasic and Jeroen Lammertyn. *Biomedical Microdevices*, **2018**
 
 * [Innovative Hydrophobic Valve Allows Complex Liquid Manipulations in a Self-Powered Channel-Based Microfluidic Device](https://doi.org/10.1021/acssensors.8b01555)
-
   Francesco Dal Dosso, Lisa Tripodi, Dragana Spasic, Tadej Kokalj, and Jeroen Lammertyn. *ACS Sensors*, **2019**
 
 ### Acknowledgements
