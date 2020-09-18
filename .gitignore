@@ -30,3 +30,4 @@ ui/
 .local
 .~*.md
 .ploy
+*.tar.gz
