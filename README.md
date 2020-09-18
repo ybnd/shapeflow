@@ -20,7 +20,7 @@ This software is developed in collaboration with the [KULeuven Biosensors lab](h
 1. Install [Python 3.7+](https://www.python.org/downloads/) and [git](https://git-scm.com/downloads), if you haven’t yet. 
    On Windows, **make sure you select the option ‘Add Python to PATH’!**
 2. Make a new folder in a convenient location
-3. [Download a deployment script](*todo: link deployment script*) and save it to that folder
+3. [Download a deployment script](https://github.com/ybnd/shapeflow/releases/download/0.3.20-test/deploy_isimple-0.3.20-test.py) and save it to that folder
 4. Run the deployment script.
 5. Once the installation is done, you can start the application by running `app.py`.
    A new browser window or tab should open for the user interface.
