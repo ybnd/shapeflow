@@ -3,7 +3,7 @@ import subprocess
 
 try:
     subprocess.check_call(
-        ['python', '.venv.py', '.server.py', '--open', *sys.argv[1:]]
+        ['python', 'shapeflow/util/from_venv.py', '__main__.py', *sys.argv[1:]]
     )
 except KeyboardInterrupt:
     pass

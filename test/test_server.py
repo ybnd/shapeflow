@@ -42,7 +42,7 @@ def post(url, data=None):
 
 def start_server():
     return subprocess.Popen(
-        ['python', 'server.py', '--host', HOST, '--port', PORT],
+        ['python', 'shapeflow.py', '--host', HOST, '--port', PORT],
         cwd='..'
     )
 
