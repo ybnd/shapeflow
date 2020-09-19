@@ -6,9 +6,9 @@ The v0.3+ user interface.
 
 ## Summary & usage
 
-A webapp built on [NuxtJS](https://github.com/nuxt/nuxt.js), based on [NuxtJS + CoreUI boilerplate](https://github.com/muhibbudins/nuxt-coreui), used as the front-end for a [Flask](https://github.com/pallets/flask) app served by [Waitress](https://github.com/Pylons/waitress).
+A [NuxtJS](https://github.com/nuxt/nuxt.js) app based on [NuxtJS + CoreUI boilerplate](https://github.com/muhibbudins/nuxt-coreui), used as the front-end for a [Flask](https://github.com/pallets/flask) app served by [Waitress](https://github.com/Pylons/waitress).
 
-In the `shapeflow` application the webapp is served locally, directly from compiled files. Therefore you shouldn’t need to worry about anything, hopefully.
+In the `shapeflow` application the webapp is served locally, directly from compiled files. Therefore you shouldn’t need to worry about anything, *hopefully*.
 
 
 
