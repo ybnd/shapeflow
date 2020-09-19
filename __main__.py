@@ -1,13 +1,4 @@
-import time
 import argparse
-
-import socket
-import requests
-import webbrowser
-
-from shapeflow import get_logger, __version__
-
-log = get_logger('server')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--host', type=str, default='localhost', required=False)
@@ -18,18 +9,34 @@ parser.add_argument('--version', action='store_true')
 if __name__ == '__main__':
     args = parser.parse_args()
 
-    def in_use() -> bool:
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            return s.connect_ex((args.host, args.port)) == 0
-
-    def open_in_browser():
-        time.sleep(0.5)  # Wait for the server to initialize
-        webbrowser.open(f"http://{args.host}:{args.port}/")
-
     if args.version:
+        import sys
+        import logging
+        logging.disable(logging.CRITICAL)
+
+        from shapeflow import __version__
         print(f"shapeflow v{__version__}")
     else:
+        import time
+        import socket
+        import requests
+        import webbrowser
+
+        from shapeflow import get_logger
         from shapeflow.main import Main, Thread
+
+        log = get_logger('server')
+
+
+        def in_use() -> bool:
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+                return s.connect_ex((args.host, args.port)) == 0
+
+
+        def open_in_browser():
+            # time.sleep(0.1)  # Wait a bit for the server to initialize
+            webbrowser.open(f"http://{args.host}:{args.port}/")
+
 
         if in_use():
             log.info('address already in use')
