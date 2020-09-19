@@ -1,0 +1,26 @@
+# Declutter the repository
+clutter = ['mypy.ini', 'tox.ini']  # and files starting with '.*'
+
+do = strtobool(
+    input(f"Hide clutter files? (y/n) \n")
+)
+
+if do:
+    import os
+
+    if os.name == 'nt':
+        # Windows
+
+        import glob
+
+        clutter += glob.glob('.*')
+
+        for file in clutter:
+            os.system("attrib +h " + file)
+
+    else:
+        # something else
+        with open('.hidden', 'w+') as f:
+            f.write(
+                "\n".join(clutter)
+            )
