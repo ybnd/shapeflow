@@ -1,5 +1,0 @@
-tox.ini
-requirements.txt
-codecov.yml
-mypy.ini
-__pycache__

@@ -31,3 +31,4 @@ ui/
 .~*.md
 .ploy
 *.tar.gz
+.hidden
