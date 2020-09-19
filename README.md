@@ -29,11 +29,11 @@ This software is developed in collaboration with the [KULeuven Biosensors lab](h
 
 ### Development
 
-* About the Python library: [docs/shapeflow.md](docs/shapeflow.md)
+* About the Python library: [shapeflow/README.md](shapeflow/README.md)
 
-* Generating deployment scripts [docs/deployment.md](docs/deployment.md)
+* About the user interface: [ui/README.md](ui/README.md)
 
-* Setting up the development environment for the user interface: [ui/README.md](ui/README.md)
+* Generating deployment scripts [shapeflow/setup/README.md](shapeflow/setup/README.md)
 
 ### Related literature
 
