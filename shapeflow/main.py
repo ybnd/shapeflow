@@ -14,6 +14,7 @@ from enum import IntEnum
 import cv2
 from flask import Flask, send_from_directory, jsonify, request, Response, make_response
 import waitress
+import webbrowser
 
 from OnionSVG import check_svg
 
@@ -36,6 +37,12 @@ UI = os.path.join(
 
 def respond(*args) -> str:
     return jsonify(*args)
+
+
+def open_in_browser(host, port):
+    # time.sleep(0.1)  # Wait a bit for the server to initialize
+    log.info('opening a browser window')
+    webbrowser.open(f"http://{host}:{port}/")
 
 
 def restart_server(host: str, port: int):
@@ -131,7 +138,7 @@ class Main(shapeflow.core.Lockable):
     _port: int
 
 
-    def __init__(self):
+    def __init__(self, open: bool = False):
         self._history = db.History()
         super().__init__()
         app = Flask(__name__, static_url_path='')
@@ -454,7 +461,7 @@ class Main(shapeflow.core.Lockable):
 
         self._app = app
 
-    def serve(self, host, port):
+    def serve(self, host, port, open):
         """Serve the application
 
         Parameters
@@ -469,6 +476,9 @@ class Main(shapeflow.core.Lockable):
         self._port = port
 
         log.info(f"serving on http://{host}:{port}")
+
+        if open:
+            open_in_browser(host, port)
 
         with util.suppress_stdout():
             self._server = ServerThread(self._app, host, port)
