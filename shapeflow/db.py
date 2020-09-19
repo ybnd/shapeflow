@@ -427,7 +427,6 @@ class History(SessionWrapper, RootInstance):
     _instance_class = SessionWrapper
 
     def __init__(self, path: Path = None):
-        log.info('launching a history')
         super().__init__()
         self._gather_instances()
 

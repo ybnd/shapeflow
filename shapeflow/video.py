@@ -1346,7 +1346,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             if self.model is None:
                 self.notice(f"{self} has no database model; result data may be lost")
 
-            with self.lock(), self.time(f"Analyzing {self.id}", log):
+            with self.lock(), self.time(f"Analyzing '{self.id}'", log):
                 self._new_run()
                 self._get_featuresets()
                 self.commit()
@@ -1402,9 +1402,9 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
             w.save()
             w.close()
-            log.info(f"{self.id} results exported to {f}")
+            log.info(f"'{self.id}' results exported to {f}")
         else:
-            log.warning(f"{self.id} results were not exported!")
+            log.warning(f"'{self.id}' results were not exported!")
 
     @backend.expose(backend.get_results)
     def get_result(self) -> dict:

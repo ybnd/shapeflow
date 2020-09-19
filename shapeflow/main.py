@@ -612,7 +612,7 @@ class Main(shapeflow.core.Lockable):
                             self._roots[id].analyze()
                         else:
                             self._roots[id].notice('already analyzed with the current configuration.')
-                            log.info(f"skipping {id}")
+                            log.info(f"skipping '{id}'")
 
                     self._pause_q.clear()
                     self._stop_q.clear()

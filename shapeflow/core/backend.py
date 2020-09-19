@@ -493,14 +493,14 @@ class BaseVideoAnalyzer(Instance, RootInstance):
             PushEvent.NOTICE,
             data={'message': message, 'persist': persist}
         )
-        log.warning(f"{self.id}: {message}")
+        log.warning(f"'{self.id}': {message}")
 
     @backend.expose(backend.commit)
     def commit(self) -> bool:
         """Save video analysis configuration to history database
         """
         if self._model is not None:
-            log.debug(f"committing {self.id}")
+            log.debug(f"committing '{self.id}'")
             self._model.store()
             return True
         else:
