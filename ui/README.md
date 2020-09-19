@@ -1,4 +1,4 @@
-# ui
+# shapeflow-ui
 
 The v0.3+ user interface.
 
