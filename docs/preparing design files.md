@@ -37,5 +37,3 @@ The design file should be an **.svg file** containing:
   4. Enable `Snap to page border` in the snap controls bar
 
   5. In the background layer, draw a rectangle over the page border (solid white fill, no stroke, no transparency)
-
-Here’s an example of a formatted design file:
