@@ -1,5 +1,6 @@
 # Declutter the repository
-clutter = ['mypy.ini', 'tox.ini']  # and files starting with '.*'
+clutter = ['mypy.ini', 'tox.ini', '__pycache__']
+# and files starting with '.*'
 
 do = strtobool(
     input(f"Hide clutter files? (y/n) \n")
