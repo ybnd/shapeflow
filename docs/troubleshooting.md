@@ -48,9 +48,7 @@
 
 > The script exits immediately and complains that it can’t import something
 
-* `shapeflow` uses virtual environments, which means that only the entrypoints `app.py` and `server.py` can be executed by running e.g. `python app.py` or double-clicking the script in Windows explorer.
-
-* If your installation went correctly, the virtual environment should be in the `.venv/` directory. You can check whether it works properly by running
+* Most often this is due to a problem with the virtual environment. If your installation went correctly, it should be in the `.venv/` directory. You can check whether it works properly by running
 
   ```
   > cd .venv/Scripts
@@ -70,7 +68,7 @@
 
   everywhere else.
 
-* If you can activate the virtual environment but still get import errors, it may be that some (or all) of `shapeflow`‘s dependencies aren’t installed. You can check this by running `pip freeze` with the virtual environment activated (as in the previous step). 
+* If you can activate the virtual environment but still get import errors on `import shapeflow`, it may be that some (or all) of `shapeflow`‘s dependencies aren’t installed. You can check this by running `pip freeze` with the virtual environment activated (as in the previous step). 
 
   To install the dependencies, run 
 
@@ -79,15 +77,7 @@
   ```
 
   in the the `shapeflow` root directory.
-
-
-
-> The script runs fine, but doesn’t open a browser tab/window and I can’t do anything
-
-* If you ran `server.py`, this is the expected behaviour. If you go to http://localhost:7951/ in your browser you can access the user interface.
-* Otherwise, you can run `app.py`, which opens a new browser tab/window.
-
-
+  
 
 > The script runs fine, but the page says ‘404 not found’
 
@@ -105,7 +95,7 @@
 
 - Refresh the page
 
-- The server may have crashed, run `app.py` again.
+- The server may have crashed, run `shapeflow.py` again.
 
   
 
