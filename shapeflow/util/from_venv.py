@@ -32,10 +32,7 @@ if __name__ == '__main__':
         except KeyboardInterrupt:
             pass
         except subprocess.CalledProcessError as e:
-            if e.returncode == 17:
-                exit(17)
-            else:
-                raise
+            exit(e.returncode)
         except Exception:
             raise
 

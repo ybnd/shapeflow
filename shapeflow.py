@@ -64,12 +64,13 @@ if __name__ == '__main__':
             except KeyboardInterrupt:
                 pass
             except subprocess.CalledProcessError as e:
-                print(f"ERROR: could not activate (.venv)")
+                exit(17)
             except Exception:
                 raise
     else:
         sys.argv.remove('--recursive-call')
         try:
             main()
-        except ModuleNotFoundError:
+        except Exception as e:
+            print(f"ERROR: {e.__class__.__name__}: {e}")
             exit(17)
