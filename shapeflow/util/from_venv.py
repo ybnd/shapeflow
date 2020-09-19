@@ -3,7 +3,6 @@ Execute a Python script from virtual environment
 """
 
 import sys
-import time
 import os
 import subprocess
 
@@ -23,7 +22,6 @@ if __name__ == '__main__':
             shell = False
         elif os.path.isdir(win_dir):
             pre = ["set", f"PATH='%PATH%{os.path.abspath(win_dir)};\\'", "&&", "echo", "%PATH%" , "&&"]
-            print(pre)
             executable = os.path.join(win_dir, 'python')
             shell = True
         else:
@@ -33,6 +31,13 @@ if __name__ == '__main__':
             subprocess.check_call(pre + [executable, script] + arguments, shell=shell)
         except KeyboardInterrupt:
             pass
+        except subprocess.CalledProcessError as e:
+            if e.returncode == 17:
+                exit(17)
+            else:
+                raise
+        except Exception:
+            raise
 
     else:
         raise EnvironmentError(f"No virtual environment in {environment}.")
