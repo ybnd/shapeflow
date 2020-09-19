@@ -2,6 +2,8 @@
 
 In order to start analyzing videos, you must first prepare a specially formatted design file to indicate the sections of the chip you want to consider. These design files can be made easily from the original design files used to fabricate the chip in the first place.
 
+<div align="center"><img src="../test/test.svg" width="400px"/></div>
+
 The design file should be an **.svg file** containing:
 
 * An overlay layer (named `overlay`, no caps).
@@ -35,3 +37,5 @@ The design file should be an **.svg file** containing:
   4. Enable `Snap to page border` in the snap controls bar
 
   5. In the background layer, draw a rectangle over the page border (solid white fill, no stroke, no transparency)
+
+Here’s an example of a formatted design file:
