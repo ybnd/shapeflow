@@ -1,8 +1,9 @@
+from distutils.util import strtobool
+
+
 # Declutter the repository
 clutter = ['mypy.ini', 'tox.ini', '__pycache__']
 # and files starting with '.*'
-
-from distutils.util import strtobool
 
 do = strtobool(
     input(f"Hide clutter files? (y/n) \n")
@@ -17,6 +18,10 @@ if do:
         import glob
 
         clutter += glob.glob('.*')
+
+        # Pre-emptively create __pycache__ so we can hide it now.
+        if not os.path.isdir('__pycache__'):
+            os.mkdir('__pycache__')
 
         for file in clutter:
             os.system("attrib +h " + file)

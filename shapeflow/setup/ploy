@@ -4,4 +4,4 @@ check: shapeflow/setup/templates/check
 setup:
     - shapeflow/setup/templates/setup_windows
     - shapeflow/setup/templates/fetch_ui
-    - shapeflow/setup/templates/declutter
+    - shapeflow/setup/declutter.py
