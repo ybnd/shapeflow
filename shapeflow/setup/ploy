@@ -1,4 +1,7 @@
-name: isimple
+# version: <tag to deploy goes here>
+
+url: https://github.com/ybnd/shapeflow
+name: shapeflow
 environment: .venv
 check: shapeflow/setup/templates/check
 setup:
