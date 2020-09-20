@@ -11,7 +11,14 @@ __all__ = [
     basename(f).split('.')[0] for f in os.listdir(os.path.dirname(__file__))
     if f not in ['__init__.py', '__pycache__']
 ]
-log.debug(f'loading {__all__}')
+log.info(f"loading plugins: {', '.join(__all__)}")
 
 # import plugins
 from . import *
+from shapeflow.core.interface import TransformType, FilterType
+from shapeflow.core.backend import FeatureType
+
+
+TransformType.set_default(TransformType('PerspectiveTransform'))
+FilterType.set_default(FilterType('HsvRangeFilter'))
+FeatureType.set_default(FeatureType('Area_mm2'))

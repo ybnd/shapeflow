@@ -36,6 +36,8 @@ class EnforcedStr(str):
     _descriptions: Dict[str, str] = {}
     _str: str
 
+    _default: str = None
+
     def __init__(self, string: str = None):
         super().__init__()
         if string is not None:
@@ -78,7 +80,20 @@ class EnforcedStr(str):
 
     @property
     def default(self):
-        return self._options[0]
+        if self._default is not None:
+            return self._default
+        else:
+            return self._options[0]
+
+    @classmethod
+    def set_default(cls, value: 'EnforcedStr'):
+        if isinstance(value, cls) and value in cls().options:
+            log.debug(f"setting default of '{cls.__name__}' to '{value}'")
+            cls._default = value
+        else:
+            raise ValueError(
+                f"cannot set default of '{cls.__name__}' to '{value}'"
+            )
 
     def __hash__(self):  # todo: why?
         return hash(str(self))

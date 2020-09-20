@@ -26,7 +26,7 @@ import shapeflow.core.backend as backend
 import shapeflow.core.streaming as streaming
 import shapeflow.db as db
 import shapeflow.video as video
-import shapeflow.plugins as plugins
+import shapeflow.plugins
 
 log = shapeflow.get_logger(__name__)
 UI = os.path.join(
