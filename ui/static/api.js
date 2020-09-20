@@ -121,6 +121,10 @@ export async function check_design_path(design_path) {
     .then(return_data);
 }
 
+export async function open_root() {
+  return axios.post(api('open_root')).then(return_data)
+}
+
 export async function get_total_time(id) {
   return axios.get(api(id, "call/get_total_time")).then(return_data);
 }

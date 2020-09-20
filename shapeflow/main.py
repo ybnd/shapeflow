@@ -265,6 +265,16 @@ class Main(shapeflow.core.Lockable):
         def check_design():
             return respond(self.check_design_path(json.loads(request.data)['design_path']))
 
+        @app.route('/api/open_root', methods=['POST'])
+        def open_root():
+            try:
+                util.open_path(shapeflow.ROOTDIR)
+                return respond(True)
+            except Exception as e:
+                log.error(f"Could not open {shapeflow.ROOTDIR}: "
+                          f"{e.__class__.__name__}: {e}")
+                return respond(False)
+
         @app.route('/api/start', methods=['POST'])
         def start():
             data = json.loads(request.data)

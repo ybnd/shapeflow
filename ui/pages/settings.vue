@@ -3,12 +3,23 @@
   <div class="fixed-page">
     <PageHeader>
       <PageHeaderItem>
+        <b-button
+          class="header-button-icon log-button"
+          data-toggle="tooltip"
+          title="Open root directory"
+          @click="handleOpenRoot"
+        >
+          <i class="fa fa-folder" />
+        </b-button>
+      </PageHeaderItem>
+      <PageHeaderItem>
         <b-button @click="setSettings">Save settings & restart</b-button>
       </PageHeaderItem>
       <PageHeaderItem>
         <b-button @click="clearDb">Clear database ({{ size.db }})</b-button>
         <b-button @click="clearCache">Clear cache ({{ size.cache }})</b-button>
       </PageHeaderItem>
+
     </PageHeader>
     <div class="scrollable" v-if="settings && schema">
       <b-card class="shapeflow-settings-box shapeflow-form-section">
@@ -33,7 +44,7 @@ import SchemaForm from "../components/config/SchemaForm";
 
 import cloneDeep from "lodash/cloneDeep";
 
-import { clear_cache, clear_db, get_cache_size, get_db_size } from "static/api";
+import { clear_cache, clear_db, get_cache_size, get_db_size, open_root } from "static/api";
 
 export default {
   name: "dashboard",
@@ -70,6 +81,15 @@ export default {
       get_cache_size().then((size) => (this.size.cache = size));
       get_db_size().then((size) => (this.size.db = size));
     },
+    handleOpenRoot() {
+      open_root().then(ok => {
+        if (!ok) {
+          this.$store.commit("analyzers/newNotice", {
+            notice: { message: "Could not open root directory." },
+          });
+        }
+      })
+    }
   },
   data() {
     return {

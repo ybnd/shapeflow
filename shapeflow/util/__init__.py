@@ -188,4 +188,4 @@ def open_path(path: str) -> None:
     elif os.name == 'darwin':  # MacOS
         subprocess.Popen(['open', path])
     else:  # Something else, probably has xdg-open
-        subprocess.Popen(['wdg-open', path])
+        subprocess.Popen(['xdg-open', path])
