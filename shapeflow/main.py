@@ -138,7 +138,7 @@ class Main(shapeflow.core.Lockable):
     _port: int
 
 
-    def __init__(self, open: bool = False):
+    def __init__(self, open_in_browser: bool = False):
         self._history = db.History()
         super().__init__()
         app = Flask(__name__, static_url_path='')
