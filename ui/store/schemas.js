@@ -78,7 +78,7 @@ export const mutations = {
 
       state.feature = {
         options: features,
-        default: schema.properties.features.item.default,
+        'default': schema.properties.features.items.default,
         descriptions: schema.properties.features.items.descriptions,
         labels: schema.properties.features.items.labels,
         units: schema.properties.features.items.units,
