@@ -16,7 +16,7 @@
         <b-button @click="setSettings">Save settings & restart</b-button>
       </PageHeaderItem>
       <PageHeaderItem>
-        <b-button @click="clearDb">Clear database ({{ size.db }})</b-button>
+        <b-button @click="clearDb">Clear database</b-button>
         <b-button @click="clearCache">Clear cache ({{ size.cache }})</b-button>
       </PageHeaderItem>
 
@@ -79,7 +79,7 @@ export default {
     },
     getDiskSize() {
       get_cache_size().then((size) => (this.size.cache = size));
-      get_db_size().then((size) => (this.size.db = size));
+      // get_db_size().then((size) => (this.size.db = size));
     },
     handleOpenRoot() {
       open_root().then(ok => {
