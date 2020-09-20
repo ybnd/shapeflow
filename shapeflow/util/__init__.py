@@ -1,4 +1,5 @@
 import os
+import subprocess
 import sys
 import time
 import json
@@ -6,12 +7,10 @@ from distutils.util import strtobool
 from functools import wraps, lru_cache
 from typing import Any, Generator, Optional
 from collections import namedtuple
-import multiprocessing
 import threading
 import queue
 import hashlib
 from contextlib import contextmanager
-import diskcache
 
 import numpy as np
 
@@ -24,50 +23,12 @@ def str2bool(value: str) -> bool:
     return strtobool(value)
 
 
-def as_string(value: Any) -> str:
-    """Redirect `dbcore` calls to [`beets.util.as_string`](https://github.com/beetbox/beets/blob/545c65d903e38d37fd2c1734ec69eac609bea035/beets/util/__init__.py#L717-L733)
-        Remove Python 2.7 compatibility
-    """
-    if value is None:
-        return u''
-    elif isinstance(value, memoryview):
-        return bytes(value).decode('utf-8', 'ignore')
-    elif isinstance(value, bytes):
-        return value.decode('utf-8', 'ignore')
-    else:
-        return str(value)
-
-
 def ndarray2str(array: np.ndarray) -> str:
     return str(json.dumps(array.tolist()))
 
 
 def str2ndarray(string: str) -> np.ndarray:
     return np.array(json.loads(str(string)))
-
-
-def restrict(val, minval, maxval):
-    """https://stackoverflow.com/questions/4092528
-    """
-    if val < minval:
-        return minval
-    if val > maxval:
-        return maxval
-    return val
-
-
-def rotations(sequence) -> list:  # todo: clean up
-    """Returns all rotations of a list.
-    """
-
-    def rotate(seq, n: int) -> list:
-        return seq[n:] + seq[:n]
-
-    rotation_list = []
-    for N in range(len(sequence)):
-        rotation_list.append(rotate(sequence, N))
-
-    return rotation_list
 
 
 Timing = namedtuple('Timing', ('t0', 't1', 'elapsed'))
@@ -131,6 +92,14 @@ class Timer(object):
             return self._t0, self._t1, self._elapsed
         else:
             return None
+
+
+def restrict(val, minval, maxval):
+    if val < minval:
+        return minval
+    if val > maxval:
+        return maxval
+    return val
 
 
 def frame_number_iterator(total: int,
@@ -208,3 +177,15 @@ class Singleton(type):
         if cls not in cls._instances:
             cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
             return cls._instances[cls]
+
+
+def open_path(path: str) -> None:
+    if os.path.isfile(path):
+        path = os.path.dirname(os.path.realpath(path))
+
+    if os.name == 'nt':  # Windows
+        os.startfile(path)
+    elif os.name == 'darwin':  # MacOS
+        subprocess.Popen(['open', path])
+    else:  # Something else, probably has xdg-open
+        subprocess.Popen(['wdg-open', path])
