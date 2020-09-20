@@ -49,8 +49,11 @@ def restart_server(host: str, port: int):
     log.info('restarting server...')
 
     subprocess.Popen(
-        f'sleep 1; python .venv.py .server.py --host {host} --port {port}',
-        shell=True,
+         [
+             'sleep', '1;',
+             'python', 'shapeflow.py',
+             '--host', host, '--port', port, '--server'
+         ],
          cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     )
 
