@@ -231,34 +231,35 @@ def _load_settings(path: str = _SETTINGS_FILE) -> Settings:  # todo: if there ar
 
         # Get settings
         if settings_yaml is not None:
-            settings = Settings.from_dict(settings_yaml)
+            s = Settings.from_dict(settings_yaml)
         else:
-            settings = Settings()
+            s = Settings()
 
         # Move the previous log file to ROOTDIR/log
-        if Path(settings.log.path).is_file():
+        if Path(s.log.path).is_file():
             shutil.move(
-                settings.log.path,  # todo: convert to pathlib
+                s.log.path,  # todo: convert to pathlib
                 os.path.join(
-                    settings.log.dir,
+                    s.log.dir,
                     datetime.datetime.fromtimestamp(
-                        os.path.getmtime(settings.log.path)
-                    ).strftime(settings.format.datetime_format_fs) + '.log'
+                        os.path.getmtime(s.log.path)
+                    ).strftime(s.format.datetime_format_fs) + '.log'
                 )
             )
 
         # If more files than specified in ini.log.keep, remove the oldest
-        files = glob.glob(os.path.join(settings.log.dir, '*.log'))  # todo: convert to pathlib
+        files = glob.glob(os.path.join(s.log.dir, '*.log'))  # todo: convert to pathlib
         files.sort(key=lambda f: os.path.getmtime(f), reverse=True)
-        while len(files) > settings.log.keep:
+        while len(files) > s.log.keep:
             os.remove(files.pop())
 
-        return settings
+        return s
 
 
-def save_settings(settings: Settings, path: str = _SETTINGS_FILE):
+def save_settings(s: Settings, path: str = _SETTINGS_FILE):
     with open(path, 'w+') as f:
-        yaml.safe_dump(settings.to_dict(),f)
+        yaml.safe_dump(s.to_dict(), f)
+
 
 if not os.path.isfile(_SETTINGS_FILE):
     settings = Settings()
@@ -269,12 +270,12 @@ else:
 save_settings(settings)
 
 
-def update_settings(new_settings: dict):
+def update_settings(s: dict):
     """Update global settings ~ dict
         Note: doing `settings = Settings(**new_settings)` would prevent
         importing modules from accessing the updated settings!
     """
-    for cat, cat_new in new_settings.items():
+    for cat, cat_new in s.items():
         sub = getattr(settings, cat)
         for kw, val in cat_new.items():
             setattr(sub, kw, val)
@@ -330,20 +331,20 @@ waitress.addHandler(_file_handler)
 waitress.propagate = False
 
 
-def get_cache(settings: Settings = settings) -> diskcache.Cache:
+def get_cache(s: Settings = settings) -> diskcache.Cache:
     return diskcache.Cache(
-        directory=str(settings.cache.dir),
-        size_limit=settings.cache.size_limit_gb * 1e9
+        directory=str(s.cache.dir),
+        size_limit=s.cache.size_limit_gb * 1e9
     )
 
 
-def get_logger(name: str, settings: LogSettings = settings.log) -> Logger:
-    if settings is None:
-        settings = LogSettings()
+def get_logger(name: str, s: LogSettings = settings.log) -> Logger:
+    if s is None:
+        s = LogSettings()
 
     log = Logger(name)
     log.setLevel(
-        max([settings.lvl_console, settings.lvl_file])
+        max([s.lvl_console, s.lvl_file])
     )
 
     log.addHandler(_console_handler)
