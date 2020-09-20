@@ -338,20 +338,20 @@ def get_cache(s: Settings = settings) -> diskcache.Cache:
     )
 
 
-def get_logger(name: str, s: LogSettings = settings.log) -> Logger:
-    if s is None:
-        s = LogSettings()
+def get_logger(name: str, log_settings: LogSettings = settings.log) -> Logger:
+    if log_settings is None:
+        log_settings = LogSettings()
 
-    log = Logger(name)
-    log.setLevel(
-        max([s.lvl_console, s.lvl_file])
+    logger = Logger(name)
+    logger.setLevel(
+        max([log_settings.lvl_console, log_settings.lvl_file])
     )
 
-    log.addHandler(_console_handler)
-    log.addHandler(_file_handler)
+    logger.addHandler(_console_handler)
+    logger.addHandler(_file_handler)
 
-    log.vdebug(f'new logger')
-    return log
+    logger.vdebug(f'new logger')
+    return logger
 
 
 log = get_logger(__name__)
