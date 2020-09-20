@@ -300,7 +300,7 @@ export default {
       this.onChange();
     },
     handleAddFeature() {
-      const feature = this.features.options[0];
+      const feature = this.features.default;
 
       if (this.config.features === undefined) {
         this.config.features = [];
