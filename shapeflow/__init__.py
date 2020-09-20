@@ -10,13 +10,12 @@ import logging
 
 from typing import Dict, Any, Type
 from pathlib import Path
-from enum import Enum
+from enum import IntEnum
 
 from contextlib import contextmanager
 
 import yaml
 
-from _collections import defaultdict
 from pydantic import BaseModel, Field, FilePath, DirectoryPath, validator
 from pydantic.error_wrappers import ValidationError, ErrorWrapper
 from pydantic.errors import PathNotExistsError, PathNotADirectoryError, PathNotAFileError
@@ -27,22 +26,22 @@ import diskcache
 __version__: str = '0.4.0'
 
 # Get root directory
-_user_dir = str(pathlib.Path.home())  
+_user_dir = pathlib.Path.home()
 if os.name == 'nt':  # if running on Windows
     _subdirs = ['AppData', 'Roaming', 'shapeflow']
 else:
     _subdirs = ['.local', 'share', 'shapeflow']
 
-ROOTDIR = os.path.join(_user_dir, os.path.join(*_subdirs))
+ROOTDIR = Path(_user_dir, *_subdirs)
 
-_SETTINGS_FILE = os.path.join(ROOTDIR, 'settings.yaml')
+_SETTINGS_FILE = ROOTDIR / 'settings.yaml'
 
-if not os.path.isdir(ROOTDIR):
+if not ROOTDIR.is_dir():
     _path = _user_dir
     for _subdir in _subdirs:
-        _path = os.path.join(_path, _subdir)
-        if not os.path.isdir(_path):
-            os.mkdir(_path)
+        _path = _path / _subdir
+        if not _path.is_dir():
+            _path.mkdir()
 
 
 class _Settings(BaseModel):
@@ -56,7 +55,7 @@ class _Settings(BaseModel):
                 d.update({
                     k:v.to_dict()
                 })
-            elif isinstance(v, Enum):
+            elif isinstance(v, IntEnum):
                 d.update({
                     k:v.value
                 })
@@ -138,31 +137,19 @@ VDEBUG = 9
 logging.addLevelName(VDEBUG, "VDEBUG")
 
 
-_levels: dict = defaultdict(default_factory=lambda: logging.INFO)
-_levels.update({
-    'critical': logging.CRITICAL,
-    'error': logging.ERROR,
-    'warning': logging.WARNING,
-    'info': logging.INFO,
-    'debug': logging.DEBUG,
-    'vdebug': VDEBUG,
-    'notset': logging.NOTSET,
-    'default': logging.INFO
-})
-
-
-class LoggingLevel(str, Enum):
-    critical = 'critical'
-    error =  'error'
-    warning = "warning"
-    info = "info"
-    debug = "debug"
-    vdebug = "vdebug"
+class LoggingLevel(IntEnum):
+    critical: int = logging.CRITICAL
+    error: int = logging.ERROR
+    warning: int = logging.WARNING
+    info: int = logging.INFO
+    debug: int = logging.DEBUG
+    vdebug: int = VDEBUG
+    notset: int = logging.NOTSET
 
 
 class LogSettings(_Settings):
-    path: FilePath = Field(default=os.path.join(ROOTDIR, 'current.log'), title='running log file')
-    dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'log'), title='log file directory')
+    path: FilePath = Field(default=str(ROOTDIR / 'current.log'), title='running log file')
+    dir: DirectoryPath = Field(default=str(ROOTDIR / 'log'), title='log file directory')
     keep: int = Field(default=16, title="# of log files to keep")
     lvl_console: LoggingLevel = Field(default=LoggingLevel.debug, title="logging level (Python console)")
     lvl_file: LoggingLevel = Field(default=LoggingLevel.debug, title="logging level (file)")
@@ -172,7 +159,7 @@ class LogSettings(_Settings):
 
 
 class CacheSettings(_Settings):
-    dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'cache'), title="cache directory")
+    dir: DirectoryPath = Field(default=str(ROOTDIR / 'cache'), title="cache directory")
     size_limit_gb: float = Field(default=4.0, title="cache size limit (GB)")
     do_cache: bool = Field(default=True, title="use the cache")
     resolve_frame_number: bool = Field(default=True, title="resolve to (nearest) cached frame numbers")
@@ -182,33 +169,33 @@ class CacheSettings(_Settings):
 
 
 class RenderSettings(_Settings):
-    dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'render'), title="render directory")
+    dir: DirectoryPath = Field(default=str(ROOTDIR / 'render'), title="render directory")
     keep: bool = Field(default=False, title="keep files after rendering")
 
     _validate_dir = validator('dir', allow_reuse=True, pre=True)(_Settings._validate_directorypath)
 
 
 class DatabaseSettings(_Settings):
-    path: FilePath = Field(default=os.path.join(ROOTDIR, 'history.db'), title="database file")
+    path: FilePath = Field(default=str(ROOTDIR / 'history.db'), title="database file")
     cleanup_interval: int = Field(default=7, title='clean-up interval (days)')
 
     _validate_path = validator('path', allow_reuse=True, pre=True)(_Settings._validate_filepath)
 
 
-class ResultSaveMode(str, Enum):
-    skip = "skip"
-    next_to_video = "next to video file"
-    next_to_design = "next to design file"
-    directory = "in result directory"
+class ResultSaveMode(IntEnum):
+    skip: int = 0
+    next_to_video: int = 1
+    next_to_design: int = 2
+    directory: int = 3
 
 
 class ApplicationSettings(_Settings):
     save_state: bool = Field(default=True, title="save application state on exit")
     load_state: bool = Field(default=False, title="load application state on start")
-    state_path: FilePath = Field(default=os.path.join(ROOTDIR, 'state'), title="application state file")
+    state_path: FilePath = Field(default=str(ROOTDIR / 'state'), title="application state file")
     recent_files: int = Field(default=16, title="# of recent files to fetch")
     save_result: ResultSaveMode = Field(default=ResultSaveMode.next_to_video, title="result save mode")
-    result_dir: DirectoryPath = Field(default=os.path.join(ROOTDIR, 'results'), title="result directory")
+    result_dir: DirectoryPath = Field(default=str(ROOTDIR / 'results'), title="result directory")
     cancel_on_q_stop: bool = Field(default=False, title="cancel running analyzers when stopping queue")
 
     _validate_dir = validator('result_dir', allow_reuse=True, pre=True)(_Settings._validate_directorypath)
@@ -244,34 +231,35 @@ def _load_settings(path: str = _SETTINGS_FILE) -> Settings:  # todo: if there ar
 
         # Get settings
         if settings_yaml is not None:
-            settings = Settings.from_dict(settings_yaml)
+            s = Settings.from_dict(settings_yaml)
         else:
-            settings = Settings()
+            s = Settings()
 
         # Move the previous log file to ROOTDIR/log
-        if settings.log.path.is_file():
+        if Path(s.log.path).is_file():
             shutil.move(
-                str(settings.log.path),  # todo: convert to pathlib
+                s.log.path,  # todo: convert to pathlib
                 os.path.join(
-                    str(settings.log.dir),
+                    s.log.dir,
                     datetime.datetime.fromtimestamp(
-                        os.path.getmtime(str(settings.log.path))
-                    ).strftime(settings.format.datetime_format_fs) + '.log'
+                        os.path.getmtime(s.log.path)
+                    ).strftime(s.format.datetime_format_fs) + '.log'
                 )
             )
 
         # If more files than specified in ini.log.keep, remove the oldest
-        files = glob.glob(os.path.join(str(settings.log.dir), '*.log'))  # todo: convert to pathlib
+        files = glob.glob(os.path.join(s.log.dir, '*.log'))  # todo: convert to pathlib
         files.sort(key=lambda f: os.path.getmtime(f), reverse=True)
-        while len(files) > settings.log.keep:
+        while len(files) > s.log.keep:
             os.remove(files.pop())
 
-        return settings
+        return s
 
 
-def save_settings(settings: Settings, path: str = _SETTINGS_FILE):
+def save_settings(s: Settings, path: str = _SETTINGS_FILE):
     with open(path, 'w+') as f:
-        yaml.safe_dump(settings.to_dict(),f)
+        yaml.safe_dump(s.to_dict(), f)
+
 
 if not os.path.isfile(_SETTINGS_FILE):
     settings = Settings()
@@ -282,12 +270,12 @@ else:
 save_settings(settings)
 
 
-def update_settings(new_settings: dict):
+def update_settings(s: dict):
     """Update global settings ~ dict
         Note: doing `settings = Settings(**new_settings)` would prevent
         importing modules from accessing the updated settings!
     """
-    for cat, cat_new in new_settings.items():
+    for cat, cat_new in s.items():
         sub = getattr(settings, cat)
         for kw, val in cat_new.items():
             setattr(sub, kw, val)
@@ -325,10 +313,10 @@ class Logger(logging.Logger):
 
 # Define log handlers
 _console_handler = logging.StreamHandler()
-_console_handler.setLevel(_levels[settings.log.lvl_console])
+_console_handler.setLevel(settings.log.lvl_console)
 
 _file_handler = logging.FileHandler(str(settings.log.path))
-_file_handler.setLevel(_levels[settings.log.lvl_file])
+_file_handler.setLevel(settings.log.lvl_file)
 
 _formatter = logging.Formatter(
     '%(asctime)s - %(levelname)s - %(name)s - %(message)s'
@@ -343,27 +331,27 @@ waitress.addHandler(_file_handler)
 waitress.propagate = False
 
 
-def get_cache(settings: Settings = settings) -> diskcache.Cache:
+def get_cache(s: Settings = settings) -> diskcache.Cache:
     return diskcache.Cache(
-        directory=str(settings.cache.dir),
-        size_limit=settings.cache.size_limit_gb * 1e9
+        directory=str(s.cache.dir),
+        size_limit=s.cache.size_limit_gb * 1e9
     )
 
 
-def get_logger(name: str, settings: LogSettings = settings.log) -> Logger:
-    if settings is None:
-        settings = LogSettings()
+def get_logger(name: str, log_settings: LogSettings = settings.log) -> Logger:
+    if log_settings is None:
+        log_settings = LogSettings()
 
-    log = Logger(name)
-    log.setLevel(
-        max([_levels[settings.lvl_console], _levels[settings.lvl_file]])
+    logger = Logger(name)
+    logger.setLevel(
+        max([log_settings.lvl_console, log_settings.lvl_file])
     )
 
-    log.addHandler(_console_handler)
-    log.addHandler(_file_handler)
+    logger.addHandler(_console_handler)
+    logger.addHandler(_file_handler)
 
-    log.vdebug(f'new logger')
-    return log
+    logger.vdebug(f'new logger')
+    return logger
 
 
 log = get_logger(__name__)

@@ -292,7 +292,7 @@ export async function get_cache_size() {
 }
 
 export async function clear_db() {
-  return axios.post(api("db", "clear")).then(return_success);
+  return axios.post(api("db", "forget")).then(return_success);
 }
 
 export async function get_db_size() {
