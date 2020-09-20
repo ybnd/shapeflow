@@ -19,7 +19,7 @@ if do:
         clutter += glob.glob('.*')
 
         for file in clutter:
-			os.system("attrib +h " + file)
+            os.system("attrib +h " + file)
     else:
         # something else
         with open('.hidden', 'w+') as f:
