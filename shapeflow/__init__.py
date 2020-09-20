@@ -10,7 +10,7 @@ import logging
 
 from typing import Dict, Any, Type
 from pathlib import Path
-from enum import IntEnum
+from enum import Enum
 
 from contextlib import contextmanager
 
@@ -55,7 +55,7 @@ class _Settings(BaseModel):
                 d.update({
                     k:v.to_dict()
                 })
-            elif isinstance(v, IntEnum):
+            elif isinstance(v, Enum):
                 d.update({
                     k:v.value
                 })
@@ -137,14 +137,25 @@ VDEBUG = 9
 logging.addLevelName(VDEBUG, "VDEBUG")
 
 
-class LoggingLevel(IntEnum):
-    critical: int = logging.CRITICAL
-    error: int = logging.ERROR
-    warning: int = logging.WARNING
-    info: int = logging.INFO
-    debug: int = logging.DEBUG
-    vdebug: int = VDEBUG
-    notset: int = logging.NOTSET
+class LoggingLevel(str, Enum):
+    critical = "critical"
+    error = "error"
+    warning = "warning"
+    info = "info"
+    debug = "debug"
+    vdebug = "vdebug"
+
+    @property
+    def level(self) -> int:
+        _levels: dict = {
+            LoggingLevel.critical: logging.CRITICAL,
+            LoggingLevel.error: logging.ERROR,
+            LoggingLevel.warning: logging.WARNING,
+            LoggingLevel.info: logging.INFO,
+            LoggingLevel.debug: logging.DEBUG,
+            LoggingLevel.vdebug: VDEBUG
+        }
+        return _levels[self]
 
 
 class LogSettings(_Settings):
@@ -182,11 +193,11 @@ class DatabaseSettings(_Settings):
     _validate_path = validator('path', allow_reuse=True, pre=True)(_Settings._validate_filepath)
 
 
-class ResultSaveMode(IntEnum):
-    skip: int = 0
-    next_to_video: int = 1
-    next_to_design: int = 2
-    directory: int = 3
+class ResultSaveMode(str, Enum):
+    skip = "skip"
+    next_to_video = "next to video file"
+    next_to_design = "next to design file"
+    directory = "in result directory"
 
 
 class ApplicationSettings(_Settings):
@@ -315,10 +326,10 @@ class Logger(logging.Logger):
 
 # Define log handlers
 _console_handler = logging.StreamHandler()
-_console_handler.setLevel(settings.log.lvl_console)
+_console_handler.setLevel(settings.log.lvl_console.level)
 
 _file_handler = logging.FileHandler(str(settings.log.path))
-_file_handler.setLevel(settings.log.lvl_file)
+_file_handler.setLevel(settings.log.lvl_file.level)
 
 _formatter = logging.Formatter(
     '%(asctime)s - %(levelname)s - %(name)s - %(message)s'
@@ -346,7 +357,7 @@ def get_logger(name: str, log_settings: LogSettings = settings.log) -> Logger:
 
     logger = Logger(name)
     logger.setLevel(
-        max([log_settings.lvl_console, log_settings.lvl_file])
+        max([log_settings.lvl_console.level, log_settings.lvl_file.level])
     )
 
     logger.addHandler(_console_handler)
