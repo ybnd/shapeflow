@@ -238,10 +238,12 @@ class Main(shapeflow.core.Lockable):
 
         @app.route('/api/select_video_path', methods=['GET'])
         def select_video():
+            log.debug(f"opening file dialog (select video)")
             return respond(shapeflow.util.filedialog.select_video())  # todo: should not be able to spawn multiple windows
 
         @app.route('/api/select_design_path', methods=['GET'])      # todo: should not be able to spawn multiple windows
         def select_design():
+            log.debug(f"opening file dialog (select design)")
             return respond(shapeflow.util.filedialog.select_design())
 
         @app.route('/api/check_video_path', methods=['PUT'])

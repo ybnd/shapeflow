@@ -88,7 +88,7 @@ def save_file_dialog(title: str = None, patterns: List[str] = None, patterns_str
                 p = subprocess.Popen(
                     [
                         'zenity', '--file-selection', '--save'
-                        f'--file-filter', ' '.join(patterns),
+                        '--file-filter', ' '.join(patterns),
                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE
                 )
             else:
@@ -107,6 +107,7 @@ def save_file_dialog(title: str = None, patterns: List[str] = None, patterns_str
 
     else:
         try:
+            # todo: doesn't work when debugging on Windows!
             if len(patterns) > 0:
                 p = subprocess.Popen(
                     [

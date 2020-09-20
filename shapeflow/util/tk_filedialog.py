@@ -43,4 +43,4 @@ if __name__ == '__main__':
                 title=args.title
             )
 
-    print(path)
+    print(path)  # can be read with `out, err = p.communicate()`
