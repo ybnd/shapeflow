@@ -4,8 +4,8 @@ import os
 import subprocess
 
 
-__VIDEO_PATTERNS__ = ["*.mp4", "*.avi", "*.mov", "*.mpv", "*.mkv"]
-__DESIGN_PATTERNS__ = ["*.svg"]
+__VIDEO_PATTERN__ = "*.mp4 *.avi *.mov *.mpv *.mkv"
+__DESIGN_PATTERN__ = "*.svg"
 
 
 def has_zenity():
@@ -18,20 +18,20 @@ def has_zenity():
         return False
 
 
-def load_file_dialog(title: str = None, patterns: List[str] = None, patterns_str: str = '') -> Optional[str]:
+def load_file_dialog(title: str = None, pattern: str = None, pattern_description: str = '') -> Optional[str]:
     if title is None:
         title = 'Load...'
 
-    if patterns is None:
-        patterns = []
+    if pattern is None:
+        pattern = ""
 
     if has_zenity():
         try:
-            if len(patterns) > 0:
+            if len(pattern) > 0:
                 p = subprocess.Popen(
                     [
                         'zenity', '--file-selection',
-                        '--file-filter', ' '.join(patterns),
+                        '--file-filter', pattern,
                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE
                 )
             else:
@@ -50,13 +50,13 @@ def load_file_dialog(title: str = None, patterns: List[str] = None, patterns_str
 
     else:
         try:
-            if len(patterns) > 0:
+            if len(pattern) > 0:
                 p = subprocess.Popen(
                     [
                         'python', 'shapeflow/util/tk_filedialog.py',
                         '--load', '--title', title, 
-                        '--filetypes', ' '.join(patterns),
-                        '--filedesc', patterns_str,
+                        '--filetypes', pattern,
+                        '--filedesc', pattern_description,
                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE
                 )
             else:
@@ -75,20 +75,20 @@ def load_file_dialog(title: str = None, patterns: List[str] = None, patterns_str
             return None
 
 
-def save_file_dialog(title: str = None, patterns: List[str] = None, patterns_str: str = '') -> Optional[str]:
+def save_file_dialog(title: str = None, pattern: str = None, pattern_description: str = '') -> Optional[str]:
     if title is None:
         title = 'Save as...'
 
-    if patterns is None:
-        patterns = []
+    if pattern is None:
+        pattern = ""
 
     if has_zenity():
         try:
-            if len(patterns) > 0:
+            if len(pattern) > 0:
                 p = subprocess.Popen(
                     [
                         'zenity', '--file-selection', '--save'
-                        '--file-filter', ' '.join(patterns),
+                        '--file-filter', pattern,
                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE
                 )
             else:
@@ -108,13 +108,13 @@ def save_file_dialog(title: str = None, patterns: List[str] = None, patterns_str
     else:
         try:
             # todo: doesn't work when debugging on Windows!
-            if len(patterns) > 0:
+            if len(pattern) > 0:
                 p = subprocess.Popen(
                     [
                         'python', 'shapeflow/util/tk_filedialog.py',
                         '--save', '--title', title, 
-                        '--filetypes', ' '.join(patterns),
-                        '--filedesc', patterns_str,
+                        '--filetypes', pattern,
+                        '--filedesc', pattern_description,
                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE
                 )
             else:
@@ -131,17 +131,3 @@ def save_file_dialog(title: str = None, patterns: List[str] = None, patterns_str
                 return None
         except subprocess.CalledProcessError:
             return None
-
-
-def select_video() -> Optional[str]:
-    return load_file_dialog(
-        "Select video file...",
-        patterns=__VIDEO_PATTERNS__
-    )
-
-
-def select_design() -> Optional[str]:
-    return load_file_dialog(
-        "Select design file...",
-        patterns=__DESIGN_PATTERNS__
-    )

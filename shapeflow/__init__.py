@@ -194,6 +194,8 @@ class ApplicationSettings(_Settings):
     load_state: bool = Field(default=False, title="load application state on start")
     state_path: FilePath = Field(default=str(ROOTDIR / 'state'), title="application state file")
     recent_files: int = Field(default=16, title="# of recent files to fetch")
+    video_pattern: str = Field(default="*.mp4 *.avi *.mov *.mpv *.mkv", title="video file pattern")
+    design_pattern: str = Field(default="*.svg", title="design file pattern")
     save_result: ResultSaveMode = Field(default=ResultSaveMode.next_to_video, title="result save mode")
     result_dir: DirectoryPath = Field(default=str(ROOTDIR / 'results'), title="result directory")
     cancel_on_q_stop: bool = Field(default=False, title="cancel running analyzers when stopping queue")
