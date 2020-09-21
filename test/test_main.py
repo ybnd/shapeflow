@@ -50,7 +50,7 @@ def application(keep: bool = False):
     try:
         with settings.cache.override({"dir": CACHE, "do_cache": False}), \
                 settings.db.override({"path": DB, "cleanup_interval": 0}), \
-                settings.app.override({"state_path": STATE, "save_result": 'in result directory', "result_dir": RESULTS}), \
+                settings.app.override({"state_path": STATE, "save_result_auto": 'in result directory', "result_dir": RESULTS}), \
                 settings.log.override({'lvl_console': 'debug', 'lvl_file': 'debug'}):
             save_settings(settings)
 

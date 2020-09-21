@@ -261,6 +261,11 @@ class BaseAnalysisModel(DbModel):
         raise NotImplementedError
 
     @abc.abstractmethod
+    def export_result(self, run: int = None) -> None:
+        """Export a result from the database"""
+        raise NotImplementedError
+
+    @abc.abstractmethod
     def get_runs(self) -> int:
         raise NotImplementedError
 

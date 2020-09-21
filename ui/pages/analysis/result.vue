@@ -3,10 +3,12 @@
     <PageHeader>
       <PageHeaderItem>
         <b-dropdown
+          class="run-selector"
           :text="info"
           data-toggle="tooltip"
-          title="Select a result"
-          placeholder="select a run to display"
+          title="Select a a run to display"
+          placeholder="Select a run to display"
+          :disabled="db.empty"
         >
           <b-dropdown-item
             v-for="(time, run) in db.list"
@@ -16,6 +18,15 @@
             {{ result_info(run) }}
           </b-dropdown-item>
         </b-dropdown>
+        <b-button
+          class="header-button-icon export-button"
+          data-toggle="tooltip"
+          title="Export results to .xlsx"
+          :disabled="db.empty"
+          @click="handleExport"
+        >
+          <i class="fa fa-save" />
+        </b-button>
       </PageHeaderItem>
     </PageHeader>
     <ResultChartStack
@@ -35,9 +46,11 @@ import ResultChartStack from "../../components/results/ResultChartStack";
 import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
 
-import { get_db_id, get_result_list, get_result, get_colors } from "static/api";
+import { get_db_id, get_result_list, get_result, export_result, get_colors } from "static/api";
 import Vue from "vue";
 import AsyncComputed from "vue-async-computed";
+
+import isEmpty from 'lodash/isEmpty';
 
 Vue.use(AsyncComputed);
 
@@ -53,15 +66,17 @@ export default {
       this.result = undefined;
 
       get_db_id(this.id).then((id) => {
-        this.db.id = id;
-        get_result_list(this.db.id).then((list) => {
+        this.db.analysis = id;
+        get_result_list(this.db.analysis).then((list) => {
           // console.log(`get_result_list() callback: list =`);
           // console.log(list);
           this.db.list = list;
-          if (list) {
+          if (!isEmpty(list)) {
             this.handleGetResult(Math.max(...Object.keys(list).map(Number)));
+            this.db.empty = false;
           } else {
             this.info = "No results yet!";
+            this.db.empty = true;
           }
         });
       });
@@ -73,12 +88,15 @@ export default {
         // console.log(`result.handleGetResult() callback 1 colors=`);
         // console.log(colors);
         this.colors = colors;
-        get_result(this.db.id, run).then((result) => {
+        get_result(this.db.analysis, run).then((result) => {
           // console.log(`result.handleGetResult() callback 2 result=`);
           // console.log(result);
           this.result = result;
         });
       });
+    },
+    handleExport() {
+      export_result(this.db.analysis, this.db.run)
     },
     result_info(run) {
       run = Number(run);
@@ -105,10 +123,11 @@ export default {
   data() {
     return {
       db: {
-        id: undefined,
+        analysis: undefined,
         run: undefined,
         runs: {},
         list: {},
+        empty: true,
       },
       result: undefined,
       colors: undefined,
@@ -144,5 +163,9 @@ export default {
 .fullpage-result canvas {
   /*flex-grow: 1;*/
   width: $content-width;
+}
+
+.run-selector {
+  min-width: 120px;
 }
 </style>

@@ -70,6 +70,7 @@ class HistoryRegistry(ImmutableRegistry):
     get_recent_paths = Endpoint(Callable[[], Dict[str, List[str]]])
     get_result_list = Endpoint(Callable[[int], dict])
     get_result = Endpoint(Callable[[int], dict])
+    export_result = Endpoint(Callable[[int, int], bool])
     clean = Endpoint(Callable[[], None])
     forget = Endpoint(Callable[[], None])
 

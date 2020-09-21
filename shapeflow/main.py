@@ -143,6 +143,7 @@ class Main(shapeflow.core.Lockable):
 
     def __init__(self, open_in_browser: bool = False):
         self._history = db.History()
+        self._history.set_eventstreamer(self._eventstreamer)
         super().__init__()
         app = Flask(__name__, static_url_path='')
 

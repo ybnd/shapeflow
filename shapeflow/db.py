@@ -1,3 +1,4 @@
+import os
 import json
 from typing import Optional, Tuple, List, Dict, Type
 from pathlib import Path
@@ -6,11 +7,15 @@ import datetime
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, ForeignKey
 
+import pandas as pd
+
 from shapeflow.endpoints import HistoryRegistry
 from shapeflow.core import RootInstance
 from shapeflow.core.db import Base, DbModel, SessionWrapper, FileModel, BaseAnalysisModel
-from shapeflow import Settings, settings, get_logger
+from shapeflow import settings, get_logger, ResultSaveMode
+from shapeflow.core.config import __meta_sheet__
 from shapeflow.config import normalize_config, VideoAnalyzerConfig
+from shapeflow.core.streaming import EventStreamer
 
 from shapeflow.core.backend import BaseVideoAnalyzer, BaseAnalyzerConfig
 
@@ -240,6 +245,75 @@ class AnalysisModel(BaseAnalysisModel):
                         s.commit()
                         self.results = model.id
 
+    def export_result(self, run: int = None, manual: bool = False):
+        with self.session() as s:
+            if self.runs < 1:
+                raise ValueError(f"'{self}' has no runs to export!")
+
+            # If no run specified, export the latest
+            if run is None:
+                run = self.runs
+
+            results = list(
+                s.query(ResultModel).filter_by(analysis=self.id).filter_by(run=run)
+            )
+            config = json.loads(
+                s.query(ConfigModel).filter_by(id=results[0].config).first().json
+            )
+            video = s.query(VideoFileModel).filter_by(id=self.video).first()
+            design = s.query(DesignFileModel).filter_by(id=self.design).first()
+
+            base_f = None
+
+            if manual:
+                if settings.app.save_result_manual == ResultSaveMode.next_to_video:
+                    base_f = str(os.path.splitext(config['video_path'])[0])
+                elif settings.app.save_result_manual == ResultSaveMode.next_to_design:
+                    base_f = str(os.path.splitext(config['design_path'])[0])
+                elif settings.app.save_result_manual == ResultSaveMode.directory:
+                    base_f = os.path.join(
+                        str(settings.app.result_dir),
+                        f"{self.name} run {run}"
+                    )
+            else:
+                if settings.app.save_result_auto == ResultSaveMode.next_to_video:
+                    base_f = str(os.path.splitext(config['video_path'])[0])
+                elif settings.app.save_result_auto == ResultSaveMode.next_to_design:
+                    base_f = str(os.path.splitext(config['design_path'])[0])
+                elif settings.app.save_result_auto == ResultSaveMode.directory:
+                    base_f = os.path.join(
+                        str(settings.app.result_dir),
+                        f"{self.name} run {run}"
+                    )
+
+            if base_f is not None:
+                f = base_f + ' ' + datetime.datetime.now().strftime(
+                    settings.format.datetime_format_fs
+                ) + '.xlsx'
+
+                w = pd.ExcelWriter(f)
+
+                # Features to separate sheets
+                for result in results:
+                    df = pd.read_json(result.data, orient='split')
+                    df.to_excel(w, sheet_name=result.feature)
+
+                # Metadata in a separate sheet
+                pd.DataFrame([json.dumps({
+                    'config': config,
+                    'video_hash': video.hash,
+                    'design_hash': design.hash,
+                }, indent=2)]).to_excel(
+                    w, sheet_name=__meta_sheet__
+                )
+
+                w.save()
+                w.close()
+                log.info(f"'{self.id}' results exported to {f}")
+            else:
+                log.warning(f"'{self.id}' results were not exported!")
+
+
     def load_config(self, video_path: str = None, design_path: str = None, include: List[str] = None) -> Optional[dict]:
         """Load configuration from the database.
 
@@ -426,6 +500,8 @@ class History(SessionWrapper, RootInstance):
     _endpoints: HistoryRegistry = history
     _instance_class = SessionWrapper
 
+    _eventstreamer: EventStreamer
+
     def __init__(self, path: Path = None):
         super().__init__()
         self._gather_instances()
@@ -436,6 +512,14 @@ class History(SessionWrapper, RootInstance):
         self._engine = create_engine(f'sqlite:///{str(path)}')
         Base.metadata.create_all(self._engine)
         self._session_factory = scoped_session(sessionmaker(bind=self._engine))
+
+    def set_eventstreamer(self, eventstreamer: EventStreamer):
+        self._eventstreamer = eventstreamer
+
+    def notice(self, message: str, persist: bool = False):
+        self._eventstreamer.event(
+            'notice', id='', data={'message': message, 'persist': persist}
+        )
 
     def add_video_file(self, path: str) -> VideoFileModel:
         """Add a video file to the database. Duplicate files are resolved
@@ -506,6 +590,23 @@ class History(SessionWrapper, RootInstance):
                     filter(ResultModel.analysis == analysis).\
                     filter(ResultModel.run == run)
             }
+
+    @history.expose(history.export_result)
+    def export_result(self, analysis: int, run: int = None) -> bool:
+        with self.session() as s:
+            try:
+                a = s.query(AnalysisModel).filter_by(
+                    id=analysis
+                ).first()
+                a.connect(self)
+                a.export_result(run=run, manual=True)
+                return True
+            except Exception as e:
+                log.error(f"{e.__class__.__name__}: {e}")
+                self.notice(
+                    f"could not export analysis '{analysis}' run '{run}'"
+                )
+                return False
 
     def check(self) -> bool:
         log.debug('checking history')

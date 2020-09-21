@@ -3,8 +3,6 @@ import re
 import threading
 import copy
 from typing import Callable, Any, Dict, Generator, Optional, List, Tuple, Type
-import datetime
-import json
 
 import cv2
 import numpy as np
@@ -21,7 +19,7 @@ from shapeflow.core.backend import Instance, CachingInstance, \
     BaseVideoAnalyzer, BackendSetupError, AnalyzerType, Feature, \
     FeatureSet, \
     FeatureType, backend, AnalyzerState, PushEvent, FeatureConfig
-from shapeflow.core.config import extend, __meta_ext__, __meta_sheet__
+from shapeflow.core.config import extend
 from shapeflow.core.interface import TransformInterface, FilterConfig, \
     FilterInterface, FilterType, TransformType, Handler
 from shapeflow.core.streaming import stream, streams
@@ -1360,7 +1358,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                         break
 
             self.commit()
-            self.export()
+            self.model.export_result(manual=False)
             self._new_results()
 
         if self.canceled:
@@ -1376,35 +1374,6 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             return False
 
         return True
-
-    def export(self):
-        """Export video analysis results & metadata to .xlsx"""
-        base_f = None
-
-        if settings.app.save_result == ResultSaveMode.next_to_video:
-            base_f = str(os.path.splitext(self._config.video_path)[0])
-        elif settings.app.save_result == ResultSaveMode.next_to_design:
-            base_f = str(os.path.splitext(self._config.design_path)[0])
-        elif settings.app.save_result == ResultSaveMode.directory:
-            base_f = os.path.join(str(settings.app.result_dir), self.config.name)
-
-
-        if base_f is not None:
-            f = base_f + ' ' + datetime.datetime.now().strftime(
-                    settings.format.datetime_format_fs
-                ) + '.xlsx'
-
-            w = pd.ExcelWriter(f)
-            for k, v in self.results.items():
-                v.to_excel(w, sheet_name=k)
-
-            pd.DataFrame([json.dumps(self.get_config(), indent=2)]).to_excel(w, sheet_name=__meta_sheet__)
-
-            w.save()
-            w.close()
-            log.info(f"'{self.id}' results exported to {f}")
-        else:
-            log.warning(f"'{self.id}' results were not exported!")
 
     @backend.expose(backend.get_results)
     def get_result(self) -> dict:

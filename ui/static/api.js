@@ -244,10 +244,6 @@ export async function analyze(id) {
   return axios.put(api(id, "call/analyze")).then(return_success);
 }
 
-export async function get_results(id) {
-  return axios.get(api(id, "call/get_results")).then(return_data);
-}
-
 export function get_log() {
   // todo: add link to where this was copied from!
   var xhr = new XMLHttpRequest();
@@ -314,6 +310,11 @@ export async function get_result(analysis, run) {
     .post(api("db", "get_result"), { analysis: analysis, run: run })
     .then(return_data);
 }
+
+export async function export_result(analysis, run) {
+  return axios.post(api('db', 'export_result'), { analysis: analysis, run: run }).then(return_data)
+}
+
 
 export async function get_recent_paths() {
   return axios.get(api("db", "get_recent_paths")).then(return_data);
