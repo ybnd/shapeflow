@@ -50,9 +50,8 @@ def restart_server(host: str, port: int):
 
     subprocess.Popen(
          [
-             'sleep', '1;',
              'python', 'shapeflow.py',
-             '--host', host, '--port', port, '--server'
+             '--host', str(host), '--port', str(port), '--server'
          ],
          cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     )
