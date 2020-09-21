@@ -210,6 +210,11 @@ class FileModel(DbModel):
                 else:
                     file = match
                     file.connect(self)
+
+                    # If current path is different, update history
+                    if self._path != file.path:
+                        file.path = self._path
+
                     if object_state(self).persistent:
                         s.delete(self)
                 file._resolved = True
