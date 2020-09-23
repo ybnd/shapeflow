@@ -21,7 +21,7 @@ This software is developed in collaboration with the [KULeuven Biosensors lab](h
 2. Make a new folder in a convenient location
 3. [Download a deployment script](https://github.com/ybnd/shapeflow/releases/download/0.3.20-test/deploy_isimple-0.3.20-test.py) and save it to that folder
 4. Run the deployment script.
-5. Once the installation is done, you can start the application by running `shapeflow.py`. A new browser window or tab should open for the user interface.
+5. Once the installation is done, you can start the application by running `shapeflow.py`. A new browser window or tab should open with the user interface.
 
 * A tutorial: [docs/tutorial.md](docs/tutorial.md)
 
