@@ -4,7 +4,7 @@ Deployment scripts are generated with [`gitploy`](https://github.com/ybnd/gitplo
 
 1. Tag the release in `git`
 2. Create a release on Github
-3. Compile `ui/dist/`, compress it to a `.tar.gz` and upload to that release as a binary
+3. Compile `ui/dist/`, compress it with `tar czf dist-<tag>.tar.gz dist/` and upload to that release as a binary
 4. Create or update your .ploy file in `shapeflow`‘s root directory:
    1. Start from [ploy](ploy)
    2. Add the tag of your release
