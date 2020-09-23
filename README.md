@@ -1,7 +1,7 @@
 # shapeflow
 
-[![travis-ci](https://travis-ci.org/ybnd/isimple.svg?branch=master)](https://travis-ci.org/ybnd/isimple)
-[![codecov](https://codecov.io/gh/ybnd/isimple/branch/master/graph/badge.svg)](https://codecov.io/gh/ybnd/isimple)
+[![travis-ci](https://travis-ci.org/ybnd/shapeflow.svg?branch=master)](https://travis-ci.org/ybnd/shapeflow)
+[![codecov](https://codecov.io/gh/ybnd/shapeflow/branch/master/graph/badge.svg)](https://codecov.io/gh/ybnd/shapeflow)
 
 || [Installation](#Installation-and-usage) | [Tutorial](docs/tutorial.md) | [Troubleshooting](docs/troubleshooting.md) | [Related literature](#Related-literature) ||
 
