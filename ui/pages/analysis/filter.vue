@@ -40,6 +40,8 @@
         >
           <i class="icon-menu" />
         </b-button>
+      </PageHeaderItem>
+      <PageHeaderItem>
         <b-button
           class="header-button-icon"
           :variant="hideVideoFrame ? 'danger' : null"
