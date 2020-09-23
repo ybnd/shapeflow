@@ -2,10 +2,10 @@ import numpy as np
 import cv2
 
 from shapeflow import get_logger, settings
-from shapeflow.config import extend, ConfigType, Field
+from shapeflow.config import extend, ConfigType, Field, validator, BaseConfig
 
 from shapeflow.core.interface import FilterConfig, FilterInterface, FilterType
-
+from shapeflow.maths.images import ckernel
 from shapeflow.maths.colors import Color, HsvColor, convert, WRAP
 
 log = get_logger(__name__)
@@ -19,6 +19,8 @@ class BackgroundFilterConfig(FilterConfig):
     """HSV range filter"""
     range: HsvColor = Field(default=HsvColor(h=10, s=75, v=75))
     color: HsvColor = Field(default=HsvColor())
+    close: int = Field(default=0, ge=0, le=200)
+    open: int = Field(default=0, ge=0, le=200)
 
     @property
     def ready(self) -> bool:
@@ -31,6 +33,11 @@ class BackgroundFilterConfig(FilterConfig):
     @property
     def c1(self) -> HsvColor:
         return self.color + self.range
+
+    _resolve_close = validator('close', allow_reuse=True)(BaseConfig._odd_add)
+    _resolve_open = validator('open', allow_reuse=True)(BaseConfig._odd_add)
+    _close_limits = validator('close', pre=True, allow_reuse=True)(BaseConfig._int_limits)
+    _open_limits = validator('open', pre=True, allow_reuse=True)(BaseConfig._int_limits)
 
 
 @extend(FilterType)
@@ -60,15 +67,24 @@ class BackgroundFilter(FilterInterface):
             c0_b = np.float32([0] + filter.c0.list[1:])
             c1_b = np.float32(filter.c1.list)
 
-            inv = cv2.bitwise_not(
-                    cv2.inRange(img, c0_a, c1_a, img)
-                    + cv2.inRange(img, c0_b, c1_b, img)
-                )
-
-            return cv2.bitwise_and(inv, mask)
+            inverse = cv2.inRange(img, c0_a, c1_a, img) \
+                   + cv2.inRange(img, c0_b, c1_b, img)
         else:
             c0 = np.float32(filter.c0.list)
             c1 = np.float32(filter.c1.list)
 
-            inv = cv2.bitwise_not(cv2.inRange(img, c0, c1, img))
-            return cv2.bitwise_and(inv, mask)
+            inverse = cv2.inRange(img, c0, c1, img)
+
+        if filter.close:
+            inverse = cv2.morphologyEx(inverse, cv2.MORPH_CLOSE, ckernel(filter.close))
+        if filter.open:
+            inverse = cv2.morphologyEx(inverse, cv2.MORPH_OPEN, ckernel(filter.open))
+
+        binary = cv2.bitwise_not(inverse)
+
+        if mask is not None:
+            # Mask off again
+            binary = cv2.bitwise_and(binary, mask)
+
+        return binary
+
