@@ -2,7 +2,7 @@
 
 ### Introduction
 
-To start analyzing microfluidic chips with shapeflow, you need video footage of your chip along with a [formatted design file](./preparing design files.md). The image analysis pipeline consists of the following steps
+To start analyzing microfluidic chips with shapeflow, you need video footage of your chip along with a [formatted design file](preparing design files.md). The image analysis pipeline consists of the following steps
 
 1. **[Transformation](transforms.md)**
 
