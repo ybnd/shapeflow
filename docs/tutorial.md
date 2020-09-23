@@ -4,7 +4,7 @@
 
 To start analyzing microfluidic chips with shapeflow, you need video footage of your chip along with a [formatted design file](./preparing design files.md). The image analysis pipeline consists of the following steps
 
-1. **Transformation**
+1. **[Transformation](transforms.md)**
 
    The design is aligned to the video frame.
 
@@ -12,11 +12,11 @@ To start analyzing microfluidic chips with shapeflow, you need video footage of 
 
    Each layer in the design file is used to mask off the corresponding area in the video footage of the chip.
 
-3. **Filtering**
+3. **[Filtering](filters.md)**
 
    The masked off area of the video frame is filtered to retain the portion of interest, i.e. a colored fluid in a channel. This results in a binary image for each mask
 
-4. **Feature extraction**
+4. **[Feature extraction](features.md)**
 
    Finally, these binary images are processed to extract features. By using designs with known real-world dimensions and mapping  “video coordinates” to “design coordinates”, we can compute features with real-world dimensions from the video footage.
 
