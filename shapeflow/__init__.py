@@ -7,6 +7,7 @@ import copy
 import re
 import datetime
 import logging
+from multiprocessing import cpu_count
 
 from typing import Dict, Any, Type
 from pathlib import Path
@@ -211,9 +212,17 @@ class ApplicationSettings(_Settings):
     save_result_manual: ResultSaveMode = Field(default=ResultSaveMode.next_to_video, title="result save mode (manual)")
     result_dir: DirectoryPath = Field(default=str(ROOTDIR / 'results'), title="result directory")
     cancel_on_q_stop: bool = Field(default=False, title="cancel running analyzers when stopping queue")
+    threads: int = Field(default=cpu_count(), title="# of threads")
 
     _validate_dir = validator('result_dir', allow_reuse=True, pre=True)(_Settings._validate_directorypath)
     _validate_state_path = validator('state_path', allow_reuse=True, pre=True)(_Settings._validate_filepath)
+
+    @validator('threads', pre=True)
+    def _validate_threads(cls, value):
+        if value < 8:
+            return 8  # At least 8 threads to run decently
+        else:
+            return value
 
 
 class Settings(_Settings):

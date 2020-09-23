@@ -127,6 +127,10 @@ On the settings page you can edit the global application settings, as shown belo
   * **cancel running analyzers when stopping queue**
 
     When this option is on, stopping the queue while an analysis is still running will cancel that analysis. Otherwise, the queue will be stopped once the analysis is complete.
+    
+  * **\# of threads**
+
+    Number of concurrent threads to run. Requests to the Python backend are handled in parallel; increasing the number of threads may improve the response time in some cases. If you see `WARNING - waitress.queue - Task queue depth is <1,2,...>` in the log, the server is waiting for a thread to finish a request before it can handle a new one. If you get a lot of these warnings, you may want to increase the number of threads you use.
 
 * Cache
 

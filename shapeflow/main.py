@@ -89,7 +89,7 @@ class ServerThread(Thread, metaclass=util.Singleton):
                 self._app,
                 host=self._host,
                 port=self._port,
-                threads=32,
+                threads=shapeflow.settings.app.threads,
             )
         except OSError:
             log.warning('address already in use')
