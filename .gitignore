@@ -1,7 +1,5 @@
 *.mp4
 .idea/
-.render/*.png
-*.png
 __pycache__/
 shapeflow/__pycache__/
 *.pyc
@@ -24,8 +22,7 @@ test/.log
 docs/build/
 deploy_*.py
 build/
-dist/
-ui/
+ui/dist/
 .venv/
 .local
 .~*.md
