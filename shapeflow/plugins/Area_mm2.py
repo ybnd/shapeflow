@@ -1,11 +1,10 @@
 import numpy as np
 
-from shapeflow import get_logger, settings
-from shapeflow.config import extend, ConfigType, Field
+from shapeflow.config import extend
 
 from shapeflow.maths.images import area_pixelsum
 
-from shapeflow.video import MaskFunction, Feature, FeatureType, FeatureConfig
+from shapeflow.video import MaskFunction, FeatureType
 
 
 @extend(FeatureType)

@@ -184,7 +184,7 @@ def open_path(path: str) -> None:
         path = os.path.dirname(os.path.realpath(path))
 
     if os.name == 'nt':  # Windows
-        os.startfile(path)
+        os.startfile(path)  # type: ignore
     elif os.name == 'darwin':  # MacOS
         subprocess.Popen(['open', path])
     else:  # Something else, probably has xdg-open

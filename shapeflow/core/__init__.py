@@ -1,6 +1,6 @@
 import abc
 import threading
-from typing import Callable, Dict, List, Tuple, Type, _GenericAlias  # type: ignore
+from typing import Callable, Dict, List, Tuple, Type, Optional, _GenericAlias  # type: ignore
 import collections
 from contextlib import contextmanager
 
@@ -36,7 +36,7 @@ class EnforcedStr(str):
     _descriptions: Dict[str, str] = {}
     _str: str
 
-    _default: str = None
+    _default: Optional[str] = None
 
     def __init__(self, string: str = None):
         super().__init__()

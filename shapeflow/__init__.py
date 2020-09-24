@@ -248,7 +248,7 @@ class Settings(_Settings):
 global settings
 
 
-def _load_settings(path: str = _SETTINGS_FILE) -> Settings:  # todo: if there are unexpected fields: warn, don't crash
+def _load_settings(path: str = str(_SETTINGS_FILE)) -> Settings:  # todo: if there are unexpected fields: warn, don't crash
     with open(path, 'r') as f:
         settings_yaml = yaml.safe_load(f)
 
@@ -279,7 +279,7 @@ def _load_settings(path: str = _SETTINGS_FILE) -> Settings:  # todo: if there ar
         return s
 
 
-def save_settings(s: Settings, path: str = _SETTINGS_FILE):
+def save_settings(s: Settings, path: str = str(_SETTINGS_FILE)):
     with open(path, 'w+') as f:
         yaml.safe_dump(s.to_dict(), f)
 
@@ -287,7 +287,7 @@ def save_settings(s: Settings, path: str = _SETTINGS_FILE):
 if not os.path.isfile(_SETTINGS_FILE):
     settings = Settings()
 else:
-    settings = _load_settings(_SETTINGS_FILE)
+    settings = _load_settings(str(_SETTINGS_FILE))
 
 
 save_settings(settings)

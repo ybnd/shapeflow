@@ -247,7 +247,7 @@ class AnalysisModel(BaseAnalysisModel):
 
     def export_result(self, run: int = None, manual: bool = False):
         with self.session() as s:
-            if self.runs < 1:
+            if self.runs is None or self.runs < 1:
                 raise ValueError(f"'{self}' has no runs to export!")
 
             # If no run specified, export the latest
