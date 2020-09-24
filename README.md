@@ -1,6 +1,6 @@
 # shapeflow
 
-[![travis-ci](https://travis-ci.com/ybnd/shapeflow.svg?branch=master)](https://travis-ci.org/ybnd/shapeflow)
+[![travis-ci](https://travis-ci.org/ybnd/shapeflow.svg?branch=master)](https://travis-ci.org/ybnd/shapeflow)
 [![codecov](https://codecov.io/gh/ybnd/shapeflow/branch/master/graph/badge.svg)](https://codecov.io/gh/ybnd/shapeflow)
 
 || [Installation](#Installation-and-usage) | [Tutorial](docs/tutorial.md) | [Troubleshooting](docs/troubleshooting.md) | [Related literature](#Related-literature) ||
