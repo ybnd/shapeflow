@@ -42,7 +42,7 @@
 
 * [cairo](https://www.cairographics.org/manual/) is the library we use to render the overlay and masks out of our design files. It’s a bit annoying to set up on Windows. Normally, the deployment scripts should install it in the virtual environment.
 
-* To make sure this library can be accessed, download the **.zip of the latest release from [preshing/cairo-windows](preshing/cairo-windows)**, extract it, and **copy the .dll** for your computer’s architecture (probably 64-bit) **into `C:\Windows\System32`**.
+* To make sure this library can be accessed, download the **.zip of the latest release from [preshing/cairo-windows](https://github.com/preshing/cairo-windows/releases)**, extract it, and **copy the .dll** for your computer’s architecture (probably 64-bit) **into `C:\Windows\System32`**.
 
   
 
