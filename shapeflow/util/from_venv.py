@@ -21,7 +21,7 @@ if __name__ == '__main__':
             executable = os.path.join(unix_dir, 'python')
             shell = False
         elif os.path.isdir(win_dir):
-            pre = ["set", f"PATH='%PATH%{os.path.abspath(win_dir)};\\'", "&&", "echo", "%PATH%" , "&&"]
+            pre = ["set", f"PATH='%PATH%{os.path.abspath(win_dir)};\\'", "&&"]
             executable = os.path.join(win_dir, 'python')
             shell = True
         else:
