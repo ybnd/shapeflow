@@ -44,7 +44,7 @@
 
 * Go to `.venv/Scripts/` in your install directory (it may be hidden) and check whether it contains the files `cairo.dll` and `cairo.lib`. If it doesn't, something may have gone wrong with your install. 
 
-* To add these files manually, download the **.zip of the latest release from [preshing/cairo-windows](https://github.com/preshing/cairo-windows/releases)**, extract it, open the `lib`folder and **copy the .dll and .lib** files for your computer’s architecture (probably `x64`) **into `.venv/Scripts/`**.
+* To add these files manually, download the **.zip of the latest release from [preshing/cairo-windows](https://github.com/preshing/cairo-windows/releases)**, extract it, open the `lib` folder and **copy the .dll and .lib** files for your computer’s architecture (probably `x64`) **into `.venv/Scripts/`**.
 
 * If this doesn't solve anything and your Python installation is 32-bit, try using **the `x86` .dll and .lib files instead**.
 
