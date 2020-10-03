@@ -42,8 +42,13 @@
 
 * [cairo](https://www.cairographics.org/manual/) is the library we use to render the overlay and masks out of our design files. It’s a bit annoying to set up on Windows. Normally, the deployment scripts should install it in the virtual environment.
 
-* To make sure this library can be accessed, download the **.zip of the latest release from [preshing/cairo-windows](https://github.com/preshing/cairo-windows/releases)**, extract it, and **copy the .dll** for your computer’s architecture (probably 64-bit) **into `C:\Windows\System32`**.
+* Go to `.venv/Scripts/` in your install directory (it may be hidden) and check whether it contains the files `cairo.dll` and `cairo.lib`. If it doesn't, something may have gone wrong with your install. 
 
+* To add these files manually, download the **.zip of the latest release from [preshing/cairo-windows](https://github.com/preshing/cairo-windows/releases)**, extract it, open the `lib`folder and **copy the .dll and .lib** files for your computer’s architecture (probably `x64`) **into `.venv/Scripts/`**.
+
+* If this doesn't solve anything and your Python installation is 32-bit, try using **the `x86` .dll and .lib files instead**.
+
+* Finally, you can also **try moving the .dll and .lib files to `C:\Windows\System32\`**.
   
 
 > The script exits immediately and complains that it can’t import something
