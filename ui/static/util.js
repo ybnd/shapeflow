@@ -1,7 +1,10 @@
 import pointer from "json-pointer";
+import assert from 'assert';
 
-export function seconds2timestr(seconds, format = "") {
+export function seconds2timestr(seconds) {
   /* https://stackoverflow.com/a/25279399/12259362 */
+  assert(Number.isFinite(seconds))
+
   var date = new Date(0);
   date.setSeconds(seconds, (seconds % 1) * 1000);
   return date.toISOString().substr(14, 7);
