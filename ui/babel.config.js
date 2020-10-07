@@ -9,7 +9,7 @@ module.exports = function(api) {
   if (api.env("test") && !api.caller(isBabelLoader)) {
     return {
       plugins: [
-        "transform-object-rest-spread"
+        "@babel/plugin-proposal-object-rest-spread"
       ],
       presets: [
         [

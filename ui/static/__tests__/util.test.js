@@ -16,7 +16,7 @@ const DEF_0 = {
 
 const DEF_1 = {
   type: "object",
-  default: {p
+  default: {
     a: 0, b: 1
   }
 };
