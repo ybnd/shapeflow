@@ -35,10 +35,19 @@ matrix:
     # https://medium.com/faun/configuring-travis-ci-for-angular-application-34afee1715f
     - language: node_js   # https://stackoverflow.com/questions/27644586/
       node_js: 12
+      python: 3.7
       cache:
         directories:
-          - ./node_modules
+          - ./ui/node_modules
+      before-install:
+        - sudo apt-get -y install python3-pip python-dev
+        - sudo pip3 install -U setuptools
+        - python3 -V
+        - pip3 -V
+        - python -V
+        - pip -V
       install:
+        - sudo pip3 install -r requirements.txt
         - cd ui && npm install
       script:
         - npm run test
