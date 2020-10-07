@@ -1,3 +1,5 @@
+global.XMLHttpRequest = undefined;
+
 module.exports = {
   // tell Jest to handle `*.vue` files
   moduleFileExtensions: ["js", "json", "vue"],
@@ -14,11 +16,13 @@ module.exports = {
     ".*\\.(vue)$": "<rootDir>/node_modules/vue-jest"
   },
   snapshotSerializers: ["<rootDir>/node_modules/jest-serializer-vue"],
-  collectCoverage: false,
+  collectCoverage: true,
   collectCoverageFrom: [
     "<rootDir>/components/**/*.vue",
     "<rootDir>/pages/*.vue",
     "<rootDir>/static/*.js",
     "<rootDir>/store/*.js"
-  ]
+  ],
+  // testEnvironment: "node",
+  testURL: "http://localhost:7951",
 };
