@@ -1,5 +1,9 @@
 # Cheated off of https://github.com/beetbox/beets/blob/master/.travis.yml
-matrix:
+dist: xenial
+os: linux
+language: python
+
+jobs:
   include:
     - language: python
       python: 3.7
@@ -36,11 +40,12 @@ matrix:
     - language: node_js   # https://stackoverflow.com/questions/27644586/
       node_js: 12
       env:
-        - PATH=/opt/python/3.7.1/bin:$PATH
+        global:
+          - PATH=/opt/python/3.7.1/bin:$PATH
       cache:
         directories:
           - ./ui/node_modules
-      before-install:
+      before_install:
         - python3 -V
         - pip3 -V
       install:
