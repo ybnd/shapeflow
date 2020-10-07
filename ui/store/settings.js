@@ -30,7 +30,7 @@ export const getters = {
     return cloneDeep(state.settings);
   },
   isUndefined: (state) => {
-    return state.settings === undefined && state.schema === undefined;
+    return state.settings === undefined;
   },
 };
 
@@ -49,7 +49,7 @@ export const actions = {
   },
   async sync({ dispatch }) {
     return dispatch("get").then(() => {
-      return true;
+      return true;  // todo: should return false if get_settings fails
     });
   },
 };
