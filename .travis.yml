@@ -40,14 +40,12 @@ jobs:
     - language: node_js   # https://stackoverflow.com/questions/27644586/
       node_js: 12
       env:
-        global:
-          - PATH=/opt/python/3.7.1/bin:$PATH
+        - PATH=/opt/python/3.7.1/bin:$PATH
       cache:
         directories:
           - ./ui/node_modules
       before_install:
         - python3 -V
-        - pip3 -V
       install:
         - python3 -m pip install -r requirements.txt
         - cd ui && npm install
