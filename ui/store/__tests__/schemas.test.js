@@ -11,13 +11,13 @@ var SCHEMAS = undefined;
 
 beforeAll(done => {
   try {
-    execSync('pkill -f "python shapeflow"')
+    execSync('pkill -f "python3 shapeflow"')
     const end = Date.now() + 1000;
     while (Date.now() < end) {}
   } catch(e) {}
 
   const SERVER = spawn(
-    'python', ['shapeflow.py', '--server'],
+    'python3', ['shapeflow.py', '--server'],
     {cwd: '..', shell: false, detached: true}
   )
 
@@ -35,7 +35,7 @@ afterAll(() => {
     execSync(`kill -9 ${SERVER.pid}`)
   } catch(e) {}
   try {
-    execSync('pkill -f "python shapeflow"')
+    execSync('pkill -f "python3 shapeflow"')
   } catch(e) {}
 
 })

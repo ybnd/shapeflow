@@ -17,7 +17,7 @@ async function _kill() {
     if (SERVER !== undefined) {
       execSync(`kill -9 ${SERVER.pid}`)
     }
-    execSync('pkill -f "python shapeflow"')
+    execSync('pkill -f "python3 shapeflow"')
     if (SERVER !== undefined) {
       execSync(`kill -9 ${SERVER.pid}`)
     }
@@ -34,7 +34,7 @@ beforeAll(_kill)
 beforeEach(() => {
   console.log('starting server...')
   SERVER = spawn(
-    'python', ['shapeflow.py', '--server'],
+    'python3', ['shapeflow.py', '--server'],
     {cwd: '..', shell: false, detached: true}
     )
 
