@@ -35,7 +35,7 @@ beforeEach(() => {
   console.log('starting server...')
   SERVER = spawn(
     'python3', ['shapeflow.py', '--server'],
-    {cwd: '..', shell: false, detached: true}
+    {cwd: '..', shell: false, detached: false}
     )
 
   const end = Date.now() + 1000;
