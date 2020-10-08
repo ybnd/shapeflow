@@ -18,11 +18,11 @@ if __name__ == '__main__':
         
         if os.path.isdir(unix_dir):
             pre = []
-            executable = os.path.join(unix_dir, 'python')
+            executable = os.path.join(unix_dir, 'python3')
             shell = False
         elif os.path.isdir(win_dir):
             pre = ["set", f"PATH='%PATH%{os.path.abspath(win_dir)};\\'", "&&", "echo", "%PATH%" , "&&"]
-            executable = os.path.join(win_dir, 'python')
+            executable = os.path.join(win_dir, 'python3')
             shell = True
         else:
             raise OSError('The virtual environment has an unexpected format.')
