@@ -38,7 +38,7 @@ jobs:
 
     # https://medium.com/faun/configuring-travis-ci-for-angular-application-34afee1715f
     - language: node_js   # https://stackoverflow.com/questions/27644586/
-      node_js: 12
+      node_js: 14
       env:
         - PATH=/opt/python/3.7.1/bin:$PATH
       cache:
