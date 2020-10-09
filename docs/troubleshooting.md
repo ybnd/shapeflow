@@ -51,7 +51,7 @@
 * Finally, you can also **try moving the .dll and .lib files to `C:\Windows\System32\`**.
   
 
-> The script exits immediately and complains that it can’t import something
+> The script exits immediately and complains that it can’t import something (other than cairo)
 
 * Most often this is due to a problem with the virtual environment. If your installation went correctly, it should be in the `.venv/` directory. You can check whether it works properly by running
 
