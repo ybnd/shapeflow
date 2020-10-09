@@ -46,8 +46,8 @@ jobs:
           - ./ui/node_modules
       before_install:
         - python3 -V
-      install:
         - python3 -m pip install -r requirements.txt
+      install:
         - cd ui && npm install
       script:
         - npm run test
