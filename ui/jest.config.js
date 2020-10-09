@@ -30,7 +30,7 @@ module.exports = {
   ],
   testEnvironment: "jsdom",
   testEnvironmentOptions: {
-    url: "http://localhost:7951"
+    url: "http://127.0.0.1:7951"
   },
-  testURL: "http://localhost:7951",
+  testURL: "http://127.0.0.1:7951",
 };
