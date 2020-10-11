@@ -9,8 +9,26 @@ const CONFIG = {
   // }
 };
 
+require('axios-debug-log')({
+  request: function (debug, config) {
+    console.log(`axios request: ${config.method} ${config.url}`)
+  },
+  response: function (debug, response) {
+    console.log(`axios response: ${response.config.method} ${response.config.url} ${response.status} ${response.statusText}`)
+  },
+  error: function (debug, error) {
+    // Read https://www.npmjs.com/package/axios#handling-errors for more info
+    console.log(`axios error: ${error.config.method} ${error.config.url}`)
+    if (error.response !== undefined) {
+      console.log(`response: ${error.response.status} ${error.response.statusText}`)
+    } else {
+      console.log('no response')
+    }
+  }
+})
+
 export function api() {
-  return "/api/" + Array.from(arguments).join("/");
+  return "http://127.0.0.1:7951/api/" + Array.from(arguments).join("/");
 }
 
 export const AnalyzerState = {

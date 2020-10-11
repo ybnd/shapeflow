@@ -59,6 +59,7 @@
     "@babel/plugin-proposal-object-rest-spread": "^7.11.0",
     "@babel/preset-env": "^7.11.5",
     "@vue/test-utils": "^1.1.0",
+    "axios-debug-log": "^0.8.0",
     "babel-core": "^6.26.3",
     "babel-loader": "^8.1.0",
     "babel-plugin-lodash": "^3.3.4",

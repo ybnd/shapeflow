@@ -12,7 +12,7 @@ import {Validator, validate} from "jsonschema";
 var SERVER = undefined
 
 async function _kill() {
-  console.log('stopping server')
+  // console.log('stopping server')
   try {
     if (SERVER !== undefined) {
       execSync(`kill -9 ${SERVER.pid}`)
@@ -22,7 +22,7 @@ async function _kill() {
       execSync(`kill -9 ${SERVER.pid}`)
     }
   } catch(e) {
-    console.warn(e)
+    // console.warn(e)
   }
 
   SERVER = undefined;
@@ -32,7 +32,7 @@ async function _kill() {
 
 beforeAll(_kill)
 beforeEach(() => {
-  console.log('starting server...')
+  // console.log('starting server...')
   SERVER = spawn(
     'python3', ['shapeflow.py', '--server'],
     {cwd: '..', shell: false, detached: false}
@@ -48,18 +48,18 @@ afterAll(_kill)
 describe('server interactions', () => {
   test('ping & quit & ping', done => {
     try {
-      console.log('ping 1');
+      // console.log('ping 1');
       ping().then(ok => {
-        console.log('ping 1 callback');
+        // console.log('ping 1 callback');
         expect(ok).toBe(true);
-        console.log('quit');
+        // console.log('quit');
         quit().then(ok => {
-          console.log('quit callback');
+          // console.log('quit callback');
           expect(ok).toBe(true);
           setTimeout(() => {
-            console.log('ping 2');
+            // console.log('ping 2');
             ping().then(ok => {
-              console.log('ping 2 callback');
+              // console.log('ping 2 callback');
               expect(ok).toBe(false);
               done();
             })
@@ -73,17 +73,17 @@ describe('server interactions', () => {
 
   test('ping & unload & ping', done => {
     try {
-      console.log('ping 1')
+      // console.log('ping 1')
       ping().then(ok => {
-        console.log('ping 1 callback');
+        // console.log('ping 1 callback');
         expect(ok).toBe(true);
-        console.log('unload');
+        // console.log('unload');
         unload().then(response => {
-          console.log('unload callback');
+          // console.log('unload callback');
           expect(response.status).toBe(200);
-          console.log('ping 2');
+          // console.log('ping 2');
           ping().then(ok => {
-            console.log('ping 2 callback');
+            // console.log('ping 2 callback');
             expect(ok).toBe(true)
             quit().then(ok => {
               expect(ok).toBe(true);
@@ -102,21 +102,21 @@ describe('server interactions', () => {
 
   test('ping & restart & ping', done => {
     try {
-      console.log('ping 1')
+      // console.log('ping 1')
       ping().then(ok => {
-        console.log('ping 1 callback')
+        // console.log('ping 1 callback')
         expect(ok).toBe(true);
-        console.log('restart')
+        // console.log('restart')
         restart().then(ok => {
-          console.log('restart callback')
+          // console.log('restart callback')
           expect(ok).toBe(true);
         }).catch(e => {
-          console.warn('restart catch', e)
+          // console.warn('restart catch', e)
         });
         setTimeout(() => {
-          console.log('ping 2')
+          // console.log('ping 2')
           ping().then(ok => {
-            console.log('ping 2 callback')
+            // console.log('ping 2 callback')
             expect(ok).toBe(true);
             quit().then(ok => {
               expect(ok).toBe(true);

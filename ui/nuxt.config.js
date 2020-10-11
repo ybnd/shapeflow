@@ -85,12 +85,12 @@ module.exports = {
     // See https://github.com/nuxt-community/axios-module#options
   },
 
-  proxy: {
-    "/api": {
-      target: "http://127.0.0.1:7951",
-      pathrewrite: { "^/api": "/" },
-    },
-  },
+  // proxy: {
+  //   "/api": {
+  //     target: "http://127.0.0.1:7951",
+  //     pathrewrite: { "^/api": "/" },
+  //   },
+  // },
 
   styleResources: {
     scss: "./assets/scss/style.scss",

@@ -153,9 +153,9 @@ describe('toAbsolute()', () => {
 describe('getInitialTransform', () => {
   test('valid', () => {
     _matrix3d_to_array(getInitialTransform(ROI, FRAME, FRAME)).forEach((x,i) => {
-      console.log(i)
-      console.log(x)
-      console.log(TRANSFORM[i])
+      // console.log(i)
+      // console.log(x)
+      // console.log(TRANSFORM[i])
       expect(x).toBeCloseTo(TRANSFORM[i])
     })
   })
