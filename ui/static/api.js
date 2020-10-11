@@ -4,7 +4,7 @@ export { axios };
 
 const CONFIG = {
   // proxy: {
-  //   host: 'localhost',
+  //   host: '127.0.0.1',
   //   port: 7951,
   // }
 };
