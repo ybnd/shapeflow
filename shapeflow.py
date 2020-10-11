@@ -4,12 +4,12 @@ import sys
 import subprocess
 import argparse
 
-HOST = 'localhost'
+HOST = '127.0.0.1'
 PORT = 7951
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--host', type=str, default='localhost', help=f"the address to serve from (default: {HOST})")
-parser.add_argument('--port', type=int, default=7951, help=f"the port to serve from (default: {PORT}")
+parser.add_argument('--host', type=str, default=HOST, help=f"the address to serve from (default: {HOST})")
+parser.add_argument('--port', type=int, default=PORT, help=f"the port to serve from (default: {PORT}")
 parser.add_argument('--server', action='store_true', help="don't open a browser window")
 parser.add_argument('--version', action='store_true', help="show the version")
 
