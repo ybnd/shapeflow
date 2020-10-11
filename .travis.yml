@@ -47,7 +47,8 @@ jobs:
       before_install:
         - python3 -V
         - python3 -m pip install -r requirements.txt
-        - python3 shapeflow.py --server &disown && sleep 5 && netstat -ln # check whether shapeflow.py runs properly on TravisCI
+        - python3 shapeflow.py --server &disown && sleep 5 && netstat -ln && sleep 5 && curl http://127.0.0.1:7951/api/ping
+        - pkill -f "python3 shapeflow"   # check whether shapeflow.py runs properly on TravisCI
       install:
         - cd ui && npm install
       script:
