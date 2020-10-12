@@ -32,5 +32,4 @@ module.exports = {
   testEnvironmentOptions: {
     url: "http://127.0.0.1:7951"
   },
-  testURL: "http://127.0.0.1:7951",
 };

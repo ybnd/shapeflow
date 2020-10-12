@@ -1,6 +1,8 @@
 import {mutations, getters, actions, state} from '../schemas'
 import {get_schemas} from '../../static/api'
 
+import {startServer, killServer} from "../../static/shapeflow";
+
 import {exec, execSync, spawn, spawnSync} from 'child_process';
 import {test, describe, beforeEach, afterEach, beforeAll, afterAll} from "@jest/globals";
 
@@ -10,19 +12,8 @@ import Vuex from 'vuex';
 var SCHEMAS = undefined;
 
 beforeAll(done => {
-  try {
-    execSync('pkill -f "python3 shapeflow"')
-    const end = Date.now() + 1000;
-    while (Date.now() < end) {}
-  } catch(e) {}
-
-  const SERVER = spawn(
-    'python3', ['shapeflow.py', '--server'],
-    {cwd: '..', shell: false, detached: true}
-  )
-
-  const end = Date.now() + 1000;
-  while (Date.now() < end) {}
+  killServer();
+  startServer();
 
   get_schemas().then(schemas => {
     SCHEMAS = schemas;
@@ -30,15 +21,7 @@ beforeAll(done => {
   })
 })
 
-afterAll(() => {
-  try {
-    execSync(`kill -9 ${SERVER.pid}`)
-  } catch(e) {}
-  try {
-    execSync('pkill -f "python3 shapeflow"')
-  } catch(e) {}
-
-})
+afterAll(killServer)
 
 
 test('state', () => {

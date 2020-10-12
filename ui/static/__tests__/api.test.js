@@ -3,52 +3,25 @@ import {
   select_video_path, select_design_path, check_video_path, check_design_path
 } from '../api'
 
+import {startServer, killServer, checkIfListening} from "../shapeflow";
 import {exec, execSync, spawn, spawnSync} from 'child_process';
 import {EventEmitter} from 'events';
 import {test, describe, beforeEach, afterEach, beforeAll, afterAll} from "@jest/globals";
 import {Validator, validate} from "jsonschema";
 
 
-var SERVER = undefined
+beforeAll(killServer)
+beforeEach(startServer)
+afterEach(killServer)
+afterAll(killServer)
 
-async function _kill() {
-  // console.log('stopping server')
-  try {
-    if (SERVER !== undefined) {
-      execSync(`kill -9 ${SERVER.pid}`)
-    }
-    execSync('pkill -f "python3 shapeflow"')
-    if (SERVER !== undefined) {
-      execSync(`kill -9 ${SERVER.pid}`)
-    }
-  } catch(e) {
-    // console.warn(e)
-  }
-
-  SERVER = undefined;
-  const end = Date.now() + 1000;
-  while (Date.now() < end) {}
-}
-
-beforeAll(_kill)
-beforeEach(() => {
-  // console.log('starting server...')
-  SERVER = spawn(
-    'python3', ['shapeflow.py', '--server'],
-    {cwd: '..', shell: false, detached: false}
-    )
-
-  const end = Date.now() + 1000;
-  while (Date.now() < end) {}
-})
-
-afterEach(_kill)
-afterAll(_kill)
 
 describe('server interactions', () => {
   test('ping & quit & ping', done => {
     try {
+      expect(checkIfListening()).toBe(true)
       // console.log('ping 1');
+      expect()
       ping().then(ok => {
         // console.log('ping 1 callback');
         expect(ok).toBe(true);
@@ -58,6 +31,7 @@ describe('server interactions', () => {
           expect(ok).toBe(true);
           setTimeout(() => {
             // console.log('ping 2');
+            expect(checkIfListening()).toBe(false)
             ping().then(ok => {
               // console.log('ping 2 callback');
               expect(ok).toBe(false);
@@ -75,6 +49,7 @@ describe('server interactions', () => {
     try {
       // console.log('ping 1')
       ping().then(ok => {
+        expect(checkIfListening()).toBe(true)
         // console.log('ping 1 callback');
         expect(ok).toBe(true);
         // console.log('unload');
@@ -88,7 +63,8 @@ describe('server interactions', () => {
             quit().then(ok => {
               expect(ok).toBe(true);
               setTimeout(() => {
-                done()
+                expect(checkIfListening()).toBe(false)
+                done();
               }, 1000)
             });
           })
@@ -102,6 +78,7 @@ describe('server interactions', () => {
 
   test('ping & restart & ping', done => {
     try {
+      expect(checkIfListening()).toBe(true)
       // console.log('ping 1')
       ping().then(ok => {
         // console.log('ping 1 callback')
@@ -121,7 +98,8 @@ describe('server interactions', () => {
             quit().then(ok => {
               expect(ok).toBe(true);
               setTimeout(() => {
-                done()
+                expect(checkIfListening()).toBe(false)
+                done();
               }, 1000)
             });
           }, 2000)
