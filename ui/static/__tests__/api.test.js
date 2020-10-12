@@ -9,78 +9,62 @@ import {test, describe, beforeEach, afterEach} from "@jest/globals";
 beforeEach(startServer)
 afterEach(killServer)
 
-describe('server interactions', () => {
-  test('ping & quit & ping', done => {
+function run(test) {
+  expect(checkIfListening()).toBe(true);
+
+  ping().then(ok => {
+    expect(ok).toBe(true);
     try {
-      expect(checkIfListening()).toBe(true);
-      // console.log('ping 1');
-
-      function run(ok) {
-        // console.log('ping 1 callback');
-        expect(ok).toBe(true);
-        // console.log('quit');
-        quit().then(ok => {
-          // console.log('quit callback');
-          expect(ok).toBe(true);
-          while(checkIfListening()) {}
-          expect(checkIfListening()).toBe(false);
-          ping().then(ok => {
-            console.log('ping 2 callback');
-            expect(ok).toBe(false);
-            done();
-          });
-        })
-      }
-
-      ping().then(ok => {
-        run(ok);
-      }).catch(error => {
-        // server should be up, just retry
-        ping().then(ok => {
-          run(ok)
-        })
-      })
-    } catch (e) {
-      done(e);
+      test();
+    } catch(e) {
+      run(test);
     }
-  });
+  }).catch(() => {
+    run(test);
+  })
+}
 
-  test('ping & unload & ping', done => {
-    try {
-      expect(checkIfListening()).toBe(true);
-      // console.log('ping 1')
-
-      function run(ok) {
-        // console.log('ping 1 callback');
+test('quit', done => {
+  try {
+    run(() => {
+      quit().then(ok => {
+        // console.log('quit callback');
         expect(ok).toBe(true);
-        // console.log('unload');
-        unload().then(response => {
-          // console.log('unload callback');
-          expect(response.status).toBe(200);
-          // console.log('ping 2');
-          ping().then(ok => {
-            console.log('ping 2 callback');
-            expect(ok).toBe(true)
-            quit().then(ok => {
-              expect(ok).toBe(true);
-              while(checkIfListening()) {}
-              expect(checkIfListening()).toBe(false);
-              done();
-            })
-          });
-        });
-      }
-
-      ping().then(ok => {
-        run(ok);
-      }).catch(error => {
-        // server should be up, just retry
+        while(checkIfListening()) {}
+        expect(checkIfListening()).toBe(false);
         ping().then(ok => {
-          run(ok);
+          console.log('ping 2 callback');
+          expect(ok).toBe(false);
+          done();
         });
       });
-    } catch (e) {
-      done(e);
-    }
-  });
-})
+    });
+  } catch (e) {
+    done(e);
+  }
+});
+
+test('unload', done => {
+  try {
+    run(() => {
+      unload().then(response => {
+        // console.log('unload callback');
+        expect(response.status).toBe(200);
+        // console.log('ping 2');
+        ping().then(ok => {
+          console.log('ping 2 callback');
+          expect(ok).toBe(true)
+          quit().then(ok => {
+            expect(ok).toBe(true);
+            while(checkIfListening()) {}
+            expect(checkIfListening()).toBe(false);
+            done();
+          })
+        });
+      });
+    });
+  } catch (e) {
+    done(e);
+  }
+});
+
