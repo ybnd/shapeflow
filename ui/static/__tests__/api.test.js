@@ -17,7 +17,7 @@ afterEach(killServer)
 describe('server interactions', () => {
   test('ping & quit & ping', done => {
     try {
-      expect(checkIfListening()).toBe(true)
+      expect(checkIfListening()).toBe(true);
       // console.log('ping 1');
       ping().then(ok => {
         // console.log('ping 1 callback');
@@ -28,7 +28,7 @@ describe('server interactions', () => {
           expect(ok).toBe(true);
           setTimeout(() => {
             // console.log('ping 2');
-            expect(checkIfListening()).toBe(false)
+            expect(checkIfListening()).toBe(false);
             ping().then(ok => {
               // console.log('ping 2 callback');
               expect(ok).toBe(false);
@@ -44,9 +44,10 @@ describe('server interactions', () => {
 
   test('ping & unload & ping', done => {
     try {
+      expect(checkIfListening()).toBe(true);
       // console.log('ping 1')
       ping().then(ok => {
-        expect(checkIfListening()).toBe(true)
+
         // console.log('ping 1 callback');
         expect(ok).toBe(true);
         // console.log('unload');
@@ -60,7 +61,7 @@ describe('server interactions', () => {
             quit().then(ok => {
               expect(ok).toBe(true);
               setTimeout(() => {
-                expect(checkIfListening()).toBe(false)
+                expect(checkIfListening()).toBe(false);
                 done();
               }, 1000)
             });
@@ -75,7 +76,7 @@ describe('server interactions', () => {
 
   test('ping & restart & ping', done => {
     try {
-      expect(checkIfListening()).toBe(true)
+      expect(checkIfListening()).toBe(true);
       // console.log('ping 1')
       ping().then(ok => {
         // console.log('ping 1 callback')
@@ -95,7 +96,7 @@ describe('server interactions', () => {
             quit().then(ok => {
               expect(ok).toBe(true);
               setTimeout(() => {
-                expect(checkIfListening()).toBe(false)
+                expect(checkIfListening()).toBe(false);
                 done();
               }, 1000)
             });
