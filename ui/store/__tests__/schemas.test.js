@@ -20,8 +20,6 @@ beforeAll(done => {
   })
 })
 
-afterAll(killServer)
-
 
 test('state', () => {
   state()
@@ -165,6 +163,7 @@ describe('actions', () => {
     store.dispatch('sync').then(() => {
       expect(store.getters.getSettingsSchema).toStrictEqual(SCHEMAS.settings);
       expect(store.getters.getConfigSchema).toStrictEqual(SCHEMAS.config);
+      killServer();
       done();
     })
   })
