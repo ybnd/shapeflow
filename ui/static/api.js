@@ -3,10 +3,10 @@ import axios from "axios";
 export { axios };
 
 const CONFIG = {
-  // proxy: {
-  //   host: '127.0.0.1',
-  //   port: 7951,
-  // }
+  proxy: {
+    host: '127.0.0.1',
+    port: 7951,
+  }
 };
 
 require('axios-debug-log')({
@@ -28,7 +28,7 @@ require('axios-debug-log')({
 })
 
 export function api() {
-  return "http://127.0.0.1:7951/api/" + Array.from(arguments).join("/");
+  return "/api/" + Array.from(arguments).join("/");
 }
 
 export const AnalyzerState = {
