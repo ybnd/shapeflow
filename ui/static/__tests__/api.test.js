@@ -10,11 +10,9 @@ import {test, describe, beforeEach, afterEach, beforeAll, afterAll} from "@jest/
 import {Validator, validate} from "jsonschema";
 
 
-beforeAll(killServer)
+
 beforeEach(startServer)
 afterEach(killServer)
-afterAll(killServer)
-
 
 describe('server interactions', () => {
   test('ping & quit & ping', done => {

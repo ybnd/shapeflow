@@ -12,7 +12,6 @@ import Vuex from 'vuex';
 var SCHEMAS = undefined;
 
 beforeAll(done => {
-  killServer();
   startServer();
 
   get_schemas().then(schemas => {
