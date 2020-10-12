@@ -10,12 +10,11 @@ import {test, describe, beforeEach, afterEach, beforeAll, afterAll} from "@jest/
 import {Validator, validate} from "jsonschema";
 
 
-// beforeEach(startServer)
-// afterEach(killServer)
+beforeEach(startServer)
+afterEach(killServer)
 
 describe('server interactions', () => {
   test('ping & quit & ping', done => {
-    startServer()
     try {
       expect(checkIfListening()).toBe(true);
       // console.log('ping 1');
@@ -32,21 +31,18 @@ describe('server interactions', () => {
             ping().then(ok => {
               // console.log('ping 2 callback');
               expect(ok).toBe(false);
-              killServer();
               done();
             })
           }, 1000)
         })
       })
     } catch (e) {
-      killServer();
       done(e);
     }
   })
 
   test('ping & unload & ping', done => {
     try {
-      startServer();
       expect(checkIfListening()).toBe(true);
       // console.log('ping 1')
       ping().then(ok => {
@@ -65,7 +61,6 @@ describe('server interactions', () => {
               expect(ok).toBe(true);
               setTimeout(() => {
                 expect(checkIfListening()).toBe(false);
-                killServer();
                 done();
               }, 1000)
             });
@@ -74,15 +69,12 @@ describe('server interactions', () => {
         })
       })
     } catch (e) {
-      killServer();
       done(e);
     }
   })
 
   test('ping & restart & ping', done => {
     try {
-      startServer();
-      expect(checkIfListening()).toBe(true);
       // console.log('ping 1')
       ping().then(ok => {
         // console.log('ping 1 callback')
@@ -102,8 +94,6 @@ describe('server interactions', () => {
             quit().then(ok => {
               expect(ok).toBe(true);
               setTimeout(() => {
-                expect(checkIfListening()).toBe(false);
-                killServer();
                 done();
               }, 1000)
             });
@@ -111,7 +101,6 @@ describe('server interactions', () => {
         })
       })
     } catch (e) {
-      killServer();
       done(e);
     }
   })
