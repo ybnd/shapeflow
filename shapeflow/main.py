@@ -183,6 +183,14 @@ class Main(shapeflow.core.Lockable):
             active()
             return respond(True)
 
+        @app.route('/api/map', methods=['GET'])
+        def map():
+            return respond({
+                rule.rule: list(rule.methods)
+                for rule in app.url_map.iter_rules()
+                if rule.rule[:5] == '/api/'
+            })
+
         @app.route('/api/pid_hash', methods=['GET'])
         def get_pid_hash():
             import hashlib

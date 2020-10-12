@@ -3,10 +3,10 @@ import axios from "axios";
 export { axios };
 
 const CONFIG = {
-  proxy: {
-    host: '127.0.0.1',
-    port: 7951,
-  }
+  // proxy: {
+  //   host: '127.0.0.1',
+  //   port: 7951,
+  // }
 };
 
 require('axios-debug-log')({
@@ -81,6 +81,10 @@ export async function ping() {
     });
 }
 
+export async function map() {
+  return axios.get(api('map'), CONFIG).then(return_data);
+}
+
 export function unload() {
   // axios can't be called on page unload, use sendBeacon instead
   try {
@@ -92,7 +96,7 @@ export function unload() {
   }
 }
 
-export function quit() {
+export async function quit() {
   return axios.post(api("quit"), {}, CONFIG).then(return_success)
 }
 
@@ -128,7 +132,7 @@ export async function close(id) {
 }
 
 export async function cancel(id) {
-  return axios.post(api(id, "cancel"), {}, CONFIG).then(return_data);
+  return axios.post(api(id, "call/cancel"), {}, CONFIG).then(return_data);
 }
 
 export async function get_schemas() {
@@ -312,7 +316,7 @@ export function events(onmessage, onerror, onopen) {
   return evl;
 }
 
-export function close_events() {
+export async function close_events() {
   // console.log("api.close_events()");
   return axios.post(api("stream", "events", "stop"), {}, CONFIG).then(return_success);
 }
