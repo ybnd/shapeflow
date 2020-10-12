@@ -25,7 +25,7 @@ export function checkIfListening() {
 
 export function killServer() {
   try {
-    execSync(`pkill -f "python3 shapeflow.py"`);
+    execSync(`pgrep -f "python3 shapeflow" | xargs -I $ kill -9 $`);
     waitSync(2000);
   } catch(e) {
     //console.warn(e.message);
