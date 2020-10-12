@@ -10,7 +10,7 @@ export function startServer() {
     'python3', ['shapeflow.py', '--server'],
     {cwd: '..', shell: false, detached: false}
   );
-  waitSync(1000);
+  waitSync(2000);
   return SERVER;
 }
 
@@ -26,7 +26,7 @@ export function checkIfListening() {
 export function killServer() {
   try {
     execSync(`pkill -f "python3 shapeflow.py"`);
-    waitSync(1000);
+    waitSync(2000);
   } catch(e) {
     //console.warn(e.message);
   }
