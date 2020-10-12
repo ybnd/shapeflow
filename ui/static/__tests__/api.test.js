@@ -19,7 +19,6 @@ describe('server interactions', () => {
     try {
       expect(checkIfListening()).toBe(true)
       // console.log('ping 1');
-      expect()
       ping().then(ok => {
         // console.log('ping 1 callback');
         expect(ok).toBe(true);
