@@ -1,5 +1,5 @@
 import {mutations, getters, actions, state} from '../schemas'
-import {get_schemas} from '../../static/api'
+import {get_schemas, quit, ping} from '../../static/api'
 
 import {startServer, killServer} from "../../static/shapeflow";
 
@@ -17,8 +17,15 @@ beforeAll(done => {
   get_schemas().then(schemas => {
     SCHEMAS = schemas;
     done();
+  }).catch(error => {
+    // server should be up, just retry
+    get_schemas().then(schemas => {
+      SCHEMAS = schemas;
+      done();
+    })
   })
-})
+});
+afterAll(killServer);
 
 
 test('state', () => {
@@ -163,7 +170,6 @@ describe('actions', () => {
     store.dispatch('sync').then(() => {
       expect(store.getters.getSettingsSchema).toStrictEqual(SCHEMAS.settings);
       expect(store.getters.getConfigSchema).toStrictEqual(SCHEMAS.config);
-      killServer();
       done();
     })
   })

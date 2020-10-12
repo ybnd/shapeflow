@@ -4,11 +4,7 @@ import {
 } from '../api'
 
 import {startServer, killServer, checkIfListening} from "../shapeflow";
-import {exec, execSync, spawn, spawnSync} from 'child_process';
-import {EventEmitter} from 'events';
-import {test, describe, beforeEach, afterEach, beforeAll, afterAll} from "@jest/globals";
-import {Validator, validate} from "jsonschema";
-
+import {test, describe, beforeEach, afterEach} from "@jest/globals";
 
 beforeEach(startServer)
 afterEach(killServer)
@@ -18,22 +14,30 @@ describe('server interactions', () => {
     try {
       expect(checkIfListening()).toBe(true);
       // console.log('ping 1');
-      ping().then(ok => {
+
+      function run(ok) {
         // console.log('ping 1 callback');
         expect(ok).toBe(true);
         // console.log('quit');
         quit().then(ok => {
           // console.log('quit callback');
           expect(ok).toBe(true);
-          setTimeout(() => {
-            // console.log('ping 2');
-            expect(checkIfListening()).toBe(false);
-            ping().then(ok => {
-              // console.log('ping 2 callback');
-              expect(ok).toBe(false);
-              done();
-            })
-          }, 1000)
+          while(checkIfListening()) {}
+          expect(checkIfListening()).toBe(false);
+          ping().then(ok => {
+            console.log('ping 2 callback');
+            expect(ok).toBe(false);
+            done();
+          });
+        })
+      }
+
+      ping().then(ok => {
+        run(ok);
+      }).catch(error => {
+        // server should be up, just retry
+        ping().then(ok => {
+          run(ok)
         })
       })
     } catch (e) {
@@ -45,8 +49,8 @@ describe('server interactions', () => {
     try {
       expect(checkIfListening()).toBe(true);
       // console.log('ping 1')
-      ping().then(ok => {
 
+      function run(ok) {
         // console.log('ping 1 callback');
         expect(ok).toBe(true);
         // console.log('unload');
@@ -55,19 +59,26 @@ describe('server interactions', () => {
           expect(response.status).toBe(200);
           // console.log('ping 2');
           ping().then(ok => {
-            // console.log('ping 2 callback');
+            console.log('ping 2 callback');
             expect(ok).toBe(true)
             quit().then(ok => {
               expect(ok).toBe(true);
-              setTimeout(() => {
-                expect(checkIfListening()).toBe(false);
-                done();
-              }, 1000)
-            });
-          })
+              while(checkIfListening()) {}
+              expect(checkIfListening()).toBe(false);
+              done();
+            })
+          });
+        });
+      }
 
-        })
-      })
+      ping().then(ok => {
+        run(ok);
+      }).catch(error => {
+        // server should be up, just retry
+        ping().then(ok => {
+          run(ok);
+        });
+      });
     } catch (e) {
       done(e);
     }
@@ -75,8 +86,10 @@ describe('server interactions', () => {
 
   test('ping & restart & ping', done => {
     try {
+      expect(checkIfListening()).toBe(true);
       // console.log('ping 1')
-      ping().then(ok => {
+
+      function run(ok) {
         // console.log('ping 1 callback')
         expect(ok).toBe(true);
         // console.log('restart')
@@ -98,8 +111,17 @@ describe('server interactions', () => {
               }, 1000)
             });
           }, 2000)
-        })
-      })
+        });
+      }
+
+      ping().then(ok => {  // todo: fails with "socket hang up" for unclear reasons
+        run(ok);
+      }).catch(error => {
+        // server should be up, just retry
+        ping().then(ok => {
+          run(ok);
+        });
+      });
     } catch (e) {
       done(e);
     }
