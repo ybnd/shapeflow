@@ -200,7 +200,7 @@ export async function state_transition(id) {
 
 export async function launch(id) {
   return axios.get(api(id, "call/can_launch"), CONFIG).then((response) => {
-    if (response.status === 200) {
+    if (response.status === 200 && response.data === true) {
       return axios.post(api(id, "launch")).then(return_data);
     } else {
       return false;
@@ -301,14 +301,14 @@ export async function stop_stream(id, endpoint) {
 
 export function events(onmessage, onerror, onopen) {
   // console.log(`registering EventSource for /api/stream/events`);
+  let evl = new window.EventSource(api("stream", "events"));  // todo: integrate CONFIG somehow
 
-  let evl = new EventSource(api("stream", "events"));  // todo: integrate CONFIG somehow
   evl.addEventListener("message", onmessage);
 
   if (onerror !== undefined) {
     evl.addEventListener("error", onerror);
   }
-  if (onopen) {
+  if (onopen !== undefined) {
     evl.addEventListener("open", onopen);
   }
 

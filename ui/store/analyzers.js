@@ -23,6 +23,7 @@ import assert from "assert";
 import isEmpty from "lodash/isEmpty";
 import includes from "lodash/includes";
 import cloneDeep from "lodash/cloneDeep";
+import {createApplyTransform} from "mathjs";
 
 const CATEGORY_COMMIT = {
   status: "setAnalyzerStatus",
@@ -31,11 +32,11 @@ const CATEGORY_COMMIT = {
   close: "closeSource",
 };
 
-const MAX_TIME_WITHOUT_CONTACT = 1500;
-const SYNC_INTERVAL = 1000;
+export const MAX_TIME_WITHOUT_CONTACT = 1500;
+export const SYNC_INTERVAL = 1000;
 
 const OPENED_AT = Date.now();
-const LOAD_INTERVAL = 1000;
+export const LOAD_INTERVAL = 1000;
 
 export const state = () => {
   return {
@@ -48,7 +49,7 @@ export const state = () => {
     result: {},
     source: null,
     notices: [],
-    interval: [],
+    interval: null,
   };
 };
 
@@ -97,9 +98,9 @@ export const mutations = {
     try {
       assert(!(id === undefined), "no id provided");
 
-      if (!(id in state)) {
-        state.status = { ...state.config, [id]: {} };
-        state.config = { ...state.status, [id]: {} };
+      if (!(id in state.status) && !(id in state.config)) {
+        state.status = { ...state.status, [id]: {} };
+        state.config = { ...state.config, [id]: {} };
       } else {
         console.warn(`addAnalyzerState: '${id}' already defined`);
       }
@@ -157,36 +158,49 @@ export const mutations = {
     // console.log("analyzers/newNotice");
     // console.log(id);
     // console.log(notice);
+    try {
+      assert(notice !== undefined, "no notice provided");
+      let name = undefined;
 
-    let name = undefined;
-
-    if (id !== undefined) {
-      if (state.config[id] !== undefined && !isEmpty(state.config[id].name)) {
-        name = state.config[id].name;
+      if (id !== undefined) {
+        if (state.config[id] !== undefined && !isEmpty(state.config[id].name)) {
+          name = state.config[id].name;
+        }
       }
-    }
 
-    if (!notice.uuid) {
-      // no uuid specified -> generate
-      notice = { ...notice, analyzer: name, uuid: uuidv4() };
-      state.notices.push(notice);
-    } else {
-      // uuid specified -> only push if it hasn't been pushed yet
-      const index = state.notices.findIndex((e) => e.uuid === notice.uuid);
-      if (index === -1) {
+      if (!notice.uuid) {
+        // no uuid specified -> generate
+        notice = { ...notice, analyzer: name, uuid: uuidv4() };
         state.notices.push(notice);
+      } else {
+        // uuid specified -> only push if it hasn't been pushed yet
+        const index = state.notices.findIndex((e) => e.uuid === notice.uuid);
+        if (index === -1) {
+          state.notices.push(notice);
+        }
       }
-    }
 
-    state.notices = state.notices.slice(-NOTICE_LIMIT);
+      state.notices = state.notices.slice(-NOTICE_LIMIT);
+    } catch(err) {
+      console.warn(`newNotice failed: '${id}', notice: `);
+      console.warn(notice);
+      console.warn(err);
+    }
   },
   dismissNotice(state, { notice }) {
     // console.log("analyzers/dismissNotice");
     // console.log(notice);
 
-    const index = state.notices.findIndex((e) => e === notice);
-    if (index !== -1) {
-      state.notices.splice(index, 1);
+    try {
+      assert(notice !== undefined, "no notice provided");
+      const index = state.notices.findIndex((e) => e === notice);
+      if (index !== -1) {
+        state.notices.splice(index, 1);
+      }
+    } catch(err) {
+      console.warn(`dismissNotice failed: notice: `);
+      console.warn(notice);
+      console.warn(err);
     }
   },
   dropAnalyzer(state, { id }) {
@@ -226,9 +240,6 @@ export const mutations = {
       console.warn(err);
     }
   },
-  clearQueue(state) {
-    state.queue = [];
-  },
   setQueue(state, { queue }) {
     state.queue = queue;
   },
@@ -267,11 +278,6 @@ export const getters = {
   getAnalyzerStatus: (state) => (id) => {
     if (id in state.status) {
       return state.status[id];
-    }
-  },
-  getResult: (state) => (id) => {
-    if (id in state.result) {
-      return state.result[id];
     }
   },
   getAnalyzerConfig: (state) => (id) => {
@@ -364,7 +370,7 @@ export const actions = {
             function (message) {
               dispatch("connection", { ok: ok });
 
-              // console.log(message);
+              console.log(message);
 
               try {
                 let event = JSON.parse(message.data);
@@ -423,6 +429,7 @@ export const actions = {
         commit("setQueueState", { queue_state: app_state.q_state });
       })
       .catch((reason) => {
+        console.warn(reason);
         dispatch("connection", { ok: false });
       });
   },
@@ -475,7 +482,7 @@ export const actions = {
             dispatch("sync");
           });
         })
-        .catch((error) => {
+        .catch((error) => {  // todo: does this catch anything really?
           console.warn(
             "aborted 'analyzers/init' before 'analyzers/launch' call." // todo: should close analyzer!
           );
@@ -540,7 +547,7 @@ export const actions = {
                   // console.log(
                   //   `action: analyzers.sync -- callback ~ analyzers.queue (id=${ids[i]})`
                   // );
-                  dispatch("get_config", { id: app_state.ids[i] });
+                  dispatch("get_config", { id: app_state.ids[i] });  // todo: this may be unnecessary, seems to be covered by the dispatch below.
                 });
               }
               commit("setAnalyzerStatus", {
@@ -550,10 +557,10 @@ export const actions = {
             }
           }
 
-          // for any id with get_configconfig[id] is undefined, dispatch get_config
+          // for any id with get_config[id] is undefined, dispatch get_config
           q = getters["getQueue"];
           for (let i = 0; i < q.length; i++) {
-            if (getters["getAnalyzerConfig"](q[i]) === undefined) {
+            if (isEmpty(getters["getAnalyzerConfig"](q[i]))) {
               dispatch("get_config", { id: q[i] });
             }
           }
@@ -601,13 +608,12 @@ export const actions = {
       assert(id !== undefined, "no id provided");
       // console.log(`action: analyzers.refresh (id=${id})`);
 
-      if (getters["getAnalyzerConfig"](id) === undefined) {
-        dispatch("get_config", { id: id });
+      if (Object.keys(getters["getAnalyzerConfig"](id)).length === 0) {
+        await dispatch("get_config", { id: id });
       }
-      if (getters["getAnalyzerStatus"](id) === undefined) {
-        dispatch("get_status", { id: id });
+      if (Object.keys(getters["getAnalyzerStatus"](id)).length === 0) {
+        await dispatch("get_status", { id: id });
       }
-      return;
     } catch (e) {}
   },
 
@@ -623,9 +629,11 @@ export const actions = {
           //   `action: analyzers.get_status -- callback ~ api.get_status (id=${id})`
           // );
           commit("setAnalyzerStatus", { id: id, status: status });
+          return status;
         })
-        .catch((reason) => {
+        .catch((reason) => {  // todo: when does this catch exactly?
           dispatch("connection", { ok: false });
+          return undefined;
         });
     } catch (e) {
       console.warn(`could not get status for ${id}`);
@@ -651,7 +659,7 @@ export const actions = {
           });
           return config;
         })
-        .catch((error) => {
+        .catch((error) => {  // todo: when does this catch exactly?
           console.warn(`/api/${id}/set_config failed`);
           dispatch("connection", { ok: false });
           throw error;

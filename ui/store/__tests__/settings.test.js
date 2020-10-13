@@ -21,7 +21,7 @@ test('state', () => {
   expect(state()).toStrictEqual({settings: undefined})
 })
 
-describe('mutations', () => {
+describe('mutations & getters', () => {
   test('setSettings', () => {
     const state = {};
     mutations.setSettings(state, {settings: SETTINGS})
@@ -35,9 +35,7 @@ describe('mutations', () => {
     mutations.setSettings(state, {settings: undefined})
     expect(state.settings).toBe(SETTINGS)
   })
-})
 
-describe('getters', () => {
   test('getSettings', () => {
     const state = {};
     expect(getters.getSettings(state)).toBe(undefined)

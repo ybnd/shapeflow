@@ -32,7 +32,7 @@ test('state', () => {
   state()
 })
 
-describe('mutations', () => {
+describe('mutations & getters', () => {
   test('setSettingsSchema', () => {
     const s = state();
 
@@ -95,9 +95,7 @@ describe('mutations', () => {
     expect(s.feature.parameters).toStrictEqual({});
     expect(s.feature.defaults).toStrictEqual({});
   })
-})
 
-describe('getters', () => {
   test('isNotInitialized', () => {
     const s = state();
 
