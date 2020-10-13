@@ -20,7 +20,7 @@
 </template>
 
 <script>
-import { NOTICE_TIMEOUT } from "static/api";
+import { NOTICE_TIMEOUT } from "../../static/api";
 
 export default {
   name: "Notice",
