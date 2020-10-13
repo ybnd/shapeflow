@@ -83,7 +83,6 @@ export default {
       100,
       true,
       debounce(25, true, function () {
-        // console.log(`PageHeaderSeek.handleSeek()`);
         this.doSeek();
       })
     ),
