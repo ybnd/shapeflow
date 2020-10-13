@@ -17,12 +17,15 @@ jobs:
     - language: python
       python: 3.7
       env: {TOX_ENV: py37-test}
+      before_install:
+        - travis_retry pip install codecov
       install:
         - travis_retry pip install tox
         - travis_retry tox -e $TOX_ENV $SITE_PACKAGES --notest
       script:
         - tox -e $TOX_ENV $SITE_PACKAGES
-        - bash <(curl -s https://codecov.io/bash) -cF python
+      after_success:
+        - codecov -F backend
 
 
     - language: node_js   # https://stackoverflow.com/questions/27644586/
@@ -41,4 +44,5 @@ jobs:
         - cd ui && npm install
       script:
         - npm run test
-        - bash <(curl -s https://codecov.io/bash) -cF javascript
+      after_success:
+        - bash <(curl -s https://codecov.io/bash) -cF frontend
