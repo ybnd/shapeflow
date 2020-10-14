@@ -13,7 +13,6 @@
         <div class="analysis-name">{{ name }}</div>
         <div class="analysis-name-fade" />
       </template>
-
       <Waiting v-else />
     </div>
     <b-progress
@@ -103,7 +102,7 @@
 
 <script>
 import SidebarNavAnalysisLink from "./SidebarNavAnalysisLink";
-import Waiting from "@/components/sidebar/Waiting";
+import Waiting from "./Waiting";
 
 import {
   AnalyzerState as ast,

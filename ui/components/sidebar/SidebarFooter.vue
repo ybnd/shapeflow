@@ -16,7 +16,6 @@
 <script>
 import SidebarNavDropdown from "./SidebarNavDropdown";
 import SidebarNavLink from "./SidebarNavLink";
-import SidebarNavItem from "./SidebarNavItem";
 
 import { api, ping } from "../../static/api";
 
@@ -25,7 +24,6 @@ export default {
   class: "sidebar",
   components: {
     SidebarNavDropdown,
-    SidebarNavItem,
     SidebarNavLink,
   },
   computed: {

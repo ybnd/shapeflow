@@ -30,7 +30,6 @@ import SidebarNavAnalysis from "./SidebarNavAnalysis";
 import SidebarNavAnalysisLink from "./SidebarNavAnalysisLink";
 import SidebarNewAnalysis from "./SidebarNewAnalysis";
 import SidebarNavLink from "./SidebarNavLink";
-import SidebarNavItem from "./SidebarNavItem";
 
 import draggable from "vuedraggable";
 
@@ -46,7 +45,6 @@ export default {
     SidebarNavAnalysisLink,
     SidebarNewAnalysis,
     SidebarNavLink,
-    SidebarNavItem,
     draggable,
   },
   created() {
