@@ -112,10 +112,6 @@ describe('util', () => {
       expect(() => {seconds2timestr(null)}).toThrow()
     })
   })
-
-  test('uuidv4', () => {
-    uuidv4()
-  })
 })
 
 const specifier = 'SOMETHING'
