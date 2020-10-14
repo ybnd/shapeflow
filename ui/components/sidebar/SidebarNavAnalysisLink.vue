@@ -20,11 +20,11 @@
             placement="right"
             boundary="viewport"
           >
-            <b-button variant="primary" @click="handleClickStageTwo">
+            <b-button class="button-confirm" variant="primary" @click="handleClickStageTwo">
               <i class="fa fa-check" />
               &nbsp; {{ name }}
             </b-button>
-            <b-button variant="danger" @click="handleHideStageTwo">
+            <b-button class="button-dismiss" variant="danger" @click="handleHideStageTwo">
               <i class="fa fa-times" />
             </b-button>
           </b-popover>

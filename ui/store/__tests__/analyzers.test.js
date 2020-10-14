@@ -1316,7 +1316,7 @@ describe('actions', () => {
       }
     });
     store.dispatch('loop');
-    waitSync(SYNC_INTERVAL * 3);
+    waitSync(SYNC_INTERVAL * 3);  // todo: also check # of calls
     store.dispatch('stop');
   });
 });

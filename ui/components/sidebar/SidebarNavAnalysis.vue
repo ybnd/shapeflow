@@ -83,10 +83,8 @@
         name="Results"
         icon="icon-graph"
         :id="link.result"
-        :disabled="
-          ![ast.CAN_ANALYZE, ast.DONE, ast.CANCELED, ast.ERROR].includes(
-            status.state
-          )
+        :enabled="
+          [ast.CAN_ANALYZE, ast.DONE, ast.CANCELED, ast.ERROR].includes(status.state)
         "
       />
       <SidebarNavAnalysisLink
@@ -160,7 +158,7 @@ export default {
     },
     handleCancel() {
       // console.log(`sidebar: handling cancel event (${this.id})`);
-      cancel(this.id).then(() => {
+      cancel(this.id).then(() => {  // todo: should be a store action tho
         this.$store.dispatch("analyzers/sync");
       });
     },

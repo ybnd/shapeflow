@@ -1,7 +1,8 @@
 <template>
   <div class="hovertext">
     <div
-      @click="show = true"
+      @click="show = !show"
+      class="toggle-new-analysis"
       :class="classList"
       id="new-analysis"
       style="white-space: nowrap; margin-left: -4px;"
@@ -11,6 +12,7 @@
       New analysis...
       <b-popover
         target="new-analysis"
+        id="new-analysis-popover"
         :show.sync="show"
         @bv::popover::shown="handleUpdatePopover"
         placement="right"
@@ -115,15 +117,6 @@ export default {
     },
     itemClasses() {
       return this.classes ? this.classes.split(" ") : [];
-    },
-    isExternalLink() {
-      return this.url.substring(0, 4) === "http";
-    },
-    isApiLink() {
-      return this.url.substring(0, 4) === "/api";
-    },
-    form_ref() {
-      return id + "form";
     },
     isConnected() {
       return this.$store.getters["analyzers/isConnected"];

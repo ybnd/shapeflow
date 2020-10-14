@@ -48,17 +48,12 @@ export default {
     draggable,
   },
   created() {
-    this.$store.dispatch("settings/sync");
     this.$store.dispatch("analyzers/loop");
   },
   destroyed() {
     this.$store.dispatch("analyzers/stop");
   },
   methods: {
-    handleClick(e) {
-      e.preventDefault();
-      e.target.parentElement.classList.toggle("open");
-    },
     handleReorderQueue() {
       this.$store.commit("analyzers/setQueue", { queue: this.queue });
     },

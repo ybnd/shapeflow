@@ -204,7 +204,7 @@ import SchemaField from "@/components/config/SchemaField";
 
 import has from "lodash/has";
 import cloneDeep from "lodash/cloneDeep";
-import { COMMIT, ENTER_FOCUSOUT_INTERVAL } from "static/events";
+import { COMMIT, ENTER_FOCUSOUT_INTERVAL } from "../../static/events";
 
 Vue.use(AsyncComputed);
 
