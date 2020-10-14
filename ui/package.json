@@ -63,6 +63,7 @@
     "babel-core": "^7.0.0-bridge.0",
     "babel-loader": "^8.1.0",
     "babel-plugin-lodash": "^3.3.4",
+    "canvas": "^2.6.1",
     "eventsourcemock": "^2.0.0",
     "flush-promises": "^1.0.2",
     "jest": "^26.4.2",

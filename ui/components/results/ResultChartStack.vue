@@ -13,7 +13,7 @@
             unit: features.units[feature],
           }"
           :options="{
-            ...options,
+            ...options,  // todo: should be a computed property
             legend: {
               // display: is_last(index),
               position: 'bottom',
@@ -110,7 +110,7 @@ export default {
       );
     },
     result() {
-      let formatted_results = {};
+      let formatted_results = {};  // todo: should be in static/results.js
 
       for (const feature of Object.keys(this.raw_result)) {
         // console.log(`feature = ${feature}`);
