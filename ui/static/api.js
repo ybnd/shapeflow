@@ -1,12 +1,7 @@
 import axios from "axios";
 
 export { axios };
-
-const CONFIG = {
-  // proxy: {
-  //   host: '127.0.0.1',
-  //   port: 7951,
-  // }
+const CONFIG = {  // axios configuration
 };
 
 require('axios-debug-log')({
