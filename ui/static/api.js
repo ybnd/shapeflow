@@ -85,7 +85,7 @@ export function unload() {
   try {
     return navigator.sendBeacon(api("unload"));
   } catch (e) {
-    // navigator is not defined in Jest
+    // navigator is not defined in Jest  todo: can be mocked; see layouts/__tests__/default.test.js
     console.warn(e)
     return axios.post(api('unload'), {}, CONFIG)
   }
