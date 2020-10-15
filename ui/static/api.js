@@ -107,6 +107,10 @@ export async function get_settings() {
   return axios.get(api("get_settings"), CONFIG).then(return_data);
 }
 
+export async function normalize_config(config) {
+  return axios.post(api('normalize_config'), { config: config }, CONFIG).then(return_data);
+}
+
 export async function set_settings(settings) {
   return axios
     .post(api("set_settings"), { settings: settings }, CONFIG)

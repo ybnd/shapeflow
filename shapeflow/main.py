@@ -247,6 +247,12 @@ class Main(shapeflow.core.Lockable):
                 'queue_state': dict(QueueState.__members__),
             }
 
+        @app.route('/api/normalize_config', methods=['POST'])
+        def normalize_config():
+            return respond(shapeflow.config.normalize_config(
+                json.loads(request.data)['config'])
+            )
+
         @app.route('/api/select_video_path', methods=['GET'])
         def select_video():
             log.debug(f"opening file dialog (select video)")

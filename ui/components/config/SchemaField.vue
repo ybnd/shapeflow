@@ -13,6 +13,7 @@
     <component
       @wheel="$event.target.blur()"
       :is="type_component"
+      class="field"
       :class="type_class"
       :type="type_type"
       :style="type_style"
@@ -24,7 +25,7 @@
         // numeric input step
         type_options.hasOwnProperty('step') ? type_options.step : undefined
       "
-      @keyup="onKeyUp"
+      @keyup.enter="onKeyUp"
       @focusout="onFocusOut"
       @change="onChange"
     />
@@ -82,12 +83,16 @@ export default {
     },
   },
   mounted() {
+    if (this.value === undefined) {
+      throw 'SchemaField got no value';
+    }
+
     // console.log(`SchemaField ~ title=${this.title} type=${this.type}`);
     this.valueOut = this.parse[this.type_](this.value);
   },
   methods: {
     onKeyUp(e) {
-      if (this.type_commit && e.key === "Enter") {
+      if (this.type_commit) {
         this.lastEnter = Date.now();
         if (this.valueOut !== this.value) {
           // console.log("SchemaField.onKeyUp() 'Enter' -> commit");
@@ -109,7 +114,10 @@ export default {
     onChange(v) {
       if (!this.type_commit) {
         // console.log(`SchemaField.onChange() v=${v} -> commit`);
-        this.$emit(COMMIT, v);
+        if (v !== this.value) {
+          // console.log("SchemaField.onFocusOut() -> commit");
+          this.$emit(COMMIT, v);
+        }
       }
     },
   },
@@ -184,6 +192,7 @@ export default {
       valueOut: null,
       valueBefore: null,
       lastEnter: 0,
+      types_: types,
       commit: {
         [types.ENUM]: false,
         [types.STRING]: true,
