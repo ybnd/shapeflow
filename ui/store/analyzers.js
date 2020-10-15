@@ -233,7 +233,7 @@ export const mutations = {
     try {
       assert(!(id === undefined), "no id provided");
       if (state.queue.includes(id)) {
-        state.queue.splice(state.queue.indexOf(id, 1));
+        state.queue.splice(state.queue.indexOf(id), 1);
       }
     } catch (err) {
       console.warn(`dropFromQueue failed: '${id}'`);
