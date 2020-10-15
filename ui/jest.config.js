@@ -25,6 +25,7 @@ module.exports = {
     "<rootDir>/components/**/*.vue",
     "<rootDir>/layouts/*.vue",
     "<rootDir>/pages/*.vue",
+    "<rootDir>/pages/**/*.vue",
     "<rootDir>/static/*.js",
     "<rootDir>/store/*.js"
   ],
