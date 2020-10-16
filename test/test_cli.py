@@ -1,29 +1,63 @@
 import os
+from pathlib import Path
+import shutil
+import importlib
 import abc
 from typing import List
+import subprocess
+from contextlib import contextmanager
 import unittest
-import unittest.mock
-
-from ... import shapeflow
+from unittest.mock import patch, Mock
 
 
-Args = List[str]
+import os
+import sys
+import inspect
+
+# backwards import shenanigans
+current_dir = os.path.dirname(
+    os.path.abspath(inspect.getfile(inspect.currentframe())))
+parent_dir = os.path.dirname(current_dir)
+sys.path.insert(0, parent_dir)
+
+import sf
+import shapeflow.commands
 
 
-# Point to right file in Travis CI build
-if os.getcwd() == '/home/travis/build/ybnd/shapeflow':
-    SF = os.path.join(os.getcwd(), 'shapeflow.py')
-else:
-    SF = os.path.join(os.getcwd(), '..', 'shapeflow.py')
+class SfTest(unittest.TestCase):  # todo: inspect print?
+    do: Mock = Mock(name='do')
 
+    @classmethod
+    def setUpClass(cls) -> None:
+        cls.commands = shapeflow.commands.__commands__
+        shapeflow.commands.do = cls.do
 
-@unittest.mock.patch('subprocess.check_call')
-def _mock_check_call(args: Args):
-    pass
+    def tearDown(self) -> None:
+        self.do.reset_mock()
 
+    def test_sf_help(self):
+        with patch.object(sys, 'argv', ['sf.py', '--help']):
+            sf.main()
+            self.assertFalse(self.do.called)
 
-class ShapeflowTest(unittest.TestCase):
-    def test_help(self):
-        pass
+    def test_sf_version(self):
+        with patch.object(sys, 'argv', ['sf.py', '--version']):
+            sf.main()
+            self.assertFalse(self.do.called)
 
-    def test_
+    def test_sf_default_command(self):
+        sf.main()
+        self.do.assert_called_once_with('serve', [])
+
+    def test_sf_command(self):
+        for c in self.commands:
+            with self.subTest(c), patch.object(sys, 'argv', ['sf.py', c]):
+                sf.main()
+                self.do.assert_called_once_with(c, [])
+                self.do.reset_mock()
+
+    def test_sf_help_command(self):
+        for c in self.commands:
+            with self.subTest(c), patch.object(sys, 'argv', ['sf.py', '--help', c]):
+                sf.main()
+                self.assertFalse(self.do.called)

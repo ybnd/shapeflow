@@ -1,8 +1,8 @@
-"""Tiny commands to be called from shapeflow.py
+"""Tiny commands to be called from sf.py
 
 * Calling from the commandline:
     ```
-    python shapeflow.py --do <command name> <arguments>
+    python sf.py --do <command name> <arguments>
     ```
 
 * Calling from Python:
@@ -16,6 +16,10 @@
     ```
 """
 
+import time
+import socket
+import json
+import requests
 import re
 import abc
 from pathlib import Path
@@ -78,28 +82,27 @@ class Serve(Command):
                         help="don't open a browser window")
 
     def __call__(self):
-        import time
-        import socket
-        import requests
-
-        def in_use() -> bool:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-                return s.connect_ex((self.args.host, self.args.port)) == 0
-
-        if in_use():
-            log.info('address already in use')
-
-            requests.post(f"http://{self.args.host}:{self.args.port}/api/quit")
-            while in_use():
-                time.sleep(0.1)
-
-            log.info('previous server instance quit')
+        self._replace()
 
         from shapeflow.main import Main
 
         main = Main()
         main.serve(host=self.args.host, port=self.args.port, open=(not self.args.background))
         log.info('stopped')
+
+    def _in_use(self) -> bool:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            return s.connect_ex((self.args.host, self.args.port)) == 0  # todo: look for actual return code
+
+    def _replace(self):
+        if self._in_use():
+            log.info('address already in use')
+
+            requests.post(f"http://{self.args.host}:{self.args.port}/api/quit")
+            while self._in_use():
+                time.sleep(0.1)
+
+            log.info('previous server instance quit')
 
 
 class Dump(Command):
@@ -111,26 +114,20 @@ class Dump(Command):
     __parser__.add_argument('dir', nargs='?', type=Path, default=Path.cwd(),
                         help='directory to dump to')
 
-
     def __call__(self):
-        import json
+
         from shapeflow.config import schemas
 
         if not self.args.dir.is_dir():
             log.warning(f"making directory '{self.args.dir}'")
             self.args.dir.mkdir()
 
-        indent = 2 if self.args.pretty else None
+        self._write('schemas', schemas())
+        self._write('settings', shapeflow.settings.to_dict())
 
-        with open(self.args.dir / "schemas.json", 'w+') as f:
-            f.write(
-                json.dumps(schemas(), indent=indent)
-            )
-
-        with open(self.args.dir / "settings.json", 'w+') as f:
-            f.write(
-                json.dumps(shapeflow.settings.to_dict(), indent=indent)
-            )
+    def _write(self, file, d):
+        with open(self.args.dir / (file + '.json'), 'w+') as f:
+            f.write(json.dumps(d, indent=2 if self.args.pretty else None))
 
 
 __commands__ = { c.__command__: c for c in Command.__subclasses__() }

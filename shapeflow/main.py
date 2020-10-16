@@ -49,7 +49,7 @@ def restart_server(host: str, port: int):
 
     subprocess.Popen(
          [
-             'python', 'shapeflow.py',
+             'python', 'sf.py',
              '--host', str(host), '--port', str(port), '--server'
          ],
          cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -823,4 +823,4 @@ class Main(shapeflow.core.Lockable):
         )
 
 
-wsgi = Main()._app
+# wsgi = Main()._app
