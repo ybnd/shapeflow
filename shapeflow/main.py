@@ -49,11 +49,11 @@ def restart_server(host: str, port: int):
     log.info('restarting server...')
 
     subprocess.Popen(
-         [
-             'python', 'sf.py',
-             '--host', str(host), '--port', str(port), '--server'
-         ],
-         cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        [
+            'python', 'sf.py', 'serve',
+            '--host', str(host), '--port', str(port), '--background'
+        ],
+        cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     )
 
 
