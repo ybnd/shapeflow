@@ -9,6 +9,7 @@ import SchemaField from "../SchemaField";
 import {COMMIT} from "../../../static/events";
 import {startServer, killServer} from "../../../static/shapeflow";
 import {get_schemas, get_settings, normalize_config} from "../../../static/api";
+import {retryOnce} from '../../../static/util';
 import { readFileSync } from "fs";
 import SchemaForm from "../SchemaForm";
 
@@ -21,20 +22,10 @@ var CONFIG;
 beforeAll(async () => {
   startServer();
 
-  async function _retry_once(method, arg) {
-    return method(arg).then(out => {
-      return out;
-    }).catch(() => {
-      return method(arg).then(out => {
-        return out;
-      })
-    })
-  }
+  SCHEMAS = await retryOnce(get_schemas);
+  SETTINGS = await retryOnce(get_settings);
 
-  SCHEMAS = await _retry_once(get_schemas);
-  SETTINGS = await _retry_once(get_settings);
-
-  CONFIG = await _retry_once(normalize_config, JSON.parse(readFileSync(__dirname + '/config.json')));
+  CONFIG = await retryOnce(normalize_config, JSON.parse(readFileSync(__dirname + '/config.json')));
 
   killServer();
 });

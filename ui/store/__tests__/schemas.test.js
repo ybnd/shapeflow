@@ -8,22 +8,14 @@ import {test, describe, beforeEach, afterEach, beforeAll, afterAll} from "@jest/
 
 import {createLocalVue} from "@vue/test-utils";
 import Vuex from 'vuex';
+import {retryOnce} from "../../static/util";
 
 var SCHEMAS = undefined;
 
-beforeAll(done => {
+beforeAll(async () => {
   startServer();
 
-  get_schemas().then(schemas => {
-    SCHEMAS = schemas;
-    done();
-  }).catch(error => {
-    // server should be up, just retry
-    get_schemas().then(schemas => {
-      SCHEMAS = schemas;
-      done();
-    })
-  })
+  SCHEMAS = await retryOnce(get_schemas);
 });
 afterAll(killServer);
 

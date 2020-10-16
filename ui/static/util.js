@@ -38,7 +38,15 @@ export function dereference(schema, reference) {
   );
 }
 
-
+export async function retryOnce(method, arg) {
+  return method(arg).then(out => {
+    return out;
+  }).catch(() => {
+    return method(arg).then(out => {
+      return out;
+    })
+  })
+}
 
 
 // For making <b-popover> render properly in JSDOM
