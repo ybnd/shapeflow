@@ -26,7 +26,7 @@ import abc
 from pathlib import Path
 import argparse
 import textwrap
-from typing import List, Callable, Optional, Tuple
+from typing import List, Callable, Optional, Tuple, Union
 
 from shapeflow import __version__, get_logger, settings
 log = get_logger(__name__)
@@ -34,6 +34,10 @@ log = get_logger(__name__)
 # type aliases
 OptArgs = Optional[List[str]]
 Parsing = Callable[[OptArgs], None]
+
+
+class CliError(Exception):
+    pass
 
 
 class IterCommand(abc.ABCMeta):
@@ -81,20 +85,23 @@ class Command(abc.ABC, metaclass=IterCommand):
         if args is None:
             args = sys.argv[1:]
 
-        self.args, self.sub_args = self.parse(args)
-        self.__call__()
+        try:
+            self.args, self.sub_args = self.parse(args)
+            self.__call__()
+        except argparse.ArgumentError:
+            raise CliError
+        except TypeError:
+            raise CliError
 
     @abc.abstractmethod
     def __call__(self) -> None:
         raise NotImplementedError
 
-    @classmethod
-    def parse(cls, args: OptArgs) -> Tuple[argparse.Namespace, List[str]]:
-        return cls.parser.parse_known_args(args)
+    def parse(self, args: OptArgs) -> Tuple[argparse.Namespace, List[str]]:
+        return self.parser.parse_known_args(args)
 
-    @classmethod
-    def __help__(cls) -> str:
-        return cls._fix_call(cls.parser.format_help())
+    def __help__(self) -> str:
+        return self._fix_call(self.parser.format_help())
 
     @classmethod
     def __usage__(cls) -> str:
@@ -111,15 +118,12 @@ class Command(abc.ABC, metaclass=IterCommand):
             return text
 
 
-
-
 class Sf(Command):
-    parser = argparse.ArgumentParser(
-        description=f"""https://github.com/ybnd/shapeflow v{__version__}""",
-        add_help=False
-    )
-
     def __init__(self, args: OptArgs = None):
+        self.parser = argparse.ArgumentParser(
+            description=f"""https://github.com/ybnd/shapeflow v{__version__}""",
+            add_help=False
+        )
         self.parser.add_argument(
             '-h', '--help',
             action='store_true',
