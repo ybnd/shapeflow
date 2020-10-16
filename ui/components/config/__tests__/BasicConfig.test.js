@@ -400,7 +400,11 @@ describe('features', () => {
 
   test('select', async () => {
     // start out with 3 features
-    const w = factory({ ...CONFIG, features: Array(3).fill(OPTIONS[0]) });
+    const w = factory({
+      ...CONFIG,
+      features: clone(OPTIONS),
+      feature_parameters: OPTIONS.map(v => DEFAULTS[v])
+    });
     await w.vm.$forceUpdate();
     emit = jest.spyOn(w.vm, '$emit');
 
@@ -424,7 +428,11 @@ describe('features', () => {
   test('remove specific', async () => {
     // start out with a feature for every option
     var FEATURES = clone(OPTIONS);
-    const w = factory({ ...CONFIG, features: clone(OPTIONS) });
+    const w = factory({
+      ...CONFIG,
+      features: clone(OPTIONS),
+      feature_parameters: OPTIONS.map(v => DEFAULTS[v])
+    });
 
     async function _test(index) {
       // remove a feature
