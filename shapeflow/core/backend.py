@@ -46,6 +46,52 @@ class CacheAccessError(RootException):
 _BLOCKED = 'BLOCKED'
 
 
+class PushEvent(Enum):
+    STATUS = 'status'
+    CONFIG = 'config'
+    NOTICE = 'notice'
+
+
+class AnalyzerState(IntEnum):
+    UNKNOWN = 0
+    INCOMPLETE = 1
+    CAN_LAUNCH = 2
+    LAUNCHED = 3
+    CAN_FILTER = 4
+    CAN_ANALYZE = 5
+    ANALYZING = 6
+    DONE = 7
+    CANCELED = 8
+    ERROR = 9
+
+    @classmethod
+    def can_launch(cls, state: int) -> bool:
+        return state in [
+            cls.CAN_LAUNCH,
+            cls.LAUNCHED,
+            cls.CAN_ANALYZE,
+            cls.DONE,
+            cls.CANCELED,
+        ]
+
+    @classmethod
+    def is_launched(cls, state: int) -> bool:
+        return state in [
+            cls.LAUNCHED,
+            cls.CAN_FILTER,
+            cls.CAN_ANALYZE,
+            cls.DONE,
+            cls.ANALYZING,
+            cls.CANCELED,
+        ]
+
+
+class QueueState(IntEnum):
+    STOPPED = 0
+    RUNNING = 1
+    PAUSED = 2
+
+
 class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB in-memory, 4GB on-disk, finally the actual video
     """Interface to diskcache.Cache
     """
@@ -369,46 +415,6 @@ class BaseAnalyzerConfig(BaseConfig):
     design_path: Optional[str] = Field(default=None)
     name: Optional[str] = Field(default=None)
     description: Optional[str] = Field(default=None)
-
-
-class PushEvent(Enum):
-    STATUS = 'status'
-    CONFIG = 'config'
-    NOTICE = 'notice'
-
-
-class AnalyzerState(IntEnum):
-    UNKNOWN = 0
-    INCOMPLETE = 1
-    CAN_LAUNCH = 2
-    LAUNCHED = 3
-    CAN_FILTER = 4
-    CAN_ANALYZE = 5
-    ANALYZING = 6
-    DONE = 7
-    CANCELED = 8
-    ERROR = 9
-
-    @classmethod
-    def can_launch(cls, state: int) -> bool:
-        return state in [
-            cls.CAN_LAUNCH,
-            cls.LAUNCHED,
-            cls.CAN_ANALYZE,
-            cls.DONE,
-            cls.CANCELED,
-        ]
-
-    @classmethod
-    def is_launched(cls, state: int) -> bool:
-        return state in [
-            cls.LAUNCHED,
-            cls.CAN_FILTER,
-            cls.CAN_ANALYZE,
-            cls.DONE,
-            cls.ANALYZING,
-            cls.CANCELED,
-        ]
 
 
 class BaseVideoAnalyzer(Instance, RootInstance):

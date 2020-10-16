@@ -9,7 +9,6 @@ import datetime
 import subprocess
 from threading import Thread, Event, Lock
 from typing import Dict, Any, List, Optional
-from enum import IntEnum
 
 import cv2
 from flask import Flask, send_from_directory, jsonify, request, Response, make_response
@@ -99,12 +98,6 @@ class ServerThread(Thread, metaclass=util.Singleton):
         os._exit(0)
 
 
-class QueueState(IntEnum):
-    STOPPED = 0
-    RUNNING = 1
-    PAUSED = 2
-
-
 class Main(shapeflow.core.Lockable):
     __metaclass__ = util.Singleton
     _app: Flask
@@ -152,7 +145,7 @@ class Main(shapeflow.core.Lockable):
         self._stop_log = Event()  # todo: these could be class attributes instead
         self._pause_q = Event()
         self._stop_q = Event()
-        self._q_state = QueueState.STOPPED
+        self._q_state = backend.QueueState.STOPPED
 
         # Serve webapp (bypassed when frontend runs in development mode)
         @app.route('/', methods=['GET'])
@@ -182,6 +175,14 @@ class Main(shapeflow.core.Lockable):
             log.vdebug('received ping')
             active()
             return respond(True)
+
+        @app.route('/api/map', methods=['GET'])
+        def map():
+            return respond({
+                rule.rule: list(rule.methods)
+                for rule in app.url_map.iter_rules()
+                if rule.rule[:5] == '/api/'
+            })
 
         @app.route('/api/pid_hash', methods=['GET'])
         def get_pid_hash():
@@ -232,12 +233,13 @@ class Main(shapeflow.core.Lockable):
 
         @app.route('/api/schemas', methods=['GET'])
         def get_schemas():
-            return {
-                'config': video.VideoAnalyzerConfig.schema(),
-                'settings': shapeflow.settings.schema(),
-                'analyzer_state': dict(backend.AnalyzerState.__members__),
-                'queue_state': dict(QueueState.__members__),
-            }
+            return shapeflow.config.schemas()
+
+        @app.route('/api/normalize_config', methods=['POST'])
+        def normalize_config():
+            return respond(shapeflow.config.normalize_config(
+                json.loads(request.data)['config'])
+            )
 
         @app.route('/api/select_video_path', methods=['GET'])
         def select_video():
@@ -628,15 +630,15 @@ class Main(shapeflow.core.Lockable):
         """
 
         def target():
-            if self._q_state == QueueState.STOPPED:
-                self._q_state = QueueState.RUNNING
+            if self._q_state == backend.QueueState.STOPPED:
+                self._q_state = backend.QueueState.RUNNING
                 if all(self._roots[id].can_analyze for id in q):  # todo: handle non-id entries in q
                     log.info(f"analyzing queue: {q}")
                     for id in q:
                         while self._pause_q.is_set():
-                            self._q_state = QueueState.PAUSED
+                            self._q_state = backend.QueueState.PAUSED
                             time.sleep(0.5)
-                        self._q_state = QueueState.RUNNING
+                        self._q_state = backend.QueueState.RUNNING
 
                         if self._stop_q.is_set():
                             break
@@ -649,7 +651,7 @@ class Main(shapeflow.core.Lockable):
 
                     self._pause_q.clear()
                     self._stop_q.clear()
-                    self._q_state = QueueState.STOPPED
+                    self._q_state = backend.QueueState.STOPPED
                 else:
                     log.info(f"CAN'T ANALYZE FOR ALL ANALYZERS")
             else:
