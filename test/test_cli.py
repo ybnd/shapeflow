@@ -24,40 +24,41 @@ import sf
 import shapeflow.commands
 
 
-class SfTest(unittest.TestCase):  # todo: inspect print?
-    do: Mock = Mock(name='do')
+do = Mock(name='do')
 
+
+@patch('shapeflow.commands.do', do)
+class SfTest(unittest.TestCase):  # todo: inspect print?
     @classmethod
     def setUpClass(cls) -> None:
         cls.commands = shapeflow.commands.__commands__
-        shapeflow.commands.do = cls.do
 
     def tearDown(self) -> None:
-        self.do.reset_mock()
+        do.reset_mock()
 
     def test_sf_help(self):
         with patch.object(sys, 'argv', ['sf.py', '--help']):
             sf.main()
-            self.assertFalse(self.do.called)
+            self.assertFalse(do.called)
 
     def test_sf_version(self):
         with patch.object(sys, 'argv', ['sf.py', '--version']):
             sf.main()
-            self.assertFalse(self.do.called)
+            self.assertFalse(do.called)
 
     def test_sf_default_command(self):
         sf.main()
-        self.do.assert_called_once_with('serve', [])
+        do.assert_called_once_with('serve', [])
 
     def test_sf_command(self):
         for c in self.commands:
             with self.subTest(c), patch.object(sys, 'argv', ['sf.py', c]):
                 sf.main()
-                self.do.assert_called_once_with(c, [])
-                self.do.reset_mock()
+                do.assert_called_once_with(c, [])
+                do.reset_mock()
 
     def test_sf_help_command(self):
         for c in self.commands:
             with self.subTest(c), patch.object(sys, 'argv', ['sf.py', '--help', c]):
                 sf.main()
-                self.assertFalse(self.do.called)
+                self.assertFalse(do.called)
