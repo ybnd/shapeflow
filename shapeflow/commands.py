@@ -45,12 +45,11 @@ class Command(abc.ABC):
         self.args = self.parse(args)
         self.__call__()
 
-    @abc.abstractmethod
     def __call__(self) -> None:
         raise NotImplementedError
 
     @classmethod
-    def parse(cls, args: List[str]) -> argparse.Namespace:
+    def parse(cls, args: OptArgs) -> argparse.Namespace:
         return cls.__parser__.parse_args(args)
 
     @classmethod
@@ -133,8 +132,10 @@ class Dump(Command):
 __commands__ = { c.__command__: c for c in Command.__subclasses__() }
 
 
-def do(command: str, args: OptArgs = None):
-    if command not in __commands__:
-        raise ValueError(f"unknown command '{command}'")
-    else:
-        __commands__[command](args)
+def do(c: str, args: OptArgs = None):
+    try:
+        command = __commands__[c]
+    except KeyError:
+        raise ValueError(f"unknown command '{c}'")
+
+    command(args)
