@@ -710,8 +710,8 @@ class DbCheckTest(unittest.TestCase):
 
             import sqlite3
 
-            db = sqlite3.connect(settings.db.path)
-            cursor = db.cursor()
+            c = sqlite3.connect(settings.db.path)
+            cursor = c.cursor()
 
             cursor.execute("""
             CREATE TABLE video_file (
@@ -732,12 +732,14 @@ class DbCheckTest(unittest.TestCase):
 
             # Not enough tables -> invalid
 
-            db.commit()
-            db.close()
+            c.commit()
+            c.close()
 
-            # runs check_history() on import, replaces invalid db
-            from shapeflow.main import db
+            # run check_history(), replaces invalid db
+            from shapeflow.main import db, check_history
             import glob
+
+            check_history()
 
             # db is now valid
             self.assertTrue(db.History().check())

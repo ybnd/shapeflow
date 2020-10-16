@@ -5,6 +5,7 @@ import json
 import pickle
 import os
 import time
+import requests
 import datetime
 import subprocess
 from threading import Thread, Event, Lock
@@ -66,9 +67,6 @@ def check_history():
         backup_path = f"{shapeflow.settings.db.path}_broken_{timestamp}"
         log.warning(f"backing up old history database @ {backup_path}")
         os.rename(shapeflow.settings.db.path, backup_path)
-
-
-check_history()
 
 
 class ServerThread(Thread, metaclass=util.Singleton):
