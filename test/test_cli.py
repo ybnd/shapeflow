@@ -21,7 +21,7 @@ parent_dir = os.path.dirname(current_dir)
 sys.path.insert(0, parent_dir)
 
 import sf
-import shapeflow.commands
+import shapeflow.cli
 
 
 do = Mock(name='do')
@@ -31,7 +31,7 @@ do = Mock(name='do')
 class SfTest(unittest.TestCase):  # todo: inspect print?
     @classmethod
     def setUpClass(cls) -> None:
-        cls.commands = shapeflow.commands.__commands__
+        cls.commands = shapeflow.cli.__commands__
 
     def tearDown(self) -> None:
         do.reset_mock()

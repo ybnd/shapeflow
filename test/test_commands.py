@@ -6,7 +6,7 @@ from unittest.mock import patch, Mock, call
 from pathlib import Path
 import argparse
 
-import shapeflow.commands
+import shapeflow.cli
 
 import json
 import socket
@@ -21,14 +21,14 @@ noop = lambda *x: None
 @patch('shapeflow.commands.Command.__init__', noop)
 class DoTest(unittest.TestCase):
     def test_valid_commands(self):
-        for command in shapeflow.commands.__commands__:
-            shapeflow.commands.do(command)
+        for command in shapeflow.cli.__commands__:
+            shapeflow.cli.do(command)
 
     def test_invalid_commands(self):
-        self.assertRaises(ValueError, shapeflow.commands.do, 'sevre')
-        self.assertRaises(ValueError, shapeflow.commands.do, '')
-        self.assertRaises(ValueError, shapeflow.commands.do, 'dmp')
-        self.assertRaises(ValueError, shapeflow.commands.do, 'nonexist')
+        self.assertRaises(ValueError, shapeflow.cli.do, 'sevre')
+        self.assertRaises(ValueError, shapeflow.cli.do, '')
+        self.assertRaises(ValueError, shapeflow.cli.do, 'dmp')
+        self.assertRaises(ValueError, shapeflow.cli.do, 'nonexist')
 
 
 class CommandTest(abc.ABC, unittest.TestCase):
@@ -40,13 +40,13 @@ class CommandTest(abc.ABC, unittest.TestCase):
             mock.reset_mock()
 
     def test_valid_command(self):
-        self.assertTrue(self.command in shapeflow.commands.__commands__)
+        self.assertTrue(self.command in shapeflow.cli.__commands__)
 
     def test_no_arguments(self, *args):
         self.do()
 
-    def do(self, args: shapeflow.commands.OptArgs = None):
-        shapeflow.commands.do(self.command, args)
+    def do(self, args: shapeflow.cli.OptArgs = None):
+        shapeflow.cli.do(self.command, args)
 
 
 

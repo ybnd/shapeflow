@@ -14,9 +14,9 @@ def main():
     #       -> attempt to call from virtual environment (see below)
     #   - suppress logs for cleaner --version / --help output
     with _suppress_logs():
-        import shapeflow.commands
+        import shapeflow.cli
 
-    shapeflow.commands.Sf()
+    shapeflow.cli.Sf()
 
 
 @contextlib.contextmanager
