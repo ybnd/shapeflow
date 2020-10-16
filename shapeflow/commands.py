@@ -16,6 +16,7 @@
     ```
 """
 
+import sys
 import time
 import socket
 import json
@@ -25,60 +26,165 @@ import abc
 from pathlib import Path
 import argparse
 import textwrap
-from typing import List, Callable, Optional
+from typing import List, Callable, Optional, Tuple
 
-import shapeflow
-log = shapeflow.get_logger('shapeflow')
+from shapeflow import __version__, get_logger, settings
+log = get_logger(__name__)
 
 # type aliases
 OptArgs = Optional[List[str]]
 Parsing = Callable[[OptArgs], None]
 
 
-class Command(abc.ABC):
+class IterCommand(abc.ABCMeta):
+    __entrypoint__: bool = False
     __command__: str
-    __parser__: argparse.ArgumentParser
 
+    def __str__(cls):
+        try:
+            return cls.__command__
+        except AttributeError:
+            return super().__str__()
+
+    def __iter__(cls):
+        return iter([c for c in cls.__subclasses__() if c.sub])
+
+    @property
+    def sub(cls):
+        return hasattr(cls, '__command__')
+
+    @property
+    def dict(cls) -> dict:
+        return {str(sub):sub for sub in cls}
+
+    def __getitem__(cls, item: str) -> 'IterCommand':
+        if item in cls.dict.keys():
+            return cls.dict[item]
+        else:
+            return getattr(cls, item)
+
+    @abc.abstractmethod
+    def __usage__(cls) -> str:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def __help__(cls) -> str:
+        raise NotImplementedError
+
+
+class Command(abc.ABC, metaclass=IterCommand):
+    parser: argparse.ArgumentParser
     args: argparse.Namespace
+    sub_args: List[str]
 
     def __init__(self, args: OptArgs = None):
-        self.args = self.parse(args)
+        if args is None:
+            args = sys.argv[1:]
+
+        self.args, self.sub_args = self.parse(args)
         self.__call__()
 
+    @abc.abstractmethod
     def __call__(self) -> None:
         raise NotImplementedError
 
     @classmethod
-    def parse(cls, args: OptArgs) -> argparse.Namespace:
-        return cls.__parser__.parse_args(args)
-
-    @classmethod
-    def __init_subclass__(cls, **kwargs):
-        cls.__parser__.prog = f"{cls.__parser__.prog} {cls.__command__}"
+    def parse(cls, args: OptArgs) -> Tuple[argparse.Namespace, List[str]]:
+        return cls.parser.parse_known_args(args)
 
     @classmethod
     def __help__(cls) -> str:
-        return cls.__parser__.format_help()
+        return cls._fix_call(cls.parser.format_help())
 
     @classmethod
     def __usage__(cls) -> str:
-        # Replace 'usage: ' part with indent whitespace
-        return "   " + cls.__parser__.format_usage()[7:].strip()
+        # Remove 'usage: ' part
+        usage = cls.parser.format_usage()[7:].strip()
+        return cls._fix_call(usage)
+
+    @classmethod
+    def _fix_call(cls, text: str) -> str:
+        if cls.sub:
+            call = ' '.join([cls.parser.prog, str(cls)])
+            return text.replace(cls.parser.prog, call)
+        else:
+            return text
+
+
+
+
+class Sf(Command):
+    parser = argparse.ArgumentParser(
+        description=f"""https://github.com/ybnd/shapeflow v{__version__}""",
+        add_help=False
+    )
+
+    def __init__(self, args: OptArgs = None):
+        self.parser.add_argument(
+            '-h', '--help',
+            action='store_true',
+            help="show this help message"
+        )
+        self.parser.add_argument(
+            '--version',
+            action='store_true',
+            help="show the version"
+        )
+        self.parser.add_argument(
+            'command',
+            default=None,
+            nargs="?",
+            choices=Command.dict,
+            metavar='command',
+            help="execute one of the commands listed below, default: serve"
+        )
+        super().__init__(args)
+
+    def __call__(self):
+        if self.args.help:
+            if self.args.command is not None:
+                print(Command[self.args.command].__help__())
+            else:
+                print(self.__help__())
+                print("commands:")
+                for c in Command:
+                    print("   " + c.__usage__())
+                print()
+        elif self.args.version:
+            print(__version__)
+        else:
+            if self.args.command is None:
+                Command['serve'](self.sub_args)
+            else:
+                Command[self.args.command](self.sub_args)
 
 
 class Serve(Command):
     __command__ = 'serve'
-    __parser__ = argparse.ArgumentParser(description="start the shapeflow server")
+    parser = argparse.ArgumentParser(
+        description="start the shapeflow server"
+    )
 
     HOST = '127.0.0.1'
     PORT = 7951
 
-    __parser__.add_argument('--host', type=str, default=HOST,
-                        help=f"the host to serve from (default: {HOST})")
-    __parser__.add_argument('--port', type=int, default=PORT,
-                        help=f"the port to serve from (default: {PORT}")
-    __parser__.add_argument('--background', action='store_true',
-                        help="don't open a browser window")
+    parser.add_argument(
+        '--host',
+        type=str,
+        default=HOST,
+        help=f"the host to serve from (default: {HOST})"
+    )
+    parser.add_argument(
+        '--port',
+        type=int,
+        default=PORT,
+        help=f"the port to serve from (default: {PORT}"
+    )
+    parser.add_argument(
+        '--background',
+        action='store_true',
+        help="don't open a browser window"
+    )
 
     def __call__(self):
         self._replace()
@@ -106,12 +212,22 @@ class Serve(Command):
 
 class Dump(Command):
     __command__ = 'dump'
-    __parser__ = argparse.ArgumentParser(description="dump application schemas and settings to JSON")
+    parser = argparse.ArgumentParser(
+        description="dump application schemas and settings to JSON"
+    )
 
-    __parser__.add_argument('--pretty', action='store_true',
-                        help='indent JSON')
-    __parser__.add_argument('dir', nargs='?', type=Path, default=Path.cwd(),
-                        help='directory to dump to')
+    parser.add_argument(
+        '--pretty',
+        action='store_true',
+        help='indent JSON'
+    )
+    parser.add_argument(
+        'dir',
+        nargs='?',
+        type=Path,
+        default=Path.cwd(),
+        help='directory to dump to'
+    )
 
     def __call__(self):
 
@@ -122,20 +238,8 @@ class Dump(Command):
             self.args.dir.mkdir()
 
         self._write('schemas', schemas())
-        self._write('settings', shapeflow.settings.to_dict())
+        self._write('settings', settings.to_dict())
 
     def _write(self, file, d):
         with open(self.args.dir / (file + '.json'), 'w+') as f:
             f.write(json.dumps(d, indent=2 if self.args.pretty else None))
-
-
-__commands__ = { c.__command__: c for c in Command.__subclasses__() }
-
-
-def do(c: str, args: OptArgs = None):
-    try:
-        command = __commands__[c]
-    except KeyError:
-        raise ValueError(f"unknown command '{c}'")
-
-    command(args)

@@ -1,4 +1,5 @@
-# shapeflow CLI
+#!/bin/python3
+"""shapeflow CLI"""
 
 import sys
 import logging
@@ -6,62 +7,44 @@ import contextlib
 import subprocess
 import argparse
 
-__recursive__ = '--recursive-call' in sys.argv[1:]
+
+def main():
+    # import shapeflow essentials
+    #   - may raise ModuleNotFoundError if called from system interpreter
+    #       -> attempt to call from virtual environment (see below)
+    #   - suppress logs for cleaner --version / --help output
+    with _suppress_logs():
+        import shapeflow.commands
+
+    shapeflow.commands.Sf()
 
 
 @contextlib.contextmanager
 def _suppress_logs():
-    """https://gist.github.com/simon-weber/7853144"""
-    previous_level = logging.root.manager.disable
+    """Don't log anything in this context.
+        Note that `logging.root.manager.disable` is hacky and undocumented
+        https://gist.github.com/simon-weber/7853144
+    """
+    previous_level = logging.root.manager.disable  # noqa
     logging.disable(logging.CRITICAL)
     try:
         yield
     finally:
         logging.disable(previous_level)
 
-def _parse(args):
-    parser = argparse.ArgumentParser(add_help=False)
-
-    with _suppress_logs():
-        from shapeflow.commands import __commands__
-
-    parser.add_argument('command', nargs="?", choices=__commands__, default=None,
-                        help="execute a command, default: serve")
-    parser.add_argument('-h', '--help', action='store_true', default=False,
-                        help="show this help message")
-    parser.add_argument('--version', action='store_true', default=False,
-                        help="show the version")
-
-    return *(parser.parse_known_args(args)), parser, __commands__
-
-
-def main():
-    args, sub_args, parser, __commands__ = _parse(sys.argv[1:])
-
-    if args.help:
-        if args.command is not None:
-            print(__commands__[args.command].__help__())
-        else:
-            print(parser.format_help())
-            print('commands:')
-            for command, class_ in __commands__.items():
-                print(class_.__usage__())
-            print()
-    elif args.version:
-        with _suppress_logs():
-            from shapeflow import __version__
-        print(f"shapeflow v{__version__}")
-    else:
-        from shapeflow.commands import do
-
-        if args.command is None:
-            do('serve', sub_args)
-        else:
-            do(args.command, sub_args)
-
 
 if __name__ == '__main__':
-    if not __recursive__:
+    """
+    """
+
+    if '--recursive-call' in sys.argv[1:]:
+        sys.argv.remove('--recursive-call')
+        try:
+            main()
+        except Exception as e:
+            print(f"ERROR: {e.__class__.__name__}: {e}")
+            exit(17)
+    else:
         try:
             main()
         except ModuleNotFoundError:
@@ -76,10 +59,4 @@ if __name__ == '__main__':
                 exit(17)
             except Exception:
                 raise
-    else:
-        sys.argv.remove('--recursive-call')
-        try:
-            main()
-        except Exception as e:
-            print(f"ERROR: {e.__class__.__name__}: {e}")
-            exit(17)
+
