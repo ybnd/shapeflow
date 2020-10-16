@@ -11,11 +11,13 @@ __recursive__ = '--recursive-call' in sys.argv[1:]
 
 @contextlib.contextmanager
 def _suppress_logs():
+    """https://gist.github.com/simon-weber/7853144"""
+    previous_level = logging.root.manager.disable
     logging.disable(logging.CRITICAL)
     try:
         yield
     finally:
-        logging.disable(logging.DEBUG)
+        logging.disable(previous_level)
 
 def _parse(args):
     parser = argparse.ArgumentParser(add_help=False)
