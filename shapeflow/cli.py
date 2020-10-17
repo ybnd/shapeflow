@@ -41,7 +41,11 @@ class CliError(Exception):
 
 
 class IterCommand(abc.ABCMeta):
-    __entrypoint__: bool = False
+    """Command iterator metaclass.
+        * associates a __command__ string with a class
+        * iterates over its subclasses, skipping any without a __command__
+            -> abstract classes and entry points shouldn't define a __command__
+    """
     __command__: str
 
     def __str__(cls):
@@ -50,18 +54,22 @@ class IterCommand(abc.ABCMeta):
         except AttributeError:
             return super().__str__()
 
-    def __iter__(cls):
-        return iter([c for c in cls.__subclasses__() if c.sub])
-
     @property
     def sub(cls):
+        """Returns True if this class is a subcommand
+        """
         return hasattr(cls, '__command__')
+
+    def __iter__(cls):
+        return iter([c for c in cls.__subclasses__() if c.sub])
 
     @property
     def dict(cls) -> dict:
         return {str(sub):sub for sub in cls}
 
     def __getitem__(cls, item: str) -> 'IterCommand':
+        """Get a subcommand by its __command__
+        """
         if item in cls.dict.keys():
             return cls.dict[item]
         else:
@@ -77,40 +85,48 @@ class IterCommand(abc.ABCMeta):
 
 
 class Command(abc.ABC, metaclass=IterCommand):
+    """Abstract command.
+        * handles argument parsing & execution
+        * subclasses can implement their functionality in command()
+    """
     parser: argparse.ArgumentParser
     args: argparse.Namespace
     sub_args: List[str]
 
     def __init__(self, args: OptArgs = None):
         if args is None:
+            # gather commandline arguments
             args = sys.argv[1:]
-
         try:
-            self.args, self.sub_args = self.parse(args)
-            self.__call__()
+            self.args, self.sub_args = self._parse(args)
+            self.command()
         except argparse.ArgumentError:
             raise CliError
         except TypeError:
             raise CliError
 
     @abc.abstractmethod
-    def __call__(self) -> None:
-        raise NotImplementedError
+    def command(self) -> None:
+        self.command()
 
-    def parse(self, args: OptArgs) -> Tuple[argparse.Namespace, List[str]]:
-        return self.parser.parse_known_args(args)
-
-    def __help__(self) -> str:
-        return self._fix_call(self.parser.format_help())
+    @classmethod
+    def __help__(cls) -> str:
+        """ Return cleaned-up help string """
+        return cls._fix_call(cls.parser.format_help())
 
     @classmethod
     def __usage__(cls) -> str:
-        # Remove 'usage: ' part
+        """ Return cleaned-up usage string """
         usage = cls.parser.format_usage()[7:].strip()
         return cls._fix_call(usage)
 
     @classmethod
+    def _parse(cls, args: OptArgs) -> Tuple[argparse.Namespace, List[str]]:
+        return cls.parser.parse_known_args(args)
+
+    @classmethod
     def _fix_call(cls, text: str) -> str:
+        """ Fix text by appending __command__ to the program name """
         if cls.sub:
             call = ' '.join([cls.parser.prog, str(cls)])
             return text.replace(cls.parser.prog, call)
@@ -119,21 +135,27 @@ class Command(abc.ABC, metaclass=IterCommand):
 
 
 class Sf(Command):
+    """Entry point
+        * gets called first and calls subcommands
+    """
+    parser = argparse.ArgumentParser(
+        description=f"""https://github.com/ybnd/shapeflow v{__version__}""",
+        add_help=False
+    )
+    parser.add_argument(
+        '-h', '--help',
+        action='store_true',
+        help="show this help message"
+    )
+    parser.add_argument(
+        '--version',
+        action='store_true',
+        help="show the version"
+    )
     def __init__(self, args: OptArgs = None):
-        self.parser = argparse.ArgumentParser(
-            description=f"""https://github.com/ybnd/shapeflow v{__version__}""",
-            add_help=False
-        )
-        self.parser.add_argument(
-            '-h', '--help',
-            action='store_true',
-            help="show this help message"
-        )
-        self.parser.add_argument(
-            '--version',
-            action='store_true',
-            help="show the version"
-        )
+        # note: if the command argument is added as a class attribute,
+        #       Command subclasses will be left out of the choices if they
+        #       are defined _after_ this class.
         self.parser.add_argument(
             'command',
             default=None,
@@ -144,12 +166,15 @@ class Sf(Command):
         )
         super().__init__(args)
 
-    def __call__(self):
+    def command(self):
         if self.args.help:
             if self.args.command is not None:
+                # print the help string of the requested command
                 print(Command[self.args.command].__help__())
             else:
+                # print own help string
                 print(self.__help__())
+                # print usage of commands
                 print("commands:")
                 for c in Command:
                     print("   " + c.__usage__())
@@ -158,15 +183,19 @@ class Sf(Command):
             print(__version__)
         else:
             if self.args.command is None:
+                # default command
                 Command['serve'](self.sub_args)
             else:
+                # dispatch arguments to command
                 Command[self.args.command](self.sub_args)
 
 
 class Serve(Command):
+    """start the shapeflow server"""
+
     __command__ = 'serve'
     parser = argparse.ArgumentParser(
-        description="start the shapeflow server"
+        description=__doc__
     )
 
     HOST = '127.0.0.1'
@@ -190,7 +219,7 @@ class Serve(Command):
         help="don't open a browser window"
     )
 
-    def __call__(self):
+    def command(self):
         self._replace()
 
         from shapeflow.main import Main
@@ -215,11 +244,12 @@ class Serve(Command):
 
 
 class Dump(Command):
+    """dump application schemas and settings to JSON"""
+
     __command__ = 'dump'
     parser = argparse.ArgumentParser(
-        description="dump application schemas and settings to JSON"
+        description=__doc__
     )
-
     parser.add_argument(
         '--pretty',
         action='store_true',
@@ -233,8 +263,7 @@ class Dump(Command):
         help='directory to dump to'
     )
 
-    def __call__(self):
-
+    def command(self):
         from shapeflow.config import schemas
 
         if not self.args.dir.is_dir():
