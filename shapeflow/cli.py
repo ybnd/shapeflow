@@ -222,10 +222,10 @@ class Serve(Command):
     def command(self):
         self._replace()
 
-        from shapeflow.main import Main
+        from shapeflow.server import ShapeflowServer
 
-        main = Main()
-        main.serve(host=self.args.host, port=self.args.port, open=(not self.args.background))
+        server = ShapeflowServer()
+        server.serve(host=self.args.host, port=self.args.port, open=(not self.args.background))
         log.info('stopped')
 
     def _in_use(self) -> bool:

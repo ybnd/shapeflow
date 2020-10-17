@@ -12,7 +12,7 @@ import json
 import socket
 import requests
 import argparse
-import shapeflow.main
+import shapeflow.server
 import shapeflow.config
 
 
@@ -43,7 +43,7 @@ class EntrypointTest(unittest.TestCase):
         self.assertEqual(1, mock_Sf.call_count)
 
 
-@patch('shapeflow.main.Main.serve', noop)
+@patch('shapeflow.server.ShapeflowServer.serve', noop)
 @patch('argparse.ArgumentParser.exit', noop)
 class SfTest(unittest.TestCase):
     def test_no_arguments(self):
@@ -90,12 +90,12 @@ class CommandTest(abc.ABC, unittest.TestCase):
         self.command(['--help'])
 
 
-class MockMainInstance():
-    serve = Mock(name='main.serve')
+class MockServerInstance():
+    serve = Mock(name='server.serve')
 
 
-class MockMain():
-    __new__ = Mock(name='__new__', return_value=MockMainInstance)
+class MockServer():
+    __new__ = Mock(name='__new__', return_value=MockServerInstance)
 
 
 class MockSockInstance():
@@ -112,14 +112,14 @@ class MockRequests():
     post = Mock(name='post', return_value=None)
 
 
-@patch('shapeflow.main.Main', MockMain)
+@patch('shapeflow.server.ShapeflowServer', MockServer)
 @patch('socket.socket', MockSock)
 @patch('requests.post', MockRequests.post)
 @patch('argparse.ArgumentParser.exit', noop)
 class ServeTest(CommandTest):
     command = shapeflow.cli.Serve
     mocks = [
-        MockMainInstance.serve,
+        MockServerInstance.serve,
         MockSockInstance.connect_ex,
         MockRequests.post,
     ]
@@ -134,10 +134,10 @@ class ServeTest(CommandTest):
         self.assertEqual(3, MockSockInstance.connect_ex.call_count)
         self.assertEqual(1, MockRequests.post.call_count)
 
-        self.assertEqual(1, MockMainInstance.serve.call_count)
+        self.assertEqual(1, MockServerInstance.serve.call_count)
         self.assertEqual(
             call(host='127.0.0.1', port=7951, open=True),
-            MockMainInstance.serve.call_args,
+            MockServerInstance.serve.call_args,
         )
 
     def test_valid_arguments(self):
@@ -146,10 +146,10 @@ class ServeTest(CommandTest):
         self.assertEqual(3, MockSockInstance.connect_ex.call_count)
         self.assertEqual(1, MockRequests.post.call_count)
 
-        self.assertEqual(1, MockMainInstance.serve.call_count)
+        self.assertEqual(1, MockServerInstance.serve.call_count)
         self.assertEqual(
             call(host='localhost', port=1234, open=False),
-            MockMainInstance.serve.call_args,
+            MockServerInstance.serve.call_args,
         )
 
 

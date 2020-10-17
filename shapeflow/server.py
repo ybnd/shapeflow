@@ -96,7 +96,7 @@ class ServerThread(Thread, metaclass=util.Singleton):
         os._exit(0)
 
 
-class Main(shapeflow.core.Lockable):
+class ShapeflowServer(shapeflow.core.Lockable):
     __metaclass__ = util.Singleton
     _app: Flask
 
@@ -527,7 +527,7 @@ class Main(shapeflow.core.Lockable):
         self.save_state()
         streaming.streams.stop()
 
-        log.info('Main.serve() stopped.')
+        log.info('stopped serving.')
 
     def check_video_path(self, path: str) -> bool:
         """Check whether the path is a valid video and add it to
@@ -819,6 +819,3 @@ class Main(shapeflow.core.Lockable):
         self._eventstreamer.event(
             'notice', id='', data={'message': message, 'persist': persist}
         )
-
-
-# wsgi = Main()._app
