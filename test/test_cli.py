@@ -4,34 +4,15 @@ import unittest
 from typing import List, Type
 from unittest.mock import patch, Mock, call
 from pathlib import Path
-import argparse
 
-from shapeflow.util import ensure_path
 import shapeflow.cli
 
-import json
-import socket
-import requests
-import argparse
 import shapeflow.server
 import shapeflow.config
 
 
 def noop(*_, **__):
     pass
-
-
-mock_Sf = Mock(name='Sf')
-
-
-@patch('shapeflow.cli.Sf', mock_Sf)
-class EntrypointTest(unittest.TestCase):
-    def test_no_arguments(self):
-        with ensure_path(Path(__file__).parent.parent):
-            import sf
-
-        sf.main()
-        self.assertEqual(1, mock_Sf.call_count)
 
 
 @patch('shapeflow.server.ShapeflowServer.serve', noop)

@@ -32,12 +32,12 @@ def _suppress_logs():
         logging.disable(previous_level)
 
 
-if __name__ == '__main__':
+def _bootstrap_venv(method):
     # if called directly
     if not '--recursive-call' in sys.argv[1:]:
         # try calling main()
         try:
-            main()
+            method()
         except ModuleNotFoundError:
             # if this fails, call this script ~ util/from_venv.py
             #     -> specify that it's a recursive call
@@ -47,8 +47,10 @@ if __name__ == '__main__':
                     __file__, *sys.argv[1:] + ['--recursive-call']
                 ])
             except KeyboardInterrupt:
+                # clean exit on Ctrl+C
                 pass
             except subprocess.CalledProcessError as e:
+                # exit with error code on subprocess exceptions
                 exit(e.returncode)
             except Exception:
                 # re-raise any other exceptions
@@ -57,8 +59,11 @@ if __name__ == '__main__':
         # remove `--recursive-call` argument, as it shouldn't be parsed
         sys.argv.remove('--recursive-call')
         try:
-            main()
+            method()
         except Exception as e:
-            # ff still can't run main(), just exit
+            # if still can't run main(), just exit
             print(f"ERROR: {e.__class__.__name__}: {e}")
             exit(1)
+
+if __name__ == '__main__':
+    _bootstrap_venv(main)
