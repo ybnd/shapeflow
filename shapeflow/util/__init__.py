@@ -197,16 +197,17 @@ def ensure_path(path: Union[str, Path]):
     """ A hacky way to allow imports from arbitrary directories.
             only use this for testing sf.py please :(
     """
+    if isinstance(path, str):
+        path = Path(path)
+
+    path = Path(path).absolute()
+    path_str = str(path)
+
     try:
-        if isinstance(path, str):
-            path = Path(path)
-
         assert path.is_dir()
-        path = str(Path(path).absolute())
-
-        sys.path.insert(0, path)
+        sys.path.insert(0, path_str)
         yield
     except NotADirectoryError:
         raise
     finally:
-        sys.path.remove(path)
+        sys.path.remove(path_str)
