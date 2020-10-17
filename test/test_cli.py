@@ -6,6 +6,7 @@ from unittest.mock import patch, Mock, call
 from pathlib import Path
 import argparse
 
+from shapeflow.util import ensure_path
 import shapeflow.cli
 
 import json
@@ -26,20 +27,10 @@ mock_Sf = Mock(name='Sf')
 @patch('shapeflow.cli.Sf', mock_Sf)
 class EntrypointTest(unittest.TestCase):
     def test_no_arguments(self):
-        import os
-        import sys
-        import inspect
-
-        # backwards import shenanigans
-        current_dir = os.path.dirname(
-            os.path.abspath(inspect.getfile(inspect.currentframe())))
-        parent_dir = os.path.dirname(current_dir)
-        sys.path.insert(0, parent_dir)
-
-        import sf
+        with ensure_path(Path(__file__).parent.parent):
+            import sf
 
         sf.main()
-
         self.assertEqual(1, mock_Sf.call_count)
 
 

@@ -2,10 +2,11 @@ import os
 import subprocess
 import sys
 import time
+from pathlib import Path
 import json
 from distutils.util import strtobool
 from functools import wraps, lru_cache
-from typing import Any, Generator, Optional
+from typing import Any, Generator, Optional, Union
 from collections import namedtuple
 import threading
 import queue
@@ -189,3 +190,23 @@ def open_path(path: str) -> None:
         subprocess.Popen(['open', path])
     else:  # Something else, probably has xdg-open
         subprocess.Popen(['xdg-open', path])
+
+
+@contextmanager
+def ensure_path(path: Union[str, Path]):
+    """ A hacky way to allow imports from arbitrary directories.
+            only use this for testing sf.py please :(
+    """
+    try:
+        if isinstance(path, str):
+            path = Path(path)
+
+        assert path.is_dir()
+        path = str(Path(path).absolute())
+
+        sys.path.insert(0, path)
+        yield
+    except NotADirectoryError:
+        raise
+    finally:
+        sys.path.remove(path)
