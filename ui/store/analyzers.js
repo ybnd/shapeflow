@@ -102,7 +102,7 @@ export const mutations = {
         state.status = { ...state.status, [id]: {} };
         state.config = { ...state.config, [id]: {} };
       } else {
-        console.warn(`addAnalyzerState: '${id}' already defined`);
+        console.warn(`addAnalyzer: '${id}' already defined`);
       }
     } catch (err) {
       console.warn(`addAnalyzer failed: '${id}'`);

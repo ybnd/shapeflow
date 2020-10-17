@@ -38,6 +38,10 @@ export function dereference(schema, reference) {
   );
 }
 
+export function splitlines(text) {
+  return text.match(/[^\r\n]+/g)
+}
+
 export async function retryOnce(method, arg) {
   return method(arg).then(out => {
     return out;

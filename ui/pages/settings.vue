@@ -4,7 +4,7 @@
     <PageHeader>
       <PageHeaderItem>
         <b-button
-          class="header-button-icon log-button"
+          class="header-button-icon log-button settings-open-root"
           data-toggle="tooltip"
           title="Open root directory"
           @click="handleOpenRoot"
@@ -13,11 +13,11 @@
         </b-button>
       </PageHeaderItem>
       <PageHeaderItem>
-        <b-button @click="setSettings">Save settings & restart</b-button>
+        <b-button class="settings-save" @click="setSettings">Save settings & restart</b-button>
       </PageHeaderItem>
       <PageHeaderItem>
-        <b-button @click="clearDb">Clear database</b-button>
-        <b-button @click="clearCache">Clear cache ({{ size.cache }})</b-button>
+        <b-button class="settings-clear-db" @click="clearDb">Clear database</b-button>
+        <b-button class="settings-clear-cache" @click="clearCache">Clear cache ({{ size.cache }})</b-button>
       </PageHeaderItem>
 
     </PageHeader>
@@ -44,7 +44,7 @@ import SchemaForm from "../components/config/SchemaForm";
 
 import cloneDeep from "lodash/cloneDeep";
 
-import { clear_cache, clear_db, get_cache_size, get_db_size, open_root } from "static/api";
+import { clear_cache, clear_db, get_cache_size, get_db_size, open_root } from "../static/api";
 
 export default {
   name: "dashboard",
