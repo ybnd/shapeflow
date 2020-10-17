@@ -40,7 +40,7 @@ class BootstrapVenvTest(unittest.TestCase):
 
         self.assertEqual(  # last three call arguments should match
             prog + ['serve', '--recursive-call'],
-            mock_check_call.call_args.args[0][-3:]
+            mock_check_call.call_args[0][0][-3:]
         )
 
         # recovers
@@ -55,7 +55,7 @@ class BootstrapVenvTest(unittest.TestCase):
 
         self.assertEqual(  # last three call arguments should match
             prog + ['serve', '--recursive-call'],
-            mock_check_call.call_args.args[0][-3:]
+            mock_check_call.call_args[0][0][-3:]
         )
 
         # can't recover
