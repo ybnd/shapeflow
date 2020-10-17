@@ -21,7 +21,7 @@ from OnionSVG import check_svg
 import shapeflow
 import shapeflow.config
 import shapeflow.util as util
-import shapeflow.util.filedialog
+from shapeflow.util.filedialog import filedialog
 import shapeflow.core.backend as backend
 import shapeflow.core.streaming as streaming
 import shapeflow.db as db
@@ -242,7 +242,7 @@ class ShapeflowServer(shapeflow.core.Lockable):
         @app.route('/api/select_video_path', methods=['GET'])
         def select_video():
             log.debug(f"opening file dialog (select video)")
-            return respond(shapeflow.util.filedialog.load_file_dialog(
+            return respond(filedialog.load(
                 title='Select a video file...',
                 pattern=shapeflow.settings.app.video_pattern,
                 pattern_description='Video files'
@@ -251,7 +251,7 @@ class ShapeflowServer(shapeflow.core.Lockable):
         @app.route('/api/select_design_path', methods=['GET'])
         def select_design():
             log.debug(f"opening file dialog (select design)")
-            return respond(shapeflow.util.filedialog.load_file_dialog(
+            return respond(filedialog.load(
                 title='Select a design file...',
                 pattern=shapeflow.settings.app.design_pattern,
                 pattern_description='Design files'
