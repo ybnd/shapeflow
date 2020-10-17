@@ -366,8 +366,9 @@ def get_logger(name: str, log_settings: LogSettings = settings.log) -> Logger:
         log_settings = LogSettings()
 
     logger = Logger(name)
+    # log at the _least_ restrictive level
     logger.setLevel(
-        max([log_settings.lvl_console.level, log_settings.lvl_file.level])
+        min([log_settings.lvl_console.level, log_settings.lvl_file.level])
     )
 
     logger.addHandler(_console_handler)
