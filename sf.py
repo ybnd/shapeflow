@@ -1,11 +1,10 @@
 #!/bin/python3
-"""shapeflow CLI"""
+# shapeflow CLI entry point
 
 import sys
 import logging
 import contextlib
 import subprocess
-import argparse
 
 
 def main():
@@ -34,20 +33,14 @@ def _suppress_logs():
 
 
 if __name__ == '__main__':
-    """
-    """
-
-    if '--recursive-call' in sys.argv[1:]:
-        sys.argv.remove('--recursive-call')
-        try:
-            main()
-        except Exception as e:
-            print(f"ERROR: {e.__class__.__name__}: {e}")
-            exit(17)
-    else:
+    # if called directly
+    if not '--recursive-call' in sys.argv[1:]:
+        # try calling main()
         try:
             main()
         except ModuleNotFoundError:
+            # if this fails, call this script ~ util/from_venv.py
+            #     -> specify that it's a recursive call
             try:
                 subprocess.check_call([
                     sys.executable, 'shapeflow/util/from_venv.py',
@@ -55,8 +48,15 @@ if __name__ == '__main__':
                 ])
             except KeyboardInterrupt:
                 pass
-            except subprocess.CalledProcessError as e:
-                exit(17)
             except Exception:
+                # re-raise any other exceptions
                 raise
-
+    else:
+        # remove `--recursive-call` argument, as it shouldn't be parsed
+        sys.argv.remove('--recursive-call')
+        try:
+            main()
+        except Exception as e:
+            # ff still can't run main(), just exit
+            print(f"ERROR: {e.__class__.__name__}: {e}")
+            exit(17)
