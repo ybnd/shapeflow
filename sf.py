@@ -48,6 +48,8 @@ if __name__ == '__main__':
                 ])
             except KeyboardInterrupt:
                 pass
+            except subprocess.CalledProcessError as e:
+                exit(e.returncode)
             except Exception:
                 # re-raise any other exceptions
                 raise
@@ -59,4 +61,4 @@ if __name__ == '__main__':
         except Exception as e:
             # ff still can't run main(), just exit
             print(f"ERROR: {e.__class__.__name__}: {e}")
-            exit(17)
+            exit(1)
