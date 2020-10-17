@@ -514,10 +514,10 @@ class ShapeflowServer(shapeflow.core.Lockable):
                 if self._ping.is_set():
                     self._ping.clear()
                 if self._unload.is_set():
-                    log.debug(f'Unloaded from browser, waiting for traffic.')
+                    log.info(f'unloaded from browser, waiting {self._timeout_unload}s for traffic...')
                     time.sleep(self._timeout_unload)
                     if not self._ping.is_set():
-                        log.debug(f'No traffic for {self._timeout_unload} seconds - quitting...')
+                        log.info(f'no traffic.')
                         self._quit.set()
                 time.sleep(self._timeout_loop)
         except KeyboardInterrupt:
@@ -684,7 +684,7 @@ class ShapeflowServer(shapeflow.core.Lockable):
         """Save application state to ``shapeflow.settings.app.state_path``
         """
         if shapeflow.settings.app.save_state:
-            log.info("saving application state")
+            log.debug("saving application state")
 
             self._commit()
 

@@ -226,7 +226,7 @@ class Serve(Command):
 
         server = ShapeflowServer()
         server.serve(host=self.args.host, port=self.args.port, open=(not self.args.background))
-        log.info('stopped')
+        log.info('exit')
 
     def _in_use(self) -> bool:
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
