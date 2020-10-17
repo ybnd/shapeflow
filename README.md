@@ -22,7 +22,7 @@ This software is developed in collaboration with the [KULeuven Biosensors lab](h
 2. Make a new folder in a convenient location
 3. [Download a deployment script](https://github.com/ybnd/shapeflow/releases/download/0.4.1/deploy_shapeflow-0.4.1.py) and save it to that folder
 4. Run the deployment script.
-5. Once the installation is done, you can start the application by running `shapeflow.py`. A new browser window or tab should open with the user interface.
+5. Once the installation is done, you can start the application by running `sf.py`. A new browser window or tab should open with the user interface.
 
 * A tutorial: [docs/tutorial.md](docs/tutorial.md)
 
@@ -30,10 +30,9 @@ This software is developed in collaboration with the [KULeuven Biosensors lab](h
 
 ### Development
 
+* Changelog: [shapeflow/changelog.md](docs/changelog.md)
 * About the Python library: [shapeflow/README.md](shapeflow/README.md)
-
 * About the user interface: [ui/README.md](ui/README.md)
-
 * Generating deployment scripts [shapeflow/setup/README.md](shapeflow/setup/README.md)
 
 ### Related literature

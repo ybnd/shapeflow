@@ -30,10 +30,12 @@ if __name__ == '__main__':
         try:
             subprocess.check_call(pre + [executable, script] + arguments, shell=shell)
         except KeyboardInterrupt:
+            # don't print exception on Ctrl+C
             pass
         except subprocess.CalledProcessError as e:
             exit(e.returncode)
         except Exception:
+            # re-raise any other exceptions
             raise
 
     else:

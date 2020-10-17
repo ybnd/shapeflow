@@ -20,11 +20,13 @@ To start analyzing microfluidic chips with shapeflow, you need video footage of 
 
    Finally, these binary images are processed to extract features. By using designs with known real-world dimensions and mapping  “video coordinates” to “design coordinates”, we can compute features with real-world dimensions from the video footage.
 
-With shapeflow, you can easily queue up, configure, run and compare such analyses.
+With `shapeflow`, you can easily queue up, configure, run and compare such analyses.
+
+### 
 
 ### User interface
 
-Running `shapeflow.py` starts the backend of the application and opens a new window or tab in your browser with the user interface. Its main features are shown below
+Running `sf.py` starts the backend of the application and opens a new window or tab in your browser with the user interface. Its main features are shown below
 
 <div align="center"><img src="assets/interface.png" width="600px"/></div>
 

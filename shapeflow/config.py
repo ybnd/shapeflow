@@ -5,12 +5,12 @@ import json
 
 from pydantic import Field, validator
 
-from shapeflow import __version__
+from shapeflow import __version__, settings
 
 from shapeflow.core.config import extend, ConfigType, \
     log, VERSION, CLASS, untag, BaseConfig
 from shapeflow.core.backend import BaseAnalyzerConfig, \
-    FeatureType, FeatureConfig
+    FeatureType, FeatureConfig, AnalyzerState, QueueState
 from shapeflow.core import EnforcedStr
 from shapeflow.core.interface import FilterType, TransformType, TransformConfig, \
     FilterConfig, HandlerConfig
@@ -216,6 +216,14 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
 
     _validate_fis = validator('frame_interval_setting')(BaseConfig._resolve_enforcedstr)
 
+
+def schemas() -> Dict[str, dict]:
+    return {
+        'config': VideoAnalyzerConfig.schema(),
+        'settings': settings.schema(),
+        'analyzer_state': dict(AnalyzerState.__members__),
+        'queue_state': dict(QueueState.__members__),
+    }
 
 def loads(config: str) -> BaseConfig:
     d = json.loads(config)

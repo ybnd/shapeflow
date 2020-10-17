@@ -5,11 +5,11 @@ import json
 import pickle
 import os
 import time
+import requests
 import datetime
 import subprocess
 from threading import Thread, Event, Lock
 from typing import Dict, Any, List, Optional
-from enum import IntEnum
 
 import cv2
 from flask import Flask, send_from_directory, jsonify, request, Response, make_response
@@ -49,11 +49,11 @@ def restart_server(host: str, port: int):
     log.info('restarting server...')
 
     subprocess.Popen(
-         [
-             'python', 'shapeflow.py',
-             '--host', str(host), '--port', str(port), '--server'
-         ],
-         cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        [
+            'python', 'sf.py', 'serve',
+            '--host', str(host), '--port', str(port), '--background'
+        ],
+        cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     )
 
 
@@ -67,9 +67,6 @@ def check_history():
         backup_path = f"{shapeflow.settings.db.path}_broken_{timestamp}"
         log.warning(f"backing up old history database @ {backup_path}")
         os.rename(shapeflow.settings.db.path, backup_path)
-
-
-check_history()
 
 
 class ServerThread(Thread, metaclass=util.Singleton):
@@ -99,13 +96,7 @@ class ServerThread(Thread, metaclass=util.Singleton):
         os._exit(0)
 
 
-class QueueState(IntEnum):
-    STOPPED = 0
-    RUNNING = 1
-    PAUSED = 2
-
-
-class Main(shapeflow.core.Lockable):
+class ShapeflowServer(shapeflow.core.Lockable):
     __metaclass__ = util.Singleton
     _app: Flask
 
@@ -152,7 +143,7 @@ class Main(shapeflow.core.Lockable):
         self._stop_log = Event()  # todo: these could be class attributes instead
         self._pause_q = Event()
         self._stop_q = Event()
-        self._q_state = QueueState.STOPPED
+        self._q_state = backend.QueueState.STOPPED
 
         # Serve webapp (bypassed when frontend runs in development mode)
         @app.route('/', methods=['GET'])
@@ -182,6 +173,14 @@ class Main(shapeflow.core.Lockable):
             log.vdebug('received ping')
             active()
             return respond(True)
+
+        @app.route('/api/map', methods=['GET'])
+        def map():
+            return respond({
+                rule.rule: list(rule.methods)
+                for rule in app.url_map.iter_rules()
+                if rule.rule[:5] == '/api/'
+            })
 
         @app.route('/api/pid_hash', methods=['GET'])
         def get_pid_hash():
@@ -232,12 +231,13 @@ class Main(shapeflow.core.Lockable):
 
         @app.route('/api/schemas', methods=['GET'])
         def get_schemas():
-            return {
-                'config': video.VideoAnalyzerConfig.schema(),
-                'settings': shapeflow.settings.schema(),
-                'analyzer_state': dict(backend.AnalyzerState.__members__),
-                'queue_state': dict(QueueState.__members__),
-            }
+            return shapeflow.config.schemas()
+
+        @app.route('/api/normalize_config', methods=['POST'])
+        def normalize_config():
+            return respond(shapeflow.config.normalize_config(
+                json.loads(request.data)['config'])
+            )
 
         @app.route('/api/select_video_path', methods=['GET'])
         def select_video():
@@ -514,10 +514,10 @@ class Main(shapeflow.core.Lockable):
                 if self._ping.is_set():
                     self._ping.clear()
                 if self._unload.is_set():
-                    log.debug(f'Unloaded from browser, waiting for traffic.')
+                    log.info(f'unloaded from browser, waiting {self._timeout_unload}s for traffic...')
                     time.sleep(self._timeout_unload)
                     if not self._ping.is_set():
-                        log.debug(f'No traffic for {self._timeout_unload} seconds - quitting...')
+                        log.info(f'no traffic.')
                         self._quit.set()
                 time.sleep(self._timeout_loop)
         except KeyboardInterrupt:
@@ -527,7 +527,7 @@ class Main(shapeflow.core.Lockable):
         self.save_state()
         streaming.streams.stop()
 
-        log.info('Main.serve() stopped.')
+        log.info('stopped serving.')
 
     def check_video_path(self, path: str) -> bool:
         """Check whether the path is a valid video and add it to
@@ -628,15 +628,15 @@ class Main(shapeflow.core.Lockable):
         """
 
         def target():
-            if self._q_state == QueueState.STOPPED:
-                self._q_state = QueueState.RUNNING
+            if self._q_state == backend.QueueState.STOPPED:
+                self._q_state = backend.QueueState.RUNNING
                 if all(self._roots[id].can_analyze for id in q):  # todo: handle non-id entries in q
                     log.info(f"analyzing queue: {q}")
                     for id in q:
                         while self._pause_q.is_set():
-                            self._q_state = QueueState.PAUSED
+                            self._q_state = backend.QueueState.PAUSED
                             time.sleep(0.5)
-                        self._q_state = QueueState.RUNNING
+                        self._q_state = backend.QueueState.RUNNING
 
                         if self._stop_q.is_set():
                             break
@@ -649,7 +649,7 @@ class Main(shapeflow.core.Lockable):
 
                     self._pause_q.clear()
                     self._stop_q.clear()
-                    self._q_state = QueueState.STOPPED
+                    self._q_state = backend.QueueState.STOPPED
                 else:
                     log.info(f"CAN'T ANALYZE FOR ALL ANALYZERS")
             else:
@@ -684,7 +684,7 @@ class Main(shapeflow.core.Lockable):
         """Save application state to ``shapeflow.settings.app.state_path``
         """
         if shapeflow.settings.app.save_state:
-            log.info("saving application state")
+            log.debug("saving application state")
 
             self._commit()
 
@@ -819,6 +819,3 @@ class Main(shapeflow.core.Lockable):
         self._eventstreamer.event(
             'notice', id='', data={'message': message, 'persist': persist}
         )
-
-
-wsgi = Main()._app

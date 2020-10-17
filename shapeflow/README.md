@@ -23,3 +23,4 @@ To work on the frontend, set up `ui/` as elaborated [here](../ui/README.md).
 * Feature plugins should also define a `_label` and `_unit` as class variables. These values will be used to label the y-axis on the result page of the front-end.
 
 All plugin files are automatically loaded by [`plugins/__init__.py`](plugins/__init__.py) when `shapeflow.plugins` is imported. 
+

@@ -23,10 +23,10 @@ if os.getcwd() == '/home/travis/build/ybnd/shapeflow':
 from shapeflow import ROOTDIR
 
 
-CACHE = os.path.join(ROOTDIR, 'test_main-cache')
-DB = os.path.join(ROOTDIR, 'test_main-history.db')
-STATE = os.path.join(ROOTDIR, 'test_main-state')
-RESULTS = os.path.join(ROOTDIR, 'test_main-results')
+CACHE = os.path.join(ROOTDIR, 'test_server-cache')
+DB = os.path.join(ROOTDIR, 'test_server-history.db')
+STATE = os.path.join(ROOTDIR, 'test_server-state')
+RESULTS = os.path.join(ROOTDIR, 'test_server-results')
 
 
 def clear_files():
@@ -54,17 +54,17 @@ def application(keep: bool = False):
                 settings.log.override({'lvl_console': 'debug', 'lvl_file': 'debug'}):
             save_settings(settings)
 
-            # import from shapeflow.main here -> current settings are respected
-            import shapeflow.main
+            # import from shapeflow.server here -> current settings are respected
+            import shapeflow.server
             import shapeflow.db
 
-            main = shapeflow.main.Main()
-            main._raise_call_exceptions = True
-            main._history = shapeflow.db.History(settings.db.path)
-            main._app.testing = True
-            client = main._app.test_client()
+            server = shapeflow.server.ShapeflowServer()
+            server._raise_call_exceptions = True
+            server._history = shapeflow.db.History(settings.db.path)
+            server._app.testing = True
+            client = server._app.test_client()
 
-            yield main, client, settings
+            yield server, client, settings
     finally:
         save_settings(settings)
 
@@ -73,15 +73,15 @@ def application(keep: bool = False):
         for id in app_state['ids']:
             client.post(f'/api/{id}/close')
 
-        del main
+        del server
         del settings
 
         if not keep:
             clear_files()
 
 
-class MainTest(unittest.TestCase):
-    """Test Main methods -- global"""
+class ServerTest(unittest.TestCase):
+    """Test global methods """
     def test_file_checks(self):
         with application() as (server, client, settings):
             # Check real files
@@ -175,8 +175,8 @@ class MainTest(unittest.TestCase):
             )
 
 
-class MainAnalyzerTest(unittest.TestCase):
-    """Test Main methods -- VideoAnalyzer interaction"""
+class ServerAnalyzerTest(unittest.TestCase):
+    """Test VideoAnalyzer methods"""
 
     CONFIG = {
         "video_path": __VIDEO__,
@@ -710,8 +710,8 @@ class DbCheckTest(unittest.TestCase):
 
             import sqlite3
 
-            db = sqlite3.connect(settings.db.path)
-            cursor = db.cursor()
+            c = sqlite3.connect(settings.db.path)
+            cursor = c.cursor()
 
             cursor.execute("""
             CREATE TABLE video_file (
@@ -732,12 +732,14 @@ class DbCheckTest(unittest.TestCase):
 
             # Not enough tables -> invalid
 
-            db.commit()
-            db.close()
+            c.commit()
+            c.close()
 
-            # runs check_history() on import, replaces invalid db
-            from shapeflow.main import db
+            # run check_history(), replaces invalid db
+            from shapeflow.server import db, check_history
             import glob
+
+            check_history()
 
             # db is now valid
             self.assertTrue(db.History().check())
