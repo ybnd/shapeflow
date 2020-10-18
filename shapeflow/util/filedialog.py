@@ -115,6 +115,6 @@ class _Zenity(_FileDialog):
             return None
 
 
-filedialog = _Zenity()
+filedialog: _FileDialog = _Zenity()
 if not filedialog.ok:
     filedialog = _Tkinter()
