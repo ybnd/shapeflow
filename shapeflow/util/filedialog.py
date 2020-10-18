@@ -57,8 +57,11 @@ class _Tkinter(_FileDialog):
     }
 
     def __init__(self):
-        root = tkinter.Tk()
-        root.withdraw()
+        try:
+            root = tkinter.Tk()
+            root.withdraw()
+        except Exception as e:
+            print("Can't initialize tkinter!"). # todo: clean this up
 
     def _load(self, **kwargs) -> Optional[str]:
         return tkinter.filedialog.askopenfilename(**self._translate(kwargs))
