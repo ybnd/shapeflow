@@ -205,8 +205,9 @@ class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB 
             self._cache.close()
             self._cache = None
 
-        if exc_type != None:  # `is not` doesn't work here
-            raise(exc_type, exc_value, tb)
+        if exc_type is not None:
+            log.error(f"{self.__class__.__qualname__}: {exc_type.__qualname__} {exc_value}")
+            raise
         else:
             return True
 
