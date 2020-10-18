@@ -48,7 +48,7 @@ class _FileDialog(abc.ABC):
 
 
 class _Tkinter(_FileDialog):
-    ok: True
+    ok = True
 
     _map = {
         'title': 'title',
