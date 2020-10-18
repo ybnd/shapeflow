@@ -1,4 +1,3 @@
-#!/bin/python3
 # shapeflow CLI entry point
 
 import sys
@@ -64,6 +63,7 @@ def _bootstrap_venv(method):
             # if still can't run main(), just exit
             print(f"ERROR: {e.__class__.__name__}: {e}")
             exit(1)
+
 
 if __name__ == '__main__':
     _bootstrap_venv(main)
