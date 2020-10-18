@@ -448,7 +448,7 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
         super().__init__(config)
 
-        self._timer = Timer(self)
+        self._timer = Timer(self, log)
         self._launched = False
 
         self._hash_video = None
@@ -757,7 +757,6 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     @contextmanager
     def time(self, message: str = '', logger = log):
         try:
-            self._timer.set_logger(logger)
             self._timer.__enter__(message)
             yield self
         finally:
