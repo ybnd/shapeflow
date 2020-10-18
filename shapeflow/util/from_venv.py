@@ -2,68 +2,83 @@
 Execute a Python script from virtual environment
 """
 
+import abc
 import sys
+from typing import List, Tuple
 import os
 import subprocess
 
 environment = '.venv'
 
 
-def from_venv():
-    script = sys.argv[1]        # the script to execute
-    arguments = sys.argv[2:]    # and pass the rest of the arguments on to.
+def from_venv(env):
+    arguments = sys.argv[1:]  # pass the arguments on to a subprocess
+    command, shell = _resolve(env, os.path.basename(sys.executable))
 
-    if os.path.isdir(environment):
-        python = os.path.basename(sys.executable)
+    try:
+        subprocess.check_call(
+            command + arguments,
+            shell=shell
+        )
+    except KeyboardInterrupt:
+        # don't print exception on Ctrl+C
+        pass
+    except subprocess.CalledProcessError as e:
+        exit(e.returncode)
+    except Exception:
+        # re-raise any other exceptions
+        raise
 
-        formats = {
-        # platform -> directory where the executable should be
-            'unix': os.path.join(environment, 'bin'),
-            'windows': os.path.join(environment, 'Scripts')
-        }
-        executable, platform, d = _get_executable(formats, python)
+class _VenvCall(object):
+    env: str
+    python: str
 
-        if platform == 'unix':
-            pre = []
-            shell = False
-        elif platform == 'windows':
-            pre = ["set", f"PATH='%PATH%{os.path.abspath(d)};\\'", "&&"]
-            shell = True
-        else:
-            raise EnvironmentError(
-                'The virtual environment has an unexpected format.'
-            )
+    subpath: str = 'bin'
+    doshell: bool = False
+    pythons = ['python3', 'python']
 
-        try:
-            subprocess.check_call(
-                pre + [executable, script] + arguments,
-                shell=shell
-            )
-        except KeyboardInterrupt:
-            # don't print exception on Ctrl+C
-            pass
-        except subprocess.CalledProcessError as e:
-            exit(e.returncode)
-        except Exception:
-            # re-raise any other exceptions
-            raise
+    def __init__(self, env: str, python: str):
+        self.env = env
+        self.python = python
 
+    @property
+    def prepend(self) -> List[str]:
+        return []
+
+    @property
+    def path(self) -> str:
+        return os.path.join(self.env, self.subpath)
+
+    def _executable(self, python: str) -> str:
+        return os.path.join(self.path, python)
+
+    def resolve(self) -> Tuple[List[str], bool]:
+        if not os.path.isdir(self.path):
+            raise EnvironmentError(f"'{self.env}' does not exist")
+
+        pythons = [self.python] + [p for p in self.pythons if p != self.python]
+        executables = [self._executable(python) for python in pythons]
+        for executable in executables:
+            if os.path.isfile(executable):
+                return self.prepend + [executable], self.doshell
+
+        raise EnvironmentError(f"'{self.env}' is not a virtual environment")
+
+
+class _WindowsVenvCall(_VenvCall):
+    subpath = 'Scripts'
+    doshell = True
+
+
+def _resolve(environment: str, python: str) -> Tuple[List[str], bool]:
+    if os.name == 'nt':  # Windows
+        return _WindowsVenvCall(environment, python).resolve()
     else:
-        raise EnvironmentError(f"No virtual environment in {environment}.")
-
-
-def _get_executable(formats, preferred_python):
-    for platform, d in formats.items():
-        if os.path.isdir(d) and len(os.listdir(d)) > 0:
-            preferred = os.path.join(d, preferred_python)
-            fallback = os.path.join(d, 'python')
-
-            if os.path.isfile(preferred):
-                return preferred, platform, d
-            elif os.path.isfile(fallback):
-                return fallback, platform, d
-    return 'python', ''
+        return _VenvCall(environment, python).resolve()
 
 
 if __name__ == '__main__':
-    from_venv()
+    if os.path.isdir(environment):
+        from_venv(environment)
+    else:
+        raise EnvironmentError(f"No virtual environment in '{environment}'.")

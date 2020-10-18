@@ -1344,7 +1344,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             if self.model is None:
                 self.notice(f"{self} has no database model; result data may be lost")
 
-            with self.lock(), self.time(f"Analyzing '{self.id}'", log):
+            with self.lock(), self.time(f"Analyzing '{self.id}'"):
                 self._new_run()
                 self._get_featuresets()
                 self.commit()

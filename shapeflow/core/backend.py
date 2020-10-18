@@ -205,8 +205,9 @@ class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB 
             self._cache.close()
             self._cache = None
 
-        if exc_type != None:  # `is not` doesn't work here
-            raise(exc_type, exc_value, tb)
+        if exc_type is not None:
+            log.error(f"{self.__class__.__qualname__}: {exc_type.__qualname__} {exc_value}")
+            raise
         else:
             return True
 
@@ -447,7 +448,7 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
         super().__init__(config)
 
-        self._timer = Timer(self)
+        self._timer = Timer(self, log)
         self._launched = False
 
         self._hash_video = None
@@ -756,7 +757,6 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     @contextmanager
     def time(self, message: str = '', logger = log):
         try:
-            self._timer.set_logger(logger)
             self._timer.__enter__(message)
             yield self
         finally:
