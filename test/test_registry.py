@@ -111,7 +111,7 @@ class ManagerTest(EndpointRegistryTest):
             pass
 
         class TestRootInstance(RootInstance, I):
-            _endpoints = self.registry
+            _dispatcher = self.registry
             _instance_class = I
             _id = ''
 

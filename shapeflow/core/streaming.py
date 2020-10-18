@@ -182,11 +182,9 @@ _stream_mapping: dict = {
     _Streaming('image'): JpegStreamer,
 }
 
-class StreamHandler(Lockable):
-    """A singleton object to handle streaming frames from methods
+class StreamHandler(Lockable, metaclass=Singleton):
+    """A singleton object to handle streaming data from methods
     """
-    __metaclass__ = Singleton
-
     _streams: Dict[object, Dict[Callable, BaseStreamer]]
 
     def __init__(self):

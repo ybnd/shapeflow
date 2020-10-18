@@ -9,7 +9,7 @@ from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, 
 
 import pandas as pd
 
-from shapeflow.endpoints import HistoryRegistry
+from shapeflow.api import HistoryRegistry
 from shapeflow.core import RootInstance
 from shapeflow.core.db import Base, DbModel, SessionWrapper, FileModel, BaseAnalysisModel
 from shapeflow import settings, get_logger, ResultSaveMode
@@ -497,14 +497,13 @@ class AnalysisModel(BaseAnalysisModel):
 class History(SessionWrapper, RootInstance):
     """Interface to the history database
     """
-    _endpoints: HistoryRegistry = history
+    _dispatcher: HistoryRegistry = history
     _instance_class = SessionWrapper
 
     _eventstreamer: EventStreamer
 
     def __init__(self, path: Path = None):
         super().__init__()
-        self._gather_instances()
 
         if path is None:
             path = settings.db.path
@@ -553,7 +552,7 @@ class History(SessionWrapper, RootInstance):
             return s.query(AnalysisModel).filter(AnalysisModel.id == id).\
                 first()
 
-    @history.expose(history.get_recent_paths)
+    # @historyxpose(history.get_recent_paths)
     def get_paths(self) -> Dict[str, List[str]]:
         """Fetch the latest video and design file paths from the
         database. Number of paths is limited by ``settings.app.recent_files``
@@ -568,7 +567,7 @@ class History(SessionWrapper, RootInstance):
                     limit(settings.app.recent_files).all()]
             }
 
-    @history.expose(history.get_result_list)
+    # @history.expose(history.get_result_list)
     def get_result_list(self, analysis: int) -> dict:
         with self.session() as s:
             runs = s.query(AnalysisModel).\
@@ -581,7 +580,7 @@ class History(SessionWrapper, RootInstance):
                 for run in range(1, runs+1)
             }
 
-    @history.expose(history.get_result)
+    # @history.expose(history.get_result)
     def get_result(self, analysis: int, run: int) -> dict:
         with self.session() as s:
             return {
@@ -591,7 +590,7 @@ class History(SessionWrapper, RootInstance):
                     filter(ResultModel.run == run)
             }
 
-    @history.expose(history.export_result)
+    # @history.expose(history.export_result)
     def export_result(self, analysis: int, run: int = None) -> bool:
         with self.session() as s:
             try:
@@ -654,7 +653,7 @@ class History(SessionWrapper, RootInstance):
         return all(ok)
 
 
-    @history.expose(history.clean)
+    # @history.expose(history.clean)
     def clean(self) -> None:
         """Clean the database
 
@@ -687,11 +686,11 @@ class History(SessionWrapper, RootInstance):
             for old in s.query(AnalysisModel).\
                     filter(AnalysisModel.modified < threshold):
                 s.query(ConfigModel). \
-                    filter(ConfigModel.analysis == old.id). \
+                    filter(ConfigModel.analysis == old.__id__). \
                     filter(ConfigModel.id != old.config).delete()
 
                 s.query(ResultModel). \
-                    filter(ResultModel.analysis == old.id). \
+                    filter(ResultModel.analysis == old.__id__). \
                     filter(ResultModel.id != old.results).delete()
 
             for f in unhashed:
@@ -699,7 +698,7 @@ class History(SessionWrapper, RootInstance):
                 f.resolve()
 
 
-    @history.expose(history.forget)
+    # @history.expose(history.forget)
     def forget(self) -> None:
         """Remove everything."""
         log.info(f"clearing history")

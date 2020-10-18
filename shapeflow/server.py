@@ -182,7 +182,7 @@ class ShapeflowServer(shapeflow.core.Lockable):
                 if rule.rule[:5] == '/api/'
             })
 
-        @app.route('/api/pid_hash', methods=['GET'])
+        @app.route('/api/pid_hash', methods=['GET'])  # todo: wh was this again?
         def get_pid_hash():
             import hashlib
             return hashlib.sha1(bytes(os.getpid())).hexdigest() + '\n'

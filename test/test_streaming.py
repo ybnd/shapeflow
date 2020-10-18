@@ -118,7 +118,7 @@ class StreamHandlerTest(unittest.TestCase):
         test_registry = TestRegistry()
 
         class StreamableClass(Instance, RootInstance):
-            _endpoints = test_registry
+            _dispatcher = test_registry
             _instance_class = Instance
             _config_class = BaseConfig
 
