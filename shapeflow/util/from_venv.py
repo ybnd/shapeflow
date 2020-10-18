@@ -11,9 +11,9 @@ import subprocess
 environment = '.venv'
 
 
-def from_venv():
+def from_venv(env):
     arguments = sys.argv[1:]  # pass the arguments on to a subprocess
-    command, shell = resolve(environment, os.path.basename(sys.executable))
+    command, shell = _resolve(env, os.path.basename(sys.executable))
 
     try:
         subprocess.check_call(
@@ -38,7 +38,7 @@ class _VenvCall(object):
     pythons = ['python3', 'python']
 
     def __init__(self, env: str, python: str):
-        self.environment = env
+        self.env = env
         self.python = python
 
     @property
@@ -47,14 +47,14 @@ class _VenvCall(object):
 
     @property
     def path(self) -> str:
-        return os.path.join(self.environment, self.subpath)
+        return os.path.join(self.env, self.subpath)
 
     def _executable(self, python: str) -> str:
         return os.path.join(self.path, python)
 
     def resolve(self) -> Tuple[List[str], bool]:
-        if not os.path.isdir(self.path) or len(os.listdir(self.path)) == 0:
-            raise EnvironmentError(f"Can't resolve virtual environment '{self.env}'")
+        if not os.path.isdir(self.path):
+            raise EnvironmentError(f"'{self.env}' does not exist")
 
         pythons = [self.python] + [p for p in self.pythons if p != self.python]
         executables = [self._executable(python) for python in pythons]
@@ -62,13 +62,15 @@ class _VenvCall(object):
             if os.path.isfile(executable):
                 return self.prepend + [executable], self.doshell
 
+        raise EnvironmentError(f"'{self.env}' is not a virtual environment")
+
 
 class _WindowsVenvCall(_VenvCall):
     subpath = 'Scripts'
     doshell = True
 
 
-def resolve(environment: str, python: str) -> Tuple[List[str], bool]:
+def _resolve(environment: str, python: str) -> Tuple[List[str], bool]:
     if os.name == 'nt':  # Windows
         return _WindowsVenvCall(environment, python).resolve()
     else:
@@ -77,6 +79,6 @@ def resolve(environment: str, python: str) -> Tuple[List[str], bool]:
 
 if __name__ == '__main__':
     if os.path.isdir(environment):
-        from_venv()
+        from_venv(environment)
     else:
         raise EnvironmentError(f"No virtual environment in '{environment}'.")
