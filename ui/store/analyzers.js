@@ -370,7 +370,7 @@ export const actions = {
             function (message) {
               dispatch("connection", { ok: ok });
 
-              console.log(message);
+              // console.log(message);
 
               try {
                 let event = JSON.parse(message.data);

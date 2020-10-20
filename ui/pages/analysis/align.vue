@@ -7,7 +7,7 @@
       <!--      </PageHeaderItem>-->
       <PageHeaderItem>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon align-clear"
           @click="handleClearAlignment"
           data-toggle="tooltip"
           title="Clear alignment"
@@ -15,7 +15,7 @@
           <i class="icon-ban" />
         </b-button>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon align-undo"
           @click="handleUndoAlignment"
           data-toggle="tooltip"
           title="Undo alignment"
@@ -24,7 +24,7 @@
           <i class="icon-action-undo" />
         </b-button>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon align-redo"
           @click="handleRedoAlignment"
           data-toggle="tooltip"
           title="Redo alignment"
@@ -36,7 +36,7 @@
       <PageHeaderSeek :id="id" :key="id" />
       <PageHeaderItem>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon align-fliph"
           @click="handleFlipH"
           data-toggle="tooltip"
           title="Flip horizontally"
@@ -44,7 +44,7 @@
           <i class="fa fa-arrows-h" />
         </b-button>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon align-flipv"
           @click="handleFlipV"
           data-toggle="tooltip"
           title="Flip vertically"
@@ -54,7 +54,7 @@
       </PageHeaderItem>
       <PageHeaderItem>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon align-turncw"
           @click="handleTurnCW"
           data-toggle="tooltip"
           title="Rotate 90° clockwise"
@@ -62,7 +62,7 @@
           <i class="fa fa-rotate-right" />
         </b-button>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon align-turnccw"
           @click="handleTurnCCW"
           data-toggle="tooltip"
           title="Rotate 90° counter-clockwise"
@@ -72,7 +72,7 @@
       </PageHeaderItem>
       <PageHeaderItem>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon align-bounds"
           @click="toggleBounds"
           :variant="enforceBounds ? null : 'danger'"
           data-toggle="tooltip"
@@ -168,6 +168,11 @@ export default {
     this.handleInit();
     window.addEventListener("resize", this.updateFrame);
   },
+  mounted() {
+    this.$refs.frame.onload = () => {
+      this.updateFrame();
+    };
+  },
   beforeDestroy() {
     this.handleSaveAlignment();
     this.handleCleanUp();
@@ -190,12 +195,11 @@ export default {
 
       // Check if this.id is queued. If not, navigate to /
       // if (this.$store.getters["analyzers/isValidId"](this.id) === false) {
-      if (this.$store.getters["analyzers/getIndex"](this.id) === -1) {
+      const index = this.$store.getters["analyzers/getIndex"](this.id)
+      if (index === -1) {
         this.$router.push(`/`);
       } else {
         this.$root.$emit(events.sidebar.open(this.id));
-
-        this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
 
         get_relative_roi(this.id).then((roi) => {
           this.setRoi(roi);
@@ -278,7 +282,7 @@ export default {
       this.align.roi = null;
       this.align.transform = null;
     },
-    resolveTransform() {
+    async resolveTransform() {
       // console.log("filter: resolveTransform()");
       // console.log("this.$refs.moveable = ");
       // console.log(this.$refs.moveable);
@@ -303,6 +307,7 @@ export default {
         // todo: sanity check transform
 
         if (this.$refs.moveable === undefined) {
+          console.warn('MOVEABLE IS UNDEFINED')  // todo: seems like this is never reached?
           this.waitUntilHasMoveable = setInterval(() => {
             // todo: try to do ~ Promise instead?
             if (this.$refs.moveable !== undefined) {
@@ -318,7 +323,7 @@ export default {
           this.$refs.moveable.$el.style.transform = this.align.transform;
           this.$refs.moveable.updateRect();
           this.$refs.moveable.updateTarget();
-          this.handleShowMoveable();
+          await this.handleShowMoveable();
         }
       } else {
       }
@@ -421,23 +426,6 @@ export default {
         }
       }
     },
-    updateFrameOnceHasRect() {
-      // todo: clean up
-      let frame_ok = false;
-      let overlay_ok = false;
-
-      try {
-        if (!(this.waitUntilHasRect === undefined)) {
-          if (this.$refs.frame.getBoundingClientRect()["width"] > 50) {
-            // console.log("HAS FRAME");
-            this.updateFrame();
-            clearInterval(this.waitUntilHasRect);
-          }
-        }
-      } catch (err) {
-        // console.log("oops @ updateFrameOnceHasRect");
-      }
-    },
     stepForward() {
       this.$root.$emit(events.seek.step_fw(this.id));
     },
@@ -456,7 +444,7 @@ export default {
             clearInterval(wait);
             resolve();
           } else {
-            // console.log("it doesn't seem to...");
+            console.log("it doesn't seem to...");
           }
         }, 5);
       });
@@ -489,7 +477,7 @@ export default {
           this.handleUpdate();
         }
       } else {
-        // console.log("align: handleStopRectangle() -- moveable is already shown!");
+        console.log("align: handleStopRectangle() -- moveable is already shown!");
       }
     },
   },
@@ -499,11 +487,6 @@ export default {
 
       this.handleCleanUp();
       this.handleInit();
-      this.updateFrame();
-    },
-    "$refs.moveable.$el"() {
-      console.warn("there was a change in $ref.moveable.data");
-      console.warn(this.$refs.moveable);
     },
   },
   computed: {
@@ -532,17 +515,11 @@ export default {
       return `moveable`;
     },
     report_change() {
-      const state = this.$store.getters["analyzers/getAnalyzerStatus"](this.id)
+      const state = this.$store.getters["analyzers/getAnalyzerStatus"](this.id)  // todo: this makes sure DOONE/ERROR/CANCELED state is cleared when the ROI is changed. this should be handled in the backend though.
         .state;
       return (
         state === ast.DONE || state === ast.ERROR || state === ast.CANCELED
       ); // todo: cleaner
-    },
-    transform_options() {
-      // console.log("transform_options computed property");
-      // console.log('this.$store.getters["schemas/getTransformOptions"]=');
-      // console.log(this.$store.getters["schemas/getTransformOptions"]);
-      return this.$store.getters["schemas/getTransformOptions"];
     },
     config() {
       const config = this.$store.getters["analyzers/getAnalyzerConfig"](

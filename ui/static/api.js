@@ -6,18 +6,18 @@ const CONFIG = {  // axios configuration
 
 require('axios-debug-log')({
   request: function (debug, config) {
-    console.log(`axios request: ${config.method} ${config.url}`)
+    // console.log(`axios request: ${config.method} ${config.url}`)
   },
   response: function (debug, response) {
-    console.log(`axios response: ${response.config.method} ${response.config.url} ${response.status} ${response.statusText}`)
+    // console.log(`axios response: ${response.config.method} ${response.config.url} ${response.status} ${response.statusText}`)
   },
   error: function (debug, error) {
     // Read https://www.npmjs.com/package/axios#handling-errors for more info
-    console.log(`axios error: ${error.config.method} ${error.config.url}`)
+    // console.log(`axios error: ${error.config.method} ${error.config.url}`)
     if (error.response !== undefined) {
-      console.log(`response: ${error.response.status} ${error.response.statusText}`)
+      // console.log(`response: ${error.response.status} ${error.response.statusText}`)
     } else {
-      console.log('no response')
+      // console.log('no response')
     }
   }
 })
