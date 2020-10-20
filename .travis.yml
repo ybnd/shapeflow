@@ -1,5 +1,9 @@
 # Cheated off of https://github.com/beetbox/beets/blob/master/.travis.yml
-matrix:
+dist: xenial
+os: linux
+language: python
+
+jobs:
   include:
     - language: python
       python: 3.7
@@ -12,7 +16,20 @@ matrix:
 
     - language: python
       python: 3.7
-      env: {TOX_ENV: py37-test}
+      env: {TOX_ENV: py37-cover}
+      before_install:
+        - travis_retry pip install codecov
+      install:
+        - travis_retry pip install tox
+        - travis_retry tox -e $TOX_ENV $SITE_PACKAGES --notest
+      script:
+        - tox -e $TOX_ENV $SITE_PACKAGES
+      after_success:
+        - codecov -F backend
+    
+        - language: python
+      python: 3.8
+      env: {TOX_ENV: py38-type}
       install:
         - travis_retry pip install tox
         - travis_retry tox -e $TOX_ENV $SITE_PACKAGES --notest
@@ -20,26 +37,64 @@ matrix:
         - tox -e $TOX_ENV $SITE_PACKAGES
 
     - language: python
-      python: 3.7
-      env: {TOX_ENV: py37-cover}
+      python: 3.8
+      env: {TOX_ENV: py38-cover}
       before_install:
         - travis_retry pip install codecov
+      install:
+        - travis_retry pip install tox
+        - travis_retry tox -e $TOX_ENV $SITE_PACKAGES --notest
+      script:
+        - tox -e $TOX_ENV $SITE_PACKAGES
       after_success:
-        - codecov
+        - codecov -F backend
+        
+    - language: python
+      python: 3.9
+      env: {TOX_ENV: py39-type}
       install:
         - travis_retry pip install tox
         - travis_retry tox -e $TOX_ENV $SITE_PACKAGES --notest
       script:
         - tox -e $TOX_ENV $SITE_PACKAGES
 
-#    # https://medium.com/faun/configuring-travis-ci-for-angular-application-34afee1715f
-#    - language: node_js   # https://stackoverflow.com/questions/27644586/
-#      node_js: 12
-#      cache:
-#        directories:
-#          - ./node_modules
-#      install:
-#        - cd ui && npm install
-#      script:
-#        - ng lint
-#        - npm run test-headless
+    - language: python
+      python: 3.9
+      env: {TOX_ENV: py39-cover}
+      before_install:
+        - travis_retry pip install codecov
+      install:
+        - travis_retry pip install tox
+        - travis_retry tox -e $TOX_ENV $SITE_PACKAGES --notest
+      script:
+        - tox -e $TOX_ENV $SITE_PACKAGES
+      after_success:
+        - codecov -F backend
+
+    - language: node_js   # https://stackoverflow.com/questions/27644586/
+      node_js: 14
+      env:
+        - PATH=/opt/python/3.7.1/bin:$PATH
+      addons:
+        apt:
+          packages:  # should help with `npm install canvas` ~ https://github.com/Automattic/node-canvas/issues/585
+            - libgif-dev
+            - libpng-dev
+            - libpango1.0-dev
+            - libjpeg8-dev
+            - librsvg2-dev
+            - libcairo2-dev
+      cache:
+        directories:
+          - ./ui/node_modules
+      before_install:
+        - python3 -V
+        - python3 -m pip install -r requirements.txt
+#        - python3 shapeflow.py --server &disown && sleep 5 && netstat -ln && sleep 5 && curl http://127.0.0.1:7951/api/ping
+#        - pkill -f "python3 shapeflow"   # check whether shapeflow.py runs properly on TravisCI
+      install:
+        - cd ui && npm install
+      script:
+        - npm run test
+      after_success:
+        - bash <(curl -s https://codecov.io/bash) -cF frontend
