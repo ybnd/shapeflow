@@ -136,22 +136,6 @@ class Endpoint(object):
         self._signature = signature
         self._streaming = streaming
 
-    def invoke(self, *args, __instance__: object = None, **kwargs):
-        # todo: endpoints should keep a reference to the method that exposes them
-        # todo: on a call, endpoints should call this method
-        # todo: if an instance is passed, they should first bind the method to that instance
-
-        # todo: endpoints should complain when registered more than once
-        # todo: endpoints should complain when exposed more than once
-        # todo: there should be a way to complain if the given instance doesn't define the exposed method
-
-        # todo: it would be better to build up a dictionary of addresses in the root dispatcher as
-        if __instance__ is not None:
-            method = bind(self._method, __instance__)
-            method(*args, **kwargs)
-        else:
-            self._method(*args, **kwargs)
-
     def compatible(self, method: Callable) -> bool:
         if hasattr(method, '__annotations__'):
             args: List = []
@@ -208,12 +192,6 @@ class Endpoint(object):
     @property
     def name(self):
         return self._name
-
-    def add(self, method):
-        if not self.compatible(method):
-            log.warning(f"Method '{method.__qualname__}' "
-                             f"is incompatible with endpoint '{self.name}'. \n"
-                             f"{method.__annotations__} vs. {self.signature}")
 
     def register(self, name: str, callback: Callable[['Endpoint'], None]):
         self._registered = True
@@ -284,7 +262,7 @@ class Dispatcher(object):  # todo: these should also register specific instances
             pass
 
     def _update_dispatcher(self, dispatcher: 'Dispatcher') -> None:
-        self._address_space.update({
+        self._address_space.update({  # todo: this doesn't take into account deleted keys!
             "/".join([dispatcher.name, address]): method
             for address, method in dispatcher.address_space.items()
             if method is not None and "__" not in address

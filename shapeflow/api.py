@@ -77,36 +77,8 @@ class VideoAnalyzerManagerDispatcher(Dispatcher):
 
     __analyzers__: Dict[str, object] = {}  # todo: analyzer manager should register analyzers with api.va on init
 
-    def _update_endpoint(self, endpoint: Endpoint) -> None:
-        self._address_space.update({
-            endpoint.name: endpoint.method
-        })
-        try:
-            self._update(self)
-        except AttributeError:
-            pass
-
-    def _update_dispatcher(self, dispatcher: 'Dispatcher') -> None:
-        self._address_space.update({
-            "/".join([dispatcher.name, address]): method
-            for address, method in dispatcher.address_space.items()
-            if method is not None and "__" not in address
-        })
-        self._address_space.update({
-            "/".join([id, address]): bind(instance, method)
-            for id, instance in self.__analyzers__.items()
-            for address, method in self.__id__.address_space.items()
-            if method is not None and "__" not in address
-        })
-        try:
-            self._update(self)
-        except AttributeError:
-            pass
-
     def add(self, analyzer: object) -> str:
-        LENGTH = 4  # the alphabet used in shortuuid is 57 chars long.
-                    # 4 chars can define ~10M unique strings,
-                    # which should be more than enough
+        LENGTH = 6
         id = shortuuid.ShortUUID().random(length=LENGTH)
 
         # ensure that there's no collisions
@@ -124,9 +96,8 @@ class VideoAnalyzerManagerDispatcher(Dispatcher):
 
     def remove(self, id: str):
         del self.__analyzers__[id]
-        for k,v in self._address_space:  # todo: this is a bit lame
-            if id in k:
-                del self._address_space[k]
+        for k in filter(lambda k: id in k, list(self._address_space.keys())):  # todo: this is a bit lame
+            del self._address_space[k]
         self._update(self)
 
 
