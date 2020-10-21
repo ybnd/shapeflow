@@ -22,7 +22,7 @@ import SchemaForm from "../../components/config/SchemaForm";
 
 import cloneDeep from "lodash/cloneDeep";
 import { throttle, debounce } from "throttle-debounce";
-import { events } from "../../static/events";
+import { events } from "../../src/events";
 
 export default {
   name: "ConfigSidebar",

@@ -1,6 +1,6 @@
 import {createLocalVue, shallowMount} from "@vue/test-utils";
-import {events} from "../../../static/events";
-import {waitSync} from "../../../static/shapeflow";
+import {events} from "../../../src/events";
+import {waitSync} from "../../../src/shapeflow";
 import flushPromises from "flush-promises";
 import axios from 'axios';
 import VueRouter from "vue-router";

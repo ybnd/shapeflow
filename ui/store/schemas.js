@@ -1,9 +1,9 @@
 import Vue from "vue";
 import axios from "axios";
-import { AnalyzerState, get_schemas } from "../static/api";
+import { AnalyzerState, get_schemas } from "../src/api";
 import assert from "assert";
 
-import { get_reference, dereference } from "../static/util";
+import { get_reference, dereference } from "../src/util";
 
 import isEmpty from "lodash/isEmpty";
 import isEqual from "lodash/isEqual";

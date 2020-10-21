@@ -51,8 +51,8 @@
 </template>
 
 <script>
-import { get_log, stop_log } from "../static/api";
-import {splitlines} from "../static/util";
+import { get_log, stop_log } from "../src/api";
+import {splitlines} from "../src/util";
 import { debounce, throttle } from "throttle-debounce";
 import PageHeader from "../components/header/PageHeader";
 import PageHeaderItem from "../components/header/PageHeaderItem";

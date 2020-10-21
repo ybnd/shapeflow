@@ -9,12 +9,12 @@ import PageHeaderItem from "../../../components/header/PageHeaderItem";
 
 import {
   AnalyzerState
-} from "../../../static/api";
+} from "../../../src/api";
 import Vuex from "vuex";
 import VueRouter from "vue-router";
 import flushPromises from "flush-promises";
 import align from "../align";
-import {uuidv4} from "../../../static/util";
+import {uuidv4} from "../../../src/util";
 import {cloneDeep} from 'lodash';
 import PageHeaderSeek from "../../../components/header/PageHeaderSeek";
 

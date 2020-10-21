@@ -54,8 +54,8 @@
 
 <script>
 import ResultChart from "../../components/results/ResultChart";
-import { events } from "../../static/events";
-import { seconds2timestr } from "../../static/util";
+import { events } from "../../src/events";
+import { seconds2timestr } from "../../src/util";
 
 export default {
   name: "ResultChartStack",
@@ -110,7 +110,7 @@ export default {
       );
     },
     result() {
-      let formatted_results = {};  // todo: should be in static/results.js
+      let formatted_results = {};  // todo: should be in src/results.js
 
       for (const feature of Object.keys(this.raw_result)) {
         // console.log(`feature = ${feature}`);

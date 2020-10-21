@@ -3,7 +3,7 @@ import {afterEach, beforeAll, beforeEach, describe, test} from "@jest/globals";
 import {isEmpty, clone} from 'lodash';
 
 import Vuex from "vuex";
-import {retryOnce} from "../../../static/util";
+import {retryOnce} from "../../../src/util";
 import {readFileSync} from "fs";
 import {
   BButton,
@@ -23,10 +23,10 @@ import {
 
 import BasicConfig from "../BasicConfig";
 import SchemaField from "../SchemaField";
-import {killServer, startServer} from "../../../static/shapeflow";
-import {axios, get_schemas, api} from "../../../static/api";
+import {killServer, startServer} from "../../../src/shapeflow";
+import {axios, get_schemas, api} from "../../../src/api";
 import flushPromises from "flush-promises";
-import {COMMIT} from "../../../static/events";
+import {COMMIT} from "../../../src/events";
 
 
 var localVue;

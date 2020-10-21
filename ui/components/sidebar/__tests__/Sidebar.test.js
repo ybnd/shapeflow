@@ -13,11 +13,11 @@ import BasicConfig from "../../config/BasicConfig";
 import SidebarFooter from "../SidebarFooter";
 import { BPopover, BProgress } from "bootstrap-vue";
 import Waiting from "../Waiting";
-import {uuidv4} from "../../../static/util";
+import {uuidv4} from "../../../src/util";
 import Vuex from "vuex";
 import VueRouter from "vue-router";
-import {AnalyzerState} from "../../../static/api";
-import {events} from "../../../static/events";
+import {AnalyzerState} from "../../../src/api";
+import {events} from "../../../src/events";
 import flushPromises from "flush-promises";
 import { shuffle } from 'lodash'
 

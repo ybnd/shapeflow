@@ -1,9 +1,9 @@
 import {getters, mutations, actions, state, LOAD_INTERVAL, MAX_TIME_WITHOUT_CONTACT, SYNC_INTERVAL} from '../analyzers'
-import {NOTICE_LIMIT, QueueState, api} from "../../static/api";
-import {uuidv4} from "../../static/util";
+import {NOTICE_LIMIT, QueueState, api} from "../../src/api";
+import {uuidv4} from "../../src/util";
 import axios from 'axios';
 import {beforeEach, describe, test} from "@jest/globals";
-import {waitSync} from "../../static/shapeflow";
+import {waitSync} from "../../src/shapeflow";
 import {createLocalVue} from "@vue/test-utils";
 import Vuex from "vuex";
 import EventSource from 'eventsourcemock';

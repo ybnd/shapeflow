@@ -44,7 +44,7 @@ import SchemaForm from "../components/config/SchemaForm";
 
 import cloneDeep from "lodash/cloneDeep";
 
-import { clear_cache, clear_db, get_cache_size, get_db_size, open_root } from "../static/api";
+import { clear_cache, clear_db, get_cache_size, get_db_size, open_root } from "../src/api";
 
 export default {
   name: "dashboard",

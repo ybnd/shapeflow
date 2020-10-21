@@ -4,9 +4,9 @@ import {afterEach, beforeEach, test} from "@jest/globals";
 import {getters, mutations} from '../../../store/analyzers';
 
 import Vuex from "vuex";
-import {uuidv4} from "../../../static/util";
+import {uuidv4} from "../../../src/util";
 import ConfigSidebar from "../ConfigSidebar";
-import {COMMIT} from "../../../static/events";
+import {COMMIT} from "../../../src/events";
 import flushPromises from "flush-promises";
 
 const ID = uuidv4();

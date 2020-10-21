@@ -6,8 +6,8 @@ import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
 
 import log from '../log';
-import {splitlines} from "../../static/util";
-import {waitSync} from "../../static/shapeflow";
+import {splitlines} from "../../src/util";
+import {waitSync} from "../../src/shapeflow";
 
 
 const LOG = 'example log line\nand another line\nand ANOTHER line again\nand so on\n';

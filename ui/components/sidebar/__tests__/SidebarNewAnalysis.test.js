@@ -3,7 +3,7 @@ import {afterEach, beforeEach, describe, test} from "@jest/globals";
 
 import SidebarNewAnalysis from "../SidebarNewAnalysis";
 import BasicConfig from "../../config/BasicConfig";
-import {bPopoverJsDomHack, createContainer, uuidv4} from "../../../static/util";
+import {bPopoverJsDomHack, createContainer, uuidv4} from "../../../src/util";
 import {BButton, BPopover} from "bootstrap-vue";
 import Vuex from "vuex";
 import flushPromises from "flush-promises";

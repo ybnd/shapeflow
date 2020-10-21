@@ -33,7 +33,7 @@
 </template>
 
 <script>
-import { COMMIT, ENTER_FOCUSOUT_INTERVAL } from "../../static/events";
+import { COMMIT, ENTER_FOCUSOUT_INTERVAL } from "../../src/events";
 
 const types = {
   ENUM: "enum",

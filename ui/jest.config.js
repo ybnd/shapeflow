@@ -4,7 +4,6 @@ module.exports = {
   // tell Jest to handle `*.vue` files
   moduleFileExtensions: [
     "js",
-    "json",
     "vue"
   ],
   watchman: false,
@@ -26,7 +25,7 @@ module.exports = {
     "<rootDir>/layouts/*.vue",
     "<rootDir>/pages/*.vue",
     "<rootDir>/pages/**/*.vue",
-    "<rootDir>/static/*.js",
+    "<rootDir>/src/*.js",
     "<rootDir>/store/*.js"
   ],
   testEnvironment: "jsdom",

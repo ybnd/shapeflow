@@ -64,7 +64,7 @@ test('mount', () => {
 });
 
 test('ResultChart.labelCallback()', () => {
-  const TOOLTIPITEM = {  // todo: should be in static/__tests__/results.test.js
+  const TOOLTIPITEM = {  // todo: should be in src/__tests__/results.test.js
     xLabel: 153.5,
     yLabel: 35.313579,
     datasetIndex: 3,

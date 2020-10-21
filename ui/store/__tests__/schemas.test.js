@@ -1,14 +1,14 @@
 import {mutations, getters, actions, state} from '../schemas'
-import {get_schemas, quit, ping} from '../../static/api'
+import {get_schemas, quit, ping} from '../../src/api'
 
-import {startServer, killServer} from "../../static/shapeflow";
+import {startServer, killServer} from "../../src/shapeflow";
 
 import {exec, execSync, spawn, spawnSync} from 'child_process';
 import {test, describe, beforeEach, afterEach, beforeAll, afterAll} from "@jest/globals";
 
 import {createLocalVue} from "@vue/test-utils";
 import Vuex from 'vuex';
-import {retryOnce} from "../../static/util";
+import {retryOnce} from "../../src/util";
 
 var SCHEMAS = undefined;
 

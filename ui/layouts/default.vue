@@ -23,7 +23,7 @@
 <script>
 import { Sidebar } from "~/components/";
 import NoticeBox from "@/components/notice/NoticeBox";
-import { unload } from "../static/api";
+import { unload } from "../src/api";
 
 export default {
   name: "default-layout",

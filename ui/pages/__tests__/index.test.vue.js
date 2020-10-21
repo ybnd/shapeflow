@@ -3,12 +3,12 @@ import {afterEach, beforeEach, describe, test} from "@jest/globals";
 import {cloneDeep} from 'lodash';
 
 import Vuex from "vuex";
-import {bPopoverJsDomHack, uuidv4} from "../../static/util";
+import {bPopoverJsDomHack, uuidv4} from "../../src/util";
 import {BButton, BPopover,} from "bootstrap-vue";
 import index from "../index";
 import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
-import {AnalyzerState, QueueState} from "../../static/api";
+import {AnalyzerState, QueueState} from "../../src/api";
 import flushPromises from "flush-promises";
 
 

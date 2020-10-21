@@ -16,8 +16,8 @@ import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
 
 import settings from '../settings';
-import {retryOnce} from "../../static/util";
-import {get_schemas, get_settings, clear_cache, clear_db, get_cache_size, open_root} from "../../static/api";
+import {retryOnce} from "../../src/util";
+import {get_schemas, get_settings, clear_cache, clear_db, get_cache_size, open_root} from "../../src/api";
 import Vuex from "vuex";
 import flushPromises from "flush-promises";
 

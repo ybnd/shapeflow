@@ -1,5 +1,5 @@
 import {mutations, getters, actions, state} from '../settings'
-import {api, axios} from '../../static/api'
+import {api, axios} from '../../src/api'
 
 import testAction from 'vue-test-actions';
 import {test, describe, beforeEach} from "@jest/globals";

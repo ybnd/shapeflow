@@ -112,7 +112,7 @@
 import SchemaField from "./SchemaField";
 import set from "lodash/set";
 
-import { COMMIT } from "../../static/events";
+import { COMMIT } from "../../src/events";
 
 const def = {
   COO: "#/definitions/Coo",

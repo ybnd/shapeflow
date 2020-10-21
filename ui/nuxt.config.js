@@ -131,7 +131,7 @@ module.exports = {
     },
     plugins: [
       // new BundleAnalyzerPlugin({
-      //   analyzerMode: "static",
+      //   analyzerMode: "src",
       //   generateStatsFile: true,
       //   openAnalyzer: true,
       //   logLevel: "info",

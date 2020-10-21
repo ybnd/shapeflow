@@ -4,7 +4,7 @@ import {describe, test} from "@jest/globals";
 import {BFormCheckbox, BFormInput, BFormRow, BFormSelect} from "bootstrap-vue";
 
 import SchemaField from "../SchemaField";
-import {COMMIT} from "../../../static/events";
+import {COMMIT} from "../../../src/events";
 
 const CLASS_ = 'dummy-class';
 const TITLE = 'test-field';

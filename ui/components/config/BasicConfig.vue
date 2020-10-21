@@ -201,7 +201,7 @@ import {
   check_video_path,
   resolve_paths,
   get_recent_paths,
-} from "../../static/api";
+} from "../../src/api";
 
 import AsyncComputed from "vue-async-computed";
 import Vue from "vue";
@@ -209,7 +209,7 @@ import SchemaField from "@/components/config/SchemaField";
 
 import has from "lodash/has";
 import cloneDeep from "lodash/cloneDeep";
-import { COMMIT, ENTER_FOCUSOUT_INTERVAL } from "../../static/events";
+import { COMMIT, ENTER_FOCUSOUT_INTERVAL } from "../../src/events";
 
 Vue.use(AsyncComputed);
 

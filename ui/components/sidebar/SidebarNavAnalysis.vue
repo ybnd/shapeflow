@@ -108,9 +108,9 @@ import {
   close,
   cancel,
   AnalyzerState,
-} from "../../static/api";
+} from "../../src/api";
 
-import { events } from "../../static/events";
+import { events } from "../../src/events";
 
 // todo: should do color/icon resolution in a separate .js module, should be shared with e.g. dashboard
 export default {

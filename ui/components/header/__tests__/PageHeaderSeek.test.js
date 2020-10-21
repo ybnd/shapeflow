@@ -7,9 +7,9 @@ import axios from 'axios';
 jest.mock('axios');
 
 import {test, describe, beforeEach, afterEach} from "@jest/globals";
-import {uuidv4} from "../../../static/util";
-import {waitSync} from "../../../static/shapeflow";
-import {events} from "../../../static/events";
+import {uuidv4} from "../../../src/util";
+import {waitSync} from "../../../src/shapeflow";
+import {events} from "../../../src/events";
 
 
 const ID = uuidv4();

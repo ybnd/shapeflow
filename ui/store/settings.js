@@ -1,5 +1,5 @@
 import Vue from "vue";
-import { get_settings, set_settings, settings_schema } from "../static/api";
+import { get_settings, set_settings, settings_schema } from "../src/api";
 import cloneDeep from "lodash/cloneDeep";
 
 import assert from "assert";

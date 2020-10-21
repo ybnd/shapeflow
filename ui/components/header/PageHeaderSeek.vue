@@ -21,9 +21,9 @@
 </template>
 
 <script>
-import { seek, get_total_time, get_seek_position } from "../../static/api";
-import { events } from "../../static/events";
-import { seconds2timestr } from "../../static/util";
+import { seek, get_total_time, get_seek_position } from "../../src/api";
+import { events } from "../../src/events";
+import { seconds2timestr } from "../../src/util";
 
 import VueSlider from "vue-slider-component";
 import PageHeaderItem from "./PageHeaderItem";

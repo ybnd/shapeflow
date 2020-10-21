@@ -1,8 +1,8 @@
 <script>
 import { Scatter, mixins } from "vue-chartjs";
-import { seconds2timestr } from "../../static/util";
+import { seconds2timestr } from "../../src/util";
 
-export function labelCallback (tooltipItem, data) {  // todo: should be in static/results.js
+export function labelCallback (tooltipItem, data) {  // todo: should be in src/results.js
   // https://www.chartjs.org/docs/latest/configuration/tooltip.html
   var label = data.datasets[tooltipItem.datasetIndex].label || "";
 

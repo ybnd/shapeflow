@@ -139,7 +139,7 @@ import {
   state_transition,
   flip_h,
   flip_v,
-} from "../../static/api";
+} from "../../src/api";
 import Moveable from "vue-moveable";
 import {
   roiRectInfoToRelativeCoordinates,
@@ -147,9 +147,8 @@ import {
   roiIsValid,
   getInitialTransform,
   dragEventToRelativeRectangle,
-} from "../../static/coordinates";
-import {delay} from '../../static/util';
-import { events } from "../../static/events";
+} from "../../src/coordinates";
+import { events } from "../../src/events";
 
 import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";

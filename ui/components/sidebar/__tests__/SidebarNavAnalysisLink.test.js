@@ -5,8 +5,8 @@ import SidebarNavAnalysisLink from "../SidebarNavAnalysisLink";
 
 import axios from 'axios';
 import VueRouter from "vue-router";
-import {events} from "../../../static/events";
-import {bPopoverJsDomHack, createContainer, uuidv4} from "../../../static/util";
+import {events} from "../../../src/events";
+import {bPopoverJsDomHack, createContainer, uuidv4} from "../../../src/util";
 import {BButton, BPopover} from "bootstrap-vue";
 
 

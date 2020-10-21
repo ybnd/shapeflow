@@ -5,11 +5,11 @@ import {getters, mutations, state} from '../../../store/analyzers'
 import SidebarNavAnalysis from "../SidebarNavAnalysis";
 import SidebarNavAnalysisLink from "../SidebarNavAnalysisLink";
 import Waiting from "../Waiting";
-import {uuidv4} from "../../../static/util";
+import {uuidv4} from "../../../src/util";
 import Vuex from "vuex";
 import {BProgress} from "bootstrap-vue";
-import {AnalyzerState} from "../../../static/api";
-import {events} from "../../../static/events";
+import {AnalyzerState} from "../../../src/api";
+import {events} from "../../../src/events";
 import axios from 'axios';
 import flushPromises from "flush-promises";
 

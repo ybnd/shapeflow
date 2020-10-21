@@ -33,7 +33,7 @@ import SidebarNavLink from "./SidebarNavLink";
 
 import draggable from "vuedraggable";
 
-import { events } from "../../static/events";
+import { events } from "../../src/events";
 
 export default {
   name: "sidebar",

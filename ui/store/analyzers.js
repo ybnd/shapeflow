@@ -14,9 +14,9 @@ import {
   close_events,
   q_start,
   q_stop,
-} from "../static/api";
+} from "../src/api";
 
-import { uuidv4 } from "../static/util";
+import { uuidv4 } from "../src/util";
 
 import assert from "assert";
 

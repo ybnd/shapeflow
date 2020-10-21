@@ -133,7 +133,7 @@ import get from "lodash/get";
 import set from "lodash/set";
 import isEmpty from "lodash/isEmpty";
 import pointer from "json-pointer";
-import { COMMIT } from "../../static/events";
+import { COMMIT } from "../../src/events";
 
 export default {
   name: "SchemaForm",

@@ -6,10 +6,10 @@ import {BFormCheckbox, BFormGroup, BFormInput, BFormRow, BFormSelect, BInputGrou
 import SchemaCategory from "../SchemaCategory";
 import SchemaDefinition from "../SchemaDefinition";
 import SchemaField from "../SchemaField";
-import {COMMIT} from "../../../static/events";
-import {startServer, killServer} from "../../../static/shapeflow";
-import {get_schemas, get_settings, normalize_config} from "../../../static/api";
-import {retryOnce} from '../../../static/util';
+import {COMMIT} from "../../../src/events";
+import {startServer, killServer} from "../../../src/shapeflow";
+import {get_schemas, get_settings, normalize_config} from "../../../src/api";
+import {retryOnce} from '../../../src/util';
 import { readFileSync } from "fs";
 import SchemaForm from "../SchemaForm";
 

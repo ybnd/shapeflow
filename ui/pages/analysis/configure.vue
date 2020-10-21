@@ -130,9 +130,9 @@ import PageHeaderItem from "../../components/header/PageHeaderItem";
 import BasicConfig from "../../components/config/BasicConfig";
 import SchemaForm from "../../components/config/SchemaForm";
 
-import { undo_config, redo_config } from "../../static/api";
+import { undo_config, redo_config } from "../../src/api";
 
-import { events, ENTER_FOCUSOUT_INTERVAL, COMMIT } from "../../static/events";
+import { events, ENTER_FOCUSOUT_INTERVAL, COMMIT } from "../../src/events";
 
 import cloneDeep from "lodash/cloneDeep";
 
