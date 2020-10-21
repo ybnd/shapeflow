@@ -16,6 +16,7 @@ import flushPromises from "flush-promises";
 import align from "../align";
 import {uuidv4} from "../../../static/util";
 import {cloneDeep} from 'lodash';
+import PageHeaderSeek from "../../../components/header/PageHeaderSeek";
 
 const ID = uuidv4();
 const CONFIG = {
@@ -79,7 +80,7 @@ beforeEach(() => {
   axios.get.mockResolvedValue({ status: 200, data: undefined })
   axios.put.mockResolvedValue({ status: 200, data: undefined })
   axios.post.mockResolvedValue({ status: 200, data: undefined });
-})
+});
 
 afterEach(() => {
   jest.clearAllTimers();
@@ -118,6 +119,7 @@ test('mount & destroy', async () => {
   // there is a header with some items & buttons
   expect(w.findAllComponents(PageHeader).wrappers.length).toBe(1);
   expect(w.findAllComponents(PageHeaderItem).wrappers.length).toBeGreaterThan(1);
+  expect(w.findAllComponents(PageHeaderSeek).wrappers.length).toBe(1);
   expect(w.find('.align-clear').exists()).toBeTruthy();
   expect(w.find('.align-undo').exists()).toBeTruthy();
   expect(w.find('.align-redo').exists()).toBeTruthy();
@@ -145,7 +147,7 @@ test('mount & destroy', async () => {
   expect(axios.post).toHaveBeenCalledWith(`/api/stream/${ID}/get_inverse_overlaid_frame/stop`, {}, {})
 });
 
-test.todo('move to a different id')
+test.todo('move to a different id');
 
 test('streamed frame comes through', async () => {
   const updateFrame = jest.spyOn(align.methods, 'updateFrame')
@@ -342,7 +344,7 @@ describe('with frame & roi', () => {
       await w.find('.align-undo').trigger('click');
       await flushPromises();
 
-      expect(axios.put).toHaveBeenCalledWith(`/api/${ID}/call/undo_config`, expect.anything(), expect.anything());
+      expect(axios.put).toHaveBeenCalledWith(`/api/${ID}/call/undo_config`, { context: 'transform' }, expect.anything());
       expect(w.vm.$data.align.roi).toBe(ROI);
     });
 
@@ -356,7 +358,7 @@ describe('with frame & roi', () => {
       await w.find('.align-redo').trigger('click');
       await flushPromises();
 
-      expect(axios.put).toHaveBeenCalledWith(`/api/${ID}/call/redo_config`, expect.anything(), expect.anything());
+      expect(axios.put).toHaveBeenCalledWith(`/api/${ID}/call/redo_config`, { context: 'transform' }, expect.anything());
       expect(w.vm.$data.align.roi).toBe(ROI);
     });
 

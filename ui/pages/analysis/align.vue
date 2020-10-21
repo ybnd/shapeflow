@@ -148,6 +148,7 @@ import {
   getInitialTransform,
   dragEventToRelativeRectangle,
 } from "../../static/coordinates";
+import {delay} from '../../static/util';
 import { events } from "../../static/events";
 
 import PageHeader from "../../components/header/PageHeader";
@@ -169,9 +170,7 @@ export default {
     window.addEventListener("resize", this.updateFrame);
   },
   mounted() {
-    this.$refs.frame.onload = () => {
-      this.updateFrame();
-    };
+    this.$refs.frame.addEventListener('load', this.updateFrame);
   },
   beforeDestroy() {
     this.handleSaveAlignment();
@@ -193,6 +192,16 @@ export default {
 
       this.opened_at = Date.now();
 
+      const waitUntilHasFrame = setInterval(() => {
+        try {
+          console.log('waiting...')
+          this.$refs.frame.addEventListener('load', this.updateFrame);
+          clearInterval(waitUntilHasFrame);  // todo: this doesn't work!
+        } catch(e) {
+          // pass
+        }
+      }, 10);
+
       // Check if this.id is queued. If not, navigate to /
       // if (this.$store.getters["analyzers/isValidId"](this.id) === false) {
       const index = this.$store.getters["analyzers/getIndex"](this.id)
@@ -209,9 +218,10 @@ export default {
     handleCleanUp() {
       // console.log("align: handleCleanUp()");
 
+      if (this.$refs.frame !== undefined) {
+        this.$refs.frame.removeEventListener('load', this.updateFrame);
+      }
       stop_stream(this.previous_id, endpoints.GET_INVERSE_OVERLAID_FRAME);
-
-      clearInterval(this.waitUntilHasRect);
 
       // this.$store.commit("align/clearAlign", { id: this.previous_id });
       this.align = {
