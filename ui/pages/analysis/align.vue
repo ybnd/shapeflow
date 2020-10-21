@@ -245,7 +245,6 @@ export default {
           clear_roi(this.id).then((ok) => {
             if (ok) {
               this.clearRoi();
-              // this.handleUpdate();
             }
           });
         }
@@ -316,18 +315,7 @@ export default {
         // todo: sanity check transform
 
         if (this.$refs.moveable === undefined) {
-          console.warn('MOVEABLE IS UNDEFINED')  // todo: seems like this is never reached?
-          this.waitUntilHasMoveable = setInterval(() => {
-            // todo: try to do ~ Promise instead?
-            if (this.$refs.moveable !== undefined) {
-              this.$refs.moveable.$el.style.transform = this.align.transform;
-              this.$refs.moveable.updateRect();
-              this.$refs.moveable.updateTarget();
-              clearInterval(this.waitUntilHasMoveable);
-            } else {
-              // console.log("oops no moveable");
-            }
-          }, 50);
+          console.warn('MOVEABLE IS UNDEFINED')  // todo: seems like this is never reached anyway?
         } else {
           this.$refs.moveable.$el.style.transform = this.align.transform;
           this.$refs.moveable.updateRect();
