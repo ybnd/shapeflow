@@ -4,7 +4,7 @@
     <PageHeader>
       <PageHeaderItem>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon filter-clear"
           @click="handleClearFilters"
           data-toggle="tooltip"
           title="Clear filters"
@@ -12,7 +12,7 @@
           <i class="icon-ban" />
         </b-button>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon filter-undo"
           @click="handleUndoFilters"
           data-toggle="tooltip"
           title="Undo alignment"
@@ -21,7 +21,7 @@
           <i class="icon-action-undo" />
         </b-button>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon filter-redo"
           @click="handleRedoFilters"
           data-toggle="tooltip"
           title="Redo alignment"
@@ -33,8 +33,8 @@
       <PageHeaderSeek :id="id" :key="id" />
       <PageHeaderItem>
         <b-button
-          class="header-button-icon"
-          @click="handleHideConfigSidebar"
+          class="header-button-icon filter-toggle-sidebar"
+          @click="handleToggleConfigSidebar"
           data-toggle="tooltip"
           title="Toggle configuration sidebar"
         >
@@ -43,7 +43,7 @@
       </PageHeaderItem>
       <PageHeaderItem>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon filter-toggle-frame"
           :variant="hideVideoFrame ? 'danger' : null"
           data-toggle="tooltip"
           :title="hideVideoFrame ? 'Show video frame' : 'Hide video frame'"
@@ -53,7 +53,7 @@
           <i class="icon-film" />
         </b-button>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon filter-toggle-state"
           :variant="hideStateFrame ? 'danger' : null"
           data-toggle="tooltip"
           :title="hideStateFrame ? 'Show state frame' : 'Hide state frame'"
@@ -63,7 +63,7 @@
           <i class="icon-layers" />
         </b-button>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon filter-toggle-overlay"
           :variant="hideOverlay ? 'danger' : null"
           data-toggle="tooltip"
           :title="hideStateFrame ? 'Show overlay' : 'Hide overlay'"
@@ -102,7 +102,7 @@
           :class="
             hideConfigSidebar ? 'streamed-image-f' : 'streamed-image-f with-cs'
           "
-          :ref="ref_frame"
+          ref="frame"
         />
         <img
           v-if="!hideOverlay"
@@ -146,6 +146,7 @@ import { clickEventToRelativeCoordinate } from "../../static/coordinates";
 import cloneDeep from "lodash/cloneDeep";
 import Vue from "vue";
 import AsyncComputed from "vue-async-computed";
+import {delay} from "../../static/util";
 
 Vue.use(AsyncComputed);
 
@@ -154,6 +155,10 @@ export default {
   beforeMount() {
     this.handleInit();
     window.addEventListener("resize", this.updateFrame);
+  },
+  mounted() {
+    this.$refs.frame.addEventListener('load', this.updateFrame);
+    this.$refs.frame.addEventListener('resize', this.updateFrame);
   },
   beforeDestroy() {
     this.handleCleanUp();
@@ -174,106 +179,43 @@ export default {
       this.opened_at = Date.now();
 
       // Check if this.id is queued. If not, navigate to /
-      // if (this.$store.getters["analyzers/isValidId"](this.id) === false) {
+      console.log(this.id)
+      const index = this.$store.getters["analyzers/getIndex"](this.id)
       if (this.$store.getters["analyzers/getIndex"](this.id) === -1) {
         this.$router.push(`/`);
       } else {
         this.$root.$emit(events.sidebar.open(this.id));
-
-        this.$store.dispatch("analyzers/get_config", { id: this.id });
-
-        this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
-        this.waitForMasks = setInterval(this.getMasks, 100);
-        this.waitForFeatures = setInterval(this.getFeatures, 100);
+        // this.$store.dispatch("analyzers/get_config", { id: this.id });  // todo: don't think this should be necessary
       }
     },
     handleCleanUp() {
       // console.log("filter: handleCleanUp()");
-
+      if (this.$refs.frame !== undefined){
+        this.$refs.frame.removeEventListener('load', this.updateFrame);
+        this.$refs.frame.removeEventListener('resize', this.updateFrame);
+      }
       stop_stream(this.previous_id, endpoints.GET_FRAME);
       stop_stream(this.previous_id, endpoints.GET_STATE_FRAME);
-
-      clearInterval(this.waitUntilHasRect);
-      clearInterval(this.waitForFeatures);
-      clearInterval(this.waitForMasks);
 
       this.filter = {
         frame: null,
       };
-      this.refs = {
-        frame: null,
-      };
-    },
-    getRefs() {
-      // console.log("filter: getRefs()");
-
-      // console.log("this.ref_frame = ");
-      // console.log(this.ref_frame);
-
-      // console.log("this.$refs attrs = ");
-      // console.log(Object.keys(this.$refs));
-
-      // console.log("this.$refs[this.ref_frame] = ");
-      // console.log(this.$refs[this.ref_frame]);
-
-      this.refs.frame = this.$refs[this.ref_frame];
-    },
-    getFeatures() {
-      // console.log("filter: getFeatures()");
-      this.features = this.$store.getters["analyzers/getFeatures"](this.id);
-      this.feature = this.features[0];
-      if (this.features.length !== 0) {
-        // console.log("filter: getFeatures() -- clearing interval");
-        clearInterval(this.waitForFeatures);
-      }
-      // console.log(this.features);
     },
     updateFrame() {
       // console.log("filter: updateFrame");
       try {
-        let frame = this.refs.frame.getBoundingClientRect();
+        let frame = this.$refs.frame.getBoundingClientRect();
         // console.log(frame);
         this.filter.frame = frame;
       } catch (err) {
         // console.warn(err);
       }
     },
-    updateFrameOnChange() {
-      // console.log("filter: updateFrameOnChange");
-      const og_width = this.refs.frame.getBoundingClientRect().width;
-
-      while (this.refs.frame.getBoundingClientRect().width === og_width) {
-        // console.log("frame is still the same");
-      }
-      // console.log("frame has changed");
-      this.updateFrame();
-    },
-    updateFrameOnceHasRect() {
-      // todo: clean up
-      let frame_ok = false;
-      let overlay_ok = false;
-      this.getRefs();
-
-      if (!(this.waitUntilHasRect === undefined)) {
-        if (this.refs.frame.getBoundingClientRect()["width"] > 50) {
-          // console.log("HAS FRAME");
-          this.updateFrame();
-          frame_ok = true;
-        }
-      }
-      if (frame_ok) {
-        clearInterval(this.waitUntilHasRect);
-      }
-    },
     handleClick(e) {
       set_filter(
         this.id,
         clickEventToRelativeCoordinate(e, this.filter.frame)
-      ).then((data) => {
-        if (data.message) {
-          // console.log(`//PUT THIS IN A POPUP OR SOMETHING// ${data.message}`);
-        }
-      });
+      );
     },
     handleClearFilters() {
       clear_filters(this.id);
@@ -290,9 +232,9 @@ export default {
     stepBackward() {
       this.$root.$emit(events.seek.step_bw(this.id));
     },
-    handleHideConfigSidebar() {
+    handleToggleConfigSidebar() {
       this.hideConfigSidebar = !this.hideConfigSidebar;
-      this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
+      this.$refs.frame.dispatchEvent('resize');
     },
   },
   watch: {
@@ -322,9 +264,6 @@ export default {
     overlay_url() {
       return api(this.$route.query.id, "call", endpoints.GET_OVERLAY_PNG);
     },
-    ref_frame() {
-      return `filter-frame-${this.$route.query.id}`;
-    },
     keymap() {
       return {
         "ctrl+z": this.handleUndoFilters,
@@ -338,25 +277,6 @@ export default {
         this.$route.query.id
       );
     },
-    masks() {
-      if (this.config !== undefined) {
-        return this.config.masks.map(({ name }) => name);
-      } else {
-        return [];
-      }
-    },
-    filter_options() {
-      // console.log('this.$store.getters["schemas/getFilterOptions"]');
-      // console.log(this.$store.getters["schemas/getFilterOptions"]);
-      return this.$store.getters["schemas/getFilterOptions"];
-    },
-    filter_type() {
-      if (this.config !== undefined) {
-        return this.config.masks[this.mask].filter.type;
-      } else {
-        return undefined;
-      }
-    },
   },
   data: () => ({
     opened_at: 0,
@@ -365,9 +285,6 @@ export default {
     waitForFeatures: null,
     mask: 0,
     filter: {
-      frame: null,
-    },
-    refs: {
       frame: null,
     },
     hideConfigSidebar: true,
@@ -400,7 +317,7 @@ export default {
   overflow: hidden;
 }
 
-.with-cs {
+.with-config-sidebar {
   max-width: calc(
     100vw - #{$sidebar-width} - #{$config-sidebar-width}
   ) !important;
