@@ -55,7 +55,7 @@
             <i class="fa fa-exclamation-triangle" /> &nbsp;
             <b>Not connected to the application!</b>
           </h6>
-          <p>Restart the server by running `app.py` or `server.py`</p>
+          <p>Restart the server by running `sf.py`</p>
         </div>
       </b-popover>
     </div>

@@ -1164,25 +1164,25 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         self.state_transition()
 
     @backend.expose(backend.turn_cw)
-    def turn_cw(self):
+    def turn_cw(self) -> None:
         self.set_config(
             {'transform': {'turn': self.config.transform.turn + 1}}
         )
 
     @backend.expose(backend.turn_ccw)
-    def turn_ccw(self):
+    def turn_ccw(self) -> None:
         self.set_config(
             {'transform': {'turn': self.config.transform.turn - 1}}
         )
 
     @backend.expose(backend.flip_h)
-    def flip_h(self):
+    def flip_h(self) -> None:
         self.set_config(
             {'transform': {'flip': {'horizontal': not self.config.transform.flip.horizontal}}}
         )
 
     @backend.expose(backend.flip_v)
-    def flip_v(self):
+    def flip_v(self) -> None:
         self.set_config(
             {'transform': {'flip': {'vertical': not self.config.transform.flip.vertical}}}
         )
@@ -1206,7 +1206,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         return self.set_config(redo, silent=(context is None))
 
     @backend.expose(backend.set_filter_click)
-    def set_filter_click(self, relative_x: float, relative_y: float):
+    def set_filter_click(self, relative_x: float, relative_y: float) -> None:
         log.debug(f'set_filter_click @ ({relative_x}, {relative_y})')
 
         click = ShapeCoo(
@@ -1344,7 +1344,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             if self.model is None:
                 self.notice(f"{self} has no database model; result data may be lost")
 
-            with self.lock(), self.time(f"Analyzing '{self.id}'", log):
+            with self.lock(), self.time(f"Analyzing '{self.id}'"):
                 self._new_run()
                 self._get_featuresets()
                 self.commit()

@@ -392,7 +392,7 @@ class RootInstance(Lockable):
 
     def _add_instance(self, instance: object):
         if isinstance(instance, self._instance_class):
-            for attr in [attr for attr in all_attributes(instance)]:
+            for attr in all_attributes(instance):
                 if hasattr(instance, attr):
                     value = getattr(instance, attr)  # bound method
                     if hasattr(value, '__func__') and not isinstance(getattr(instance.__class__, attr), property):

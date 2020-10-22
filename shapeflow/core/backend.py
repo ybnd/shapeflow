@@ -46,6 +46,52 @@ class CacheAccessError(RootException):
 _BLOCKED = 'BLOCKED'
 
 
+class PushEvent(Enum):
+    STATUS = 'status'
+    CONFIG = 'config'
+    NOTICE = 'notice'
+
+
+class AnalyzerState(IntEnum):
+    UNKNOWN = 0
+    INCOMPLETE = 1
+    CAN_LAUNCH = 2
+    LAUNCHED = 3
+    CAN_FILTER = 4
+    CAN_ANALYZE = 5
+    ANALYZING = 6
+    DONE = 7
+    CANCELED = 8
+    ERROR = 9
+
+    @classmethod
+    def can_launch(cls, state: int) -> bool:
+        return state in [
+            cls.CAN_LAUNCH,
+            cls.LAUNCHED,
+            cls.CAN_ANALYZE,
+            cls.DONE,
+            cls.CANCELED,
+        ]
+
+    @classmethod
+    def is_launched(cls, state: int) -> bool:
+        return state in [
+            cls.LAUNCHED,
+            cls.CAN_FILTER,
+            cls.CAN_ANALYZE,
+            cls.DONE,
+            cls.ANALYZING,
+            cls.CANCELED,
+        ]
+
+
+class QueueState(IntEnum):
+    STOPPED = 0
+    RUNNING = 1
+    PAUSED = 2
+
+
 class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB in-memory, 4GB on-disk, finally the actual video
     """Interface to diskcache.Cache
     """
@@ -159,8 +205,9 @@ class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB 
             self._cache.close()
             self._cache = None
 
-        if exc_type != None:  # `is not` doesn't work here
-            raise(exc_type, exc_value, tb)
+        if exc_type is not None:
+            log.error(f"{self.__class__.__qualname__}: {exc_type.__qualname__} {exc_value}")
+            raise
         else:
             return True
 
@@ -371,46 +418,6 @@ class BaseAnalyzerConfig(BaseConfig):
     description: Optional[str] = Field(default=None)
 
 
-class PushEvent(Enum):
-    STATUS = 'status'
-    CONFIG = 'config'
-    NOTICE = 'notice'
-
-
-class AnalyzerState(IntEnum):
-    UNKNOWN = 0
-    INCOMPLETE = 1
-    CAN_LAUNCH = 2
-    LAUNCHED = 3
-    CAN_FILTER = 4
-    CAN_ANALYZE = 5
-    ANALYZING = 6
-    DONE = 7
-    CANCELED = 8
-    ERROR = 9
-
-    @classmethod
-    def can_launch(cls, state: int) -> bool:
-        return state in [
-            cls.CAN_LAUNCH,
-            cls.LAUNCHED,
-            cls.CAN_ANALYZE,
-            cls.DONE,
-            cls.CANCELED,
-        ]
-
-    @classmethod
-    def is_launched(cls, state: int) -> bool:
-        return state in [
-            cls.LAUNCHED,
-            cls.CAN_FILTER,
-            cls.CAN_ANALYZE,
-            cls.DONE,
-            cls.ANALYZING,
-            cls.CANCELED,
-        ]
-
-
 class BaseVideoAnalyzer(Instance, RootInstance):
     _endpoints: BackendRegistry = backend
     _instances: List[Instance]
@@ -441,7 +448,7 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
         super().__init__(config)
 
-        self._timer = Timer(self)
+        self._timer = Timer(self, log)
         self._launched = False
 
         self._hash_video = None
@@ -750,7 +757,6 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     @contextmanager
     def time(self, message: str = '', logger = log):
         try:
-            self._timer.set_logger(logger)
             self._timer.__enter__(message)
             yield self
         finally:

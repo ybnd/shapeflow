@@ -24,7 +24,7 @@ from pydantic.errors import PathNotExistsError, PathNotADirectoryError, PathNotA
 import diskcache
 
 # Library version
-__version__: str = '0.4.0'
+__version__: str = '0.4.2'
 
 # Get root directory
 _user_dir = pathlib.Path.home()
@@ -366,8 +366,9 @@ def get_logger(name: str, log_settings: LogSettings = settings.log) -> Logger:
         log_settings = LogSettings()
 
     logger = Logger(name)
+    # log at the _least_ restrictive level
     logger.setLevel(
-        max([log_settings.lvl_console.level, log_settings.lvl_file.level])
+        min([log_settings.lvl_console.level, log_settings.lvl_file.level])
     )
 
     logger.addHandler(_console_handler)

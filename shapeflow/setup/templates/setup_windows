@@ -8,7 +8,7 @@ from zipfile import ZipFile
 
 if os.name == 'nt':  # If running on Windows
     if '$environment':
-        url = "https://github.com/preshing/cairo-windows/releases/download/1.15.12/cairo-windows-1.15.12.zip"
+        url = "https://github.com/preshing/cairo-windows/releases/download/with-tee/cairo-windows-1.17.2.zip"
         urlretrieve(url, 'cairo.zip')
 
         with ZipFile('cairo.zip', 'r') as z:

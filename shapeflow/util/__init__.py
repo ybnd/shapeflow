@@ -2,10 +2,12 @@ import os
 import subprocess
 import sys
 import time
+from pathlib import Path
 import json
+from logging import Logger
 from distutils.util import strtobool
 from functools import wraps, lru_cache
-from typing import Any, Generator, Optional
+from typing import Any, Generator, Optional, Union
 from collections import namedtuple
 import threading
 import queue
@@ -13,14 +15,6 @@ import hashlib
 from contextlib import contextmanager
 
 import numpy as np
-
-from shapeflow import get_logger, settings, Logger
-
-log = get_logger(__name__)
-
-
-def str2bool(value: str) -> bool:
-    return strtobool(value)
 
 
 def ndarray2str(array: np.ndarray) -> str:
@@ -34,7 +28,7 @@ def str2ndarray(string: str) -> np.ndarray:
 Timing = namedtuple('Timing', ('t0', 't1', 'elapsed'))
 
 
-def timed(f):
+def timed(f, logger: Logger):
     """Function decorator to measure elapsed time.
     """
     @wraps(f)
@@ -42,19 +36,19 @@ def timed(f):
         ts = time.time()
         result = f(*args, **kwargs)
         te = time.time()
-        log.info(f"{f.__qualname__}() --> {te-ts} s elapsed.")
+        logger.info(f"{f.__qualname__}() --> {te-ts} s elapsed.")
         return result
     return wrap
 
 
-def logged(f):
+def logged(f, logger: Logger):
     """Function decorator to log before & after call
     """
     @wraps(f)
     def wrap(*args, **kwargs):
-        log.debug(f"{f.__qualname__}() --> call...")
+        logger.debug(f"{f.__qualname__}() --> call...")
         result = f(*args, **kwargs)
-        log.debug(f"{f.__qualname__}() --> done")
+        logger.debug(f"{f.__qualname__}() --> done")
         return result
     return wrap
 
@@ -67,10 +61,10 @@ class Timer(object):
     _message: str
     _elapsed: Optional[float]
 
-    def __init__(self, parent: object):
+    def __init__(self, parent: object, logger: Logger):
         self._parent = parent
         self._elapsed = None
-        self.set_logger()
+        self._logger = logger
 
     def __enter__(self, message: str = ''):
         self._message = message
@@ -82,9 +76,6 @@ class Timer(object):
             self._t1 = time.time()
             self._elapsed = self._t1 - self._t0
             self._logger.info(f"{self._message}: {self._elapsed} s. elapsed ")
-
-    def set_logger(self, logger: Logger = log):
-        self._logger = logger
 
     @property
     def timing(self) -> Optional[tuple]:
@@ -106,7 +97,7 @@ def frame_number_iterator(total: int,
                           Nf: int = None,
                           dt: float = None, fps: float = None) \
         -> Generator[int, None, None]:
-    if Nf is not None and (dt is None and fps is None):  # todo: a bit awkward, make two methods instead?
+    if Nf is not None and (dt is None and fps is None):  # todo: very awkward, make two methods instead? also, this should be in shapeflow.video instead of here
         Nf = min(Nf, total)
         for f in np.linspace(0, total, Nf):
             yield int(f)
@@ -189,3 +180,24 @@ def open_path(path: str) -> None:
         subprocess.Popen(['open', path])
     else:  # Something else, probably has xdg-open
         subprocess.Popen(['xdg-open', path])
+
+
+@contextmanager
+def ensure_path(path: Union[str, Path]):
+    """ A hacky way to allow imports from arbitrary directories.
+            only use this for testing sf.py please :(
+    """
+    if isinstance(path, str):
+        path = Path(path)
+
+    path = Path(path).absolute()
+    path_str = str(path)
+
+    try:
+        assert path.is_dir()
+        sys.path.insert(0, path_str)
+        yield
+    except NotADirectoryError:
+        raise
+    finally:
+        sys.path.remove(path_str)

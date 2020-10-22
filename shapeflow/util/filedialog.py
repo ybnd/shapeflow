@@ -1,133 +1,123 @@
+import abc
 from typing import List, Optional
-
-import os
-import subprocess
-
-
-__VIDEO_PATTERN__ = "*.mp4 *.avi *.mov *.mpv *.mkv"
-__DESIGN_PATTERN__ = "*.svg"
+import subprocess as sp
+import tkinter
+import tkinter.filedialog
 
 
-def has_zenity():
+class _FileDialog(abc.ABC):
+    ok: bool = False
+
+    _defaults: dict = {
+        'load': {
+            'title': 'Load a file...',
+        },
+        'save': {
+            'title': 'Save a file...',
+        },
+        'all': {
+            'pattern': None,
+            'pattern_description': None,
+        }
+    }
+
+    def load(self, **kwargs) -> Optional[str]:
+        """ Show a load dialog """
+        return self._load(**self._resolve('load', kwargs))
+
+    def save(self, **kwargs) -> Optional[str]:
+        """ Show a save dialog """
+        return self._save(**self._resolve('save', kwargs))
+
+    @classmethod
+    def _resolve(self, method: str, kwargs: dict) -> dict:
+        """ Resolve empty arguments to defaults """
+        return {
+            **self._defaults['all'],
+            **(self._defaults[method] if method in self._defaults else {}),
+            **kwargs
+        }
+
+    @abc.abstractmethod
+    def _load(self, **kwargs) -> Optional[str]:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def _save(self, **kwargs) -> Optional[str]:
+        raise NotImplementedError
+
+
+class _Tkinter(_FileDialog):
+    ok = True
+
+    _map = {
+        'title': 'title',
+        'pattern': 'filetypes',
+        'pattern_description': 'filedesc',
+    }
+
+    def __init__(self):
+        try:
+            root = tkinter.Tk()
+            root.withdraw()
+        except Exception as e:
+            print("Can't initialize tkinter!") # todo: clean this up
+
+    def _load(self, **kwargs) -> Optional[str]:
+        return tkinter.filedialog.askopenfilename(**self._translate(kwargs))
+
+    def _save(self, **kwargs) -> Optional[str]:
+        return tkinter.filedialog.asksaveasfilename(**self._translate(kwargs))
+
+    def _translate(self, kwargs: dict) -> dict:
+        return { self._map[k]:v for k,v in kwargs.items() }
+
+
+def _has_zenity():
     try:
-        with open(os.devnull, 'w') as null:
-            return not subprocess.check_call(
-                ['zenity', '--version'], stdout=null
-            )
+        return not sp.call(['zenity', '--version'], stdout=sp.DEVNULL)
     except FileNotFoundError:
         return False
 
 
-def load_file_dialog(title: str = None, pattern: str = None, pattern_description: str = '') -> Optional[str]:
-    if title is None:
-        title = 'Load...'
+class _Zenity(_FileDialog):
+    _map = {
+        'title': '--title',
+        'pattern': '--file-filter',
+    }
+    def __init__(self):
+        self.ok = _has_zenity()
 
-    if pattern is None:
-        pattern = ""
+    def _load(self, **kwargs) -> Optional[str]:
+        return self._call(self._compose(False, kwargs))
 
-    if has_zenity():
+    def _save(self, **kwargs) -> Optional[str]:
+        return self._call(self._compose(True, kwargs))
+
+    def _compose(self, save: bool, kwargs: dict) -> List[str]:
+        command = ['zenity', '--file-selection']
+
+        if save:
+            command += ['--save']
+
+        for k, v in kwargs.items():
+            if v is not None and k in self._map:
+                command += [self._map[k], v]
+
+        return command
+
+    def _call(self, command: List[str]) -> Optional[str]:
         try:
-            if len(pattern) > 0:
-                p = subprocess.Popen(
-                    [
-                        'zenity', '--file-selection',
-                        '--file-filter', pattern,
-                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                )
-            else:
-                p = subprocess.Popen(
-                    [
-                        'zenity', '--file-selection',
-                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                )
+            p = sp.Popen(command, stdout=sp.PIPE)
             out, err = p.communicate()
             if out:
                 return out.rstrip().decode('utf-8')
             else:
                 return None
-        except subprocess.CalledProcessError:
-            return None
-
-    else:
-        try:
-            if len(pattern) > 0:
-                p = subprocess.Popen(
-                    [
-                        'python', 'shapeflow/util/tk_filedialog.py',
-                        '--load', '--title', title, 
-                        '--filetypes', pattern,
-                        '--filedesc', pattern_description,
-                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                )
-            else:
-                p = subprocess.Popen(
-                    [
-                        'python', 'shapeflow/util/tk_filedialog.py',
-                        '--load', '--title', title, 
-                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                )
-            out, err = p.communicate()
-            if out:
-                return out.rstrip().decode('utf-8')
-            else:
-                return None
-        except subprocess.CalledProcessError:
+        except sp.CalledProcessError:
             return None
 
 
-def save_file_dialog(title: str = None, pattern: str = None, pattern_description: str = '') -> Optional[str]:
-    if title is None:
-        title = 'Save as...'
-
-    if pattern is None:
-        pattern = ""
-
-    if has_zenity():
-        try:
-            if len(pattern) > 0:
-                p = subprocess.Popen(
-                    [
-                        'zenity', '--file-selection', '--save'
-                        '--file-filter', pattern,
-                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                )
-            else:
-                p = subprocess.Popen(
-                    [
-                        'zenity', '--file-selection', '--save'
-                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                )
-            out, err = p.communicate()
-            if out:
-                return out.strip().decode('utf-8')
-            else:
-                return None
-        except subprocess.CalledProcessError:
-            return None
-
-    else:
-        try:
-            # todo: doesn't work when debugging on Windows!
-            if len(pattern) > 0:
-                p = subprocess.Popen(
-                    [
-                        'python', 'shapeflow/util/tk_filedialog.py',
-                        '--save', '--title', title, 
-                        '--filetypes', pattern,
-                        '--filedesc', pattern_description,
-                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                )
-            else:
-                p = subprocess.Popen(
-                    [
-                        'python', 'shapeflow/util/tk_filedialog.py',
-                        '--save', '--title', title, 
-                    ], stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                )
-            out, err = p.communicate()
-            if out:
-                return out.rstrip().decode('utf-8')
-            else:
-                return None
-        except subprocess.CalledProcessError:
-            return None
+filedialog: _FileDialog = _Zenity()
+if not filedialog.ok:
+    filedialog = _Tkinter()

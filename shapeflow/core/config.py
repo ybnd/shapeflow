@@ -9,7 +9,6 @@ from functools import partial
 from shapeflow import get_logger, __version__
 from shapeflow.core import EnforcedStr, Described
 from shapeflow.util import ndarray2str, str2ndarray
-from shapeflow.util.meta import resolve_type_to_most_specific, is_optional
 
 from pydantic import BaseModel, Field, root_validator, validator
 
@@ -226,10 +225,6 @@ class BaseConfig(BaseModel, Described):
                 else:
                     # Otherwise, let the validators handle it
                     setattr(self, field, kwargs[field])
-
-    @classmethod
-    def _get_field_type(cls, attr):
-        return resolve_type_to_most_specific(cls.__fields__[attr].outer_type_)
 
     def to_dict(self, do_tag: bool = False) -> dict:  # todo: should be replaced by pydantic internals + serialization
         """Return the configuration as a serializable dict.

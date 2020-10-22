@@ -554,7 +554,7 @@ class History(SessionWrapper, RootInstance):
                 first()
 
     @history.expose(history.get_recent_paths)
-    def get_paths(self) -> Dict[str, list]:
+    def get_paths(self) -> Dict[str, List[str]]:
         """Fetch the latest video and design file paths from the
         database. Number of paths is limited by ``settings.app.recent_files``
         """
