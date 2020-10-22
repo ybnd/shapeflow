@@ -35,13 +35,15 @@ jobs:
     - language: python
       python: 3.8
       env: {TOX_ENV: py38-cover}
+      before_install:
+        - travis_retry pip install codecov
       install:
         - travis_retry pip install tox
         - travis_retry tox -e $TOX_ENV $SITE_PACKAGES --notest
       script:
         - tox -e $TOX_ENV $SITE_PACKAGES
       after_success:
-        - coverage -F backend
+        - codecov -F backend
 
     - language: node_js   # https://stackoverflow.com/questions/27644586/
       node_js: 14
