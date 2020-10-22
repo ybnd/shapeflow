@@ -17,6 +17,8 @@ shapeflow/.last-update
 .cache/
 test/.cache/
 test/.log
+test/.coverage
+.coverage
 *.log
 .mypy_cache/
 docs/build/
