@@ -7,7 +7,7 @@ export function waitSync(ms) {
 
 export function startServer() {
   const SERVER = spawn(
-    'python3', ['shapeflow.py', '--server'],
+    'python3', ['sf.py', '--background'],
     {cwd: '..', shell: false, detached: false}
   );
   waitSync(2000);
@@ -25,7 +25,7 @@ export function checkIfListening() {
 
 export function killServer() {
   try {
-    execSync(`pgrep -f "python3 shapeflow" | xargs -I $ kill -9 $`);
+    execSync(`pgrep -f "python3 sf" | xargs -I $ kill -9 $`);
     waitSync(2000);
   } catch(e) {
     //console.warn(e.message);
