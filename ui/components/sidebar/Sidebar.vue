@@ -30,11 +30,10 @@ import SidebarNavAnalysis from "./SidebarNavAnalysis";
 import SidebarNavAnalysisLink from "./SidebarNavAnalysisLink";
 import SidebarNewAnalysis from "./SidebarNewAnalysis";
 import SidebarNavLink from "./SidebarNavLink";
-import SidebarNavItem from "./SidebarNavItem";
 
 import draggable from "vuedraggable";
 
-import { events } from "../../static/events";
+import { events } from "../../src/events";
 
 export default {
   name: "sidebar",
@@ -46,21 +45,15 @@ export default {
     SidebarNavAnalysisLink,
     SidebarNewAnalysis,
     SidebarNavLink,
-    SidebarNavItem,
     draggable,
   },
   created() {
-    this.$store.dispatch("settings/sync");
     this.$store.dispatch("analyzers/loop");
   },
   destroyed() {
     this.$store.dispatch("analyzers/stop");
   },
   methods: {
-    handleClick(e) {
-      e.preventDefault();
-      e.target.parentElement.classList.toggle("open");
-    },
     handleReorderQueue() {
       this.$store.commit("analyzers/setQueue", { queue: this.queue });
     },

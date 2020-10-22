@@ -16,16 +16,14 @@
 <script>
 import SidebarNavDropdown from "./SidebarNavDropdown";
 import SidebarNavLink from "./SidebarNavLink";
-import SidebarNavItem from "./SidebarNavItem";
 
-import { api, ping } from "../../static/api";
+import { api, ping } from "../../src/api";
 
 export default {
   name: "sidebar-footer",
   class: "sidebar",
   components: {
     SidebarNavDropdown,
-    SidebarNavItem,
     SidebarNavLink,
   },
   computed: {

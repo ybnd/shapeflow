@@ -13,7 +13,6 @@
         <div class="analysis-name">{{ name }}</div>
         <div class="analysis-name-fade" />
       </template>
-
       <Waiting v-else />
     </div>
     <b-progress
@@ -84,10 +83,8 @@
         name="Results"
         icon="icon-graph"
         :id="link.result"
-        :disabled="
-          ![ast.CAN_ANALYZE, ast.DONE, ast.CANCELED, ast.ERROR].includes(
-            status.state
-          )
+        :enabled="
+          [ast.CAN_ANALYZE, ast.DONE, ast.CANCELED, ast.ERROR].includes(status.state)
         "
       />
       <SidebarNavAnalysisLink
@@ -103,7 +100,7 @@
 
 <script>
 import SidebarNavAnalysisLink from "./SidebarNavAnalysisLink";
-import Waiting from "@/components/sidebar/Waiting";
+import Waiting from "./Waiting";
 
 import {
   AnalyzerState as ast,
@@ -111,9 +108,9 @@ import {
   close,
   cancel,
   AnalyzerState,
-} from "../../static/api";
+} from "../../src/api";
 
-import { events } from "../../static/events";
+import { events } from "../../src/events";
 
 // todo: should do color/icon resolution in a separate .js module, should be shared with e.g. dashboard
 export default {
@@ -161,7 +158,7 @@ export default {
     },
     handleCancel() {
       // console.log(`sidebar: handling cancel event (${this.id})`);
-      cancel(this.id).then(() => {
+      cancel(this.id).then(() => {  // todo: should be a store action tho
         this.$store.dispatch("analyzers/sync");
       });
     },

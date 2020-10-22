@@ -76,7 +76,7 @@ export function roiRectInfoToRelativeCoordinates(rect, frame) {
       },
     };
   } catch {
-    console.warn(`roiRectInfoToCoordinates: frame is null`);
+    console.warn(`roiRectInfoToRelativeCoordinates: frame is null`);
     return undefined;
   }
 }
@@ -109,6 +109,9 @@ export function dragEventToRelativeRectangle(down, up, frame) {
   if (A > 0.01) {
     const h = [co0.x, co1.x].sort();
     const v = [co0.y, co1.y].sort();
+
+    // console.log(h)
+    // console.log(v)
 
     return {
       BL: { x: h[1], y: v[0] },
@@ -217,6 +220,7 @@ export function toAbsolute(relative, frame, center = { x: 0, y: 0 }) {
     return absolute;
   } catch (err) {
     console.warn(err);
+    return undefined;
   }
 }
 
@@ -234,11 +238,12 @@ export function getInitialTransform(roi, frame, overlay) {
     return toCssMatrix3d(initial_transform);
   } catch (err) {
     console.warn(err);
-    console.warn("roi = ");
-    console.warn(roi);
-    console.warn("frame = ");
-    console.warn(frame);
-    console.warn("overlay = ");
-    console.warn(overlay);
+    // console.warn("roi = ");
+    // console.warn(roi);
+    // console.warn("frame = ");
+    // console.warn(frame);
+    // console.warn("overlay = ");
+    // console.warn(overlay);
+    return undefined;
   }
 }

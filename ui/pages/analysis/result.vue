@@ -46,7 +46,7 @@ import ResultChartStack from "../../components/results/ResultChartStack";
 import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
 
-import { get_db_id, get_result_list, get_result, export_result, get_colors } from "static/api";
+import { get_db_id, get_result_list, get_result, export_result, get_colors } from "../../src/api";
 import Vue from "vue";
 import AsyncComputed from "vue-async-computed";
 
