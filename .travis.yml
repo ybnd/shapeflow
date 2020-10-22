@@ -41,7 +41,7 @@ jobs:
       script:
         - tox -e $TOX_ENV $SITE_PACKAGES
       after_success:
-        - bash <(curl -s https://codecov.io/bash) -cF backend
+        - coverage -F backend
 
     - language: node_js   # https://stackoverflow.com/questions/27644586/
       node_js: 14
