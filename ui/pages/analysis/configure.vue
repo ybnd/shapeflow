@@ -3,7 +3,7 @@
     <PageHeader>
       <PageHeaderItem>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon configure-reset"
           data-toggle="tooltip"
           title="Reset to defaults"
           @click="handleResetToDefaults"
@@ -11,7 +11,7 @@
           <i class="icon-ban" />
         </b-button>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon configure-undo"
           @click="undoConfig"
           data-toggle="tooltip"
           title="Undo"
@@ -20,7 +20,7 @@
           <i class="icon-action-undo" />
         </b-button>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon configure-redo"
           @click="redoConfig"
           data-toggle="tooltip"
           title="Redo"
@@ -43,9 +43,9 @@
               >name</b-input-group-text
             >
             <b-form-input
-              class="shapeflow-form-field-text"
+              class="shapeflow-form-field-text configure-name"
               v-model="config.name"
-              @keyup="onKeyUp"
+              @keyup.enter="onKeyUp"
               @focusout="onFocusOut"
             ></b-form-input>
           </b-input-group>
@@ -77,43 +77,20 @@
       <b-card
         class="shapeflow-form-section advanced-config-box advanced-config-collapse"
       >
-        <!--          <VueFormJsonSchema-->
-        <!--            v-model="config"-->
-        <!--            class="config-form-container"-->
-        <!--            :schema="schema"-->
-        <!--            :ui-schema="ui_schema"-->
-        <!--            :options="{-->
-        <!--              castToSchemaType: false,-->
-        <!--              showValidationErrors: false,-->
-        <!--              allowInvalidModel: true,-->
-        <!--              ajv: {-->
-        <!--                options: {-->
-        <!--                  unknownFormats: ['directory-path', 'file-path'], // these get validated by the backend-->
-        <!--                },-->
-        <!--              },-->
-        <!--            }"-->
-        <!--          />-->
-
         <SchemaForm
           v-if="this.ready.schema && this.ready.config"
           :data="config"
           :schema="schema"
           :skip="[
-            'name', // handled separately; also applies to masks[*].name, which shouldn't be changed
-            'description', // handled separately
-            'features', // handled by BasicConfig.vue
-            'feature_parameters', // handled by BasicConfig.vue
+            'name',                   // handled separately; also applies to masks[*].name, which shouldn't be changed
+            'description',            // handled separately
+            'features',               // handled by BasicConfig.vue
+            'feature_parameters',     // handled by BasicConfig.vue
             'frame_interval_setting', // handled by BasicConfig.vue
-            'dt', // handled by BasicConfig.vue
-            'Nf', // handled by BasicConfig.vue
-            'design_path', // handled by BasicConfig.vue
-            'video_path', // handled by BasicConfig.vue
-            // 'masks',
-            // 'parameters',
-            // 'transform',
-            // 'design',
-            // 'video',
-            // 'filter', // todo: this one's bugged
+            'dt',                     // handled by BasicConfig.vue
+            'Nf',                     // handled by BasicConfig.vue
+            'design_path',            // handled by BasicConfig.vue
+            'video_path',             // handled by BasicConfig.vue
           ]"
           class="config-form-container"
           :property_as_title="true"
@@ -158,11 +135,9 @@ export default {
   },
   methods: {
     onKeyUp(e) {
-      if (e.key === "Enter") {
-        // console.log("configure.onKeyUp() 'Enter'");
-        this.lastEnter = Date.now();
-        this.handleUpdate();
-      }
+      // console.log("configure.onKeyUp() 'Enter'");
+      this.lastEnter = Date.now();
+      this.handleUpdate();
     },
     onFocusOut() {
       // console.log("configure.onFocusOut()");
@@ -192,18 +167,13 @@ export default {
         // console.log("initializing");
         this.$root.$emit(events.sidebar.open(this.id));
 
-        if (!this.ready.config) {
-          this.$store
-            .dispatch("analyzers/get_config", { id: this.id })
-            .then(() => {
-              // console.log("handleInit callback");
-              this.handleCheckSchema();
-              this.handleGetConfig();
-            });
-        } else {
-          this.handleCheckSchema();
-          this.handleGetConfig();
-        }
+        this.$store
+          .dispatch("analyzers/get_config", { id: this.id })
+          .then(() => {
+            // console.log("handleInit callback");
+            this.handleCheckSchema();
+            this.handleGetConfig();
+          });
       }
     },
     handleCleanUp() {},
