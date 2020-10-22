@@ -27,7 +27,7 @@ jobs:
       after_success:
         - codecov -F backend
     
-        - language: python
+    - language: python
       python: 3.8
       env: {TOX_ENV: py38-type}
       install:
