@@ -725,44 +725,6 @@ class BaseVideoAnalyzer(Instance, RootInstance):
         return self.model.get_id()
 
     @contextmanager
-    def caching(self):
-        """Caching context: propagated context to
-            every object in _instances that implements caching
-        """
-        caching_instances = [
-            e for e in self._instances if
-            isinstance(e, CachingInstance)
-        ]
-        log.debug(f'{self.__class__.__name__}: propagate caching context '
-                  f'to {[i.__class__.__name__ for i in caching_instances]}')
-        try:
-            for element in caching_instances:
-                element.__enter__()
-            yield self
-        finally:
-            for element in caching_instances:
-                element.__exit__(*sys.exc_info())
-
-    def cache_open(self):
-        caching_instances = [
-            e for e in self._instances if
-            isinstance(e, CachingInstance)
-        ]
-        log.debug(f'{self.__class__.__name__}: propagate caching context '
-                  f'to {[i.__class__.__name__ for i in caching_instances]}')
-        for element in caching_instances:
-            element.__enter__()
-
-    def cache_close(self):
-        caching_instances = [
-            e for e in self._instances if
-            isinstance(e, CachingInstance)
-        ]
-        log.debug(f'close cache')
-        for element in caching_instances:
-            element.__exit__(*sys.exc_info())
-
-    @contextmanager
     def time(self, message: str = '', logger = log):
         try:
             self._timer.__enter__(message)
