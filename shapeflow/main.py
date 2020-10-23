@@ -152,6 +152,7 @@ class _Filesystem(object):
 
     @api.fs.check_video.expose()
     def check_video(self, path: str) -> bool:
+        log.debug(f"checking video file '{path}'")
         if os.path.isfile(path):
             try:
                 capture = cv2.VideoCapture(path)
@@ -167,6 +168,7 @@ class _Filesystem(object):
 
     @api.fs.check_design.expose()
     def check_design(self, path: str) -> bool:
+        log.debug(f"checking design file '{path}'")
         if os.path.isfile(path):
             try:
                 check_svg(path)
