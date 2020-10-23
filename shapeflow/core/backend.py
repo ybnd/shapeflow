@@ -512,7 +512,6 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
     # @backend.expose(backend.can_launch)
     @abc.abstractmethod
-    @api.va.__id__.can_launch.expose()
     def can_launch(self) -> bool:
         raise NotImplementedError
 
@@ -522,7 +521,6 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
     # @backend.expose(backend.can_analyze)
     @abc.abstractmethod
-    @api.va.__id__.can_analyze.expose()
     def can_analyze(self) -> bool:
         raise NotImplementedError
 
@@ -638,7 +636,6 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
     # @backend.expose(backend.analyze)
     @abc.abstractmethod
-    @api.va.__id__.analyze.expose()
     def analyze(self) -> bool:
         raise NotImplementedError
 
@@ -683,7 +680,6 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
     # @backend.expose(backend.set_config)
     @abc.abstractmethod
-    @api.va.__id__.set_config.expose()
     def set_config(self, config: dict, silent: bool = False) -> dict:
         raise NotImplementedError
 

@@ -867,6 +867,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     def has_results(self) -> bool:
         return hasattr(self, 'results')
 
+    @api.va.__id__.can_launch.expose()
     def can_launch(self) -> bool:
         video_ok = False
         design_ok = False
@@ -885,6 +886,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     def can_filter(self) -> bool:
         return self.transform.is_set
 
+    @api.va.__id__.can_analyze.expose()
     def can_analyze(self) -> bool:
         return self.launched and all([mask.ready or mask.skip for mask in self.masks])
 
@@ -969,6 +971,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         self._config(**config)
         self._gather_config()
 
+    @api.va.__id__.set_config.expose()
     def set_config(self, config: dict, silent: bool = False) -> dict:
         with self.lock():
             if True:  # todo: sanity check
@@ -1125,6 +1128,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             return self.read_frame(frame_number)
 
     # @backend.expose(backend.seek)
+    @api.va.__id__.seek.expose()
     def seek(self, position: float = None) -> float:
         self.video.seek(position)
         self.push_status()
@@ -1132,6 +1136,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         return self.position
 
     # @backend.expose(backend.estimate_transform)
+    @api.va.__id__.estimate_transform.expose()
     def estimate_transform(self, roi: dict = None) -> Optional[dict]:
         if roi is None:
             roi_config = self.transform.config.roi
@@ -1149,35 +1154,41 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             return None
 
     # @backend.expose(backend.clear_roi)
+    @api.va.__id__.clear_roi.expose()
     def clear_roi(self) -> None:
         self.transform.clear()
         self.state_transition()
 
     # @backend.expose(backend.turn_cw)
+    @api.va.__id__.turn_cw.expose()
     def turn_cw(self) -> None:
         self.set_config(
             {'transform': {'turn': self.config.transform.turn + 1}}
         )
 
     # @backend.expose(backend.turn_ccw)
+    @api.va.__id__.turn_ccw.expose()
     def turn_ccw(self) -> None:
         self.set_config(
             {'transform': {'turn': self.config.transform.turn - 1}}
         )
 
     # @backend.expose(backend.flip_h)
+    @api.va.__id__.flip_h.expose()
     def flip_h(self) -> None:
         self.set_config(
             {'transform': {'flip': {'horizontal': not self.config.transform.flip.horizontal}}}
         )
 
     # @backend.expose(backend.flip_v)
+    @api.va.__id__.flip_v.expose()
     def flip_v(self) -> None:
         self.set_config(
             {'transform': {'flip': {'vertical': not self.config.transform.flip.vertical}}}
         )
 
     # @backend.expose(backend.undo_config)
+    @api.va.__id__.undo_config.expose()
     def undo_config(self, context: str = None) -> dict:  # todo: implement undo/redo context (e.g. transform, masks)
         with self.lock():
             undo, id = self.model.get_undo_config(context)
@@ -1187,6 +1198,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         return self.set_config(undo, silent=(context is None))
 
     # @backend.expose(backend.redo_config)
+    @api.va.__id__.redo_config.expose()
     def redo_config(self, context: str = None) -> dict:
         with self.lock():
             redo, id = self.model.get_redo_config(context)
@@ -1196,6 +1208,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         return self.set_config(redo, silent=(context is None))
 
     # @backend.expose(backend.set_filter_click)
+    @api.va.__id__.set_filter_click.expose()
     def set_filter_click(self, relative_x: float, relative_y: float) -> None:
         log.debug(f'set_filter_click @ ({relative_x}, {relative_y})')
 
@@ -1243,6 +1256,7 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             )
 
     # @backend.expose(backend.clear_filters)
+    @api.va.__id__.clear_filters.expose()
     def clear_filters(self) -> bool:
         log.debug(f"clearing filters")
 
@@ -1258,8 +1272,9 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
         return True
 
-    @stream
     # @backend.expose(backend.get_state_frame)
+    @stream
+    @api.va.__id__.get_state_frame.expose()
     def get_state_frame(self, frame_number: Optional[int] = None, featureset: Optional[int] = None) -> np.ndarray:
         # todo: eliminate duplicate code ~ calculate (calculate should just call get_state_frame, ideally)
 
@@ -1289,13 +1304,13 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         state[np.equal(state, 0)] = 255
         return cv2.cvtColor(state, cv2.COLOR_BGR2HSV)
 
-    # @backend.expose(backend.get_overlay_png)  # todo: can move to DesignFileHandler
+    # @backend.expose(backend.get_overlay_png)
     @api.va.__id__.get_overlay_png.expose()
     def get_overlay_png(self) -> bytes:
         _, buffer = cv2.imencode('.png', self.design._overlay.copy())
         return buffer.tobytes()
 
-    # @backend.expose(backend.get_mask_rects)  # todo: can move to DesignFileHandler
+    # @backend.expose(backend.get_mask_rects)
     def get_mask_rects(self) -> Dict[str, np.ndarray]:
         # todo: placeholder -- mask rect info to frontend (in relative coordinates)
         return {mask.name: mask.rect for mask in self.masks}
@@ -1325,7 +1340,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             log.error(str(e))
             self._error.set()
 
-    def analyze(self):
+    @api.va.__id__.analyze.expose()
+    def analyze(self) -> bool:
         if not self.can_analyze():
             return False
 

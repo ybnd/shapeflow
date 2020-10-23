@@ -244,7 +244,7 @@ class _VideoAnalyzerManager(object):
     def _set_dispatcher(self, dispatcher: _VideoAnalyzerManagerDispatcher):
         self._dispatcher = dispatcher
 
-    def _add(self, analyzer: object) -> str:
+    def _add(self, analyzer: VideoAnalyzer) -> str:
         """Add a new analyzer instance
 
 
@@ -259,6 +259,7 @@ class _VideoAnalyzerManager(object):
         while id[0].isdigit() or id in self.__analyzers__.keys():
             id = shortuuid.ShortUUID().random(length=self.ID_LENGTH)
 
+        analyzer._set_id(id)
         self.__analyzers__[id] = analyzer
         self._dispatcher._add_dispatcher(
             id, _VideoAnalyzerDispatcher(instance=analyzer)
@@ -394,11 +395,12 @@ class _VideoAnalyzerManager(object):
 
     @api.va.state.expose()
     def state(self) -> dict:
-        return {
-            'q_state': self._q_state,
-            'ids': [k for k in self.__analyzers__.keys()],
-            'status': [a.status() for a in self.__analyzers__.values()],
-        }
+        with self._lock:
+            return {
+                'q_state': self._q_state,
+                'ids': [k for k in self.__analyzers__.keys()],
+                'status': [a.status() for a in self.__analyzers__.values()],
+            }
 
     @api.va.save_state.expose()
     def save_state(self) -> None:
@@ -412,7 +414,7 @@ class _VideoAnalyzerManager(object):
             with open(settings.app.state_path, 'wb') as f:
                 pickle.dump({
                     id: analyzer.model.get('id')
-                    for id, analyzer in self.__analyzers__
+                    for id, analyzer in self.__analyzers__.items()
                     if not analyzer.done
                 }, f)
 

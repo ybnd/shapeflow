@@ -192,7 +192,10 @@ class Endpoint(object):
 
     @property
     def name(self):
-        return self._name
+        try:
+            return self._name
+        except AttributeError:
+            return ''
 
     def register(self, name: str, callback: Callable[['Endpoint'], None]):
         self._registered = True
