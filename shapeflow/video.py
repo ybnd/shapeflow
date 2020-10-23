@@ -1085,21 +1085,27 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
                 return config
 
-    @stream
+
     # @backend.expose(backend.get_frame)
+    @stream
+    @api.va.__id__.get_frame.expose()
     def get_transformed_frame(self, frame_number: Optional[int] = None) -> np.ndarray:
         return self.transform(self.read_frame(frame_number))
 
     # @backend.expose(backend.get_inverse_transformed_overlay)
+    @stream
+    @api.va.__id__.get_inverse_transformed_overlay.expose()
     def get_inverse_transformed_overlay(self) -> np.ndarray:
         return self.transform.inverse(self.design._overlay)
 
     # @backend.expose(backend.get_overlaid_frame)
+    @api.va.__id__.get_overlaid_frame.expose()
     def get_frame_overlay(self, frame_number: int) -> np.ndarray:
         return self.design.overlay_frame(
             self.get_transformed_frame(frame_number))
 
     # @backend.expose(backend.get_colors)  # todo: per feature in each feature set; maybe better as a dict instead of a list of tuples?
+    @api.va.__id__.get_colors.expose()
     def get_colors(self) -> Tuple[str, ...]:
         if len(self.config.features) == 0:
             return tuple([])
@@ -1113,8 +1119,9 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         else:
             raise NotImplementedError(self.config.frame_interval_setting)
 
-    @stream
     # @backend.expose(backend.get_inverse_overlaid_frame)
+    @stream
+    @api.va.__id__.get_inverse_overlaid_frame.expose()
     def get_inverse_overlaid_frame(self, frame_number: Optional[int] = None) -> np.ndarray:
         if self.transform.is_set:
             return cv2.cvtColor(  # todo: loads of unnecessary color conversion here

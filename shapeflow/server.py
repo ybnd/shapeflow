@@ -149,14 +149,25 @@ class ShapeflowServer(shapeflow.core.Lockable):
             if self.api is None:
                 self.load_api()
 
+            kwargs = {}
             if request.data:
-                kwargs = json.loads(request.data)
-            else:
-                kwargs = {
-                    k:json.loads(v)
-                    for k,v in request.args.to_dict().items()
-                    if v != ''
-                }
+                try:
+                    kwargs.update(json.loads(request.data))
+                except json.JSONDecodeError as e:
+                    log.error(f"could not decode '{request.data}'")
+                    raise e
+            if request.args.to_dict():
+                try:
+                    kwargs.update({
+                        k: v
+                        for k, v in request.args.to_dict().items()
+                        if v != ''
+                    })
+                except json.JSONDecodeError as e:
+                    log.error(f"could not decode '{request.args.to_dict()}'")
+                    raise e
+
+
 
             result = self.api.dispatch(address, **kwargs)
 

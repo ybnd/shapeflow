@@ -472,7 +472,7 @@ class _VideoAnalyzerManager(object):
 
     def _check_streaming(self, id, endpoint):
         self._valid(id)
-        if not endpoint in map(lambda e: e.name, api.va.__id__.endpoints):
+        if not endpoint in map(lambda e: e.name, api.va[id].endpoints):
             raise AttributeError(f"no such endpoint: '{endpoint}")
         if self._dispatcher[id][endpoint].streaming == stream_off:
             raise ValueError(f"endpoint '{endpoint}' doesn't stream")
