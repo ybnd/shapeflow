@@ -130,7 +130,7 @@ import PageHeaderItem from "../../components/header/PageHeaderItem";
 import BasicConfig from "../../components/config/BasicConfig";
 import SchemaForm from "../../components/config/SchemaForm";
 
-import { undo_config, redo_config } from "../../static/api";
+import { api } from "../../static/api";
 
 import { events, ENTER_FOCUSOUT_INTERVAL, COMMIT } from "../../static/events";
 
@@ -172,11 +172,11 @@ export default {
     },
     undoConfig() {
       this.waiting = true;
-      undo_config(this.id).then(this.handleGetConfig());
+      api.va.__id__.undo_config(this.id).then(this.handleGetConfig());
     },
     redoConfig() {
       this.waiting = true;
-      redo_config(this.id).then(this.handleGetConfig());
+      api.va.__id__.redo_config(this.id).then(this.handleGetConfig());
     },
     handleInit() {
       // console.log(`configure.handleInit() id=${this.id}`);

@@ -3,17 +3,7 @@ import {
   EVENT_CATEGORIES,
   NOTICE_LIMIT,
   QueueState,
-  events,
-  get_config,
-  get_status,
-  init,
-  launch,
-  close,
-  get_app_state,
-  set_config,
-  close_events,
-  q_start,
-  q_stop,
+  api
 } from "../static/api";
 
 import { uuidv4 } from "../static/util";
@@ -354,13 +344,13 @@ export const actions = {
   async source({ commit, getters, dispatch }) {
     // console.log("analyzers/source");
 
-    return close_events().then((ok) => {
+    return api.stop_events().then((ok) => {
       dispatch("connection", { ok: ok });
       commit("closeSource");
 
       if (ok) {
         commit("setSource", {
-          source: events(
+          source: api.events(
             function (message) {
               dispatch("connection", { ok: ok });
 
@@ -417,7 +407,7 @@ export const actions = {
   q_start({ commit, getters, dispatch }) {
     // console.log("action: analyzers.q_start");
     commit("setQueueState", { queue_state: QueueState.RUNNING });
-    return q_start(getters["getQueue"])
+    return api.va.q_start(getters["getQueue"])
       .then((app_state) => {
         dispatch("connection", { ok: true });
         commit("setQueueState", { queue_state: app_state.q_state });
@@ -430,7 +420,7 @@ export const actions = {
   q_stop({ commit, dispatch }) {
     // console.log("action: analyzers.q_stop");
     // shouldn't commit 'setQueueState' before callback; buttons may flash otherwise
-    return q_stop()
+    return api.va.q_stop()
       .then((app_state) => {
         dispatch("connection", { ok: true });
         commit("setQueueState", { queue_state: app_state.q_state });
@@ -451,19 +441,19 @@ export const actions = {
 
   async init({ commit, dispatch }, { config = {} }) {
     // console.log(`action: analyzers.init`);
-    return init().then((id) => {
+    return api.va.init().then((id) => {
       dispatch("connection", { ok: true });
       dispatch("queue", { id: id });
-      // console.log(`action: analyzers.init -- callback ~ api.init (id=${id})`);
+      // console.log(`action: analyzers.init -- callback ~ url.init (id=${id})`);
       return dispatch("set_config", { id: id, config: config })
         .then((config) => {
           // console.log(
           //   `action: analyzers.init -- callback ~ analyzers.set_config (id=${id})`
           // );
-          return launch(id).then((ok) => {
+          return api.va.__id__.launch(id).then((ok) => {
             dispatch("connection", { ok: true });
             // console.log(
-            //   `action: analyzers.init -- callback ~ api.launch (id=${id})`
+            //   `action: analyzers.init -- callback ~ url.launch (id=${id})`
             // );
             if (ok) {
               // console.log(`Launched '${id}'`);
@@ -495,7 +485,7 @@ export const actions = {
       // console.log(`action: analyzers/close (id=${id})`);
       assert(!(id === undefined), "no id provided");
 
-      return close(id).then((ok) => {
+      return api.va.close(id).then((ok) => {
         // console.log("close action callback");
         dispatch("unqueue", { id: id });
         return ok;
@@ -515,10 +505,10 @@ export const actions = {
         dispatch("source");
       }
 
-      return await get_app_state()
+      return await api.va.state()
         .then((app_state) => {
           dispatch("connection", { ok: true });
-          // console.log(`action: analyzers.sync -- callback ~ api.get_app_state`);
+          // console.log(`action: analyzers.sync -- callback ~ url.get_app_state`);
 
           commit("setQueueState", { queue_state: app_state.q_state });
 
@@ -575,11 +565,11 @@ export const actions = {
       assert(!(id === undefined), "no id provided");
       // console.log(`action: analyzers.get_config (id=${id})`);
 
-      return get_config(id)
+      return api.va.__id__.get_config(id)
         .then((config) => {
           dispatch("connection", { ok: true });
           // console.log(
-          //   `action: analyzers.get_config -- callback ~ api.get_config (id=${id})`
+          //   `action: analyzers.get_config -- callback ~ url.get_config (id=${id})`
           // );
           commit("setAnalyzerConfig", {
             id: id,
@@ -616,11 +606,11 @@ export const actions = {
       assert(!(id === undefined), "no id provided");
       // console.log(`action: analyzers.get_status (id=${id})`);
 
-      return get_status(id)
+      return api.va.__id__.get_status(id)
         .then((status) => {
           dispatch("connection", { ok: true });
           // console.log(
-          //   `action: analyzers.get_status -- callback ~ api.get_status (id=${id})`
+          //   `action: analyzers.get_status -- callback ~ url.get_status (id=${id})`
           // );
           commit("setAnalyzerStatus", { id: id, status: status });
         })
@@ -639,11 +629,11 @@ export const actions = {
       assert(!(config === undefined), "no config");
       // console.log(`action: analyzers.set_config (id=${id})`);
 
-      return set_config(id, config)
+      return api.va.__id__.set_config(id, config)
         .then((config) => {
           dispatch("connection", { ok: true });
           // console.log(
-          //   `action: analyzers.set_config -- callback ~ api.set_config (id=${id})`
+          //   `action: analyzers.set_config -- callback ~ url.set_config (id=${id})`
           // );
           commit("setAnalyzerConfig", {
             id: id,

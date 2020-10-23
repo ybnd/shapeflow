@@ -18,7 +18,7 @@ import SidebarNavDropdown from "./SidebarNavDropdown";
 import SidebarNavLink from "./SidebarNavLink";
 import SidebarNavItem from "./SidebarNavItem";
 
-import { api, ping } from "../../static/api";
+import { url } from "../../static/api";
 
 export default {
   name: "sidebar-footer",
@@ -30,10 +30,10 @@ export default {
   },
   computed: {
     restart() {
-      return api("restart");
+      return url("restart");
     },
     quit() {
-      return api("quit");
+      return url("quit");
     },
     connected() {
       return this.$store.getters["analyzers/isConnected"];

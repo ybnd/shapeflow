@@ -189,14 +189,7 @@
 </template>
 
 <script>
-import {
-  select_design_path,
-  select_video_path,
-  check_design_path,
-  check_video_path,
-  resolve_paths,
-  get_recent_paths,
-} from "../../static/api";
+import { api } from "../../static/api";
 
 import AsyncComputed from "vue-async-computed";
 import Vue from "vue";
@@ -335,7 +328,7 @@ export default {
       this.onChange();
     },
     selectVideoFile() {
-      select_video_path().then((path) => {
+      api.fs.select_video().then((path) => {
         if (path) {
           this.config.video_path = path;
           this.checkVideoPath();
@@ -350,7 +343,7 @@ export default {
       }
     },
     selectDesignFile() {
-      select_design_path().then((path) => {
+      api.fs.select_design().then((path) => {
         if (path) {
           this.config.design_path = path;
           this.checkDesignPath();
@@ -376,7 +369,7 @@ export default {
     },
     async checkVideoPath() {
       if (!this.staticPaths && this.config.video_path) {
-        return check_video_path(this.config.video_path).then((ok) => {
+        return api.fs.check_video(this.config.video_path).then((ok) => {
           this.validVideo = ok;
           return ok;
         });
@@ -389,7 +382,7 @@ export default {
     },
     async checkDesignPath() {
       if (!this.staticPaths && this.config.design_path) {
-        return check_design_path(this.config.design_path).then((ok) => {
+        return api.fs.check_design(this.config.design_path).then((ok) => {
           this.validDesign = ok;
           return ok;
         });
@@ -458,7 +451,7 @@ export default {
   asyncComputed: {
     path_options: {
       async get() {
-        return get_recent_paths().then((options) => {
+        return api.db.get_recent_paths().then((options) => {
           if (!this.config.video_path) {
             this.config.video_path = options.video_path[0];
             this.checkVideoPath();

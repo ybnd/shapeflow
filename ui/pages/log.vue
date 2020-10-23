@@ -51,7 +51,7 @@
 </template>
 
 <script>
-import { get_log, stop_log } from "../static/api";
+import { api } from "../static/api";
 import { debounce, throttle } from "throttle-debounce";
 import PageHeader from "../components/header/PageHeader";
 import PageHeaderItem from "../components/header/PageHeaderItem";
@@ -78,7 +78,7 @@ export default {
     };
   },
   mounted() {
-    this.request = get_log();
+    this.request = api.log();
     this.request.onprogress = (stuff) => {
       this.log = stuff.target.responseText;
     };
@@ -93,7 +93,7 @@ export default {
     }, 1000);
   },
   beforeDestroy() {
-    stop_log();
+    api.stop_log();
   },
   methods: {
     handleLogText() {

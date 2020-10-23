@@ -1,6 +1,6 @@
 import Vue from "vue";
 import axios from "axios";
-import { AnalyzerState, get_schemas } from "../static/api";
+import { AnalyzerState, api } from "../static/api";
 import assert from "assert";
 
 import { get_reference, dereference } from "static/util";
@@ -135,7 +135,7 @@ export const getters = {
 export const actions = {
   async sync({ commit, getters }) {
     if (getters["isNotInitialized"]) {
-      get_schemas().then((schemas) => {
+      api.schemas().then((schemas) => {
         commit("setConfigSchema", { schema: schemas.config });
         commit("setSettingsSchema", { schema: schemas.settings });
         // todo: include sanity checks

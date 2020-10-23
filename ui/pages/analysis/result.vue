@@ -46,7 +46,7 @@ import ResultChartStack from "../../components/results/ResultChartStack";
 import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
 
-import { get_db_id, get_result_list, get_result, export_result, get_colors } from "static/api";
+import { api } from "static/api";
 import Vue from "vue";
 import AsyncComputed from "vue-async-computed";
 
@@ -65,9 +65,9 @@ export default {
       this.colors = undefined;
       this.result = undefined;
 
-      get_db_id(this.id).then((id) => {
+      api.va.__id__.get_db_id(this.id).then((id) => {
         this.db.analysis = id;
-        get_result_list(this.db.analysis).then((list) => {
+        api.db.get_result_list(this.db.analysis).then((list) => {
           // console.log(`get_result_list() callback: list =`);
           // console.log(list);
           this.db.list = list;
@@ -84,11 +84,11 @@ export default {
     handleGetResult(run) {
       // console.log(`result.handleGetResult() run=${run}`);
       this.info = this.result_info(run);
-      return get_colors(this.id).then((colors) => {
+      return api.va.__id__.get_colors(this.id).then((colors) => {
         // console.log(`result.handleGetResult() callback 1 colors=`);
         // console.log(colors);
         this.colors = colors;
-        get_result(this.db.analysis, run).then((result) => {
+        api.db.get_result(this.db.analysis, run).then((result) => {
           // console.log(`result.handleGetResult() callback 2 result=`);
           // console.log(result);
           this.result = result;
@@ -96,7 +96,7 @@ export default {
       });
     },
     handleExport() {
-      export_result(this.db.analysis, this.db.run)
+      api.db.export_result(this.db.analysis, this.db.run)
     },
     result_info(run) {
       run = Number(run);

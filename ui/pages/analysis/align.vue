@@ -124,21 +124,10 @@
 
 <script>
 import {
-  estimate_transform,
-  clear_roi,
-  commit,
   api,
-  get_relative_roi, // todo: handle ~ VueX store
-  undo_config, // todo: handle ~ VueX store
-  redo_config, // todo: handle ~ VueX store
-  turn_cw,
-  turn_ccw,
+  url,
   endpoints,
-  stop_stream,
   AnalyzerState as ast,
-  state_transition,
-  flip_h,
-  flip_v,
 } from "../../static/api";
 import Moveable from "vue-moveable";
 import {
@@ -197,7 +186,7 @@ export default {
 
         this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
 
-        get_relative_roi(this.id).then((roi) => {
+        api.va.__id__.get_relative_roi(this.id).then((roi) => {
           this.setRoi(roi);
         });
       }
@@ -205,7 +194,7 @@ export default {
     handleCleanUp() {
       // console.log("align: handleCleanUp()");
 
-      stop_stream(this.previous_id, endpoints.GET_INVERSE_OVERLAID_FRAME);
+      api.va.stream_stop(this.previous_id, endpoints.GET_INVERSE_OVERLAID_FRAME);
 
       clearInterval(this.waitUntilHasRect);
 
@@ -227,9 +216,9 @@ export default {
     },
     handleClearAlignment() {
       // console.log("align: handleClearAlignment");
-      commit(this.id).then((ok) => {
+      api.va.__id__.commit(this.id).then((ok) => {
         if (ok) {
-          clear_roi(this.id).then((ok) => {
+          api.va.__id__.clear_roi(this.id).then((ok) => {
             if (ok) {
               this.clearRoi();
               // this.handleUpdate();
@@ -239,15 +228,15 @@ export default {
       });
     },
     handleSaveAlignment() {
-      commit(this.previous_id);
+      api.va.__id__.commit(this.previous_id);
     },
     handleUndoAlignment() {
-      undo_config(this.id, "transform").then((config) => {
+      api.va.__id__.undo_config(this.id, "transform").then((config) => {
         this.setRoi(config.transform.roi);
       });
     },
     handleRedoAlignment() {
-      redo_config(this.id, "transform").then((config) => {
+      api.va.__id__.redo_config(this.id, "transform").then((config) => {
         this.setRoi(config.transform.roi);
       });
     },
@@ -336,16 +325,16 @@ export default {
       target.style.transform = transform;
     },
     handleFlipH() {
-      flip_h(this.id);
+      api.va.__id__.flip_h(this.id);
     },
     handleFlipV() {
-      flip_v(this.id);
+      api.va.__id__.flip_v(this.id);
     },
     handleTurnCW() {
-      turn_cw(this.id);
+      api.va.__id__.turn_cw(this.id);
     },
     handleTurnCCW() {
-      turn_ccw(this.id);
+      api.va.__id__.turn_ccw(this.id);
     },
     updateRoiCoordinates() {
       // console.log("align: updateRoiCoordinates");
@@ -358,11 +347,11 @@ export default {
         if (this.align.roi !== undefined) {
           if (this.report_change) {
             // todo: why is this here? seems like a backend thing
-            state_transition(this.id).then(() => {
-              estimate_transform(this.id, this.align.roi);
+            api.va.__id__.state_transition(this.id).then(() => {
+              api.va.__id__.estimate_transform(this.id, this.align.roi);
             });
           } else {
-            estimate_transform(this.id, this.align.roi);
+            api.va.__id__.estimate_transform(this.id, this.align.roi);
           }
         }
       }

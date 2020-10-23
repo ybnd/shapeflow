@@ -125,14 +125,9 @@
 
 <script>
 import {
-  set_filter,
   api,
-  undo_config,
-  redo_config,
-  analyze,
-  stop_stream,
+  url,
   endpoints,
-  clear_filters,
 } from "../../static/api";
 import { events } from "../../static/events";
 
@@ -190,8 +185,8 @@ export default {
     handleCleanUp() {
       // console.log("filter: handleCleanUp()");
 
-      stop_stream(this.previous_id, endpoints.GET_FRAME);
-      stop_stream(this.previous_id, endpoints.GET_STATE_FRAME);
+      api.va.stream_stop(this.previous_id, endpoints.GET_FRAME);
+      api.va.stream_stop(this.previous_id, endpoints.GET_STATE_FRAME);
 
       clearInterval(this.waitUntilHasRect);
       clearInterval(this.waitForFeatures);
@@ -266,7 +261,7 @@ export default {
       }
     },
     handleClick(e) {
-      set_filter(
+      api.va.__id__.set_filter(
         this.id,
         clickEventToRelativeCoordinate(e, this.filter.frame)
       ).then((data) => {
@@ -276,13 +271,13 @@ export default {
       });
     },
     handleClearFilters() {
-      clear_filters(this.id);
+      api.va.__id__.clear_filters(this.id);
     },
     handleUndoFilters() {
-      undo_config(this.id, "masks");
+      api.va.__id__.undo_config(this.id, "masks");
     },
     handleRedoFilters() {
-      redo_config(this.id, "masks");
+      api.va.__id__.redo_config(this.id, "masks");
     },
     stepForward() {
       this.$root.$emit(events.seek.step_fw(this.id));
@@ -314,13 +309,13 @@ export default {
       return this.$route.query.id;
     },
     state_url() {
-      return `/api/va/stream?id=${this.$route.query.id}&endpoint=${endpoints.GET_STATE_FRAME}`;
+      return url("va", `stream?id=${this.$route.query.id}&endpoint=${endpoints.GET_STATE_FRAME}`);
     },
     frame_url() {
-      return `/api/va/stream?id=${this.$route.query.id}&endpoint=${endpoints.GET_FRAME}`;
+      return url("va", `stream?id=${this.$route.query.id}&endpoint=${endpoints.GET_FRAME}`);
     },
     overlay_url() {
-      return api("va", this.$route.query.id, endpoints.GET_OVERLAY_PNG);
+      return url("va", this.$route.query.id, endpoints.GET_OVERLAY_PNG);
     },
     ref_frame() {
       return `filter-frame-${this.$route.query.id}`;
