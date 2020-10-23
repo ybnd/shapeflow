@@ -119,8 +119,8 @@ class PlainFileStreamer(BaseStreamer):
 
     def read(self):
         def target():
-            while not self._stop.is_set():
-                with open(self._path) as f:
+            with open(self._path) as f:
+                while not self._stop.is_set():
                     self._queue.put(f.read())
                     time.sleep(1)
         Thread(target=target).start()
