@@ -128,12 +128,14 @@ class Endpoint(object):
     _update: Callable[['Endpoint'], None]
 
     def __init__(self, signature: _GenericAlias, streaming: _Streaming = stream_off):  # todo: type Callable[] correctly
-        assert signature.__origin__ == collections.abc.Callable
+        try:
+            assert signature.__origin__ == collections.abc.Callable
+            assert hasattr(signature, '__args__')
+        except Exception:
+            raise TypeError('Invalid Endpoint signature')
 
         self._method = None
         self._registered = False
-        if not hasattr(signature, '__args__'):
-            raise SetupError('Cannot define an Endpoint without a signature!')
         self._signature = signature
         self._streaming = streaming
 
@@ -269,6 +271,10 @@ class Dispatcher(object):  # todo: these should also register specific instances
         self._address_space[name] = method
         self._endpoints = tuple(list(self._endpoints) + [endpoint])
         setattr(self, name, endpoint)
+        try:
+            self._update(self)
+        except AttributeError:
+            pass
 
     def _add_dispatcher(self, name: str, dispatcher: 'Dispatcher'):
         dispatcher._register(name=name, callback=self._update_dispatcher)
@@ -280,6 +286,10 @@ class Dispatcher(object):  # todo: these should also register specific instances
         })
         self._dispatchers = tuple(list(self._dispatchers) + [dispatcher])
         setattr(self, name, dispatcher)
+        try:
+            self._update(self)
+        except AttributeError:
+            pass
 
     def _update_endpoint(self, endpoint: Endpoint) -> None:
         self._address_space.update({

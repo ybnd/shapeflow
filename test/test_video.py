@@ -271,7 +271,7 @@ class VideoAnalyzerTest(FrameTest):
             va.launch()
 
             self.assertEqual(None, va.video._cache)
-            with va.caching():
+            with va.video.caching():
                 self.assertEqual(None, va.video._cache)
             self.assertEqual(None, va.video._cache)
 
@@ -281,7 +281,7 @@ class VideoAnalyzerTest(FrameTest):
             va.launch()
 
             self.assertEqual(None, va.video._cache)
-            with va.caching():
+            with va.video.caching():
                 self.assertNotEqual(None, va.video._cache)
             self.assertEqual(None, va.video._cache)
 
@@ -291,7 +291,7 @@ class VideoAnalyzerTest(FrameTest):
         va.launch()
         va.transform._matrix = TRANSFORM
 
-        with va.caching():
+        with va.video.caching():
             for fn in va.frame_numbers():
                 if fn in FRAMES:  # todo: !!!!!! if this test checks out, transform is not applied (:
                     frame = va.get_transformed_frame(fn)
