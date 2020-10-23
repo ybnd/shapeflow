@@ -185,9 +185,8 @@ export default {
         align: `/analysis/align?id=${this.id}`,
         filter: `/analysis/filter?id=${this.id}`,
         result: `/analysis/result?id=${this.id}`,
-        cache: `/api/${this.id}/call/cache`,
-        analyze: `/api/${this.id}/call/analyze`,
-        cancel: `/api/${this.id}/call/cancel`,
+        analyze: `/api/va/${this.id}/analyze`,
+        cancel: `/api/va/${this.id}/cancel`,
       };
     },
     event() {
