@@ -9,7 +9,7 @@ from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, 
 
 import pandas as pd
 
-from shapeflow.api import HistoryRegistry
+from shapeflow.api import api
 from shapeflow.core import RootInstance
 from shapeflow.core.db import Base, DbModel, SessionWrapper, FileModel, BaseAnalysisModel
 from shapeflow import settings, get_logger, ResultSaveMode
@@ -21,7 +21,6 @@ from shapeflow.core.backend import BaseVideoAnalyzer, BaseAnalyzerConfig
 
 
 log = get_logger(__name__)
-history = HistoryRegistry()
 
 
 class VideoFileModel(FileModel):
@@ -233,7 +232,7 @@ class AnalysisModel(BaseAnalysisModel):
                             feature=k,
                             data=df.to_json(orient='split'),
                         )  # todo: should have a _results: Dict[ <?>, ResultsModel] so these don't spawn new results each time
-                        s.add(model)
+                        s._add(model)
 
                         # Store timing info
                         t = self._analyzer.timing
@@ -437,7 +436,7 @@ class AnalysisModel(BaseAnalysisModel):
                 if context is None:
                     self._config = match
                     self._config.connect(self)
-                    s.add(self._config)
+                    s._add(self._config)
                     return config, match.id
                 else:
                     assert self._analyzer is not None
@@ -497,9 +496,6 @@ class AnalysisModel(BaseAnalysisModel):
 class History(SessionWrapper, RootInstance):
     """Interface to the history database
     """
-    _dispatcher: HistoryRegistry = history
-    _instance_class = SessionWrapper
-
     _eventstreamer: EventStreamer
 
     def __init__(self, path: Path = None):
@@ -540,7 +536,7 @@ class History(SessionWrapper, RootInstance):
         if model is None:
             with self.session() as s:
                 model = AnalysisModel()
-                s.add(model)
+                s._add(model)
         model.connect(self)
 
         model.set_analyzer(analyzer)
@@ -552,7 +548,8 @@ class History(SessionWrapper, RootInstance):
             return s.query(AnalysisModel).filter(AnalysisModel.id == id).\
                 first()
 
-    # @historyxpose(history.get_recent_paths)
+    # @history.expose(history.get_recent_paths)
+    @api.db.get_recent_paths.expose()
     def get_paths(self) -> Dict[str, List[str]]:
         """Fetch the latest video and design file paths from the
         database. Number of paths is limited by ``settings.app.recent_files``
@@ -568,6 +565,7 @@ class History(SessionWrapper, RootInstance):
             }
 
     # @history.expose(history.get_result_list)
+    @api.db.get_result_list.expose()
     def get_result_list(self, analysis: int) -> dict:
         with self.session() as s:
             runs = s.query(AnalysisModel).\
@@ -581,6 +579,7 @@ class History(SessionWrapper, RootInstance):
             }
 
     # @history.expose(history.get_result)
+    @api.db.get_result.expose()
     def get_result(self, analysis: int, run: int) -> dict:
         with self.session() as s:
             return {
@@ -591,6 +590,7 @@ class History(SessionWrapper, RootInstance):
             }
 
     # @history.expose(history.export_result)
+    @api.db.export_result.expose()
     def export_result(self, analysis: int, run: int = None) -> bool:
         with self.session() as s:
             try:

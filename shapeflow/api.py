@@ -2,11 +2,12 @@ from typing import Dict, Optional, List, Callable, Tuple, Type, Any
 import numpy as np
 import shortuuid
 
-from shapeflow.core import Dispatcher, Endpoint, stream_image, stream_json
+from shapeflow.core import Dispatcher, Endpoint, stream_image, stream_json, stream_plain
 from shapeflow.util.meta import bind
 from shapeflow.maths.colors import HsvColor
+from shapeflow.core.streaming import BaseStreamer, EventStreamer, PlainFileStreamer
 
-class VideoAnalyzerDispatcher(Dispatcher):  # todo: there's a bunch of deprecated stuff here
+class _VideoAnalyzerDispatcher(Dispatcher):  # todo: there's a bunch of deprecated stuff here
     status = Endpoint(Callable[[], dict], stream_json)
     state_transition = Endpoint(Callable[[bool], int])
     can_launch = Endpoint(Callable[[], bool])
@@ -63,45 +64,28 @@ class VideoAnalyzerDispatcher(Dispatcher):  # todo: there's a bunch of deprecate
     get_seek_position = Endpoint(Callable[[], float])
 
 
-class VideoAnalyzerManagerDispatcher(Dispatcher):
+class _VideoAnalyzerManagerDispatcher(Dispatcher):
     """ Dispatches requests to video analyzer instances. """
     # todo: this one will be a bit special since it also dispatches to id's
     # todo: ids should be a bit shorter for more readable URLs
     init = Endpoint(Callable[[], str])
+    close = Endpoint(Callable[[str], bool])
 
-    __id__ = VideoAnalyzerDispatcher() # todo: so dispatch <id> to a specific one somehow?
-
-    start = Endpoint(Callable[[], None])  # todo: these should respond with state?
+    start = Endpoint(Callable[[List[str]], None])  # todo: these should respond with state?
     stop = Endpoint(Callable[[], None])
     cancel = Endpoint(Callable[[], None])
 
-    __analyzers__: Dict[str, object] = {}  # todo: analyzer manager should register analyzers with api.va on init
+    state = Endpoint(Callable[[], dict])
+    save_state = Endpoint(Callable[[], None])
+    load_state = Endpoint(Callable[[], None])
 
-    def add(self, analyzer: object) -> str:
-        LENGTH = 6
-        id = shortuuid.ShortUUID().random(length=LENGTH)
+    stream = Endpoint(Callable[[str, str], BaseStreamer])       # todo: URL -> /api/va/stream?id=<id>&endpoint=<endpoint>
+    stream_stop = Endpoint(Callable[[str, str], None])  # todo: URL -> /api/va/stream_stop?id=<id>&endpoint=<endpoint>
 
-        # ensure that there's no collisions
-        while id in self.__analyzers__.keys():
-            id = shortuuid.ShortUUID().random(length=LENGTH)
-
-        self.__analyzers__[id] = analyzer
-        self._address_space.update({
-            "/".join([id, address]): bind(analyzer, method)
-            for address, method in self.__id__.address_space.items()
-            if method is not None
-        })
-        self._update(self)
-        return id
-
-    def remove(self, id: str):
-        del self.__analyzers__[id]
-        for k in filter(lambda k: id in k, list(self._address_space.keys())):  # todo: this is a bit lame
-            del self._address_space[k]
-        self._update(self)
+    __id__ = _VideoAnalyzerDispatcher()
 
 
-class DatabaseDispatcher(Dispatcher):
+class _DatabaseDispatcher(Dispatcher):
     """ Dispatches requests to a History instance. """
     get_recent_paths = Endpoint(Callable[[], Dict[str, List[str]]])
 
@@ -113,7 +97,7 @@ class DatabaseDispatcher(Dispatcher):
     forget = Endpoint(Callable[[], None])
 
 
-class FilesystemDispatcher(Dispatcher):
+class _FilesystemDispatcher(Dispatcher):
     select_video = Endpoint(Callable[[], str])
     select_design = Endpoint(Callable[[], str])
 
@@ -121,6 +105,11 @@ class FilesystemDispatcher(Dispatcher):
     check_design = Endpoint(Callable[[str], bool])
 
     open_root = Endpoint(Callable[[], None])
+
+
+class _CacheDispatcher(Dispatcher):
+    clear = Endpoint(Callable[[], None])
+    size = Endpoint(Callable[[], str])
 
 
 class ApiDispatcher(Dispatcher):
@@ -133,14 +122,19 @@ class ApiDispatcher(Dispatcher):
     get_settings = Endpoint(Callable[[], dict])
     set_settings = Endpoint(Callable[[dict], dict])
 
+    events = Endpoint(Callable[[], EventStreamer], stream_json)
+    stop_events = Endpoint(Callable[[], None])
+    log = Endpoint(Callable[[], PlainFileStreamer], stream_plain)
+    stop_log = Endpoint(Callable[[], None])
+
     unload = Endpoint(Callable[[], bool])
     quit = Endpoint(Callable[[], bool])
     restart = Endpoint(Callable[[], bool])
 
-    fs = FilesystemDispatcher()
-    db = DatabaseDispatcher()
-    va = VideoAnalyzerManagerDispatcher()
+    fs = _FilesystemDispatcher()
+    db = _DatabaseDispatcher()
+    va = _VideoAnalyzerManagerDispatcher()
+    cache = _CacheDispatcher()
 
+api = ApiDispatcher()
 
-# Global
-api = ApiDispatcher(True)

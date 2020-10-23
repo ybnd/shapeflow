@@ -110,12 +110,13 @@ class EnforcedStr(str):
 
 
 class _Streaming(EnforcedStr):
-    _options = ['off', 'image', 'json']
+    _options = ['off', 'image', 'json', 'plain']
 
 
 stream_off = _Streaming('off')
 stream_image = _Streaming('image')
 stream_json = _Streaming('json')
+stream_plain = _Streaming('plain')
 
 
 class Endpoint(object):
@@ -159,8 +160,8 @@ class Endpoint(object):
 
             if not self.compatible(method):
                 raise TypeError(
-                    f"Cannot expose '{method.__qualname__}' at endpoint '{self.name}'."
-                    f"incompatible signature: {method.__annotations__} vs. {self.signature}"
+                    f"Cannot expose '{method.__qualname__}' at endpoint '{self.name}'. "
+                    f"Incompatible signature: {method.__annotations__} vs. {self.signature}"
                 )
 
             method._endpoint = self
@@ -209,32 +210,22 @@ class Dispatcher(object):  # todo: these should also register specific instances
 
     _update: Callable[['Dispatcher'], None]
 
-    def __init__(self, is_root: bool = False):
-        self._address_space = {}
-        _endpoints = []
-        _dispatchers = []
+    _instance: Optional[object]
 
-        for attr, val in self.__class__.__dict__.items():
-            if isinstance(val, Endpoint):  # todo: also register dispatchers
-                val.register(name=attr, callback=self._update_endpoint)
-                _endpoints.append(val)
-                if val.method is not None:
-                    self._address_space[attr] = val.method
-            elif isinstance(val, Dispatcher):
-                val._register(name=attr, callback=self._update_dispatcher)
-                _dispatchers.append(val)
-                self._address_space.update({
-                    "/".join([attr, address]): method
-                    for address, method in val.address_space.items()
-                    if method is not None and "__" not in address  # todo: we're supposing that dunder dispatchers are "special"
-                })
-
-        self._endpoints = tuple(_endpoints)
-        self._dispatchers = tuple(_dispatchers)
+    def __init__(self, instance: object = None):
+        if instance is not None:
+            self._set_instance(instance)
+        else:
+            self._address_space = {}
+            self._endpoints = tuple()
+            self._dispatchers = tuple()
 
     @property
     def name(self):
-        return self._name
+        try:
+            return self._name
+        except AttributeError:
+            return self.__class__.__name__
 
     @property
     def dispatchers(self) -> Tuple['Dispatcher']:
@@ -248,9 +239,44 @@ class Dispatcher(object):  # todo: these should also register specific instances
     def address_space(self) -> Dict[str, Callable]:
         return self._address_space
 
+    def _set_instance(self, instance: object):
+        self._instance = instance
+        self._address_space = {}
+        self._endpoints = tuple()
+        self._dispatchers = tuple()
+
+        for attr, val in self.__class__.__dict__.items():
+            if isinstance(val, Endpoint):  # todo: also register dispatchers
+                self._add_endpoint(attr, val)
+            elif isinstance(val, Dispatcher):
+                self._add_dispatcher(attr, val)
+
     def _register(self, name: str, callback: Callable[['Dispatcher'], None]):
         self._update = callback
         self._name = name
+
+    def _add_endpoint(self, name: str, endpoint: Endpoint):
+        endpoint.register(name=name, callback=self._update_endpoint)
+
+        if endpoint.method is not None and self._instance is not None:
+            method = bind(self._instance, endpoint.method)
+        else:
+            method = endpoint.method
+
+        self._address_space[name] = method
+        self._endpoints = tuple(list(self._endpoints) + [endpoint])
+        setattr(self, name, endpoint)
+
+    def _add_dispatcher(self, name: str, dispatcher: 'Dispatcher'):
+        dispatcher._register(name=name, callback=self._update_dispatcher)
+
+        self._address_space.update({
+            "/".join([name, address]): method
+            for address, method in dispatcher.address_space.items()
+            if method is not None and "__" not in address
+        })
+        self._dispatchers = tuple(list(self._dispatchers) + [dispatcher])
+        setattr(self, name, dispatcher)
 
     def _update_endpoint(self, endpoint: Endpoint) -> None:
         self._address_space.update({
@@ -278,7 +304,10 @@ class Dispatcher(object):  # todo: these should also register specific instances
             # todo: consider doing some type checking here, args/kwargs vs. method._endpoint.signature
             return method(*args, **kwargs)
         except KeyError:
-            log.warning(f"Dispatcher {self} can't dispatch address {address}.")
+            log.warning(f"'{self.name}' can't dispatch address {address}.")
+
+    def __getitem__(self, item):
+        return getattr(self, item)
 
 
 class Described(object):  # todo: maybe this should be a metaclass?
@@ -361,16 +390,8 @@ class Lockable(object):
         return self._ensure_error.clear()
 
 
-class RootInstance(Lockable):
+class RootInstance(Lockable):  # todo: basically deprecated
     _id: str
-
-    _dispatcher: Dispatcher
-    _instances: List
-    _instance_class: type
-    _instance_mapping: Dict[Endpoint, List[Callable]]  # todo: shouldn't support multiple instances per endpoint
-
-    def __init__(self):
-        super().__init__()
 
     def _set_id(self, id: str):
         self._id = id

@@ -293,7 +293,7 @@ else:
 save_settings(settings)
 
 
-def update_settings(s: dict):
+def update_settings(s: dict) -> dict:
     """Update global settings ~ dict
         Note: doing `settings = Settings(**new_settings)` would prevent
         importing modules from accessing the updated settings!
@@ -304,6 +304,7 @@ def update_settings(s: dict):
             setattr(sub, kw, val)
 
     save_settings(settings)
+    return settings.to_dict()
 
 
 class Logger(logging.Logger):
