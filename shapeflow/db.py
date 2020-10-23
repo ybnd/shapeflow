@@ -686,11 +686,11 @@ class History(SessionWrapper, RootInstance):
             for old in s.query(AnalysisModel).\
                     filter(AnalysisModel.modified < threshold):
                 s.query(ConfigModel). \
-                    filter(ConfigModel.analysis == old.__id__). \
+                    filter(ConfigModel.analysis == old.id). \
                     filter(ConfigModel.id != old.config).delete()
 
                 s.query(ResultModel). \
-                    filter(ResultModel.analysis == old.__id__). \
+                    filter(ResultModel.analysis == old.id). \
                     filter(ResultModel.id != old.results).delete()
 
             for f in unhashed:
