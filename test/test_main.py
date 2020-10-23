@@ -51,7 +51,7 @@ def application(keep: bool = False):
     try:
         with settings.cache.override({"dir": CACHE, "do_cache": False}), \
                 settings.db.override({"path": DB, "cleanup_interval": 0}), \
-                settings.app.override({"state_path": STATE, "save_result_auto": 'in result directory', "result_dir": RESULTS}), \
+                settings.app.override({"state_path": STATE, "save_result_auto": 'in result directory', "result_dir": RESULTS, "cancel_on_q_stop": False}), \
                 settings.log.override({'lvl_console': 'debug', 'lvl_file': 'debug'}):
             save_settings(settings)
 
@@ -339,7 +339,6 @@ class ServerAnalyzerTest(unittest.TestCase):
                 analyzers[id].transform.config.flip.to_dict()
             )
 
-    @unittest.skip("doesn't work after 06024b46")  # todo: rethink!
     def test_analyzer_filter_click(self):
         with application() as (server, analyzers, history, client, settings):
             id = json.loads(client.post('/api/va/init').data)
@@ -354,32 +353,37 @@ class ServerAnalyzerTest(unittest.TestCase):
             )
 
             for click in self.MISSES:
+                og_masks = analyzers[id].config.to_dict()['masks']
                 r = client.post(
                     f'/api/va/{id}/set_filter_click',
                     data=json.dumps({'relative_x': click[0], 'relative_y': click[1]})
                 )
-                # self.assertEqual({}, json.loads(r.data))  todo: no response anymore ~06024b46
+                self.assertEqual(og_masks, analyzers[id].config.to_dict()['masks'])  # todo: no response anymore ~06024b46
+
             for click in self.FAKE_HITS:
+                og_masks = analyzers[id].config.to_dict()['masks']
                 r = client.post(
                     f'/api/va/{id}/set_filter_click',
                     data=json.dumps({'relative_x': click[0], 'relative_y': click[1]})
                 )
-                # self.assertEqual({}, json.loads(r.data))  todo: no response anymore ~06024b46
+                self.assertEqual(og_masks, analyzers[id].config.to_dict()['masks'])  # todo: no response anymore ~06024b46
 
             for click in self.TRUE_HITS:
+                og_masks = analyzers[id].config.to_dict()['masks']
                 r = client.post(
                     f'/api/va/{id}/set_filter_click',
                     data=json.dumps({'relative_x': click[0], 'relative_y': click[1]})
                 )
-                # self.assertIn('color', json.loads(r.data))  todo: no response anymore ~06024b46
+                self.assertNotEqual(og_masks, analyzers[id].config.to_dict()['masks'])  # todo: no response anymore ~06024b46
 
             for click in self.DOUBLE_HITS:
+                og_masks = analyzers[id].config.to_dict()['masks']
                 r = client.post(
                     f'/api/va/{id}/set_filter_click',
                     data=json.dumps(
                         {'relative_x': click[0], 'relative_y': click[1]})
                 )
-                # self.assertIn('message', json.loads(r.data))  todo: no response anymore ~06024b46
+                self.assertEqual(og_masks, analyzers[id].config.to_dict()['masks'])  # todo: no response anymore ~06024b46
 
     def test_analyzer_history(self):
         with application() as (server, analyzers, history, client, settings):
@@ -418,7 +422,6 @@ class ServerAnalyzerTest(unittest.TestCase):
                 ).data)['transform']['roi']
             )
 
-    # @unittest.skip('to be fixed!')
     def test_analyzer_undo_redo(self):
         with application() as (server, analyzers, history, client, settings):
             id = json.loads(client.post('/api/va/init').data)
@@ -590,7 +593,7 @@ class ServerAnalyzerTest(unittest.TestCase):
         finally:
             clear_files()
 
-    @unittest.skip("doesn't work after 06024b46")  # todo: rethink!
+    @unittest.skip("doesn't work after 06024b46")  # todo: have to bypass CAN_FILTER by setting up all masks
     def test_analyzers_queue_ops(self):
         with application() as (server, analyzers, history, client, settings):
             id1 = json.loads(client.post('/api/va/init').data)
@@ -598,13 +601,13 @@ class ServerAnalyzerTest(unittest.TestCase):
                 f'/api/va/{id1}/set_config',
                 data=json.dumps({"config": self.CONFIG})
             )
-            client.post(f'/api/{id1}/launch')
+            client.post(f'/api/va/{id1}/launch')
             client.post(
                 f'/api/va/{id1}/estimate_transform',
                 data=json.dumps({"roi": self.ROI})
             )
 
-            id2 = json.loads(client.post('/api/init').data)
+            id2 = json.loads(client.post('/api/va/init').data)
 
             client.post(
                 f'/api/va/{id2}/set_config',

@@ -71,7 +71,7 @@ class _VideoAnalyzerManagerDispatcher(Dispatcher):
     init = Endpoint(Callable[[], str])
     close = Endpoint(Callable[[str], bool])
 
-    start = Endpoint(Callable[[List[str]], None])  # todo: these should respond with state?
+    start = Endpoint(Callable[[List[str]], bool])  # todo: these should respond with state?
     stop = Endpoint(Callable[[], None])
     cancel = Endpoint(Callable[[], None])
 
@@ -130,6 +130,7 @@ class ApiDispatcher(Dispatcher):
     unload = Endpoint(Callable[[], bool])
     quit = Endpoint(Callable[[], bool])
     restart = Endpoint(Callable[[], bool])
+    pid_hash = Endpoint(Callable[[], str])
 
     fs = _FilesystemDispatcher()
     db = _DatabaseDispatcher()

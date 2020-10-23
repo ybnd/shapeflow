@@ -109,6 +109,11 @@ class _Main(object):
         self._server.restart()
         return True
 
+    @api.pid_hash.expose()
+    def pid_hash(self) -> str:
+        import hashlib
+        return hashlib.sha1(bytes(os.getpid())).hexdigest() + '\n'
+
 
 class _Cache(object):
     _cache: diskcache.Cache
@@ -325,7 +330,7 @@ class _VideoAnalyzerManager(object):
         return True
 
     @api.va.start.expose()
-    def q_start(self, queue: List[str]) -> None:
+    def q_start(self, queue: List[str]) -> bool:
         """Queue analysis
 
         Parameters
@@ -333,41 +338,49 @@ class _VideoAnalyzerManager(object):
         queue: List[str]
             List of analyzer ``id`` to queue.
         """
+        with self._lock:
+            stopped = Event()
 
-        def target():
-            if self._q_state == QueueState.STOPPED:
-                self._q_state = QueueState.RUNNING
-                if all(self.__analyzers__[id].can_analyze for id in queue):  # todo: handle non-id entries in q
-                    log.info(f"analyzing queue: {queue}")
-                    for id in queue:
-                        while self._pause_q.is_set():
-                            self._q_state = QueueState.PAUSED
-                            time.sleep(0.5)
-                        self._q_state = QueueState.RUNNING
+            def target():
+                if self._q_state == QueueState.STOPPED:
+                    self._q_state = QueueState.RUNNING
+                    if all(self.__analyzers__[id].can_analyze for id in queue):  # todo: handle non-id entries in q
+                        log.info(f"analyzing queue: {queue}")
+                        for id in queue:
+                            while self._pause_q.is_set():
+                                self._q_state = QueueState.PAUSED
+                                time.sleep(0.5)
+                            self._q_state = QueueState.RUNNING
 
-                        if self._stop_q.is_set():
-                            break
+                            if self._stop_q.is_set():
+                                break
 
-                        if not self.__analyzers__[id].done:
-                            self.__analyzers__[id].analyze()
-                        else:
-                            self.__analyzers__[id].notice(
-                                f"already analyzed "
-                                f"'{self.__analyzers__[id].get_name}' "
-                                f"with the current configuration."
-                            )
-                            log.info(f"skipping '{id}'")
-
-                    self._pause_q.clear()
-                    self._stop_q.clear()
-                    self._q_state = QueueState.STOPPED
+                            if not self.__analyzers__[id].done:
+                                self.__analyzers__[id].analyze()
+                            else:
+                                self.__analyzers__[id].notice(
+                                    f"already analyzed "
+                                    f"'{self.__analyzers__[id].get_name}' "
+                                    f"with the current configuration."
+                                )
+                                log.info(f"skipping '{id}'")
+                        self._q_state = QueueState.STOPPED
+                    else:
+                        log.info(f"Can't analyze all of {queue}")
                 else:
-                    log.info(f"Can't analyze all of {queue}")
-            else:
-                log.info(f"already started analyzing queue!")
+                    log.info(f"already started analyzing queue!")
 
-        self._q_thread = Thread(target=target)
-        self._q_thread.run()
+            self._q_thread = Thread(target=target)
+            self._q_thread.start()
+            self._q_thread.join()
+
+            self._pause_q.clear()
+
+            if self._stop_q.is_set():
+                self._stop_q.clear()
+                return False
+            else:
+                return True
 
     @api.va.stop.expose()
     def q_stop(self) -> None:
