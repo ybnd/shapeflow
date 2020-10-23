@@ -254,7 +254,7 @@ export async function stop_log() {
 }
 
 export async function stop_stream(id, endpoint) {
-  return axios.post(api(`va/stop?id=${id}&endpoint=${endpoint}`)).then(return_success);
+  return axios.post(api(`va/stream_stop?id=${id}&endpoint=${endpoint}`)).then(return_success);
 }
 
 export function events(onmessage, onerror, onopen) {
