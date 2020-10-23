@@ -455,6 +455,9 @@ class BaseVideoAnalyzer(Instance, RootInstance):
         self._progress = 0.0
         self._model = None
 
+        self._cancel = threading.Event()
+        self._error = threading.Event()
+
     def set_model(self, model: BaseAnalysisModel):
         self._model = model
         if self.config.name is None:

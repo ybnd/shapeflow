@@ -96,25 +96,17 @@ class _Main(object):
 
     @api.unload.expose()
     def unload(self) -> bool:
-        api.dispatch('va/save_state')
         self._server._unload.set()
         return True
 
     @api.quit.expose()
     def quit(self) -> bool:
-        api.va.save_state.method()
         self._server._quit.set()
         return True
 
     @api.restart.expose()
     def restart(self) -> bool:
-        self.quit()
-
-        while not self._server._done.is_set():
-            pass
-
         self._server.restart()
-
         return True
 
 
@@ -241,8 +233,6 @@ class _VideoAnalyzerManager(object):
         self._pause_q = Event()
         self._q_state = QueueState.STOPPED
 
-        self.load_state()
-
     def _set_dispatcher(self, dispatcher: _VideoAnalyzerManagerDispatcher):
         self._dispatcher = dispatcher
 
@@ -255,19 +245,22 @@ class _VideoAnalyzerManager(object):
         str
             The ``id`` of the new analyzer
         """
-        id = shortuuid.ShortUUID().random(length=self.ID_LENGTH)
-
-        # ensure that the id doesn't start with a number there's no collisions
-        while id[0].isdigit() or id in self.__analyzers__.keys():
+        if not hasattr(analyzer, 'id'):
             id = shortuuid.ShortUUID().random(length=self.ID_LENGTH)
 
-        analyzer._set_id(id)
-        self.__analyzers__[id] = analyzer
+            # ensure that the id doesn't start with a number there's no collisions
+            while id[0].isdigit() or id in self.__analyzers__.keys():
+                id = shortuuid.ShortUUID().random(length=self.ID_LENGTH)
+
+            analyzer._set_id(id)
+
+
+        self.__analyzers__[analyzer.id] = analyzer
         self._dispatcher._add_dispatcher(
-            id, _VideoAnalyzerDispatcher(instance=analyzer)
+            analyzer.id, _VideoAnalyzerDispatcher(instance=analyzer)
         )
         self._dispatcher._update(self._dispatcher)  # todo: lame signature; also should be a part of _add_dispatcher probably
-        return id
+        return analyzer.id
 
     def _remove(self, id: str):
         """Remove an analyzer instance
@@ -330,21 +323,21 @@ class _VideoAnalyzerManager(object):
         return True
 
     @api.va.start.expose()
-    def q_start(self, q: List[str]) -> None:
+    def q_start(self, queue: List[str]) -> None:
         """Queue analysis
 
         Parameters
         ----------
-        q: List[str]
+        queue: List[str]
             List of analyzer ``id`` to queue.
         """
 
         def target():
             if self._q_state == QueueState.STOPPED:
                 self._q_state = QueueState.RUNNING
-                if all(self.__analyzers__[id].can_analyze for id in q):  # todo: handle non-id entries in q
-                    log.info(f"analyzing queue: {q}")
-                    for id in q:
+                if all(self.__analyzers__[id].can_analyze for id in queue):  # todo: handle non-id entries in q
+                    log.info(f"analyzing queue: {queue}")
+                    for id in queue:
                         while self._pause_q.is_set():
                             self._q_state = QueueState.PAUSED
                             time.sleep(0.5)
@@ -367,7 +360,7 @@ class _VideoAnalyzerManager(object):
                     self._stop_q.clear()
                     self._q_state = QueueState.STOPPED
                 else:
-                    log.info(f"Can't analyze all of {q}")
+                    log.info(f"Can't analyze all of {queue}")
             else:
                 log.info(f"already started analyzing queue!")
 
@@ -447,7 +440,7 @@ class _VideoAnalyzerManager(object):
 
                         analyzer.launch()
 
-                        self.__analyzers__[id] = analyzer
+                        self._add(analyzer)
                         self._history.add_analysis(analyzer, model)
             except FileNotFoundError:
                 pass
@@ -491,5 +484,8 @@ def load(server: ShapeflowServer) -> ApiDispatcher:
     _vm._set_dispatcher(_va)
 
     api._add_dispatcher('va', _va)
+
+    if settings.app.load_state:
+        api.dispatch('va/load_state')
 
     return api

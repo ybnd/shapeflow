@@ -190,7 +190,7 @@ class ShapeflowServer(shapeflow.core.Lockable):
                 else:
                     return respond(result)
             except Exception as e:
-                log.error(f"{e.__class__.__name__}: {str(e)}")
+                log.error(f"'{address}' - {e.__class__.__name__}: {str(e)}")
                 raise e
 
         self._app = app
@@ -241,6 +241,14 @@ class ShapeflowServer(shapeflow.core.Lockable):
         streaming.streams.stop()
 
         log.info('stopped serving.')
+
+    def restart(self):
+        self._quit.set()
+
+        while not self._done.is_set():
+            pass
+
+        restart_server(self._host, self._port)
 
     def active(self):
         if self._unload.is_set():
