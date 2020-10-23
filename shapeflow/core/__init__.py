@@ -307,7 +307,7 @@ class Dispatcher(object):  # todo: these should also register specific instances
             # todo: consider doing some type checking here, args/kwargs vs. method._endpoint.signature
             return method(*args, **kwargs)
         except KeyError:
-            log.warning(f"'{self.name}' can't dispatch address {address}.")
+            raise KeyError(f"'{self.name}' can't dispatch address {address}.")
 
     def __getitem__(self, item):
         return getattr(self, item)

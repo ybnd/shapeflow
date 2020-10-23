@@ -99,7 +99,7 @@
         v-on:mouseup="handleStopRectangle"
       >
         <img
-          :src="`${overlaid_url}?${opened_at}`"
+          :src="`${overlaid_url}&${opened_at}`"
           alt=""
           class="streamed-image-a"
           ref="frame"
@@ -519,11 +519,7 @@ export default {
       };
     },
     overlaid_url() {
-      return api(
-        "stream",
-        this.$route.query.id,
-        endpoints.GET_INVERSE_OVERLAID_FRAME
-      );
+      return `/api/va/stream?id=${this.$route.query.id}&endpoint=${endpoints.GET_INVERSE_OVERLAID_FRAME}`;
     },
     ref_frame() {
       return `frame`;

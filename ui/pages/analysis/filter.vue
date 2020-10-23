@@ -97,7 +97,7 @@
       <div class="filter filter-placeholder" @click="handleClick">
         <img
           v-if="!hideVideoFrame"
-          :src="`${frame_url}?${opened_at}`"
+          :src="`${frame_url}&${opened_at}`"
           alt=""
           :class="
             hideConfigSidebar ? 'streamed-image-f' : 'streamed-image-f with-cs'
@@ -113,7 +113,7 @@
         />
         <img
           v-if="!hideStateFrame"
-          :src="`${state_url}?${opened_at}`"
+          :src="`${state_url}&${opened_at}`"
           alt=""
           class="overlay-state"
           :class="hideConfigSidebar ? 'overlay-state' : 'overlay-state with-cs'"
@@ -314,13 +314,13 @@ export default {
       return this.$route.query.id;
     },
     state_url() {
-      return api("stream", this.$route.query.id, endpoints.GET_STATE_FRAME);
+      return `/api/va/stream?id=${this.$route.query.id}&endpoint=${endpoints.GET_STATE_FRAME}`;
     },
     frame_url() {
-      return api("stream", this.$route.query.id, endpoints.GET_FRAME);
+      return `/api/va/stream?id=${this.$route.query.id}&endpoint=${endpoints.GET_FRAME}`;
     },
     overlay_url() {
-      return api(this.$route.query.id, "call", endpoints.GET_OVERLAY_PNG);
+      return api("va", this.$route.query.id, endpoints.GET_OVERLAY_PNG);
     },
     ref_frame() {
       return `filter-frame-${this.$route.query.id}`;

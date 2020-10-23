@@ -6,6 +6,7 @@ from threading import Event, Lock, Thread
 import datetime
 
 import shortuuid
+import diskcache
 import cv2
 from OnionSVG import check_svg
 
@@ -13,8 +14,8 @@ from shapeflow.util import open_path, sizeof_fmt
 from shapeflow.util.filedialog import filedialog
 from shapeflow import get_logger, get_cache, settings, update_settings, ROOTDIR
 from shapeflow.core import stream_off
-from shapeflow.api import api, _FilesystemDispatcher, _DatabaseDispatcher, _VideoAnalyzerManagerDispatcher, _VideoAnalyzerDispatcher, ApiDispatcher
-from shapeflow.core.streaming import streams, EventStreamer, PlainFileStreamer
+from shapeflow.api import api, _FilesystemDispatcher, _DatabaseDispatcher, _VideoAnalyzerManagerDispatcher, _VideoAnalyzerDispatcher, _CacheDispatcher, ApiDispatcher
+from shapeflow.core.streaming import streams, EventStreamer, PlainFileStreamer, BaseStreamer
 from shapeflow.core.backend import QueueState, AnalyzerState
 from shapeflow.config import schemas, loads, BaseAnalyzerConfig
 from shapeflow.video import VideoAnalyzer, init
@@ -24,7 +25,7 @@ from shapeflow.server import ShapeflowServer
 from shapeflow.db import History
 
 
-log = get_logger(__file__)
+log = get_logger(__name__)
 
 
 class _Main(object):
@@ -39,15 +40,9 @@ class _Main(object):
         self._lock = Lock()
         self._log = None
 
-    def active(self):
-        if self._server._unload.is_set():
-            log.debug('Uncoming traffic - cancelling quit.')
-            self._server._unload.clear()
-            self._server._ping.set()
-
     @api.ping.expose()
     def ping(self) -> bool:
-        self.active()
+        self._server.active()
         return True
 
     @api.map.expose()
@@ -101,7 +96,7 @@ class _Main(object):
 
     @api.unload.expose()
     def unload(self) -> bool:
-        api.va.save_state.method()
+        api.dispatch('va/save_state')
         self._server._unload.set()
         return True
 
@@ -123,23 +118,30 @@ class _Main(object):
         return True
 
 
-@api.cache.clear.expose()
-def _clear_cache() -> None:
-    log.info(f"clearing cache")
-    cache = get_cache(settings)
-    cache.clear()
-    cache.close()
+class _Cache(object):
+    _cache: diskcache.Cache
 
-@api.cache.size.expose()
-def _cache_size() -> str:
-    cache = get_cache(settings)
-    size = sizeof_fmt(cache.size)
-    cache.close()
+    def __init__(self):
+        self._cache = get_cache(settings)
 
-    return size
+    @api.cache.clear.expose()
+    def _clear_cache(self) -> None:
+        log.info(f"clearing cache")
+        self._cache.clear()
+
+    @api.cache.size.expose()
+    def _cache_size(self) -> str:
+        size = sizeof_fmt(self._cache.size)
+
+        return size
 
 
 class _Filesystem(object):
+    _history: History
+
+    def __init__(self):
+        self._history = History()
+
     @api.fs.select_video.expose()
     def select_video(self) -> str:
         return filedialog.load(
@@ -162,7 +164,7 @@ class _Filesystem(object):
             try:
                 capture = cv2.VideoCapture(path)
                 if int(capture.get(cv2.CAP_PROP_FRAME_COUNT)) > 0:
-                    History().add_video_file(path)  # todo: overhead?
+                    self._history.add_video_file(path)  # todo: overhead?
                     return True
                 else:
                     return False
@@ -176,7 +178,7 @@ class _Filesystem(object):
         if os.path.isfile(path):
             try:
                 check_svg(path)
-                History().add_design_file(path)  # todo: overhead?
+                self._history.add_design_file(path)  # todo: overhead?
                 return True
             except:
                 return False
@@ -453,7 +455,7 @@ class _VideoAnalyzerManager(object):
                 pass
 
     @api.va.stream.expose()
-    def stream(self, id: str, endpoint: str) -> None:
+    def stream(self, id: str, endpoint: str) -> BaseStreamer:
         self._check_streaming(id, endpoint)
 
         with self._lock:
@@ -481,6 +483,8 @@ class _VideoAnalyzerManager(object):
 def load(server: ShapeflowServer) -> ApiDispatcher:
     api._set_instance(_Main(server))
     api._add_dispatcher('db', _DatabaseDispatcher(History()))
+    api._add_dispatcher('fs', _FilesystemDispatcher(_Filesystem()))
+    api._add_dispatcher('cache', _CacheDispatcher(_Cache()))
 
     _vm = _VideoAnalyzerManager(server)
     _va = _VideoAnalyzerManagerDispatcher(_vm)

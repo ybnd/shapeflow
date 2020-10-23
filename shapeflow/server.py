@@ -126,8 +126,8 @@ class ShapeflowServer(shapeflow.core.Lockable):
             file: str
                 The file to send
             """
-            print('/<path:file>')
-            print(file)
+            self.active()
+
             path = os.path.join(UI, *file.split("/"))
             if not os.path.isfile(path):
                 raise FileNotFoundError
@@ -137,7 +137,7 @@ class ShapeflowServer(shapeflow.core.Lockable):
                 os.path.basename(path)
             )
 
-        @app.route('/api/<path:address>', methods=['GET', 'POST'])
+        @app.route('/api/<path:address>', methods=['GET', 'POST', 'PUT'])
         def call_api(address: str):
             """Dispatch request to the API
 
@@ -146,6 +146,8 @@ class ShapeflowServer(shapeflow.core.Lockable):
             address: str
                 The address of the endpoint to dispatch to
             """
+            self.active()
+
             if self.api is None:
                 self.load_api()
 
@@ -169,23 +171,27 @@ class ShapeflowServer(shapeflow.core.Lockable):
 
 
 
-            result = self.api.dispatch(address, **kwargs)
+            try:
+                result = self.api.dispatch(address, **kwargs)
 
-            if result is None:
-                result = True
+                if result is None:
+                    result = True
 
-            if isinstance(result, bytes):
-                return make_response(result)
-            elif isinstance(result, streaming.BaseStreamer):
-                response = Response(
-                    result.stream(),
-                    mimetype=result.mime_type()
-                )
-                for k,v in result.headers.items():
-                    response.headers[k] = v
-                return response
-            else:
-                return respond(result)
+                if isinstance(result, bytes):
+                    return make_response(result)
+                elif isinstance(result, streaming.BaseStreamer):
+                    response = Response(
+                        result.stream(),
+                        mimetype=result.mime_type()
+                    )
+                    for k, v in result.headers.items():
+                        response.headers[k] = v
+                    return response
+                else:
+                    return respond(result)
+            except Exception as e:
+                log.error(f"{e.__class__.__name__}: {str(e)}")
+                raise e
 
         self._app = app
 
@@ -231,10 +237,16 @@ class ShapeflowServer(shapeflow.core.Lockable):
 
         if self.api is None:
             self.load_api()
-        self.api.va.save_state.method()
+        self.api.dispatch('va/save_state')
         streaming.streams.stop()
 
         log.info('stopped serving.')
+
+    def active(self):
+        if self._unload.is_set():
+            log.info('incoming traffic - cancelling quit.')
+            self._unload.clear()
+            self._ping.set()
 
     def load_api(self):
         from shapeflow.main import load
