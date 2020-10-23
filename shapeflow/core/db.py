@@ -97,9 +97,9 @@ class DbModel(Base, SessionWrapper, Lockable):
             try:
                 if add:
                     for model in self._models:
-                        session._add(model)
+                        session.add(model)
                 else:
-                    session._add(self)
+                    session.add(self)
 
                 self._pre()
                 yield session
@@ -203,7 +203,7 @@ class FileModel(DbModel):
                 match = s.query(self.__class__).filter_by(hash=hash).first()
 
                 if match is None:
-                    s._add(self)
+                    s.add(self)
                     self.hash = hash
                     self.path = self._path
                     file = self

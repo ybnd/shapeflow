@@ -232,7 +232,7 @@ class AnalysisModel(BaseAnalysisModel):
                             feature=k,
                             data=df.to_json(orient='split'),
                         )  # todo: should have a _results: Dict[ <?>, ResultsModel] so these don't spawn new results each time
-                        s._add(model)
+                        s.add(model)
 
                         # Store timing info
                         t = self._analyzer.timing
@@ -436,7 +436,7 @@ class AnalysisModel(BaseAnalysisModel):
                 if context is None:
                     self._config = match
                     self._config.connect(self)
-                    s._add(self._config)
+                    s.add(self._config)
                     return config, match.id
                 else:
                     assert self._analyzer is not None
@@ -536,7 +536,7 @@ class History(SessionWrapper, RootInstance):
         if model is None:
             with self.session() as s:
                 model = AnalysisModel()
-                s._add(model)
+                s.add(model)
         model.connect(self)
 
         model.set_analyzer(analyzer)
