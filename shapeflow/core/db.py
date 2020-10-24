@@ -11,6 +11,7 @@ from sqlalchemy.orm import scoped_session
 from sqlalchemy.orm.util import object_state  # type: ignore
 from sqlalchemy.sql.schema import Column
 from sqlalchemy.sql.sqltypes import Integer, String, DateTime
+from sqlalchemy.exc import InvalidRequestError
 
 from shapeflow import get_logger
 from shapeflow.core import RootException, RootInstance, Lockable
@@ -97,9 +98,9 @@ class DbModel(Base, SessionWrapper, Lockable):
             try:
                 if add:
                     for model in self._models:
-                        session.add(model)
+                        self._retry_add(session, model)
                 else:
-                    session.add(self)
+                    self._retry_add(session, self)
 
                 self._pre()
                 yield session
@@ -114,6 +115,17 @@ class DbModel(Base, SessionWrapper, Lockable):
             finally:
                 log.vdebug(f'closing session')
                 session.close()
+
+    @staticmethod
+    def _retry_add(session, model: 'DbModel', retry: bool = False):
+        try:
+            session.add(model)
+        except InvalidRequestError:
+            if not retry:
+                time.sleep(0.1)
+                DbModel._retry_add(session, model, retry=True)
+            else:
+                raise
 
     def _pre(self):
         if hasattr(self, 'added') and self.added is None:
