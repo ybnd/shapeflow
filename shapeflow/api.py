@@ -79,8 +79,8 @@ class _VideoAnalyzerManagerDispatcher(Dispatcher):
     save_state = Endpoint(Callable[[], None])
     load_state = Endpoint(Callable[[], None])
 
-    stream = Endpoint(Callable[[str, str], BaseStreamer])       # todo: URL -> /api/va/stream?id=<id>&endpoint=<endpoint>
-    stream_stop = Endpoint(Callable[[str, str], None])  # todo: URL -> /api/va/stream_stop?id=<id>&endpoint=<endpoint>
+    stream = Endpoint(Callable[[str, str], BaseStreamer])
+    stream_stop = Endpoint(Callable[[str, str], None])
 
     __id__ = _VideoAnalyzerDispatcher()
 

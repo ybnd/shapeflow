@@ -481,12 +481,16 @@ class _VideoAnalyzerManager(object):
 
     @api.va.stream_stop.expose()
     def stream_stop(self, id: str, endpoint: str) -> None:
-        self._check_streaming(id, endpoint)
+        try:
+            self._check_streaming(id, endpoint)
 
-        with self._lock:
-            log.debug(f"stop stream '{id}/{endpoint}'")
-            method = self._dispatcher[id][endpoint].method
-            return streams.unregister(self.__analyzers__[id], method)
+            with self._lock:
+                log.debug(f"stop stream '{id}/{endpoint}'")
+                method = self._dispatcher[id][endpoint].method
+                return streams.unregister(self.__analyzers__[id], method)
+        except KeyError:
+            # id is not valid anymore (probably already closed)
+            pass
 
     def _check_streaming(self, id, endpoint):
         self._valid(id)
