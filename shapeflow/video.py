@@ -1333,12 +1333,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
             if raw_frame is not None:
                 frame = self.transform(raw_frame)
-                result = {'t': t}
-
                 for k,fs in self._featuresets.items():
                     values, _ = fs.calculate(frame, state=None)
-
-                    result.update({k: values})
                     self.results[k].loc[frame_number] = [t] + values
             else:
                 self.notice(f"skipping unreadable frame {frame_number}")
@@ -1372,7 +1368,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                         break
 
             self.commit()
-            self.model.export_result(manual=False)
+            if self.model is not None:
+                self.model.export_result(manual=False)
             self._new_results()
 
         if self.canceled:

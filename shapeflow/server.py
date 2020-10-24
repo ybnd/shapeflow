@@ -44,7 +44,7 @@ def restart_server(host: str, port: int):
     subprocess.Popen(
         [
             'python', 'sf.py', 'serve',
-            '--host', str(host), '--port', str(port), '--background'
+            '--host', host, '--port', str(port), '--background'
         ],
         cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     )
@@ -156,7 +156,7 @@ class ShapeflowServer(shapeflow.core.Lockable):
                 try:
                     kwargs.update(json.loads(request.data))
                 except json.JSONDecodeError as e:
-                    log.error(f"could not decode '{request.data}'")
+                    log.error(f"could not decode '{str(request.data)}'")
                     raise e
             if request.args.to_dict():
                 try:
@@ -172,6 +172,7 @@ class ShapeflowServer(shapeflow.core.Lockable):
 
 
             try:
+                assert self.api is not None
                 result = self.api.dispatch(address, **kwargs)
 
                 if result is None:

@@ -6,7 +6,7 @@ from shapeflow.core import Dispatcher, Endpoint, stream_image, stream_json, stre
 from shapeflow.util.meta import bind
 from shapeflow.maths.colors import HsvColor
 from shapeflow.core.streaming import BaseStreamer, EventStreamer, PlainFileStreamer
-
+# todo: also specify http methods maybe?
 class _VideoAnalyzerDispatcher(Dispatcher):  # todo: there's a bunch of deprecated stuff here
     status = Endpoint(Callable[[], dict], stream_json)
     state_transition = Endpoint(Callable[[bool], int])
@@ -98,8 +98,8 @@ class _DatabaseDispatcher(Dispatcher):
 
 
 class _FilesystemDispatcher(Dispatcher):
-    select_video = Endpoint(Callable[[], str])
-    select_design = Endpoint(Callable[[], str])
+    select_video = Endpoint(Callable[[], Optional[str]])
+    select_design = Endpoint(Callable[[], Optional[str]])
 
     check_video = Endpoint(Callable[[str], bool])
     check_design = Endpoint(Callable[[str], bool])

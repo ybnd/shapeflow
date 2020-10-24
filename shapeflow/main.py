@@ -16,9 +16,9 @@ from shapeflow import get_logger, get_cache, settings, update_settings, ROOTDIR
 from shapeflow.core import stream_off
 from shapeflow.api import api, _FilesystemDispatcher, _DatabaseDispatcher, _VideoAnalyzerManagerDispatcher, _VideoAnalyzerDispatcher, _CacheDispatcher, ApiDispatcher
 from shapeflow.core.streaming import streams, EventStreamer, PlainFileStreamer, BaseStreamer
-from shapeflow.core.backend import QueueState, AnalyzerState
+from shapeflow.core.backend import QueueState, AnalyzerState, SetupError, BaseVideoAnalyzer
 from shapeflow.config import schemas, loads, BaseAnalyzerConfig
-from shapeflow.video import VideoAnalyzer, init
+from shapeflow.video import init, VideoAnalyzer
 import shapeflow.plugins
 from shapeflow.server import ShapeflowServer
 
@@ -83,7 +83,7 @@ class _Main(object):
             self.stop_log()
 
         log.debug("streaming log file")
-        self._log = PlainFileStreamer(path=settings.log.path)
+        self._log = PlainFileStreamer(path=str(settings.log.path))
 
         return self._log
 
@@ -92,7 +92,8 @@ class _Main(object):
         """Stop streaming log file
         """
         log.debug("stopping log file stream")
-        self._log.stop()
+        if self._log is not None:
+            self._log.stop()
 
     @api.unload.expose()
     def unload(self) -> bool:
@@ -140,7 +141,7 @@ class _Filesystem(object):
         self._history = History()
 
     @api.fs.select_video.expose()
-    def select_video(self) -> str:
+    def select_video(self) -> Optional[str]:
         return filedialog.load(
             title='Select a video file...',
             pattern=settings.app.video_pattern,
@@ -148,7 +149,7 @@ class _Filesystem(object):
         )
 
     @api.fs.select_design.expose()
-    def select_video(self) -> str:
+    def select_design(self) -> Optional[str]:
         return filedialog.load(
             title='Select a design file...',
             pattern=settings.app.design_pattern,
@@ -187,7 +188,7 @@ class _Filesystem(object):
     @api.fs.open_root.expose()
     def open_root(self) -> None:
         try:
-            open_path(ROOTDIR)
+            open_path(str(ROOTDIR))
         except Exception as e:
             log.error(f"Could not open {ROOTDIR}: "
                       f"{e.__class__.__name__}: {e}")
@@ -226,7 +227,7 @@ class _VideoAnalyzerManager(object):
     _q_state: QueueState
 
     _dispatcher: _VideoAnalyzerManagerDispatcher
-    __analyzers__: Dict[str, VideoAnalyzer] = {}  # todo: analyzer manager should register analyzers with api.va on init
+    __analyzers__: Dict[str, BaseVideoAnalyzer] = {}  # todo: analyzer manager should register analyzers with api.va on init
 
     ID_LENGTH = 6
 
@@ -243,7 +244,7 @@ class _VideoAnalyzerManager(object):
     def _set_dispatcher(self, dispatcher: _VideoAnalyzerManagerDispatcher):
         self._dispatcher = dispatcher
 
-    def _add(self, analyzer: VideoAnalyzer) -> str:
+    def _add(self, analyzer: BaseVideoAnalyzer) -> str:
         """Add a new analyzer instance
 
 
@@ -266,6 +267,7 @@ class _VideoAnalyzerManager(object):
         self._dispatcher._add_dispatcher(
             analyzer.id, _VideoAnalyzerDispatcher(instance=analyzer)
         )
+        assert self._dispatcher._update is not None
         self._dispatcher._update(self._dispatcher)  # todo: lame signature; also should be a part of _add_dispatcher probably
         return analyzer.id
 
@@ -280,6 +282,7 @@ class _VideoAnalyzerManager(object):
         del self.__analyzers__[id]
         for k in filter(lambda k: id in k, list(self._dispatcher._address_space.keys())):  # todo: this is a bit lame
             del self._dispatcher._address_space[k]  # todo: there should be a _remove_dispatcher probably
+        assert self._dispatcher._update is not None
         self._dispatcher._update(self._dispatcher)  # todo: lame signature
 
     def _commit(self):
@@ -447,8 +450,14 @@ class _VideoAnalyzerManager(object):
 
                     if model is not None:
                         model.connect(self._history)
-                        config = loads(model.get_config_json())
+
+                        config_json = model.get_config_json()
+                        if config_json is not None:
+                            config = loads(config_json)
+                        else:
+                            raise SetupError('invalid config from database')
                         assert isinstance(config, BaseAnalyzerConfig)
+
                         analyzer = init(config)
                         analyzer._set_id(id)
                         analyzer.set_eventstreamer(self._server._eventstreamer)

@@ -125,7 +125,7 @@ class Endpoint(object):
     _signature: Type[Callable]
     _method: Optional[Callable]
     _streaming: _Streaming
-    _update: Callable[['Endpoint'], None]
+    _update: Optional[Callable[['Endpoint'], None]]
 
     def __init__(self, signature: _GenericAlias, streaming: _Streaming = stream_off):  # todo: type Callable[] correctly
         try:
@@ -135,6 +135,7 @@ class Endpoint(object):
             raise TypeError('Invalid Endpoint signature')
 
         self._method = None
+        self._update = None
         self._registered = False
         self._signature = signature
         self._streaming = streaming
@@ -168,10 +169,8 @@ class Endpoint(object):
 
             method._endpoint = self
             self._method = method
-            try:
+            if self._update is not None:
                 self._update(self)
-            except AttributeError:
-                pass
 
             return method
         return wrapper
@@ -207,17 +206,18 @@ class Endpoint(object):
 
 class Dispatcher(object):  # todo: these should also register specific instances & handle dispatching?
     _endpoints: Tuple[Endpoint, ...]  #type: ignore
-    _dispatchers: Tuple['Dispatcher']
+    _dispatchers: Tuple['Dispatcher', ...]
 
     _name: str
     _parent: Optional['Dispatcher']
     _address_space: Dict[str, Callable]
 
-    _update: Callable[['Dispatcher'], None]
+    _update: Optional[Callable[['Dispatcher'], None]]
 
     _instance: Optional[object]
 
     def __init__(self, instance: object = None):
+        self._update = None
         if instance is not None:
             self._set_instance(instance)
         else:
@@ -233,11 +233,11 @@ class Dispatcher(object):  # todo: these should also register specific instances
             return self.__class__.__name__
 
     @property
-    def dispatchers(self) -> Tuple['Dispatcher']:
+    def dispatchers(self) -> Tuple['Dispatcher', ...]:
         return self._dispatchers
 
     @property
-    def endpoints(self) -> Tuple[Endpoint]:
+    def endpoints(self) -> Tuple[Endpoint, ...]:
         return self._endpoints
 
     @property
@@ -271,10 +271,9 @@ class Dispatcher(object):  # todo: these should also register specific instances
         self._address_space[name] = method
         self._endpoints = tuple(list(self._endpoints) + [endpoint])
         setattr(self, name, endpoint)
-        try:
+
+        if self._update is not None:
             self._update(self)
-        except AttributeError:
-            pass
 
     def _add_dispatcher(self, name: str, dispatcher: 'Dispatcher'):
         dispatcher._register(name=name, callback=self._update_dispatcher)
@@ -286,19 +285,16 @@ class Dispatcher(object):  # todo: these should also register specific instances
         })
         self._dispatchers = tuple(list(self._dispatchers) + [dispatcher])
         setattr(self, name, dispatcher)
-        try:
+
+        if self._update is not None:
             self._update(self)
-        except AttributeError:
-            pass
 
     def _update_endpoint(self, endpoint: Endpoint) -> None:
         self._address_space.update({
             endpoint.name: endpoint.method
         })
-        try:
+        if self._update is not None:
             self._update(self)
-        except AttributeError:
-            pass
 
     def _update_dispatcher(self, dispatcher: 'Dispatcher') -> None:
         self._address_space.update({  # todo: this doesn't take into account deleted keys!
@@ -306,10 +302,9 @@ class Dispatcher(object):  # todo: these should also register specific instances
             for address, method in dispatcher.address_space.items()
             if method is not None and "__" not in address
         })
-        try:
+
+        if self._update is not None:
             self._update(self)
-        except AttributeError:
-            pass
 
     def dispatch(self, address: str, *args, **kwargs) -> Any:
         try:
