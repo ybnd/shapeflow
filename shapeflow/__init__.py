@@ -177,6 +177,7 @@ class CacheSettings(_Settings):
     do_cache: bool = Field(default=True, title="use the cache")
     resolve_frame_number: bool = Field(default=True, title="resolve to (nearest) cached frame numbers")
     block_timeout: float = Field(default=0.1, title="wait for blocked item (s)")
+    reset_on_error: bool = Field(default=False, title="reset the cache if it can't be opened")
 
     _validate_dir = validator('dir', allow_reuse=True, pre=True)(_Settings._validate_directorypath)
 
@@ -387,13 +388,11 @@ def get_cache(s: Settings = settings, retry: bool = False) -> diskcache.Cache:
     except sqlite3.OperationalError as e:
         log.error(f"could not open cache - {e.__class__.__name__}: {str(e)}")
         if not retry:
-            log.error(f"cache directory: '{str(s.cache.dir)}' exists? {os.path.isdir(str(s.cache.dir))}")
-            log.error(f"removing cache directory")
-            shutil.rmtree(str(s.cache.dir))
-            log.error(f"cache directory: '{str(s.cache.dir)}' exists? {os.path.isdir(str(s.cache.dir))}")
+            if settings.cache.reset_on_error:
+                log.error(f"removing cache directory")
+                shutil.rmtree(str(s.cache.dir))
             log.error(f"trying to open cache again...")
             get_cache(settings, retry=True)
         else:
             log.error(f"could not open cache on retry")
-            log.error(f"cache directory: '{str(s.cache.dir)}' exists? {os.path.isdir(str(s.cache.dir))}")
             raise e

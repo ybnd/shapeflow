@@ -31,13 +31,13 @@ RESULTS = os.path.join(ROOTDIR, 'test_server-results')
 
 
 def clear_files():
-    if os.path.exists(CACHE):
+    if os.path.isdir(CACHE):
         shutil.rmtree(CACHE)
-    if os.path.exists(DB):
+    if os.path.isfile(DB):
         os.remove(DB)
-    if os.path.exists(STATE):
+    if os.path.isfile(STATE):
         os.remove(STATE)
-    if os.path.exists(RESULTS):
+    if os.path.isdir(RESULTS):
         shutil.rmtree(RESULTS)
 
 
@@ -49,7 +49,7 @@ def application(keep: bool = False):
         clear_files()
 
     try:
-        with settings.cache.override({"dir": CACHE, "do_cache": False}), \
+        with settings.cache.override({"dir": CACHE, "do_cache": False, "reset_on_error": True}), \
                 settings.db.override({"path": DB, "cleanup_interval": 0}), \
                 settings.app.override({"state_path": STATE, "save_result_auto": 'in result directory', "result_dir": RESULTS, "cancel_on_q_stop": False}), \
                 settings.log.override({'lvl_console': 'debug', 'lvl_file': 'debug'}):
