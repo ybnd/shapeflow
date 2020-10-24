@@ -407,7 +407,7 @@ export const actions = {
   q_start({ commit, getters, dispatch }) {
     // console.log("action: analyzers.q_start");
     commit("setQueueState", { queue_state: QueueState.RUNNING });
-    return api.va.q_start(getters["getQueue"])
+    return api.va.start(getters["getQueue"])
       .then((app_state) => {
         dispatch("connection", { ok: true });
         commit("setQueueState", { queue_state: app_state.q_state });
@@ -420,7 +420,7 @@ export const actions = {
   q_stop({ commit, dispatch }) {
     // console.log("action: analyzers.q_stop");
     // shouldn't commit 'setQueueState' before callback; buttons may flash otherwise
-    return api.va.q_stop()
+    return api.va.stop()
       .then((app_state) => {
         dispatch("connection", { ok: true });
         commit("setQueueState", { queue_state: app_state.q_state });
