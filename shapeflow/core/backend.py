@@ -96,24 +96,12 @@ class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB 
     """
     _cache: Optional[diskcache.Cache]
 
-    _is_caching: bool
-    _background: threading.Thread
-    _cancel_caching: threading.Event
-
     def __init__(self, config: BaseConfig = None):
         super(CachingInstance, self).__init__(config)
+        self._open_cache()
 
-        self._cache = None
-        self._cancel_caching = threading.Event()
-
-    # @backend.expose(backend.is_caching)
-    def is_caching(self) -> bool:
-        return self._is_caching
-
-    # @backend.expose(backend.cancel_caching)
-    def cancel_caching(self) -> None:
-        if self._cancel_caching is not None:
-            self._cancel_caching.set()
+    def __del__(self):
+        self._close_cache()
 
     def _get_key(self, method, *args) -> str:
         # Key should be instance-independent to handle multithreading
@@ -122,37 +110,42 @@ class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB 
         return f"{describe_function(method)}{args}"
 
     def _to_cache(self, key: str, value: Any):
-        assert self._cache is not None, CacheAccessError
+        if self._cache is None:
+            raise CacheAccessError
         self._cache.set(key, value)
 
     def _from_cache(self, key: str) -> Optional[Any]:
-        assert self._cache is not None, CacheAccessError
+        if self._cache is None:
+            raise CacheAccessError
         return self._cache.get(key)
 
     def _block(self, key: str):
-        assert self._cache is not None, CacheAccessError
+        if self._cache is None:
+            raise CacheAccessError
         self._cache.set(key, _BLOCKED)
 
     def _is_blocked(self, key: str) -> bool:
-        assert self._cache is not None, CacheAccessError
+        if self._cache is None:
+            raise CacheAccessError
         return key in self._cache \
                and isinstance(self._cache[key], str) \
                and self._from_cache(key) == _BLOCKED
 
     def _touch_keys(self, keys: List[str]):
-        if self._cache is not None:
-            for key in keys:
-                if key in self._cache:
-                    self._cache.touch(key)
-        else:
-            with self.caching():
-                self._touch_keys(keys)
+        if self._cache is None:
+            raise CacheAccessError
+        for key in keys:
+            if key in self._cache:
+                self._cache.touch(key)
 
     def _drop(self, key: str):
-        assert self._cache is not None, CacheAccessError
+        if self._cache is None:
+            raise CacheAccessError
         del self._cache[key]
 
     def _is_cached(self, method, *args):
+        if self._cache is None:
+            raise CacheAccessError
         return self._get_key(method, *args) in self._cache
 
     def _cached_call(self, method, *args, **kwargs):  # todo: kwargs necessary?
@@ -166,58 +159,46 @@ class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB 
                 while self._is_blocked(key) and time.time() < t0 + settings.cache.block_timeout:
                     # Some other thread is currently reading the same frame
                     # Wait a bit and try to get from cache again
-                    log.debug(f'{self.__class__}: waiting for {key} to be released...', 5)
+                    log.debug(f'{self.__class__.__qualname__}: '
+                              f'waiting for {key} to be released...', 5)
                     time.sleep(0.01)
 
                 value = self._from_cache(key)
                 if isinstance(value, str) and value == _BLOCKED:
-                    log.warning(f'{self.__class__}: timed out waiting for {key}.')
+                    log.warning(f'{self.__class__.__qualname__}: '
+                                f'timed out waiting for {key}.')
                 else:
-                    log.debug(f"{self.__class__}: read cached {key}.")
+                    log.debug(f"{self.__class__.__qualname__}: "
+                              f"read cached {key}.")
                     return value
 
             # Cache a temporary string to 'block' the key
-            log.debug(f"{self.__class__}: caching {key}")
-            log.vdebug(f"{self.__class__}: block {key}.")
+            log.debug(f"{self.__class__.__qualname__}: caching {key}")
+            log.vdebug(f"{self.__class__.__qualname__}: block {key}.")
             self._block(key)
-            log.vdebug(f"{self.__class__}: execute {key}.")
+            log.vdebug(f"{self.__class__.__qualname__}: execute {key}.")
             value = method(*args, **kwargs)
-            log.vdebug(f"{self.__class__}: write {key}.")
+            log.vdebug(f"{self.__class__.__qualname__}: write {key}.")
             self._to_cache(key, value)
             return value
+        else:
+            log.vdebug(f"Execute {key}.")
+            return method(*args, **kwargs)
 
-
-        log.vdebug(f"Execute {key}.")
-        return method(*args, **kwargs)
-
-    def __enter__(self, override: bool = False):
+    def _open_cache(self, override: bool = False):
         if settings.cache.do_cache or override:
-            if self._cache is None:
-                log.debug(f'{self.__class__.__qualname__}: opening cache @ {settings.cache.dir}')
-                self._cache = get_cache(settings)
-
-        return self
-
-    def __exit__(self, exc_type, exc_value, tb):
-        if self._cache is not None:
-            log.debug(f'{self.__class__.__qualname__}: closing cache @ {settings.cache.dir}')
-            self._cache.close()
+            log.debug(f"{self.__class__.__qualname__}: "
+                      f"opening cache @ {settings.cache.dir}")
+            self._cache = get_cache(settings)
+        else:
             self._cache = None
 
-        if exc_type is not None:
-            log.error(f"{self.__class__.__qualname__}: {exc_type.__qualname__} {exc_value}")
-            raise
-        else:
-            return True
-
-    @contextmanager
-    def caching(self, override: bool = False):
-        try:
-            self.__enter__(override)
-            yield self
-        finally:
-            self.__exit__(*sys.exc_info())
-
+    def _close_cache(self):
+        if self._cache is not None:
+            log.debug(f"{self.__class__.__qualname__}: "
+                      f"closing cache @ {settings.cache.dir}")
+            self._cache.close()
+            self._cache = None
 
 class FeatureConfig(BaseConfig, abc.ABC):
     """Feature parameters"""

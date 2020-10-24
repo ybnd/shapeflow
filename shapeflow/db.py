@@ -3,6 +3,7 @@ import json
 from typing import Optional, Tuple, List, Dict, Type
 from pathlib import Path
 import datetime
+import sqlite3
 
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, ForeignKey
@@ -505,7 +506,13 @@ class History(SessionWrapper, RootInstance):
             path = settings.db.path
 
         self._engine = create_engine(f'sqlite:///{str(path)}')
-        Base.metadata.create_all(self._engine)
+        try:
+            Base.metadata.create_all(self._engine)
+        except sqlite3.OperationalError as e:
+            if "already exists" in str(e):
+                pass
+            else:
+                log.error(f"could not create tables - {e.__class__.__name__}: {str(e)}")
         self._session_factory = scoped_session(sessionmaker(bind=self._engine))
 
     def set_eventstreamer(self, eventstreamer: EventStreamer):
@@ -654,6 +661,7 @@ class History(SessionWrapper, RootInstance):
 
 
     # @history.expose(history.clean)
+    @api.db.clean.expose()
     def clean(self) -> None:
         """Clean the database
 
@@ -699,6 +707,7 @@ class History(SessionWrapper, RootInstance):
 
 
     # @history.expose(history.forget)
+    @api.db.forget.expose()
     def forget(self) -> None:
         """Remove everything."""
         log.info(f"clearing history")

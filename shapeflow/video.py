@@ -19,7 +19,7 @@ from shapeflow.core import Lockable
 from shapeflow.core.backend import Instance, CachingInstance, \
     BaseVideoAnalyzer, BackendSetupError, AnalyzerType, Feature, \
     FeatureSet, \
-    FeatureType, AnalyzerState, PushEvent, FeatureConfig
+    FeatureType, AnalyzerState, PushEvent, FeatureConfig, CacheAccessError
 from shapeflow.core.config import extend
 from shapeflow.core.interface import TransformInterface, FilterConfig, \
     FilterInterface, FilterType, TransformType, Handler
@@ -67,7 +67,6 @@ class VideoFileHandler(CachingInstance, Lockable):
             raise FileNotFoundError
 
         self.path = video_path
-        self._cache = None
         self._cached = False
 
         self._capture = cv2.VideoCapture(
@@ -99,15 +98,14 @@ class VideoFileHandler(CachingInstance, Lockable):
         return self._cached
 
     def check_cached(self) -> Optional[bool]:
-        if self._cache is not None:
+        try:
             self._cached = all([
                 self._is_cached(self._read_frame, self.path, fn)
                 for fn in self._requested_frames
             ])
             return self._cached
-        else:
-            with self.caching(True):
-                return self.check_cached()
+        except CacheAccessError:
+            return None
 
     def set_requested_frames(self, requested_frames: List[int]) -> None:
         """Add a list of requested frames.
@@ -122,36 +120,6 @@ class VideoFileHandler(CachingInstance, Lockable):
         #     [self._get_key(self._read_frame, self.path, fn)
         #      for fn in requested_frames]
         # )
-
-    def _cache_frames(self, progress_callback: Callable[[float], None], state_callback: Callable[[int], None]):
-        try:
-            with self.caching():
-                self._is_caching = True
-                for frame_number in self._requested_frames:
-                    if self._cancel_caching.is_set():
-                        break
-                    args = (self._read_frame, self.path, frame_number)
-                    if not self._is_cached(*args):
-                        self._cached_call(*args)
-                        progress_callback(frame_number / float(self.frame_count))
-                progress_callback(0.0)
-            self.seek(0.5)
-            self._is_caching = False
-
-            if not self._cancel_caching.is_set():
-                self._cached = True
-            else:
-                self._cancel_caching.clear()
-        except Exception:
-            state_callback(AnalyzerState.ERROR)
-
-    def cache_frames(self, progress_callback: Callable[[float], None], state_callback: Callable[[int], None]):
-        if settings.cache.do_cache and not self.cached:
-            self._background = threading.Thread(
-                target=self._cache_frames, args=(progress_callback, state_callback,), daemon=True
-            )
-            self._background.start()
-
 
     def _resolve_frame(self, frame_number) -> int:
         """Resolve a frame_number to the nearest requested frame number.
@@ -223,9 +191,9 @@ class VideoFileHandler(CachingInstance, Lockable):
             frame_number = self.frame_number
 
         if settings.cache.resolve_frame_number:
-            return self._cached_call(self._read_frame, self.path, self._resolve_frame(frame_number))
-        else:
-            return self._cached_call(self._read_frame, self.path, frame_number)
+            frame_number = self._resolve_frame(frame_number)
+
+        return self._cached_call(self._read_frame, self.path, frame_number)
 
     def seek(self, position: float = None) -> float:
         """Seek to the relative position ~ [0,1]
@@ -616,18 +584,17 @@ class DesignFileHandler(CachingInstance):
         if path is None:
             path = self._path
 
-        with self.caching():
-            self._overlay = self.peel_design(path, self.config.dpi)
-            self._shape = (self._overlay.shape[1], self._overlay.shape[0])
+        self._overlay = self.peel_design(path, self.config.dpi)
+        self._shape = (self._overlay.shape[1], self._overlay.shape[0])
 
-            self._masks = []
-            for i, (mask, name) in enumerate(zip(*self.read_masks(path, self.config.dpi))):
-                if mask_config is not None and len(mask_config) > 0 and len(mask_config) >= i + 1:  # handle case len(mask_config) < len(self.read_masks(path))
-                    self._masks.append(
-                        Mask(self, mask, name, mask_config[i])
-                    )
-                else:
-                    self._masks.append(Mask(self, mask, name))
+        self._masks = []
+        for i, (mask, name) in enumerate(zip(*self.read_masks(path, self.config.dpi))):
+            if mask_config is not None and len(mask_config) > 0 and len(mask_config) >= i + 1:  # handle case len(mask_config) < len(self.read_masks(path))
+                self._masks.append(
+                    Mask(self, mask, name, mask_config[i])
+                )
+            else:
+                self._masks.append(Mask(self, mask, name))
 
     @property
     def config(self) -> DesignFileHandlerConfig:
