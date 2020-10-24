@@ -46,11 +46,10 @@ class _Main(object):
         return True
 
     @api.map.expose()
-    def map(self) -> dict:
+    def map(self) -> Dict[str, List[str]]:
         return {
-            rule.rule: list(rule.methods)
-            for rule in app.url_map.iter_rules()  # todo: replace with url map from _ApiDispatcher
-            if rule.rule[:5] == '/api/'
+            '/api/' + k: ['GET', 'PUT', 'POST']
+            for k in api.address_space.keys()
         }
 
     @api.schemas.expose()

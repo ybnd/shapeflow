@@ -116,7 +116,7 @@ class ApiDispatcher(Dispatcher):
     """ Dispatches API requests. """
     ping = Endpoint(Callable[[], bool])
 
-    map = Endpoint(Callable[[], dict])
+    map = Endpoint(Callable[[], Dict[str, List[str]]])
     schemas = Endpoint(Callable[[], dict])
 
     get_settings = Endpoint(Callable[[], dict])
