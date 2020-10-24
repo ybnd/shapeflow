@@ -387,8 +387,13 @@ def get_cache(s: Settings = settings, retry: bool = False) -> diskcache.Cache:
     except sqlite3.OperationalError as e:
         log.error(f"could not open cache - {e.__class__.__name__}: {str(e)}")
         if not retry:
+            log.error(f"cache directory: '{str(s.cache.dir)}' exists? {os.path.isdir(str(s.cache.dir))}")
+            log.error(f"removing cache directory")
+            shutil.rmtree(str(s.cache.dir))
+            log.error(f"cache directory: '{str(s.cache.dir)}' exists? {os.path.isdir(str(s.cache.dir))}")
             log.error(f"trying to open cache again...")
             get_cache(settings, retry=True)
         else:
             log.error(f"could not open cache on retry")
+            log.error(f"cache directory: '{str(s.cache.dir)}' exists? {os.path.isdir(str(s.cache.dir))}")
             raise e
