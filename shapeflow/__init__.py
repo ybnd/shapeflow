@@ -5,6 +5,7 @@ import shutil
 import pathlib
 import copy
 import re
+import sqlite3
 import datetime
 import logging
 from multiprocessing import cpu_count
@@ -355,13 +356,6 @@ waitress.addHandler(_file_handler)
 waitress.propagate = False
 
 
-def get_cache(s: Settings = settings) -> diskcache.Cache:
-    return diskcache.Cache(
-        directory=str(s.cache.dir),
-        size_limit=s.cache.size_limit_gb * 1e9
-    )
-
-
 def get_logger(name: str, log_settings: LogSettings = settings.log) -> Logger:
     if log_settings is None:
         log_settings = LogSettings()
@@ -382,3 +376,19 @@ def get_logger(name: str, log_settings: LogSettings = settings.log) -> Logger:
 log = get_logger(__name__)
 log.info(f"v{__version__}")
 log.debug(f"settings: {settings.dict()}")
+
+
+def get_cache(s: Settings = settings, retry: bool = False) -> diskcache.Cache:
+    try:
+        return diskcache.Cache(
+            directory=str(s.cache.dir),
+            size_limit=s.cache.size_limit_gb * 1e9
+        )
+    except sqlite3.OperationalError as e:
+        log.error(f"could not open cache - {e.__class__.__name__}: {str(e)}")
+        if not retry:
+            log.error(f"trying to open cache again...")
+            get_cache(settings, retry=True)
+        else:
+            log.error(f"could not open cache on retry")
+            raise e
