@@ -65,9 +65,8 @@ for frame_number in FRAMES:
 # Clear cache
 with settings.cache.override({'do_cache': True}):
     vi = VideoFileHandler(__VIDEO__)
-    with vi.caching():
-        assert vi._cache is not None
-        vi._cache.clear()
+    assert vi._cache is not None
+    vi._cache.clear()
 
 
 class FrameTest(unittest.TestCase):
@@ -92,62 +91,60 @@ class VideoInterfaceTest(FrameTest):
 
     def test_get_frame(self):
         with settings.cache.override({'do_cache': True}):
-            with VideoFileHandler(__VIDEO__) as vi:
-                for frame_number, frame in TEST_FRAME_HSV.items():
-                    self.assertTrue(
-                        np.equal(
-                            frame, vi.read_frame(frame_number)
-                        ).all()
-                    )
-                    self.assertFrameInCache(vi, frame_number)
+            vi = VideoFileHandler(__VIDEO__)
+            for frame_number, frame in TEST_FRAME_HSV.items():
+                self.assertTrue(
+                    np.equal(
+                        frame, vi.read_frame(frame_number)
+                    ).all()
+                )
+                self.assertFrameInCache(vi, frame_number)
 
     def test_get_cached_frame(self):
         with settings.cache.override({'do_cache': True}):
-            with VideoFileHandler(__VIDEO__) as vi:
-                for frame_number in TEST_FRAME_HSV.keys():
-                    # Read frames, which are cached
-                    self.assertEqualArray(
-                        TEST_FRAME_HSV[frame_number],
-                        vi.read_frame(frame_number)
-                    )
-                    self.assertFrameInCache(vi, frame_number)
+            vi = VideoFileHandler(__VIDEO__)
+            for frame_number in TEST_FRAME_HSV.keys():
+                # Read frames, which are cached
+                self.assertEqualArray(
+                    TEST_FRAME_HSV[frame_number],
+                    vi.read_frame(frame_number)
+                )
+                self.assertFrameInCache(vi, frame_number)
 
 
-                # Disconnect VideoInterface from OpenCV capture
-                #  to ensure frames are read from cache
-                vi._capture = None
+            # Disconnect VideoInterface from OpenCV capture
+            #  to ensure frames are read from cache
+            vi._capture = None
 
-                # Read frames
-                for frame_number, frame in TEST_FRAME_HSV.items():
-                    self.assertFrameInCache(vi, frame_number)
-                    self.assertEqualArray(
-                            frame, vi.read_frame(frame_number)
-                    )
+            # Read frames
+            for frame_number, frame in TEST_FRAME_HSV.items():
+                self.assertFrameInCache(vi, frame_number)
+                self.assertEqualArray(
+                        frame, vi.read_frame(frame_number)
+                )
 
     def test_get_cached_frame_threaded(self):
         __INTERVAL__ = 0.1
 
         def read_frames_and_cache():
-            with VideoFileHandler(__VIDEO__) as vi_source:
-                for frame_number in TEST_FRAME_HSV.keys():
-                    time.sleep(__INTERVAL__)
-                    vi_source.read_frame(frame_number)
+            vi_source = VideoFileHandler(__VIDEO__)
+            for frame_number in TEST_FRAME_HSV.keys():
+                time.sleep(__INTERVAL__)
+                vi_source.read_frame(frame_number)
 
         # Start timing main thread executin time
         t0 = time.time()
 
-        with VideoFileHandler(
-                __VIDEO__, None
-        ) as vi_sink:
-            subthread = Thread(target = read_frames_and_cache)
-            subthread.start()
+        vi_sink = VideoFileHandler(__VIDEO__, None)
+        subthread = Thread(target = read_frames_and_cache)
+        subthread.start()
 
-            subthread_frames = []
-            for frame_number in TEST_FRAME_HSV.keys():
-                frame = vi_sink.read_frame(frame_number)
-                subthread_frames.append(frame)
+        subthread_frames = []
+        for frame_number in TEST_FRAME_HSV.keys():
+            frame = vi_sink.read_frame(frame_number)
+            subthread_frames.append(frame)
 
-            subthread.join()
+        subthread.join()
 
         # Main thread should have waited
         #  at least as long as the subthread has
@@ -261,41 +258,16 @@ class VideoAnalyzerTest(FrameTest):
 
         self.assertEqual(12, len(frames))
 
-    # @unittest.skip("Unreliable, needs a deep dive.")
-    def test_context(self):
-        # Don't overwrite self.config
-        config = deepcopy(self.config)
-
-        with settings.cache.override({"do_cache": False}):
-            va = VideoAnalyzer(config)
-            va.launch()
-
-            self.assertEqual(None, va.video._cache)
-            with va.video.caching():
-                self.assertEqual(None, va.video._cache)
-            self.assertEqual(None, va.video._cache)
-
-
-        with settings.cache.override({"do_cache": True}):
-            va = VideoAnalyzer(config)
-            va.launch()
-
-            self.assertEqual(None, va.video._cache)
-            with va.video.caching():
-                self.assertNotEqual(None, va.video._cache)
-            self.assertEqual(None, va.video._cache)
-
     def test_get_frame(self):
         config = deepcopy(self.config)
         va = VideoAnalyzer(config)
         va.launch()
         va.transform._matrix = TRANSFORM
 
-        with va.video.caching():
-            for fn in va.frame_numbers():
-                if fn in FRAMES:  # todo: !!!!!! if this test checks out, transform is not applied (:
-                    frame = va.get_transformed_frame(fn)
-                    self.assertEqualArray(TEST_TRANSFORMED_FRAME_HSV[fn], frame)
+        for fn in va.frame_numbers():
+            if fn in FRAMES:  # todo: !!!!!! if this test checks out, transform is not applied (:
+                frame = va.get_transformed_frame(fn)
+                self.assertEqualArray(TEST_TRANSFORMED_FRAME_HSV[fn], frame)
 
 
 if __name__ == '__main__':
