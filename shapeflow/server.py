@@ -1,6 +1,3 @@
-# cheated off of https://testdriven.io/blog/developing-a-single-page-app-with-flask-and-vuejs/
-# cheated off of https://stackoverflow.com/questions/39801718
-
 import json
 import pickle
 import os
@@ -11,13 +8,14 @@ import subprocess
 from threading import Thread, Event, Lock
 from typing import Dict, Any, List, Optional
 
-from flask import Flask, send_from_directory, jsonify, request, Response, make_response
+from flask import Flask, send_from_directory, jsonify, request, Response, make_response, abort
 import waitress
 import webbrowser
 
 import shapeflow
 import shapeflow.config
 import shapeflow.util as util
+from shapeflow.core import SetupError, DispatcherError
 import shapeflow.core.streaming as streaming
 from shapeflow.api import ApiDispatcher
 
@@ -190,6 +188,8 @@ class ShapeflowServer(shapeflow.core.Lockable):
                     return response
                 else:
                     return respond(result)
+            except DispatcherError:
+                abort(404)
             except Exception as e:
                 log.error(f"'{address}' - {e.__class__.__name__}: {str(e)}")
                 raise e

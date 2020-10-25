@@ -31,6 +31,10 @@ class SetupError(RootException):
     pass
 
 
+class DispatcherError(RootException):
+    pass
+
+
 class EnforcedStr(str):
     _options: List[str] = ['']
     _descriptions: Dict[str, str] = {}
@@ -312,7 +316,8 @@ class Dispatcher(object):  # todo: these should also register specific instances
             # todo: consider doing some type checking here, args/kwargs vs. method._endpoint.signature
             return method(*args, **kwargs)
         except KeyError:
-            log.warning(f"'{self.name}' can't dispatch address {address}.")
+            log.debug(f"'{self.name}' can't dispatch address '{address}'.")
+            raise DispatcherError
 
     def __getitem__(self, item):
         return getattr(self, item)
