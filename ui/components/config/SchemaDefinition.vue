@@ -112,7 +112,7 @@
 import SchemaField from "./SchemaField";
 import set from "lodash/set";
 
-import { COMMIT } from "static/events";
+import { COMMIT } from "../../src/events";
 
 const def = {
   COO: "#/definitions/Coo",
@@ -148,6 +148,9 @@ export default {
     },
   },
   mounted() {
+    if (this.definition === undefined) {
+      throw 'No definition provided';
+    }
     // console.log(
     //   `SchemaDefinition ~ ${this.definition}; ${this.context}: ${this.title}`
     // );
@@ -179,7 +182,7 @@ export default {
     },
   },
   data() {
-    return { def: def };
+    return { def, fields, };
   },
 };
 </script>

@@ -87,7 +87,7 @@ module.exports = {
 
   proxy: {
     "/api": {
-      target: "http://localhost:7951",
+      target: "http://127.0.0.1:7951",
       pathrewrite: { "^/api": "/" },
     },
   },
@@ -131,7 +131,7 @@ module.exports = {
     },
     plugins: [
       // new BundleAnalyzerPlugin({
-      //   analyzerMode: "static",
+      //   analyzerMode: "src",
       //   generateStatsFile: true,
       //   openAnalyzer: true,
       //   logLevel: "info",

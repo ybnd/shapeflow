@@ -46,7 +46,7 @@ import ResultChartStack from "../../components/results/ResultChartStack";
 import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
 
-import { api } from "static/api";
+import { api } from "@/api";
 import Vue from "vue";
 import AsyncComputed from "vue-async-computed";
 

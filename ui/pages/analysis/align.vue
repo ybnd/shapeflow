@@ -7,7 +7,7 @@
       <!--      </PageHeaderItem>-->
       <PageHeaderItem>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon align-clear"
           @click="handleClearAlignment"
           data-toggle="tooltip"
           title="Clear alignment"
@@ -15,7 +15,7 @@
           <i class="icon-ban" />
         </b-button>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon align-undo"
           @click="handleUndoAlignment"
           data-toggle="tooltip"
           title="Undo alignment"
@@ -24,7 +24,7 @@
           <i class="icon-action-undo" />
         </b-button>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon align-redo"
           @click="handleRedoAlignment"
           data-toggle="tooltip"
           title="Redo alignment"
@@ -36,7 +36,7 @@
       <PageHeaderSeek :id="id" :key="id" />
       <PageHeaderItem>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon align-fliph"
           @click="handleFlipH"
           data-toggle="tooltip"
           title="Flip horizontally"
@@ -44,7 +44,7 @@
           <i class="fa fa-arrows-h" />
         </b-button>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon align-flipv"
           @click="handleFlipV"
           data-toggle="tooltip"
           title="Flip vertically"
@@ -54,7 +54,7 @@
       </PageHeaderItem>
       <PageHeaderItem>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon align-turncw"
           @click="handleTurnCW"
           data-toggle="tooltip"
           title="Rotate 90° clockwise"
@@ -62,7 +62,7 @@
           <i class="fa fa-rotate-right" />
         </b-button>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon align-turnccw"
           @click="handleTurnCCW"
           data-toggle="tooltip"
           title="Rotate 90° counter-clockwise"
@@ -72,7 +72,7 @@
       </PageHeaderItem>
       <PageHeaderItem>
         <b-button
-          class="header-button-icon"
+          class="header-button-icon align-bounds"
           @click="toggleBounds"
           :variant="enforceBounds ? null : 'danger'"
           data-toggle="tooltip"
@@ -128,7 +128,7 @@ import {
   url,
   endpoints,
   AnalyzerState as ast,
-} from "../../static/api";
+} from "@/api";
 import Moveable from "vue-moveable";
 import {
   roiRectInfoToRelativeCoordinates,
@@ -136,8 +136,8 @@ import {
   roiIsValid,
   getInitialTransform,
   dragEventToRelativeRectangle,
-} from "../../static/coordinates";
-import { events } from "../../static/events";
+} from "@/coordinates";
+import { events } from "@/events";
 
 import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
@@ -156,6 +156,9 @@ export default {
   beforeMount() {
     this.handleInit();
     window.addEventListener("resize", this.updateFrame);
+  },
+  mounted() {
+    this.$refs.frame.addEventListener('load', this.updateFrame);
   },
   beforeDestroy() {
     this.handleSaveAlignment();
@@ -177,16 +180,25 @@ export default {
 
       this.opened_at = Date.now();
 
+      const waitUntilHasFrame = setInterval(() => {
+        try {
+          console.log('waiting...')
+          this.$refs.frame.addEventListener('load', this.updateFrame);
+          clearInterval(waitUntilHasFrame);  // todo: this doesn't work!
+        } catch(e) {
+          // pass
+        }
+      }, 10);
+
       // Check if this.id is queued. If not, navigate to /
       // if (this.$store.getters["analyzers/isValidId"](this.id) === false) {
-      if (this.$store.getters["analyzers/getIndex"](this.id) === -1) {
+      const index = this.$store.getters["analyzers/getIndex"](this.id)
+      if (index === -1) {
         this.$router.push(`/`);
       } else {
         this.$root.$emit(events.sidebar.open(this.id));
 
-        this.waitUntilHasRect = setInterval(this.updateFrameOnceHasRect, 100);
-
-        api.va.__id__.get_relative_roi(this.id).then((roi) => {
+        get_relative_roi(this.id).then((roi) => {
           this.setRoi(roi);
         });
       }
@@ -194,9 +206,10 @@ export default {
     handleCleanUp() {
       // console.log("align: handleCleanUp()");
 
-      api.va.stream_stop(this.previous_id, endpoints.GET_INVERSE_OVERLAID_FRAME);
-
-      clearInterval(this.waitUntilHasRect);
+      if (this.$refs.frame !== undefined) {
+        this.$refs.frame.removeEventListener('load', this.updateFrame);
+      }
+      stop_stream(this.previous_id, endpoints.GET_INVERSE_OVERLAID_FRAME);
 
       // this.$store.commit("align/clearAlign", { id: this.previous_id });
       this.align = {
@@ -221,7 +234,6 @@ export default {
           api.va.__id__.clear_roi(this.id).then((ok) => {
             if (ok) {
               this.clearRoi();
-              // this.handleUpdate();
             }
           });
         }
@@ -267,7 +279,7 @@ export default {
       this.align.roi = null;
       this.align.transform = null;
     },
-    resolveTransform() {
+    async resolveTransform() {
       // console.log("filter: resolveTransform()");
       // console.log("this.$refs.moveable = ");
       // console.log(this.$refs.moveable);
@@ -292,22 +304,12 @@ export default {
         // todo: sanity check transform
 
         if (this.$refs.moveable === undefined) {
-          this.waitUntilHasMoveable = setInterval(() => {
-            // todo: try to do ~ Promise instead?
-            if (this.$refs.moveable !== undefined) {
-              this.$refs.moveable.$el.style.transform = this.align.transform;
-              this.$refs.moveable.updateRect();
-              this.$refs.moveable.updateTarget();
-              clearInterval(this.waitUntilHasMoveable);
-            } else {
-              // console.log("oops no moveable");
-            }
-          }, 50);
+          console.warn('MOVEABLE IS UNDEFINED')  // todo: seems like this is never reached anyway?
         } else {
           this.$refs.moveable.$el.style.transform = this.align.transform;
           this.$refs.moveable.updateRect();
           this.$refs.moveable.updateTarget();
-          this.handleShowMoveable();
+          await this.handleShowMoveable();
         }
       } else {
       }
@@ -410,23 +412,6 @@ export default {
         }
       }
     },
-    updateFrameOnceHasRect() {
-      // todo: clean up
-      let frame_ok = false;
-      let overlay_ok = false;
-
-      try {
-        if (!(this.waitUntilHasRect === undefined)) {
-          if (this.$refs.frame.getBoundingClientRect()["width"] > 50) {
-            // console.log("HAS FRAME");
-            this.updateFrame();
-            clearInterval(this.waitUntilHasRect);
-          }
-        }
-      } catch (err) {
-        // console.log("oops @ updateFrameOnceHasRect");
-      }
-    },
     stepForward() {
       this.$root.$emit(events.seek.step_fw(this.id));
     },
@@ -445,7 +430,7 @@ export default {
             clearInterval(wait);
             resolve();
           } else {
-            // console.log("it doesn't seem to...");
+            console.log("it doesn't seem to...");
           }
         }, 5);
       });
@@ -478,7 +463,7 @@ export default {
           this.handleUpdate();
         }
       } else {
-        // console.log("align: handleStopRectangle() -- moveable is already shown!");
+        console.log("align: handleStopRectangle() -- moveable is already shown!");
       }
     },
   },
@@ -488,11 +473,6 @@ export default {
 
       this.handleCleanUp();
       this.handleInit();
-      this.updateFrame();
-    },
-    "$refs.moveable.$el"() {
-      console.warn("there was a change in $ref.moveable.data");
-      console.warn(this.$refs.moveable);
     },
   },
   computed: {
@@ -508,7 +488,7 @@ export default {
       };
     },
     overlaid_url() {
-      return `/api/va/stream?id=${this.$route.query.id}&endpoint=${endpoints.GET_INVERSE_OVERLAID_FRAME}`;
+      return url("va", `stream?id=${this.$route.query.id}&endpoint=${endpoints.GET_INVERSE_OVERLAID_FRAME}`);
     },
     ref_frame() {
       return `frame`;
@@ -517,17 +497,11 @@ export default {
       return `moveable`;
     },
     report_change() {
-      const state = this.$store.getters["analyzers/getAnalyzerStatus"](this.id)
+      const state = this.$store.getters["analyzers/getAnalyzerStatus"](this.id)  // todo: this makes sure DOONE/ERROR/CANCELED state is cleared when the ROI is changed. this should be handled in the backend though.
         .state;
       return (
         state === ast.DONE || state === ast.ERROR || state === ast.CANCELED
       ); // todo: cleaner
-    },
-    transform_options() {
-      // console.log("transform_options computed property");
-      // console.log('this.$store.getters["schemas/getTransformOptions"]=');
-      // console.log(this.$store.getters["schemas/getTransformOptions"]);
-      return this.$store.getters["schemas/getTransformOptions"];
     },
     config() {
       const config = this.$store.getters["analyzers/getAnalyzerConfig"](

@@ -18,7 +18,7 @@ This software is developed in collaboration with the [KULeuven Biosensors lab](h
 
 ### Installation and usage
 
-1. Install [Python 3.7+](https://www.python.org/downloads/) and [git](https://git-scm.com/downloads), if you haven’t yet. On Windows, **select the option ‘Add Python to PATH’!**
+1. Install [Python 3.8](https://www.python.org/downloads/release/python-386/) and [git](https://git-scm.com/downloads), if you haven’t yet. On Windows, **make sure you select the option ‘Add Python to PATH’!**
 2. Make a new folder in a convenient location
 3. [Download a deployment script](https://github.com/ybnd/shapeflow/releases/download/0.4.1/deploy_shapeflow-0.4.1.py) and save it to that folder
 4. Run the deployment script.

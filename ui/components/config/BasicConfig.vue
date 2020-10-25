@@ -34,6 +34,7 @@
           </b-dropdown>
         </b-input-group-prepend>
         <b-form-input
+          class="path-input"
           :class="{
             // don't set if null
             'is-valid': file.valid === true,
@@ -41,6 +42,8 @@
           }"
           :readonly="staticPaths"
           @change="file.check"
+          @focusout="onFocusOut"
+          @keyup.enter="onKeyUpEnter"
           :ref="file.model"
           type="text"
           v-model="config[file.model]"
@@ -62,12 +65,12 @@
             <b-form-select
               class="fis-selector shapeflow-form-field-auto"
               ref="frame_interval_setting"
-              v-model="config.frame_interval_setting"
+              :v-model="config.frame_interval_setting"
               @change="selectFrameIntervalSetting"
               :plain="false"
               :options="frame_interval_settings.options"
             />
-            <b-input-group-text class="basic-config-label shapeflow-form-label">
+            <b-input-group-text class="fis-label basic-config-label shapeflow-form-label">
               {{
                 frame_interval_settings.descriptions[
                   config.frame_interval_setting
@@ -81,6 +84,8 @@
               v-model="config[config.frame_interval_setting]"
               :placeholder="config.frame_interval_setting"
               @change="onChange"
+              @focusout="onFocusOut"
+              @keyup.enter="onKeyUpEnter"
             />
           </b-input-group>
         </b-row>
@@ -91,7 +96,7 @@
     <b-row
       v-for="(feature, index) in config.features"
       :key="index"
-      class="basic-config-row"
+      class="basic-config-row feature-row"
     >
       <b-col class="leftmost-col" :key="index">
         <b-input-group-text v-if="index === 0" class="leftmost-label">
@@ -132,7 +137,7 @@
             :key="parameter"
             class="parameter-group"
           >
-            <b-input-group-text class="basic-config-label shapeflow-form-label">
+            <b-input-group-text class="parameter-label basic-config-label shapeflow-form-label">
               {{ features.parameters[feature][parameter].description }}
             </b-input-group-text>
             <SchemaField
@@ -189,7 +194,7 @@
 </template>
 
 <script>
-import { api } from "../../static/api";
+import { api } from "@/api";
 
 import AsyncComputed from "vue-async-computed";
 import Vue from "vue";
@@ -197,7 +202,7 @@ import SchemaField from "@/components/config/SchemaField";
 
 import has from "lodash/has";
 import cloneDeep from "lodash/cloneDeep";
-import { COMMIT, ENTER_FOCUSOUT_INTERVAL } from "static/events";
+import { COMMIT, ENTER_FOCUSOUT_INTERVAL } from "../../src/events";
 
 Vue.use(AsyncComputed);
 
@@ -228,7 +233,7 @@ export default {
   },
   mounted() {
     this.$store.dispatch("schemas/sync");
-    if ("features" in this.config && this.config.features.length === 0) {
+    if (this.config.features === undefined || this.config.features.length === 0) {
       this.handleAddFeature();
     }
   },
@@ -237,26 +242,16 @@ export default {
       // console.log(this.config);
       this.$emit(COMMIT);
     },
-    onKeyUp(e) {
-      // console.log(e);
-      if (this.type_commit && e.key === "Enter") {
-        this.lastEnter = Date.now();
-        if (this.valueOut !== this.value) {
-          // console.log("SchemaField.onKeyUp() 'Enter' -> commit");
-          this.$emit(COMMIT);
-        }
-      }
+    onKeyUpEnter() {
+      this.lastEnter = Date.now();
+      this.$emit(COMMIT);
     },
     onFocusOut(e) {
       // console.log(e);
       if (
-        this.type_commit &&
         Math.abs(Date.now() - this.lastEnter) > ENTER_FOCUSOUT_INTERVAL
       ) {
-        if (this.valueOut !== this.value) {
-          // console.log("SchemaField.onFocusOut() -> commit");
-          this.$emit(COMMIT);
-        }
+        this.$emit(COMMIT);
       }
     },
     setParameter(index, parameter, value) {
@@ -264,6 +259,7 @@ export default {
       //   `BasicConfig.setParameter() feature=${feature} parameter=${parameter}, value=${value}`
       // );
       this.config.feature_parameters[index][parameter] = value;
+      this.onChange();
     },
     getConfig() {
       // console.log("BasicConfig.getconfig() -- this.config=");
@@ -283,7 +279,7 @@ export default {
     selectFrameIntervalSetting(setting) {
       // console.log("selecting frame_interval_setting");
       // console.log(setting);
-      if (setting in this.frame_interval_settings) {
+      if (setting in this.frame_interval_settings) {  // todo: this does nothing basically?
         this.config.frame_interval_setting = setting;
       }
       this.onChange();
@@ -365,18 +361,21 @@ export default {
         await this.checkDesignPath();
       }
 
+      console.log(this.hasFeatures);
       return this.validVideo && this.validDesign && this.hasFeatures;
     },
     async checkVideoPath() {
       if (!this.staticPaths && this.config.video_path) {
         return api.fs.check_video(this.config.video_path).then((ok) => {
           this.validVideo = ok;
+          this.onChange();
           return ok;
         });
       } else {
         // don't bother sending a request if empty string
         if (!this.staticPaths) {
           this.validVideo = false;
+          this.onChange();
         }
       }
     },
@@ -384,12 +383,14 @@ export default {
       if (!this.staticPaths && this.config.design_path) {
         return api.fs.check_design(this.config.design_path).then((ok) => {
           this.validDesign = ok;
+          this.onChange();
           return ok;
         });
       } else {
         // don't bother sending a request if empty string
         if (!this.staticPaths) {
           this.validDesign = false;
+          this.onChange();
         }
       }
     },
@@ -417,7 +418,7 @@ export default {
   },
   computed: {
     hasFeatures() {
-      return this.config.features.length > 0;
+      return this.config.features !== undefined && this.config.features.length > 0;
     },
     frame_interval_settings() {
       return this.$store.getters["schemas/getFrameIntervalSetting"];
@@ -471,6 +472,7 @@ export default {
   },
   data() {
     return {
+      lastEnter: 0,
       showHeight: false,
       validVideo: null,
       validDesign: null,

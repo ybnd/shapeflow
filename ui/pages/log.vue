@@ -3,7 +3,7 @@
     <PageHeader>
       <PageHeaderItem>
         <b-button
-          class="header-button-icon log-button"
+          class="header-button-icon log-button log-follow"
           data-toggle="tooltip"
           :title="!follow ? 'Follow log' : 'Stop following log'"
           :variant="follow ? 'danger' : null"
@@ -15,9 +15,9 @@
       <PageHeaderItem>
         <b-input-group>
           <b-form-input
-            class="shapeflow-form-field-auto filter-field"
+            class="shapeflow-form-field-auto log-filter-field"
             v-model="filter"
-            @input="filterLog"
+            @input="handleSetFilter"
             placeholder="Filter log..."
           >
             {{ filter }}
@@ -26,7 +26,7 @@
       </PageHeaderItem>
       <PageHeaderItem>
         <b-button
-          class="header-button-icon log-button"
+          class="header-button-icon log-button log-case-sensitive"
           data-toggle="tooltip"
           :title="case_sensitive ? 'Ignore case' : 'Case sensitive filter'"
           :variant="case_sensitive ? 'danger' : null"
@@ -36,10 +36,10 @@
         </b-button>
       </PageHeaderItem>
     </PageHeader>
-    <div class="content">
+    <div class="log-content" ref="view">
       <b-tbody class="log-table" ref="log" @scroll="handleScroll">
         <tr
-          v-for="(row, index) in filtered_log.split('\n')"
+          v-for="(row, index) in filtered_lines"
           :key="index"
           class="log-row"
         >
@@ -51,7 +51,8 @@
 </template>
 
 <script>
-import { api } from "../static/api";
+import { api } from "@/api";
+import {splitlines} from "../src/util";
 import { debounce, throttle } from "throttle-debounce";
 import PageHeader from "../components/header/PageHeader";
 import PageHeaderItem from "../components/header/PageHeaderItem";
@@ -73,21 +74,19 @@ export default {
       release: false,
       filter: "",
       case_sensitive: false,
-      filtered_log: "",
+      filtered_lines: "",
       matches: {},
     };
   },
   mounted() {
-    this.request = api.log();
-    this.request.onprogress = (stuff) => {
-      this.log = stuff.target.responseText;
-    };
+    this.request = get_log();
+    this.request.addEventListener('progress', (e) => {
+      this.log = e.target.responseText;
+    });
     setTimeout(() => {
       setInterval(() => {
-        if (!this.release) {
-          if (this.follow || this.scrolled_down()) {
-            this.scrollNow();
-          }
+        if (this.follow && !this.release) {
+          this.scrollNow();
         }
       }, FOLLOW_INTERVAL);
     }, 1000);
@@ -98,31 +97,16 @@ export default {
   methods: {
     handleLogText() {
       this.filterLog();
-
-      if (this.$refs.log !== undefined) {
-        if (!this.release) {
-          if (this.follow || this.scrolled_down()) {
-            this.scrollNow();
-          }
-        }
-      }
-    },
-    scrolled_down() {
-      if (this.$refs.log !== undefined) {
-        return (
-          Math.abs(
-            this.$refs.log.$el.scrollTop - this.$refs.log.$el.scrollTopMax
-          ) < SCROLL_TOLERANCE_V &&
-          this.$refs.log.$el.scrollLeft < SCROLL_TOLERANCE_H
-        );
-      } else {
-        return false;
+      if ( !this.release && (this.follow || this.isScrolled) ) {
+        this.scrollNow();
       }
     },
     scrollNow() {
-      if (this.$refs.log !== undefined) {
-        this.$refs.log.$el.scrollLeft = 0;
-        this.$refs.log.$el.scrollTop = this.$refs.log.$el.scrollTopMax + 50;
+      if (this.scroll.isScrolled) {
+        this.scroll = {
+          Top: this.scroll.TopMax + 50,
+          Left: 0
+        };
       }
     },
     handleFollow() {
@@ -146,6 +130,9 @@ export default {
       this.case_sensitive = !this.case_sensitive;
       this.filterLog();
     },
+    handleSetFilter() {
+      this.handleFilterLog();
+    },
     filterLog() {
       // console.log("log.filterLog()");
       this.filter = this.filter.trim();
@@ -158,10 +145,10 @@ export default {
           "g"
         );
 
-        this.filtered_log = [];
+        this.filtered_lines = [];
         this.matches = {};
 
-        let lines = this.log.match(/[^\r\n]+/g); // split log into lines  todo: platform-agnostic ~ line endings
+        let lines = splitlines(this.log);
         let filtered_lines = [];
 
         for (let i = 0; i < lines.length; i++) {
@@ -175,16 +162,42 @@ export default {
           }
 
           if (matches.length > 0) {
-            filtered_lines = [...filtered_lines, lines[i]];
+            this.filtered_lines = [...this.filtered_lines, lines[i]];
             this.matches = { ...this.matches, [i]: matches };
           }
         }
-
-        this.filtered_log = filtered_lines.join("\r\n"); // todo: platform-agnostic ~ line endings
       } else {
-        this.filtered_log = this.log;
+        this.filtered_lines = splitlines(this.log);
         this.matches = {};
       }
+    },
+  },
+  computed: {
+    scroll: {
+      get() {
+        try {
+          var scroll = {
+            Top: this.$refs.log.$el.scrollTop,
+            Left: this.$refs.log.$el.scrollLeft,
+            TopMax: this.$refs.log.clientHeight - this.$refs.view.clientHeight,
+          }
+          return {
+            ...scroll,
+            isScrolled: Math.abs(scroll.Top - scroll.TopMax) < SCROLL_TOLERANCE_V
+              && scroll.Left < SCROLL_TOLERANCE_H
+          }
+        } catch(err) {
+          return undefined;
+        }
+      },
+      set({Top, Left}) {
+        try {
+          this.$refs.log.$el.scrollTop = Top;
+          this.$refs.log.$el.scrollLeft = Left;
+        } catch(err) {
+          console.warn(err);
+        }
+      },
     },
   },
   watch: {
@@ -200,7 +213,7 @@ export default {
 @import "../assets/scss/_core-variables";
 @import "node_modules/bootstrap/scss/functions";
 
-.content {
+.log-content {
   height: calc(100vh - #{$header-height});
   width: calc(100vw - #{$sidebar-width});
   display: flex;
@@ -225,7 +238,7 @@ tr:nth-child(odd) {
   background-color: lighten($gray-200, 6%);
 }
 
-.filter-field {
+.log-filter-field {
   height: $header-item-height !important;
 }
 </style>

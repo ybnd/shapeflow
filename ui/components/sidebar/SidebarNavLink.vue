@@ -6,7 +6,7 @@
 
 <script>
 import axios from "axios";
-import { events } from "../../static/events";
+import { events } from "../../src/events";
 
 export default {
   name: "sidebar-nav-link",

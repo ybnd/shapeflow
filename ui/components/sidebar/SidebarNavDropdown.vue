@@ -14,7 +14,7 @@
 </template>
 
 <script>
-import { events } from "../../static/events";
+import { events } from "../../src/events";
 
 export default {
   props: {

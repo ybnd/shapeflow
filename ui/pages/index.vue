@@ -3,7 +3,7 @@
     <PageHeader>
       <PageHeaderItem>
         <b-button
-          class="header-button-icon queue-button"
+          class="header-button-icon queue-button start-queue"
           data-toggle="tooltip"
           title="Start the queue"
           @click="start"
@@ -16,16 +16,21 @@
           <i class="fa fa-play" />
         </b-button>
         <b-button
-          class="header-button-icon queue-button"
+          class="header-button-icon queue-button stop-queue"
           data-toggle="tooltip"
           title="Stop the queue"
           @click="stop"
-          :disabled="queue_state === QueueState.STOPPED || !connected"
+          :disabled="
+            queue_state === QueueState.STOPPED ||
+            queue.length === 0 ||
+            !connected
+          "
         >
           <i class="fa fa-stop" />
         </b-button>
         <b-button
-          class="header-button-icon queue-button"
+          class="header-button-icon queue-button clear-queue"
+          id="clear-queue"
           data-toggle="tooltip"
           title="Clear the queue"
           @click="show_clear_popover"
@@ -34,7 +39,6 @@
             queue.length === 0 ||
             !connected
           "
-          id="clear-queue"
         >
           <i class="fa fa-trash" />
           <b-popover
@@ -48,18 +52,17 @@
             container="main"
             boundary="main"
           >
-            <b-button variant="primary" @click="clear">
+            <b-button class="clear-confirm" variant="primary" @click="clear">
               <i class="fa fa-check" />
               &nbsp; Clear analysis queue
             </b-button>
-            <b-button variant="danger" @click="hide_clear_popover">
+            <b-button class="clear-dismiss" variant="danger" @click="hide_clear_popover">
               <i class="fa fa-times" />
             </b-button>
           </b-popover>
         </b-button>
         <span class="header-text queue-info">{{ queue_info }}</span>
       </PageHeaderItem>
-      <PageHeaderItem> </PageHeaderItem>
     </PageHeader>
   </div>
 </template>
@@ -68,7 +71,7 @@
 import PageHeader from "../components/header/PageHeader";
 import PageHeaderItem from "../components/header/PageHeaderItem";
 
-import { QueueState, AnalyzerState } from "../static/api";
+import { QueueState, AnalyzerState } from "@/api";
 
 export default {
   name: "index",
