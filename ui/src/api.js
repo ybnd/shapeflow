@@ -46,8 +46,9 @@ function return_success(response) {
   return response.status === 200;
 }
 
+
 export const api = {
-  ping() {
+  async ping() {
     return axios
       .get(url("ping"))
       .then(return_success)
@@ -56,17 +57,38 @@ export const api = {
       });
   },
   unload() {
-    // axios can't be called on page unload, use sendBeacon instead
-    return navigator.sendBeacon(url("unload"));
+    try {
+      // axios can't be called on page unload, use sendBeacon instead
+      return navigator.sendBeacon(url("unload"));
+    } catch(e) {
+      // use axios for unit tests
+      console.warn(e);
+      return axios.post(url('unload'));
+    }
+  },
+  async quit() {
+    return axios
+      .post(url("quit"))
+      .then(return_success);
   },
   async restart() {
     return axios
       .post(url("restart"))
       .then(return_data);
   },
-  schemas() {
+  async schemas() {
     return axios
       .get(url("schemas"))
+      .then(return_data);
+  },
+  async map() {
+    return axios
+      .get(url("map"))
+      .then(return_data);
+  },
+  async normalize_config(config) {
+    return axios
+      .post(url("normalize_config"), { config: config })
       .then(return_data);
   },
   async get_settings() {
@@ -142,7 +164,7 @@ export const api = {
     },
   },
   db: {
-    async clear_db() {
+    async forget() {
       return axios
         .post(url("db", "forget"))
         .then(return_success);

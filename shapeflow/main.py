@@ -17,7 +17,7 @@ from shapeflow.core import stream_off
 from shapeflow.api import api, _FilesystemDispatcher, _DatabaseDispatcher, _VideoAnalyzerManagerDispatcher, _VideoAnalyzerDispatcher, _CacheDispatcher, ApiDispatcher
 from shapeflow.core.streaming import streams, EventStreamer, PlainFileStreamer, BaseStreamer
 from shapeflow.core.backend import QueueState, AnalyzerState, SetupError, BaseVideoAnalyzer
-from shapeflow.config import schemas, loads, BaseAnalyzerConfig
+from shapeflow.config import schemas, normalize_config, loads, BaseAnalyzerConfig
 from shapeflow.video import init, VideoAnalyzer
 import shapeflow.plugins
 from shapeflow.server import ShapeflowServer
@@ -48,13 +48,17 @@ class _Main(object):
     @api.map.expose()
     def map(self) -> Dict[str, List[str]]:
         return {
-            '/api/' + k: ['GET', 'PUT', 'POST']
+            '/api/' + k: ['GET', 'PUT', 'POST', 'OPTIONS']  # todo: hacky replacement of Flask map
             for k in api.address_space.keys()
         }
 
     @api.schemas.expose()
     def schemas(self) -> dict:
         return schemas()
+
+    @api.normalize_config.expose()
+    def normalize_config(self, config: dict) -> dict:
+        return normalize_config(config)
 
     @api.get_settings.expose()
     def get_settings(self) -> dict:

@@ -1,13 +1,11 @@
-// import axios from 'axios';
-// jest.mock('axios');
-
-const api = require('../api');
+import axios from 'axios';
+import { api } from '../api';
 
 import {startServer, killServer} from "../shapeflow";
 import {test} from "@jest/globals";
 
 
-const SKIP = [api.axios, api.api, api.return_data, api.return_success, api.unload, api.events, api.get_log];
+const SKIP = [api.unload, api.events, api.log];
 var MAP = undefined;
 
 beforeAll(done => {
@@ -32,21 +30,21 @@ test('validate map', () => {
 });
 
 describe('validate URLs', () => {
-  for (const member in api) {
+  for (const member in api) {  // todo: need to flatten :/
     if (api.hasOwnProperty(member) && typeof api[member] === "function" && !SKIP.includes(api[member])) {
       test(member, () => {
         var calls = {};
 
         // intercept axios requests & remember HTTP methods
-        api.axios.get = jest.fn((url) => {
+        axios.get = jest.fn((url) => {
           calls = {...calls, [url]: 'GET'};
           return new Promise();
         })
-        api.axios.put = jest.fn((url) => {
+        axios.put = jest.fn((url) => {
           calls = {...calls, [url]: 'PUT'};
           return new Promise();
         })
-        api.axios.post = jest.fn((url) => {
+        axios.post = jest.fn((url) => {
           calls = {...calls, [url]: 'POST'};
           return new Promise();
         })

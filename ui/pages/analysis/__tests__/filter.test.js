@@ -150,8 +150,8 @@ test('mount & destroy', async () => {
   w.destroy();
 
   // Streams should be stopped
-  expect(axios.post).toHaveBeenCalledWith(`/api/stream/${ID}/get_frame/stop`, {}, {})
-  expect(axios.post).toHaveBeenCalledWith(`/api/stream/${ID}/get_state_frame/stop`, {}, {})
+  expect(axios.post).toHaveBeenCalledWith(`/api/va/stream_stop?id=${ID}&endpoint=get_frame`)
+  expect(axios.post).toHaveBeenCalledWith(`/api/va/stream_stop?id=${ID}&endpoint=get_state_frame`)
 });
 
 test('streamed frame comes through', async () => {
@@ -186,7 +186,7 @@ test('click to set filter', async () => {
   await w.find('.filter').trigger('click', CLICK);
   await flushPromises();
 
-  expect(axios.post).toHaveBeenCalledWith(`/api/${ID}/call/set_filter_click`, expect.anything(), expect.anything());
+  expect(axios.post).toHaveBeenCalledWith(`/api/va/${ID}/set_filter_click`, expect.anything());
 });
 
 describe('controls', () => {
@@ -207,21 +207,21 @@ describe('controls', () => {
     await w.find('.filter-clear').trigger('click');
     await flushPromises();
 
-    expect(axios.post).toHaveBeenCalledWith(`/api/${ID}/call/clear_filters`, expect.anything(), expect.anything());
+    expect(axios.post).toHaveBeenCalledWith(`/api/va/${ID}/clear_filters`);
   });
 
   test('redo', async () => {
     await w.find('.filter-undo').trigger('click');
     await flushPromises();
 
-    expect(axios.put).toHaveBeenCalledWith(`/api/${ID}/call/undo_config`, { context: 'masks' }, expect.anything());
+    expect(axios.put).toHaveBeenCalledWith(`/api/va/${ID}/undo_config`, { context: 'masks' });
   });
 
   test('undo', async () => {
     await w.find('.filter-redo').trigger('click');
     await flushPromises();
 
-    expect(axios.put).toHaveBeenCalledWith(`/api/${ID}/call/redo_config`, { context: 'masks' }, expect.anything());
+    expect(axios.put).toHaveBeenCalledWith(`/api/va/${ID}/redo_config`, { context: 'masks' });
   });
 
   test('toggle sidebar', async () => {

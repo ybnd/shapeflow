@@ -107,7 +107,7 @@ import PageHeaderItem from "../../components/header/PageHeaderItem";
 import BasicConfig from "../../components/config/BasicConfig";
 import SchemaForm from "../../components/config/SchemaForm";
 
-import { api } from "@/api";
+import { api } from "../../src/api";
 
 import { events, ENTER_FOCUSOUT_INTERVAL, COMMIT } from "../../src/events";
 

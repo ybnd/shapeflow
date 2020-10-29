@@ -109,7 +109,7 @@ test('mount', async () => {
 
   expect(settings_sync).toHaveBeenCalled();
   // expect(axios.get).toHaveBeenCalledWith('/api/db/disk-size', expect.anything(), expect.anything());
-  expect(axios.get).toHaveBeenCalledWith('/api/cache/disk-size', expect.anything());
+  expect(axios.get).toHaveBeenCalledWith('/api/cache/size');
 });
 
 test('set settings', async () => {
@@ -128,7 +128,7 @@ test('clear db', async () => {
     status: 200, data: true,
   })
   await w.find('.settings-clear-db').trigger('click');
-  expect(axios.post).toHaveBeenCalledWith('/api/db/forget', expect.anything(), expect.anything());
+  expect(axios.post).toHaveBeenCalledWith('/api/db/forget');
 });
 
 test('clear cache', async () => {
@@ -139,7 +139,7 @@ test('clear cache', async () => {
     status: 200, data: true,
   })
   await w.find('.settings-clear-cache').trigger('click');
-  expect(axios.post).toHaveBeenCalledWith('/api/cache/clear', expect.anything(), expect.anything());
+  expect(axios.post).toHaveBeenCalledWith('/api/cache/clear');
 });
 
 test('open root', async () => {
@@ -152,7 +152,7 @@ test('open root', async () => {
     status: 200, data: true,
   })
   await w.find('.settings-open-root').trigger('click');
-  expect(axios.post).toHaveBeenCalledWith('/api/open_root', expect.anything(), expect.anything());
+  expect(axios.post).toHaveBeenCalledWith('/api/fs/open_root');
   expect(analyzers_newnotice).not.toHaveBeenCalled();
 
   // can't open root
@@ -161,7 +161,7 @@ test('open root', async () => {
   });
   await w.find('.settings-open-root').trigger('click');
   await flushPromises();
-  expect(axios.post).toHaveBeenCalledWith('/api/open_root', expect.anything(), expect.anything());
+  expect(axios.post).toHaveBeenCalledWith('/api/fs/open_root');
   expect(analyzers_newnotice).toHaveBeenCalled();
 });
 

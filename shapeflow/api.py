@@ -118,6 +118,7 @@ class ApiDispatcher(Dispatcher):
 
     map = Endpoint(Callable[[], Dict[str, List[str]]])
     schemas = Endpoint(Callable[[], dict])
+    normalize_config = Endpoint(Callable[[dict], dict])
 
     get_settings = Endpoint(Callable[[], dict])
     set_settings = Endpoint(Callable[[dict], dict])

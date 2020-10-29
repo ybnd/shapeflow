@@ -1,4 +1,4 @@
-import { AnalyzerState, api } from "@/api";
+import { AnalyzerState, api } from "../src/api";
 import assert from "assert";
 
 import isEmpty from "lodash/isEmpty";

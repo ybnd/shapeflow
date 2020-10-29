@@ -44,7 +44,7 @@ import SchemaForm from "../components/config/SchemaForm";
 
 import cloneDeep from "lodash/cloneDeep";
 
-import { api } from "@/api";
+import { api } from "../src/api";
 
 export default {
   name: "dashboard",
@@ -75,7 +75,7 @@ export default {
       api.cache.clear().then(this.getDiskSize);
     },
     clearDb() {
-      api.db.clear().then(this.getDiskSize);
+      api.db.forget().then(this.getDiskSize);
     },
     getDiskSize() {
       api.cache.size().then((size) => (this.size.cache = size));

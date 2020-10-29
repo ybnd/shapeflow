@@ -124,19 +124,15 @@
 </template>
 
 <script>
-import {
-  api,
-  url,
-  endpoints,
-} from "@/api";
-import { events } from "@/events";
+import { api, url, endpoints} from "../../src/api";
+import { events } from "../../src/events";
 
 import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
 import PageHeaderSeek from "../../components/header/PageHeaderSeek";
 import ConfigSidebar from "../../components/config/ConfigSidebar";
 import { throttle, debounce } from "throttle-debounce";
-import { clickEventToRelativeCoordinate } from "@/coordinates";
+import { clickEventToRelativeCoordinate } from "../../src/coordinates";
 
 import cloneDeep from "lodash/cloneDeep";
 import Vue from "vue";

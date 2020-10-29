@@ -177,7 +177,7 @@ describe('controls', () => {
     await w.find('.configure-undo').trigger('click');
     await flushPromises();
 
-    expect(axios.put).toHaveBeenCalledWith(`/api/${ID}/call/undo_config`, { context: null }, expect.anything());
+    expect(axios.put).toHaveBeenCalledWith(`/api/va/${ID}/undo_config`, { context: null });
   });
 
   test('redo', async () => {
@@ -187,7 +187,7 @@ describe('controls', () => {
     await w.find('.configure-redo').trigger('click');
     await flushPromises();
 
-    expect(axios.put).toHaveBeenCalledWith(`/api/${ID}/call/redo_config`, { context: null }, expect.anything());
+    expect(axios.put).toHaveBeenCalledWith(`/api/va/${ID}/redo_config`, { context: null });
   });
 });
 

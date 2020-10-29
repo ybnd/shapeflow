@@ -24,7 +24,8 @@ import {
 import BasicConfig from "../BasicConfig";
 import SchemaField from "../SchemaField";
 import {killServer, startServer} from "../../../src/shapeflow";
-import {axios, get_schemas, api} from "../../../src/api";
+import axios from "axios";
+import {api, url} from "../../../src/api";
 import flushPromises from "flush-promises";
 import {COMMIT} from "../../../src/events";
 
@@ -50,7 +51,7 @@ const RECENT_PATHS = {
 
 beforeAll(async () => {
   startServer();
-  SCHEMAS = await retryOnce(get_schemas);
+  SCHEMAS = await retryOnce(api.schemas);
   killServer();
 });
 
@@ -179,33 +180,33 @@ describe('files', () => {
       axios_put.mockClear();
       emit.mockClear();
 
-      w.setProps({ config: { ...CONFIG, [type]: PATH_TO }})   // todo: not really testing the v-model part
+      await w.setProps({ config: { ...CONFIG, [`${type}_path`]: PATH_TO }})   // todo: not really testing the v-model part
 
       await path.trigger('change');
       await flushPromises();
 
-      expect(axios_put).toHaveBeenCalledWith(api('check_' + type), { [type]: PATH_TO }, expect.anything());
+      expect(axios_put).toHaveBeenCalledWith(url('fs', 'check_' + type), { path: PATH_TO });
       expect(emit).toHaveBeenCalledWith(COMMIT);
     }
 
     // video_path -> ok
     axios_put.mockResolvedValueOnce({ status: 200, data: true });
-    await _test(path.video, 'video_path');
+    await _test(path.video, 'video');
     expect(path.video.classes()).toContain('is-valid');
 
     // video_path -> nok
     axios_put.mockResolvedValueOnce({ status: 200, data: false });
-    await _test(path.video, 'video_path');
+    await _test(path.video, 'video');
     expect(path.video.classes()).toContain('is-invalid');
 
     // design_path -> ok
     axios_put.mockResolvedValueOnce({ status: 200, data: true });
-    await _test(path.design, 'design_path');
+    await _test(path.design, 'design');
     expect(path.design.classes()).toContain('is-valid');
 
     // design_path -> nok
     axios_put.mockResolvedValueOnce({ status: 200, data: false });
-    await _test(path.design, 'design_path');
+    await _test(path.design, 'design');
     expect(path.design.classes()).toContain('is-invalid');
   });
 
@@ -220,28 +221,28 @@ describe('files', () => {
       await item.vm.$emit('click');
       await flushPromises();
 
-      expect(axios_put).toHaveBeenCalledWith(api('check_' + type), { [type]: RECENT_PATHS[type][INDEX] }, expect.anything());
+      expect(axios_put).toHaveBeenCalledWith(url('fs', 'check_' + type), { path: RECENT_PATHS[`${type}_path`][INDEX] });
       expect(emit).toHaveBeenCalledWith(COMMIT);
     }
 
     // video_path -> ok
     axios_put.mockResolvedValueOnce({ status: 200, data: true });
-    await _test(select.video, 'video_path');
+    await _test(select.video, 'video');
     expect(path.video.classes()).toContain('is-valid');
 
     // video_path -> nok
     axios_put.mockResolvedValueOnce({ status: 200, data: false });
-    await _test(select.video, 'video_path');
+    await _test(select.video, 'video');
     expect(path.video.classes()).toContain('is-invalid');
 
     // design_path -> ok
     axios_put.mockResolvedValueOnce({ status: 200, data: true });
-    await _test(select.design, 'design_path');
+    await _test(select.design, 'design');
     expect(path.design.classes()).toContain('is-valid');
 
     // design_path -> nok
     axios_put.mockResolvedValueOnce({ status: 200, data: false });
-    await _test(select.design, 'design_path');
+    await _test(select.design, 'design');
     expect(path.design.classes()).toContain('is-invalid');
   });
 
@@ -255,28 +256,28 @@ describe('files', () => {
       await browse.element.click();
       await flushPromises();
 
-      expect(axios_put).toHaveBeenCalledWith(api('check_' + type), { [type]: PATH_TO }, expect.anything());
+      expect(axios_put).toHaveBeenCalledWith(url('fs', 'check_' + type), { path: PATH_TO });
       expect(emit).toHaveBeenCalledWith(COMMIT);
     }
 
     // video_path -> ok
     axios_put.mockResolvedValueOnce({ status: 200, data: true });
-    await _test(browse.video, 'video_path');
+    await _test(browse.video, 'video');
     expect(path.video.classes()).toContain('is-valid');
 
     // video_path -> nok
     axios_put.mockResolvedValueOnce({ status: 200, data: false });
-    await _test(browse.video, 'video_path');
+    await _test(browse.video, 'video');
     expect(path.video.classes()).toContain('is-invalid');
 
     // design_path -> ok
     axios_put.mockResolvedValueOnce({ status: 200, data: true });
-    await _test(browse.design, 'design_path');
+    await _test(browse.design, 'design');
     expect(path.design.classes()).toContain('is-valid');
 
     // design_path -> nok
     axios_put.mockResolvedValueOnce({ status: 200, data: false });
-    await _test(browse.design, 'design_path');
+    await _test(browse.design, 'design');
     expect(path.design.classes()).toContain('is-invalid');
   });
 });

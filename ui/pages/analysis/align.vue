@@ -128,7 +128,7 @@ import {
   url,
   endpoints,
   AnalyzerState as ast,
-} from "@/api";
+} from "../../src/api";
 import Moveable from "vue-moveable";
 import {
   roiRectInfoToRelativeCoordinates,
@@ -136,8 +136,8 @@ import {
   roiIsValid,
   getInitialTransform,
   dragEventToRelativeRectangle,
-} from "@/coordinates";
-import { events } from "@/events";
+} from "../../src/coordinates";
+import { events } from "../../src/events";
 
 import PageHeader from "../../components/header/PageHeader";
 import PageHeaderItem from "../../components/header/PageHeaderItem";
@@ -198,7 +198,7 @@ export default {
       } else {
         this.$root.$emit(events.sidebar.open(this.id));
 
-        get_relative_roi(this.id).then((roi) => {
+        api.va.__id__.get_relative_roi(this.id).then((roi) => {
           this.setRoi(roi);
         });
       }
@@ -209,7 +209,7 @@ export default {
       if (this.$refs.frame !== undefined) {
         this.$refs.frame.removeEventListener('load', this.updateFrame);
       }
-      stop_stream(this.previous_id, endpoints.GET_INVERSE_OVERLAID_FRAME);
+      api.va.stream_stop(this.previous_id, endpoints.GET_INVERSE_OVERLAID_FRAME);
 
       // this.$store.commit("align/clearAlign", { id: this.previous_id });
       this.align = {

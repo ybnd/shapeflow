@@ -21,9 +21,9 @@
 </template>
 
 <script>
-import { Sidebar } from "~/components/";
-import NoticeBox from "@/components/notice/NoticeBox";
-import { api } from "@/api";
+import Sidebar from "../components/sidebar/Sidebar";
+import NoticeBox from "../components/notice/NoticeBox";
+import { api } from "../src/api";
 
 export default {
   name: "default-layout",

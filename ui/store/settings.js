@@ -1,5 +1,5 @@
 import Vue from "vue";
-import { api } from "@/api";
+import { api } from "../src/api";
 import cloneDeep from "lodash/cloneDeep";
 
 import assert from "assert";

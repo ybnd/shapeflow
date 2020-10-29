@@ -3,9 +3,9 @@ import {
   NOTICE_LIMIT,
   QueueState,
   api
-} from "@/api";
+} from "../src/api";
 
-import { uuidv4 } from "@/util";
+import { uuidv4 } from "../src/util";
 
 import assert from "assert";
 

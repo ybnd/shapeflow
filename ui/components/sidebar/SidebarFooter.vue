@@ -17,7 +17,7 @@
 import SidebarNavDropdown from "./SidebarNavDropdown";
 import SidebarNavLink from "./SidebarNavLink";
 
-import { url } from "@/api";
+import { url } from "../../src/api";
 
 export default {
   name: "sidebar-footer",

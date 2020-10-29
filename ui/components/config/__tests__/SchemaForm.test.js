@@ -8,7 +8,7 @@ import SchemaDefinition from "../SchemaDefinition";
 import SchemaField from "../SchemaField";
 import {COMMIT} from "../../../src/events";
 import {startServer, killServer} from "../../../src/shapeflow";
-import {get_schemas, get_settings, normalize_config} from "../../../src/api";
+import {api} from "../../../src/api";
 import {retryOnce} from '../../../src/util';
 import { readFileSync } from "fs";
 import SchemaForm from "../SchemaForm";
@@ -22,10 +22,10 @@ var CONFIG;
 beforeAll(async () => {
   startServer();
 
-  SCHEMAS = await retryOnce(get_schemas);
-  SETTINGS = await retryOnce(get_settings);
+  SCHEMAS = await retryOnce(api.schemas);  // todo: replace with single dummy data call to sf.py
+  SETTINGS = await retryOnce(api.get_settings);
 
-  CONFIG = await retryOnce(normalize_config, JSON.parse(readFileSync(__dirname + '/config.json')));
+  CONFIG = await retryOnce(api.normalize_config, JSON.parse(readFileSync(__dirname + '/config.json')));
 
   killServer();
 });

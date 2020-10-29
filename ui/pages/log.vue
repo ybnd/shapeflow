@@ -51,7 +51,7 @@
 </template>
 
 <script>
-import { api } from "@/api";
+import { api } from "../src/api";
 import {splitlines} from "../src/util";
 import { debounce, throttle } from "throttle-debounce";
 import PageHeader from "../components/header/PageHeader";
@@ -79,7 +79,7 @@ export default {
     };
   },
   mounted() {
-    this.request = get_log();
+    this.request = api.log();
     this.request.addEventListener('progress', (e) => {
       this.log = e.target.responseText;
     });

@@ -194,11 +194,11 @@
 </template>
 
 <script>
-import { api } from "@/api";
+import { api } from "../../src/api";
 
 import AsyncComputed from "vue-async-computed";
 import Vue from "vue";
-import SchemaField from "@/components/config/SchemaField";
+import SchemaField from "./SchemaField";
 
 import has from "lodash/has";
 import cloneDeep from "lodash/cloneDeep";

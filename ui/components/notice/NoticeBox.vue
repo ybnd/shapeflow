@@ -5,7 +5,7 @@
 </template>
 
 <script>
-import Notice from "@/components/notice/Notice";
+import Notice from "./Notice";
 
 export default {
   name: "NoticeBox",
