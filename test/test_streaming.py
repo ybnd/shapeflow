@@ -7,7 +7,7 @@ import time
 import cv2
 import numpy as np
 
-from shapeflow.core import ImmutableRegistry, Endpoint, RootInstance, stream_image
+from shapeflow.core import Endpoint, Dispatcher, stream_image
 from shapeflow.core.config import Instance, BaseConfig
 from shapeflow.core.streaming import BaseStreamer, JpegStreamer, JsonStreamer, streams, stream
 
@@ -111,42 +111,33 @@ class JsonStreamerTest(BaseStreamerTest):
 
 class StreamHandlerTest(unittest.TestCase):
     def test_normal_operation(self):
-        class TestRegistry(ImmutableRegistry):
+        class TestDispatcher(Dispatcher):
             method1 = Endpoint(Callable[[], np.ndarray], stream_image)
             method2 = Endpoint(Callable[[], np.ndarray], stream_image)
 
-        test_registry = TestRegistry()
-
-        class StreamableClass(Instance, RootInstance):
-            _endpoints = test_registry
-            _instance_class = Instance
-            _config_class = BaseConfig
-
-            def __init__(self):
-                super().__init__()
-                self._gather_instances()
-
+        class StreamableClass(object):
             @stream
-            @test_registry.expose(test_registry.method1)
+            @TestDispatcher.method1.expose()
             def method1(self) -> np.ndarray:
                 return np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8)
 
             @stream
-            @test_registry.expose(test_registry.method2)
+            @TestDispatcher.method2.expose()
             def method2(self) -> np.ndarray:
                 return np.random.randint(0, 255, (64, 64, 3), dtype=np.uint8)
 
         streamable = StreamableClass()
+        dispatcher = TestDispatcher(streamable)
 
         thread1 = StreamerThread(
             streams.register(
-                streamable, streamable.get(test_registry.method1)
+                streamable, dispatcher.method1.method
             ).stream()
         )
         thread1.start()
         thread2 = StreamerThread(
             streams.register(
-                streamable, streamable.get(test_registry.method2)
+                streamable, dispatcher.method2.method
             ).stream()
         )
         thread2.start()
@@ -155,7 +146,7 @@ class StreamHandlerTest(unittest.TestCase):
         time.sleep(0.1)
 
         # Unregiter specific method
-        streams.unregister(streamable, streamable.get(test_registry.method1))
+        streams.unregister(streamable, streamable.method1)
         # Unregister all methods & stop
         streams.stop()
 

@@ -144,7 +144,7 @@ test('mount & destroy', async () => {
   w.destroy();
 
   // Inverse overlaid frame stream should have been stopped
-  expect(axios.post).toHaveBeenCalledWith(`/api/stream/${ID}/get_inverse_overlaid_frame/stop`, {}, {})
+  expect(axios.post).toHaveBeenCalledWith(`/api/va/stream_stop?id=${ID}&endpoint=get_inverse_overlaid_frame`)
 });
 
 test.todo('move to a different id');
@@ -231,7 +231,7 @@ describe('draw rectangle', () => {
 
     // a new roi is created from the rectangle & sent to the backend
     expect(updateRoiCoordinates).toHaveBeenCalledTimes(1);
-    expect(axios.post).toHaveBeenCalledWith(`/api/${ID}/call/estimate_transform`, expect.anything(), expect.anything())
+    expect(axios.post).toHaveBeenCalledWith(`/api/va/${ID}/estimate_transform`, expect.anything(),)
   });
 
   test('already has moveable -> do nothing', async () => {
@@ -261,7 +261,7 @@ describe('draw rectangle', () => {
 
     // mouse events came through but didn't create a new roi
     expect(updateRoiCoordinates).toHaveBeenCalledTimes(0);
-    expect(axios.post).not.toHaveBeenCalledWith(`/api/${ID}/call/estimate_transform`, expect.anything(), expect.anything())
+    expect(axios.post).not.toHaveBeenCalledWith(`/api/va/${ID}/estimate_transform`, expect.anything())
   });
 });
 
@@ -329,7 +329,7 @@ describe('with frame & roi', () => {
       await w.find('.align-clear').trigger('click');
       await flushPromises();
 
-      expect(axios.post).toHaveBeenCalledWith(`/api/${ID}/call/clear_roi`, expect.anything());
+      expect(axios.post).toHaveBeenCalledWith(`/api/va/${ID}/clear_roi`);
       expect(w.vm.$data.align.roi).toBeFalsy();
       expect(w.vm.$data.moveableShow).toBe(false);
     });
@@ -344,7 +344,7 @@ describe('with frame & roi', () => {
       await w.find('.align-undo').trigger('click');
       await flushPromises();
 
-      expect(axios.put).toHaveBeenCalledWith(`/api/${ID}/call/undo_config`, { context: 'transform' }, expect.anything());
+      expect(axios.put).toHaveBeenCalledWith(`/api/va/${ID}/undo_config`, { context: 'transform' });
       expect(w.vm.$data.align.roi).toBe(ROI);
     });
 
@@ -358,7 +358,7 @@ describe('with frame & roi', () => {
       await w.find('.align-redo').trigger('click');
       await flushPromises();
 
-      expect(axios.put).toHaveBeenCalledWith(`/api/${ID}/call/redo_config`, { context: 'transform' }, expect.anything());
+      expect(axios.put).toHaveBeenCalledWith(`/api/va/${ID}/redo_config`, { context: 'transform' });
       expect(w.vm.$data.align.roi).toBe(ROI);
     });
 
@@ -367,7 +367,7 @@ describe('with frame & roi', () => {
       await w.find('.align-fliph').trigger('click');
       await flushPromises();
 
-    expect(axios.post).toHaveBeenCalledWith(`/api/${ID}/call/flip_h`, expect.anything());
+    expect(axios.post).toHaveBeenCalledWith(`/api/va/${ID}/flip_h`,);
     });
 
     test('flip V', async () => {
@@ -375,7 +375,7 @@ describe('with frame & roi', () => {
       await w.find('.align-flipv').trigger('click');
       await flushPromises();
 
-      expect(axios.post).toHaveBeenCalledWith(`/api/${ID}/call/flip_v`, expect.anything());
+      expect(axios.post).toHaveBeenCalledWith(`/api/va/${ID}/flip_v`);
     });
 
     test('turn CW', async () => {
@@ -383,7 +383,7 @@ describe('with frame & roi', () => {
       await w.find('.align-turncw').trigger('click');
       await flushPromises();
 
-      expect(axios.post).toHaveBeenCalledWith(`/api/${ID}/call/turn_cw`, expect.anything());
+      expect(axios.post).toHaveBeenCalledWith(`/api/va/${ID}/turn_cw`);
     });
 
     test('turn CCW', async () => {
@@ -391,7 +391,7 @@ describe('with frame & roi', () => {
       await w.find('.align-turnccw').trigger('click');
       await flushPromises();
 
-      expect(axios.post).toHaveBeenCalledWith(`/api/${ID}/call/turn_ccw`, expect.anything());
+      expect(axios.post).toHaveBeenCalledWith(`/api/va/${ID}/turn_ccw`);
     });
 
     test('bounds', async () => {

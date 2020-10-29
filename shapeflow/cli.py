@@ -225,7 +225,11 @@ class Serve(Command):
         from shapeflow.server import ShapeflowServer
 
         server = ShapeflowServer()
-        server.serve(host=self.args.host, port=self.args.port, open=(not self.args.background))
+        server.serve(
+            host=self.args.host,
+            port=self.args.port,
+            open=(not self.args.background)
+        )
         log.info('exit')
 
     def _in_use(self) -> bool:

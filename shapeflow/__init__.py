@@ -5,6 +5,7 @@ import shutil
 import pathlib
 import copy
 import re
+import sqlite3
 import datetime
 import logging
 from multiprocessing import cpu_count
@@ -105,7 +106,7 @@ class _Settings(BaseModel):
         return value
 
     @classmethod
-    def schema(cls, by_alias: bool = True) -> Dict[str, Any]:
+    def schema(cls, by_alias: bool = True, ref_template: str = '') -> Dict[str, Any]:
         """
         Inject title & description into schema ~ lost due to Enum bugs.
         https://github.com/samuelcolvin/pydantic/pull/1749
@@ -176,6 +177,7 @@ class CacheSettings(_Settings):
     do_cache: bool = Field(default=True, title="use the cache")
     resolve_frame_number: bool = Field(default=True, title="resolve to (nearest) cached frame numbers")
     block_timeout: float = Field(default=0.1, title="wait for blocked item (s)")
+    reset_on_error: bool = Field(default=False, title="reset the cache if it can't be opened")
 
     _validate_dir = validator('dir', allow_reuse=True, pre=True)(_Settings._validate_directorypath)
 
@@ -293,7 +295,7 @@ else:
 save_settings(settings)
 
 
-def update_settings(s: dict):
+def update_settings(s: dict) -> dict:
     """Update global settings ~ dict
         Note: doing `settings = Settings(**new_settings)` would prevent
         importing modules from accessing the updated settings!
@@ -304,6 +306,7 @@ def update_settings(s: dict):
             setattr(sub, kw, val)
 
     save_settings(settings)
+    return settings.to_dict()
 
 
 class Logger(logging.Logger):
@@ -354,13 +357,6 @@ waitress.addHandler(_file_handler)
 waitress.propagate = False
 
 
-def get_cache(s: Settings = settings) -> diskcache.Cache:
-    return diskcache.Cache(
-        directory=str(s.cache.dir),
-        size_limit=s.cache.size_limit_gb * 1e9
-    )
-
-
 def get_logger(name: str, log_settings: LogSettings = settings.log) -> Logger:
     if log_settings is None:
         log_settings = LogSettings()
@@ -381,3 +377,22 @@ def get_logger(name: str, log_settings: LogSettings = settings.log) -> Logger:
 log = get_logger(__name__)
 log.info(f"v{__version__}")
 log.debug(f"settings: {settings.dict()}")
+
+
+def get_cache(s: Settings = settings, retry: bool = False) -> diskcache.Cache:
+    try:
+        return diskcache.Cache(
+            directory=str(s.cache.dir),
+            size_limit=s.cache.size_limit_gb * 1e9
+        )
+    except sqlite3.OperationalError as e:
+        log.error(f"could not open cache - {e.__class__.__name__}: {str(e)}")
+        if not retry:
+            if settings.cache.reset_on_error:
+                log.error(f"removing cache directory")
+                shutil.rmtree(str(s.cache.dir))
+            log.error(f"trying to open cache again...")
+            get_cache(settings, retry=True)
+        else:
+            log.error(f"could not open cache on retry")
+            raise e

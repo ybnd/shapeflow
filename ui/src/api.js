@@ -1,28 +1,7 @@
 import axios from "axios";
 
-export { axios };
-const CONFIG = {  // axios configuration
-};
 
-require('axios-debug-log')({
-  request: function (debug, config) {
-    // console.log(`axios request: ${config.method} ${config.url}`)
-  },
-  response: function (debug, response) {
-    // console.log(`axios response: ${response.config.method} ${response.config.url} ${response.status} ${response.statusText}`)
-  },
-  error: function (debug, error) {
-    // Read https://www.npmjs.com/package/axios#handling-errors for more info
-    // console.log(`axios error: ${error.config.method} ${error.config.url}`)
-    if (error.response !== undefined) {
-      // console.log(`response: ${error.response.status} ${error.response.statusText}`)
-    } else {
-      // console.log('no response')
-    }
-  }
-})
-
-export function api() {
+export function url() {
   return "/api/" + Array.from(arguments).join("/");
 }
 
@@ -67,300 +46,333 @@ function return_success(response) {
   return response.status === 200;
 }
 
-export async function ping() {
-  return axios
-    .get(api("ping"), CONFIG)
-    .then(return_success)
-    .catch((e) => {
-      return false;
-    });
-}
 
-export async function map() {
-  return axios.get(api('map'), CONFIG).then(return_data);
-}
-
-export function unload() {
-  // axios can't be called on page unload, use sendBeacon instead
-  try {
-    return navigator.sendBeacon(api("unload"));
-  } catch (e) {
-    // navigator is not defined in Jest  todo: can be mocked; see layouts/__tests__/default.test.js
-    console.warn(e)
-    return axios.post(api('unload'), {}, CONFIG)
-  }
-}
-
-export async function quit() {
-  return axios.post(api("quit"), {}, CONFIG).then(return_success)
-}
-
-export async function restart() {
-  return axios.post(api("restart"), {}, CONFIG).then(return_data);
-}
-
-export async function settings_schema() {
-  return axios.get(api("settings_schema"), CONFIG).then(return_data);
-}
-
-export async function get_settings() {
-  return axios.get(api("get_settings"), CONFIG).then(return_data);
-}
-
-export async function normalize_config(config) {
-  return axios.post(api('normalize_config'), { config: config }, CONFIG).then(return_data);
-}
-
-export async function set_settings(settings) {
-  return axios
-    .post(api("set_settings"), { settings: settings }, CONFIG)
-    .then(return_data);
-}
-
-export async function get_app_state() {
-  return axios.get(api("app_state"), CONFIG).then(return_data);
-}
-
-export async function init() {
-  // initialize an Analyzer in the backend & return its id
-  return axios.post(api("init"), {}, CONFIG).then(return_data);
-}
-
-export async function close(id) {
-  return axios.post(api(id, "close"), {}, CONFIG).then(return_success);
-}
-
-export async function cancel(id) {
-  return axios.post(api(id, "call/cancel"), {}, CONFIG).then(return_data);
-}
-
-export async function get_schemas() {
-  return axios.get(api("schemas"), CONFIG).then(return_data);
-}
-
-export async function select_video_path() {
-  return axios.get(api("select_video_path"), CONFIG).then(return_data);
-}
-
-export async function select_design_path() {
-  return axios.get(api("select_design_path"), CONFIG).then(return_data);
-}
-
-export async function check_video_path(video_path) {
-  return axios
-    .put(api("check_video_path"), { video_path: video_path }, CONFIG)
-    .then(return_data);
-}
-
-export async function check_design_path(design_path) {
-  return axios
-    .put(api("check_design_path"), { design_path: design_path }, CONFIG)
-    .then(return_data);
-}
-
-export async function open_root() {
-  return axios.post(api('open_root'), {}, CONFIG).then(return_data)
-}
-
-export async function get_total_time(id) {
-  return axios.get(api(id, "call/get_total_time"), CONFIG).then(return_data);
-}
-
-export async function get_config(id) {
-  return axios.get(api(id, "call/get_config"), CONFIG).then(return_data);
-}
-
-export async function get_colors(id) {
-  return axios.get(api(id, "call/get_colors"), CONFIG).then(return_data);
-}
-
-export async function get_state(id) {
-  return axios.get(api(id, "get_state"), CONFIG).then(return_data);
-}
-
-export async function get_status(id) {
-  return axios.get(api(id, "call/status"), CONFIG).then(return_data);
-}
-
-export async function get_relative_roi(id) {
-  return axios.get(api(id, "call/get_relative_roi"), CONFIG).then(return_data);
-}
-
-export async function set_config(id, config) {
-  return axios
-    .post(api(id, "call/set_config"), { config: config }, CONFIG)
-    .then(return_data)
-    .catch();
-}
-
-export async function state_transition(id) {
-  return axios.post(api(id, "call/state_transition"), {}, CONFIG).then(return_data);
-}
-
-export async function launch(id) {
-  return axios.get(api(id, "call/can_launch"), CONFIG).then((response) => {
-    if (response.status === 200 && response.data === true) {
-      return axios.post(api(id, "launch")).then(return_data);
-    } else {
-      return false;
+export const api = {
+  async ping() {
+    return axios
+      .get(url("ping"))
+      .then(return_success)
+      .catch(() => {
+        return false;
+      });
+  },
+  async unload() {
+    try {
+      // axios can't be called on page unload, use sendBeacon instead
+      return navigator.sendBeacon(url("unload"));
+    } catch(e) {
+      // use axios for unit tests
+      console.warn(e);
+      return axios
+        .post(url('unload'))
+        .then(return_success);
     }
-  });
-}
+  },
+  async quit() {
+    return axios
+      .post(url("quit"))
+      .then(return_success);
+  },
+  async restart() {
+    return axios
+      .post(url("restart"))
+      .then(return_data);
+  },
+  async schemas() {
+    return axios
+      .get(url("schemas"))
+      .then(return_data);
+  },
+  async map() {
+    return axios
+      .get(url("map"))
+      .then(return_data);
+  },
+  async normalize_config(config) {
+    return axios
+      .post(url("normalize_config"), { config: config })
+      .then(return_data);
+  },
+  async get_settings() {
+    return axios
+      .get(url("get_settings"))
+      .then(return_data);
+  },
+  async set_settings(settings) {
+    return axios
+      .post(url("set_settings"), { settings: settings })
+      .then(return_data);
+  },
+  log() {
+    // todo: add link to where this was copied from!
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", url("log"));
+    xhr.send();
 
-export async function seek(id, position) {
-  // console.log(`api.seek(${id}), ${position}`);
-  return axios
-    .post(api(id, "call/seek"), { position: position }, CONFIG)
-    .then(return_data);
-}
+    return xhr;
+  },
+  async stop_log() {
+    return axios
+      .put(url("stop_log"))
+      .then(return_success);
+  },
+  events(onmessage, onerror, onopen) {
+    // console.log(`registering EventSource for /api/events`);
 
-export async function get_seek_position(id) {
-  return axios.get(api(id, "call/get_seek_position"), CONFIG).then(return_data);
-}
+    let evl = new EventSource(url("events"));
+    evl.addEventListener("message", onmessage);
 
-export async function estimate_transform(id, roi) {
-  return axios
-    .post(api(id, "call/estimate_transform"), { roi: roi }, CONFIG)
-    .then(return_success);
-}
+    if (onerror !== undefined) {
+      evl.addEventListener("error", onerror);
+    }
+    if (onopen) {
+      evl.addEventListener("open", onopen);
+    }
 
-export async function turn_cw(id) {
-  return axios.post(api(id, "call/turn_cw"), CONFIG).then(return_success);
-}
-
-export async function turn_ccw(id) {
-  return axios.post(api(id, "call/turn_ccw"), CONFIG).then(return_success);
-}
-
-export async function flip_h(id) {
-  return axios.post(api(id, "call/flip_h"), CONFIG).then(return_success);
-}
-
-export async function flip_v(id) {
-  return axios.post(api(id, "call/flip_v"), CONFIG).then(return_success);
-}
-
-export async function clear_roi(id) {
-  return axios.post(api(id, "call/clear_roi"), CONFIG).then(return_success);
-}
-
-export async function get_db_id(id) {
-  return axios.get(api(id, "call/get_db_id"), CONFIG).then(return_data);
-}
-
-export async function undo_config(id, context = null) {
-  return axios
-    .put(api(id, "call/undo_config"), { context: context }, CONFIG)
-    .then(return_data);
-}
-
-export async function redo_config(id, context = null) {
-  return axios
-    .put(api(id, "call/redo_config"), { context: context }, CONFIG)
-    .then(return_data);
-}
-
-export async function set_filter(id, relative_coordinate) {
-  return axios
-    .post(api(id, "call/set_filter_click"), {
-      relative_x: relative_coordinate.x,
-      relative_y: relative_coordinate.y,
-    }, CONFIG)
-    .then(return_data);
-}
-
-export async function clear_filters(id) {
-  return axios.post(api(id, "call/clear_filters"), {}, CONFIG).then(return_success);
-}
-
-export async function commit(id) {
-  return axios.post(api(id, "call/commit"), {}, CONFIG).then(return_success);
-}
-
-export async function analyze(id) {
-  return axios.put(api(id, "call/analyze"), CONFIG).then(return_success);
-}
-
-export function get_log() {
-  // todo: add link to where this was copied from!
-  var xhr = new XMLHttpRequest();  // todo: integrate CONFIG somehow
-  xhr.open("GET", api("get_log"));
-  xhr.send();
-
-  return xhr;
-}
-
-export async function stop_log() {
-  return axios.put(api("stop_log"), {}, CONFIG).then(return_success);
-}
-
-export async function stop_stream(id, endpoint) {
-  return axios.post(api("stream", id, endpoint, "stop"), {}, CONFIG).then(return_success);
-}
-
-export function events(onmessage, onerror, onopen) {
-  // console.log(`registering EventSource for /api/stream/events`);
-  let evl = new window.EventSource(api("stream", "events"));  // todo: integrate CONFIG somehow
-
-  evl.addEventListener("message", onmessage);
-
-  if (onerror !== undefined) {
-    evl.addEventListener("error", onerror);
-  }
-  if (onopen !== undefined) {
-    evl.addEventListener("open", onopen);
-  }
-
-  // console.log(evl);
-  return evl;
-}
-
-export async function close_events() {
-  // console.log("api.close_events()");
-  return axios.post(api("stream", "events", "stop"), {}, CONFIG).then(return_success);
-}
-
-export async function clear_cache() {
-  return axios.post(api("cache", "clear"), {}, CONFIG).then(return_success);
-}
-
-export async function get_cache_size() {
-  return axios.get(api("cache", "disk-size"), CONFIG).then(return_data);
-}
-
-export async function clear_db() {
-  return axios.post(api("db", "forget"), {}, CONFIG).then(return_success);
-}
-
-export async function get_db_size() {
-  return axios.get(api("db", "disk-size"), CONFIG).then(return_data);
-}
-
-export async function get_result_list(analysis) {
-  return axios
-  .post(api("db", "get_result_list"), { analysis: analysis }, CONFIG)
-    .then(return_data);
-}
-
-export async function get_result(analysis, run) {
-  return axios
-    .post(api("db", "get_result"), { analysis: analysis, run: run }, CONFIG)
-    .then(return_data);
-}
-
-export async function export_result(analysis, run) {
-  return axios.post(api('db', 'export_result'), { analysis: analysis, run: run }, CONFIG).then(return_data)
-}
-
-
-export async function get_recent_paths() {
-  return axios.get(api("db", "get_recent_paths"), CONFIG).then(return_data);
-}
-
-export async function q_start(ids) {
-  return axios.post(api("start"), { queue: ids }, CONFIG).then(return_data);
-}
-
-export async function q_stop() {
-  return axios.post(api("stop"), {}, CONFIG).then(return_data);
-}
+    // console.log(evl);
+    return evl;
+  },
+  async stop_events() {
+    // console.log("url.close_events()");
+    return axios
+      .post(url("stop_events"))
+      .then(return_success);
+  },
+  fs: {
+    async select_video() {
+      return axios
+        .get(url("fs", "select_video"))
+        .then(return_data);
+    },
+    async select_design() {
+      return axios
+        .get(url("fs", "select_design"))
+        .then(return_data);
+    },
+    async check_video(video_path) {
+      return axios
+        .put(url("fs", "check_video"), { path: video_path })
+        .then(return_data);
+    },
+    async check_design(design_path) {
+      return axios
+        .put(url("fs", "check_design"), { path: design_path })
+        .then(return_data);
+    },
+    async open_root() {
+      return axios
+        .post(url("fs", 'open_root'))
+        .then(return_data)
+    },
+  },
+  db: {
+    async forget() {
+      return axios
+        .post(url("db", "forget"))
+        .then(return_success);
+    },
+    async get_result_list(analysis) {
+      return axios
+        .post(url("db", "get_result_list"), { analysis: analysis })
+        .then(return_data);
+    },
+    async get_result(analysis, run) {
+      return axios
+        .post(url("db", "get_result"), { analysis: analysis, run: run })
+        .then(return_data);
+    },
+    async export_result(analysis, run) {
+      return axios
+        .post(url('db', 'export_result'), { analysis: analysis, run: run })
+        .then(return_data)
+    },
+    async get_recent_paths() {
+      return axios
+        .get(url("db", "get_recent_paths"))
+        .then(return_data);
+    },
+  },
+  cache: {
+    async clear() {
+      return axios
+        .post(url("cache", "clear"))
+        .then(return_success);
+    },
+    async size() {
+      return axios
+        .get(url("cache", "size"))
+        .then(return_data);
+    },
+  },
+  va: {
+    async init() {
+      // initialize an Analyzer in the backend & return its id
+      return axios
+        .post(url("va", "init"))
+        .then(return_data);
+    },
+    async close(id) {
+      return axios
+        .post(url("va", "close"), { id: id })
+        .then(return_success);
+    },
+    async state() {
+      return axios
+        .get(url("va", "state"))
+        .then(return_data);
+    },
+    async stream_stop(id, endpoint) {
+      return axios
+        .post(url(`va/stream_stop?id=${id}&endpoint=${endpoint}`))
+        .then(return_success);
+    },
+    async start(ids) {
+      return axios
+        .post(url("va", "start"), { queue: ids })
+        .then(return_data);
+    },
+    async stop() {
+      return axios
+        .post(url("va", "stop"))
+        .then(return_data);
+    },
+    __id__: {
+      async cancel(id) {
+        return axios
+          .post(url("va", id, "cancel"))
+          .then(return_data);
+      },
+      async get_total_time(id) {
+        return axios
+          .get(url("va", id, "get_total_time"))
+          .then(return_data);
+      },
+      async get_config(id) {
+        return axios
+          .get(url("va", id, "get_config"))
+          .then(return_data);
+      },
+      async get_colors(id) {
+        return axios
+          .get(url("va", id, "get_colors"))
+          .then(return_data);
+      },
+      async get_state(id) {
+        return axios
+          .get(url("va", id, "get_state"))
+          .then(return_data);
+      },
+      async get_status(id) {
+        return axios
+          .get(url("va", id, "status"))
+          .then(return_data);
+      },
+      async get_relative_roi(id) {
+        return axios
+          .get(url("va", id, "get_relative_roi"))
+          .then(return_data);
+      },
+      async set_config(id, config) {
+        return axios
+          .post(url("va", id, "set_config"), { config: config })
+          .then(return_data)
+          .catch();
+      },
+      async state_transition(id) {
+        return axios
+          .post(url("va", id, "state_transition"))
+          .then(return_data);
+      },
+      async launch(id) {
+        return axios
+          .get(url("va", id, "can_launch"))
+          .then((response) => {
+            if (response.status === 200) {
+              return axios.post(url("va", id, "launch")).then(return_data);
+            } else {
+              return false;
+            }
+          });
+      },
+      async seek(id, position) {
+        // console.log(`url.seek(${id}), ${position}`);
+        return axios
+          .post(url("va", id, "seek"), { position: position })
+          .then(return_data);
+      },
+      async get_seek_position(id) {
+        return axios
+          .get(url("va", id, "get_seek_position"))
+          .then(return_data);
+      },
+      async estimate_transform(id, roi) {
+        return axios
+          .post(url("va", id, "estimate_transform"), { roi: roi })
+          .then(return_success);
+      },
+      async turn_cw(id) {
+        return axios
+          .post(url("va", id, "turn_cw"))
+          .then(return_success);
+      },
+      async turn_ccw(id) {
+        return axios
+          .post(url("va", id, "turn_ccw"))
+          .then(return_success);
+      },
+      async flip_h(id) {
+        return axios
+          .post(url("va", id, "flip_h"))
+          .then(return_success);
+      },
+      async flip_v(id) {
+        return axios
+          .post(url("va", id, "flip_v"))
+          .then(return_success);
+      },
+      async clear_roi(id) {
+        return axios
+          .post(url("va", id, "clear_roi"))
+          .then(return_success);
+      },
+      async get_db_id(id) {
+        return axios
+          .get(url("va", id, "get_db_id"))
+          .then(return_data);
+      },
+      async undo_config(id, context = null) {
+        return axios
+          .put(url("va", id, "undo_config"), { context: context })
+          .then(return_data);
+      },
+      async redo_config(id, context = null) {
+        return axios
+          .put(url("va", id, "redo_config"), { context: context })
+          .then(return_data);
+      },
+      async set_filter(id, relative_coordinate) {
+        return axios
+          .post(url("va", id, "set_filter_click"), {
+            relative_x: relative_coordinate.x,
+            relative_y: relative_coordinate.y,
+          })
+          .then(return_data);
+      },
+      async clear_filters(id) {
+        return axios
+          .post(url("va", id, "clear_filters"))
+          .then(return_success);
+      },
+      async commit(id) {
+        return axios
+          .post(url("va", id, "commit"))
+          .then(return_success);
+      },
+      async analyze(id) {
+        return axios.
+        put(url("va", id, "analyze"))
+          .then(return_success);
+      },
+    },
+  },
+};

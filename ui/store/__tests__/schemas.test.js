@@ -1,5 +1,5 @@
 import {mutations, getters, actions, state} from '../schemas'
-import {get_schemas, quit, ping} from '../../src/api'
+import { api } from '../../src/api'
 
 import {startServer, killServer} from "../../src/shapeflow";
 
@@ -15,7 +15,7 @@ var SCHEMAS = undefined;
 beforeAll(async () => {
   startServer();
 
-  SCHEMAS = await retryOnce(get_schemas);
+  SCHEMAS = await retryOnce(api.schemas);
 });
 afterAll(killServer);
 

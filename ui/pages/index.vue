@@ -71,7 +71,7 @@
 import PageHeader from "../components/header/PageHeader";
 import PageHeaderItem from "../components/header/PageHeaderItem";
 
-import { axios, api, QueueState, AnalyzerState } from "../src/api";
+import { QueueState, AnalyzerState } from "../src/api";
 
 export default {
   name: "index",

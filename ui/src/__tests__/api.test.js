@@ -1,9 +1,8 @@
 import {
-  quit, ping, unload, restart, settings_schema, get_settings, set_settings, open_root,
-  select_video_path, select_design_path, check_video_path, check_design_path
+  api
 } from '../api'
 
-import {startServer, killServer, checkIfListening, waitSync} from "../shapeflow";
+import {startServer, killServer, checkIfListening} from "../shapeflow";
 import {test, describe, beforeEach, afterEach} from "@jest/globals";
 
 beforeEach(startServer)
@@ -12,7 +11,7 @@ afterEach(killServer)
 function run(test) {
   expect(checkIfListening()).toBe(true);
 
-  ping().then(ok => {
+  api.ping().then(ok => {
     expect(ok).toBe(true);
     try {
       test();
@@ -27,12 +26,12 @@ function run(test) {
 test('quit', done => {
   try {
     run(() => {
-      quit().then(ok => {
+      api.quit().then(ok => {
         // console.log('quit callback');
         expect(ok).toBe(true);
         while(checkIfListening()) {}
         expect(checkIfListening()).toBe(false);
-        ping().then(ok => {
+        api.ping().then(ok => {
           console.log('ping 2 callback');
           expect(ok).toBe(false);
           done();
@@ -47,14 +46,14 @@ test('quit', done => {
 test('unload', done => {
   try {
     run(() => {
-      unload().then(response => {
+      api.unload().then(ok => {
         // console.log('unload callback');
-        expect(response.status).toBe(200);
+        expect(ok).toBe(true);
         // console.log('ping 2');
-        ping().then(ok => {
+        api.ping().then(ok => {
           console.log('ping 2 callback');
           expect(ok).toBe(true)
-          quit().then(ok => {
+          api.quit().then(ok => {
             expect(ok).toBe(true);
             while(checkIfListening()) {}
             expect(checkIfListening()).toBe(false);

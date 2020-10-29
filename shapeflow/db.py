@@ -3,13 +3,14 @@ import json
 from typing import Optional, Tuple, List, Dict, Type
 from pathlib import Path
 import datetime
+import sqlite3
 
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, ForeignKey
 
 import pandas as pd
 
-from shapeflow.endpoints import HistoryRegistry
+from shapeflow.api import api
 from shapeflow.core import RootInstance
 from shapeflow.core.db import Base, DbModel, SessionWrapper, FileModel, BaseAnalysisModel
 from shapeflow import settings, get_logger, ResultSaveMode
@@ -21,7 +22,6 @@ from shapeflow.core.backend import BaseVideoAnalyzer, BaseAnalyzerConfig
 
 
 log = get_logger(__name__)
-history = HistoryRegistry()
 
 
 class VideoFileModel(FileModel):
@@ -497,20 +497,22 @@ class AnalysisModel(BaseAnalysisModel):
 class History(SessionWrapper, RootInstance):
     """Interface to the history database
     """
-    _endpoints: HistoryRegistry = history
-    _instance_class = SessionWrapper
-
     _eventstreamer: EventStreamer
 
     def __init__(self, path: Path = None):
         super().__init__()
-        self._gather_instances()
 
         if path is None:
             path = settings.db.path
 
         self._engine = create_engine(f'sqlite:///{str(path)}')
-        Base.metadata.create_all(self._engine)
+        try:
+            Base.metadata.create_all(self._engine)
+        except sqlite3.OperationalError as e:
+            if "already exists" in str(e):
+                pass
+            else:
+                log.error(f"could not create tables - {e.__class__.__name__}: {str(e)}")
         self._session_factory = scoped_session(sessionmaker(bind=self._engine))
 
     def set_eventstreamer(self, eventstreamer: EventStreamer):
@@ -553,7 +555,8 @@ class History(SessionWrapper, RootInstance):
             return s.query(AnalysisModel).filter(AnalysisModel.id == id).\
                 first()
 
-    @history.expose(history.get_recent_paths)
+    # @history.expose(history.get_recent_paths)
+    @api.db.get_recent_paths.expose()
     def get_paths(self) -> Dict[str, List[str]]:
         """Fetch the latest video and design file paths from the
         database. Number of paths is limited by ``settings.app.recent_files``
@@ -568,7 +571,8 @@ class History(SessionWrapper, RootInstance):
                     limit(settings.app.recent_files).all()]
             }
 
-    @history.expose(history.get_result_list)
+    # @history.expose(history.get_result_list)
+    @api.db.get_result_list.expose()
     def get_result_list(self, analysis: int) -> dict:
         with self.session() as s:
             runs = s.query(AnalysisModel).\
@@ -581,7 +585,8 @@ class History(SessionWrapper, RootInstance):
                 for run in range(1, runs+1)
             }
 
-    @history.expose(history.get_result)
+    # @history.expose(history.get_result)
+    @api.db.get_result.expose()
     def get_result(self, analysis: int, run: int) -> dict:
         with self.session() as s:
             return {
@@ -591,7 +596,8 @@ class History(SessionWrapper, RootInstance):
                     filter(ResultModel.run == run)
             }
 
-    @history.expose(history.export_result)
+    # @history.expose(history.export_result)
+    @api.db.export_result.expose()
     def export_result(self, analysis: int, run: int = None) -> bool:
         with self.session() as s:
             try:
@@ -654,7 +660,8 @@ class History(SessionWrapper, RootInstance):
         return all(ok)
 
 
-    @history.expose(history.clean)
+    # @history.expose(history.clean)
+    @api.db.clean.expose()
     def clean(self) -> None:
         """Clean the database
 
@@ -699,7 +706,8 @@ class History(SessionWrapper, RootInstance):
                 f.resolve()
 
 
-    @history.expose(history.forget)
+    # @history.expose(history.forget)
+    @api.db.forget.expose()
     def forget(self) -> None:
         """Remove everything."""
         log.info(f"clearing history")

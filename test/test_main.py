@@ -1,6 +1,7 @@
 import os
 import shutil
 import unittest
+from unittest.mock import MagicMock
 from contextlib import contextmanager
 
 import time
@@ -30,13 +31,13 @@ RESULTS = os.path.join(ROOTDIR, 'test_server-results')
 
 
 def clear_files():
-    if os.path.exists(CACHE):
+    if os.path.isdir(CACHE):
         shutil.rmtree(CACHE)
-    if os.path.exists(DB):
+    if os.path.isfile(DB):
         os.remove(DB)
-    if os.path.exists(STATE):
+    if os.path.isfile(STATE):
         os.remove(STATE)
-    if os.path.exists(RESULTS):
+    if os.path.isdir(RESULTS):
         shutil.rmtree(RESULTS)
 
 
@@ -48,15 +49,16 @@ def application(keep: bool = False):
         clear_files()
 
     try:
-        with settings.cache.override({"dir": CACHE, "do_cache": False}), \
+        with settings.cache.override({"dir": CACHE, "do_cache": False, "reset_on_error": True}), \
                 settings.db.override({"path": DB, "cleanup_interval": 0}), \
-                settings.app.override({"state_path": STATE, "save_result_auto": 'in result directory', "result_dir": RESULTS}), \
+                settings.app.override({"state_path": STATE, "save_result_auto": 'in result directory', "result_dir": RESULTS, "cancel_on_q_stop": False}), \
                 settings.log.override({'lvl_console': 'debug', 'lvl_file': 'debug'}):
             save_settings(settings)
 
             # import from shapeflow.server here -> current settings are respected
             import shapeflow.server
             import shapeflow.db
+            import shapeflow.main
 
             server = shapeflow.server.ShapeflowServer()
             server._raise_call_exceptions = True
@@ -64,14 +66,18 @@ def application(keep: bool = False):
             server._app.testing = True
             client = server._app.test_client()
 
-            yield server, client, settings
+            api = shapeflow.main.load(server)
+            analyzers = api.va._instance.__analyzers__
+            history = api.va._instance._history
+
+            yield server, analyzers, history, client, settings
     finally:
         save_settings(settings)
 
         # Explicitly remove any leftover analyzers
-        app_state = json.loads(client.get('/api/app_state').data)
+        app_state = json.loads(client.get('/api/va/state').data)
         for id in app_state['ids']:
-            client.post(f'/api/{id}/close')
+            client.post(f'/api/va/close?id={id}')
 
         del server
         del settings
@@ -83,14 +89,14 @@ def application(keep: bool = False):
 class ServerTest(unittest.TestCase):
     """Test global methods """
     def test_file_checks(self):
-        with application() as (server, client, settings):
+        with application() as (server, analyzers, history, client, settings):
             # Check real files
             self.assertEqual(
                 True,
                 json.loads(
                     client.put(
-                        '/api/check_design_path',
-                        data=json.dumps({"design_path": __DESIGN__})
+                        '/api/fs/check_design',
+                        data=json.dumps({"path": __DESIGN__})
                     ).data
                 )
             )
@@ -98,8 +104,8 @@ class ServerTest(unittest.TestCase):
                 True,
                 json.loads(
                     client.put(
-                        '/api/check_video_path',
-                        data=json.dumps({"video_path": __VIDEO__})
+                        '/api/fs/check_video',
+                        data=json.dumps({"path": __VIDEO__})
                     ).data
                 )
             )
@@ -109,8 +115,8 @@ class ServerTest(unittest.TestCase):
                 True,  # OnionSVG.check_svg() checks if directory contains <file>.svg if extension doesn't match
                 json.loads(
                     client.put(
-                        '/api/check_design_path',
-                        data=json.dumps({"design_path": __VIDEO__})
+                        '/api/fs/check_design',
+                        data=json.dumps({"path": __VIDEO__})
                     ).data
                 )
             )
@@ -118,8 +124,8 @@ class ServerTest(unittest.TestCase):
                 False,
                 json.loads(
                     client.put(
-                        '/api/check_video_path',
-                        data=json.dumps({"video_path": __DESIGN__})
+                        '/api/fs/check_video',
+                        data=json.dumps({"path": __DESIGN__})
                     ).data
                 )
             )
@@ -129,8 +135,8 @@ class ServerTest(unittest.TestCase):
                 False,
                 json.loads(
                     client.put(
-                        '/api/check_design_path',
-                        data=json.dumps({"design_path": "test1.svg"})
+                        '/api/fs/check_design',
+                        data=json.dumps({"path": "test1.svg"})
                     ).data
                 )
             )
@@ -138,17 +144,17 @@ class ServerTest(unittest.TestCase):
                 False,
                 json.loads(
                     client.put(
-                        '/api/check_video_path',
-                        data=json.dumps({"video_path": "test2.mp4"})
+                        '/api/fs/check_video',
+                        data=json.dumps({"path": "test2.mp4"})
                     ).data
                 )
             )
 
-    def test_log_stream(self):
-        with application() as (server, client, settings):
+    def test_log_stream(self):  # todo: this one passes by itself but fails otherwise
+        with application() as (server, analyzers, history, client, settings):
             class LogStreamThread(Thread):
                 def run(self):
-                    self._data = client.get('/api/get_log').data
+                    self._data = client.get('/api/log').data
 
             thread = LogStreamThread()
             thread.start()
@@ -156,15 +162,15 @@ class ServerTest(unittest.TestCase):
             MESSAGE = 'test log stream'
 
             client.put(
-                '/api/check_design_path',
-                data=json.dumps({"design_path": MESSAGE})
+                '/api/fs/check_design',
+                data=json.dumps({"path": MESSAGE})
             )
             client.put(
-                '/api/check_design_path',
-                data=json.dumps({"design_path": MESSAGE})
+                '/api/fs/check_design',
+                data=json.dumps({"path": MESSAGE})
             )
 
-            time.sleep(1)
+            time.sleep(2)  # wait a bit longer to make sure lines get pushed
 
             client.put('/api/stop_log')
 
@@ -238,91 +244,91 @@ class ServerAnalyzerTest(unittest.TestCase):
     ]
 
     def test_analyzer(self):
-        with application() as (server, client, settings):
-            r = client.post('/api/init')
+        with application() as (server, analyzers, history, client, settings):
+            r = client.post('/api/va/init')
             self.assertEqual(200, r.status_code)
 
             id = json.loads(r.data)
             self.assertNotEqual('', id)
 
-            self.assertIn(id, server._roots)
+            self.assertIn(id, analyzers)
             self.assertFalse(
-                json.loads(client.get(f'/api/{id}/can_launch').data)
+                json.loads(client.get(f'/api/va/{id}/can_launch').data)
             )
 
             client.post(
-                f'/api/{id}/call/set_config',
+                f'/api/va/{id}/set_config',
                 data=json.dumps({"config": self.CONFIG})
             )
 
             self.assertTrue(
-                json.loads(client.get(f'/api/{id}/can_launch').data)
+                json.loads(client.get(f'/api/va/{id}/can_launch').data)
             )
             self.assertTrue(
-                json.loads(client.post(f'/api/{id}/launch').data)
+                json.loads(client.post(f'/api/va/{id}/launch').data)
             )
             client.post(
-                f'/api/{id}/call/set_config',
+                f'/api/va/{id}/set_config',
                 data=json.dumps({"config": {"transform": {"roi": None}}})
             )
 
             # Can't analyze yet since transform.roi is not set
-            self.assertFalse(json.loads(client.post(f'/api/{id}/call/analyze').data))
+            self.assertFalse(json.loads(client.post(f'/api/va/{id}/analyze').data))
 
             client.post(
-                f'/api/{id}/call/estimate_transform',
+                f'/api/va/{id}/estimate_transform',
                 data=json.dumps({"roi": self.ROI})
             )
 
             self.assertEqual(
                 self.ROI,
-                server._roots[id].transform.config.roi
+                analyzers[id].transform.config.roi
             )
 
             # Ignore all masks
-            Nmasks = len(server._roots[id].config.masks)
-            server._roots[id].set_config(
+            Nmasks = len(analyzers[id].config.masks)
+            analyzers[id].set_config(
                     {'masks': [{'skip': True}] * Nmasks}
                 )
 
-            self.assertTrue(json.loads(client.post(f'/api/{id}/call/analyze').data))
+            self.assertTrue(json.loads(client.post(f'/api/va/{id}/analyze').data))
 
             # Results are cleared after analyzing  todo: assert that results are in database
             self.assertTrue(
-                server._roots[id].results[
-                    server._roots[id].config.features[0]].isna().all().all()
+                analyzers[id].results[
+                    analyzers[id].config.features[0]].isna().all().all()
             )
 
-            client.post(f'/api/{id}/close')
-            self.assertNotIn(id, server._roots)
+            client.post(f'/api/va/close?id={id}')
+            self.assertNotIn(id, analyzers)
 
     def test_analyzer_roi_flip(self):
-        with application() as (server, client, settings):
-            id = json.loads(client.post('/api/init').data)
+        with application() as (server, analyzers, history, client, settings):
+            id = json.loads(client.post('/api/va/init').data)
             client.post(
-                f'/api/{id}/call/set_config',
+                f'/api/va/{id}/set_config',
                 data=json.dumps({"config": self.CONFIG})
             )
-            client.post(f'/api/{id}/launch')
+            client.post(f'/api/va/{id}/launch')
 
             client.post(
-                f'/api/{id}/call/estimate_transform',
+                f'/api/va/{id}/estimate_transform',
                 data=json.dumps({"roi": self.ROI})
             )
 
             client.post(
-                f'/api/{id}/call/set_config',
+                f'/api/va/{id}/set_config',
                 data=json.dumps({ "config": {"transform":
                     {"flip": {"horizontal": True, "vertical": True}}}})
             )
 
             self.assertEqual(
                 {"horizontal": True, "vertical": True},
-                server._roots[id].transform.config.flip.to_dict()
+                analyzers[id].transform.config.flip.to_dict()
             )
 
             client.post(
-                f'/api/{id}/call/set_config',
+                f'/api/va/{id}/set_config',
                 data=json.dumps({"config": {"transform":
                     {"flip": {"horizontal": False}}}})
             )
@@ -330,147 +336,150 @@ class ServerAnalyzerTest(unittest.TestCase):
             # Previous value of transform.flip.vertical should still be remembered
             self.assertEqual(
                 {"horizontal": False, "vertical": True},
-                server._roots[id].transform.config.flip.to_dict()
+                analyzers[id].transform.config.flip.to_dict()
             )
 
-    @unittest.skip("doesn't work after 06024b46")  # todo: rethink!
     def test_analyzer_filter_click(self):
-        with application() as (server, client, settings):
-            id = json.loads(client.post('/api/init').data)
+        with application() as (server, analyzers, history, client, settings):
+            id = json.loads(client.post('/api/va/init').data)
             client.post(
-                f'/api/{id}/call/set_config',
+                f'/api/va/{id}/set_config',
                 data=json.dumps({"config": self.CONFIG})
             )
-            client.post(f'/api/{id}/launch')
+            client.post(f'/api/va/{id}/launch')
             client.post(
-                f'/api/{id}/call/estimate_transform',
+                f'/api/va/{id}/estimate_transform',
                 data=json.dumps({"roi": self.ROI})
             )
 
             for click in self.MISSES:
+                og_masks = analyzers[id].config.to_dict()['masks']
                 r = client.post(
-                    f'/api/{id}/call/set_filter_click',
+                    f'/api/va/{id}/set_filter_click',
                     data=json.dumps({'relative_x': click[0], 'relative_y': click[1]})
                 )
-                # self.assertEqual({}, json.loads(r.data))  todo: no response anymore ~06024b46
+                self.assertEqual(og_masks, analyzers[id].config.to_dict()['masks'])  # todo: no response anymore ~06024b46
+
             for click in self.FAKE_HITS:
+                og_masks = analyzers[id].config.to_dict()['masks']
                 r = client.post(
-                    f'/api/{id}/call/set_filter_click',
+                    f'/api/va/{id}/set_filter_click',
                     data=json.dumps({'relative_x': click[0], 'relative_y': click[1]})
                 )
-                # self.assertEqual({}, json.loads(r.data))  todo: no response anymore ~06024b46
+                self.assertEqual(og_masks, analyzers[id].config.to_dict()['masks'])  # todo: no response anymore ~06024b46
 
             for click in self.TRUE_HITS:
+                og_masks = analyzers[id].config.to_dict()['masks']
                 r = client.post(
-                    f'/api/{id}/call/set_filter_click',
+                    f'/api/va/{id}/set_filter_click',
                     data=json.dumps({'relative_x': click[0], 'relative_y': click[1]})
                 )
-                # self.assertIn('color', json.loads(r.data))  todo: no response anymore ~06024b46
+                self.assertNotEqual(og_masks, analyzers[id].config.to_dict()['masks'])  # todo: no response anymore ~06024b46
 
             for click in self.DOUBLE_HITS:
+                og_masks = analyzers[id].config.to_dict()['masks']
                 r = client.post(
-                    f'/api/{id}/call/set_filter_click',
+                    f'/api/va/{id}/set_filter_click',
                     data=json.dumps(
                         {'relative_x': click[0], 'relative_y': click[1]})
                 )
-                # self.assertIn('message', json.loads(r.data))  todo: no response anymore ~06024b46
+                self.assertEqual(og_masks, analyzers[id].config.to_dict()['masks'])  # todo: no response anymore ~06024b46
 
     def test_analyzer_history(self):
-        with application() as (server, client, settings):
-            id1 = json.loads(client.post('/api/init').data)
+        with application() as (server, analyzers, history, client, settings):
+            id1 = json.loads(client.post('/api/va/init').data)
             client.post(
-                f'/api/{id1}/call/set_config',
+                f'/api/va/{id1}/set_config',
                 data=json.dumps({"config": self.CONFIG})
             )
-            client.post(f'/api/{id1}/launch')
+            client.post(f'/api/va/{id1}/launch')
             client.post(
-                f'/api/{id1}/call/estimate_transform',
+                f'/api/va/{id1}/estimate_transform',
                 data=json.dumps({"roi": self.ROI})
             )
 
-            client.post(f'/api/{id1}/close')
+            client.post(f'/api/va/close?id={id1}')
 
-            id2 = json.loads(client.post('/api/init').data)
+            id2 = json.loads(client.post('/api/va/init').data)
 
             self.assertNotEqual(id1, id2)
 
             client.post(
-                f'/api/{id2}/call/set_config',
+                f'/api/va/{id2}/set_config',
                 data=json.dumps({"config": self.CONFIG})
             )
 
             self.assertTrue(
-                json.loads(client.get(f'/api/{id2}/can_launch').data)
+                json.loads(client.get(f'/api/va/{id2}/can_launch').data)
             )
             self.assertTrue(
-                json.loads(client.post(f'/api/{id2}/launch').data)
+                json.loads(client.post(f'/api/va/{id2}/launch').data)
             )
             self.assertEqual(
                 self.ROI,
                 json.loads(
-                    client.get(f'/api/{id2}/call/get_config'
+                    client.get(f'/api/va/{id2}/get_config'
                 ).data)['transform']['roi']
             )
 
-    # @unittest.skip('to be fixed!')
     def test_analyzer_undo_redo(self):
-        with application() as (server, client, settings):
-            id = json.loads(client.post('/api/init').data)
+        with application() as (server, analyzers, history, client, settings):
+            id = json.loads(client.post('/api/va/init').data)
             client.post(
-                f'/api/{id}/call/set_config',
+                f'/api/va/{id}/set_config',
                 data=json.dumps({"config": self.CONFIG})
             )
-            client.post(f'/api/{id}/launch')
+            client.post(f'/api/va/{id}/launch')
 
             for ROI in self.ROI_SEQUENCE:
                 client.post(
-                    f'/api/{id}/call/set_config',
+                    f'/api/va/{id}/set_config',
                     data=json.dumps({"config": {"transform": {"roi": ROI}}})
                 )
 
             for ROI in self.ROI_SEQUENCE[::-1]:
                 self.assertEqual(
                     ROI,
-                    server._roots[id].config.transform.roi.to_dict()
+                    analyzers[id].config.transform.roi.to_dict()
                 )
-                client.post(f'/api/{id}/call/undo_config')
+                client.post(f'/api/va/{id}/undo_config')
 
             for ROI in self.ROI_SEQUENCE:
-                client.post(f'/api/{id}/call/redo_config')
+                client.post(f'/api/va/{id}/redo_config')
                 self.assertEqual(
                     ROI,
-                    server._roots[id].config.transform.roi.to_dict()
+                    analyzers[id].config.transform.roi.to_dict()
                 )
 
     def test_analyzer_undo_redo_context(self):
-        with application() as (server, client, settings):
-            id = json.loads(client.post('/api/init').data)
+        with application() as (server, analyzers, history, client, settings):
+            id = json.loads(client.post('/api/va/init').data)
             client.post(
-                f'/api/{id}/call/set_config',
+                f'/api/va/{id}/set_config',
                 data=json.dumps({"config": self.CONFIG})
             )
-            client.post(f'/api/{id}/launch')
+            client.post(f'/api/va/{id}/launch')
 
             for ROI in self.ROI_SEQUENCE:
                 # Changes to 'transform'
                 client.post(
-                    f'/api/{id}/call/set_config',
+                    f'/api/va/{id}/set_config',
                     data=json.dumps({"config": {"transform": {"roi": ROI}}})
                 )
 
             for CLICK in self.TRUE_HITS:
                 # Changes to 'masks'
                 client.post(
-                    f'/api/{id}/call/set_filter_click',
+                    f'/api/va/{id}/set_filter_click',
                     data=json.dumps({'relative_x': CLICK[0], 'relative_y': CLICK[1]})
                 )
 
             config_buffer = []
-            config_buffer.append(server._roots[id].config.to_dict())
+            config_buffer.append(analyzers[id].config.to_dict())
 
             # Undoing without a context -> everything changes
-            client.post(f'/api/{id}/call/undo_config')
-            config_buffer.append(server._roots[id].config.to_dict())
+            client.post(f'/api/va/{id}/undo_config')
+            config_buffer.append(analyzers[id].config.to_dict())
 
             self.assertEqual(  # 'transform' was not changed in the last set_config
                 config_buffer[0]['transform'], config_buffer[1]['transform']
@@ -480,8 +489,8 @@ class ServerAnalyzerTest(unittest.TestCase):
             )
 
             # Undoing with a context -> only the context changes
-            client.post(f'/api/{id}/call/undo_config', data=json.dumps({'context': 'transform'}))
-            config_buffer.append(server._roots[id].config.to_dict())
+            client.post(f'/api/va/{id}/undo_config', data=json.dumps({'context': 'transform'}))
+            config_buffer.append(analyzers[id].config.to_dict())
 
             self.assertNotEqual(  # 'transform' since it was set as the context, even though it was not changed in the previous config
                 config_buffer[1]['transform'], config_buffer[2]['transform']
@@ -491,8 +500,8 @@ class ServerAnalyzerTest(unittest.TestCase):
             )
 
             # Undoing with a context -> only the context changes
-            client.post(f'/api/{id}/call/undo_config', data=json.dumps({'context': 'transform'}))
-            config_buffer.append(server._roots[id].config.to_dict())
+            client.post(f'/api/va/{id}/undo_config', data=json.dumps({'context': 'transform'}))
+            config_buffer.append(analyzers[id].config.to_dict())
 
             self.assertNotEqual(  # 'transform' since it was set as the context, even though it was not changed in the previous config
                 config_buffer[2]['transform'], config_buffer[3]['transform']
@@ -503,9 +512,9 @@ class ServerAnalyzerTest(unittest.TestCase):
 
             # Undoing with a context -> only the context changes
             # todo: takes two calls to undo_config to register, not sure why.
-            client.post(f'/api/{id}/call/undo_config', data=json.dumps({'context': 'masks'}))
-            client.post(f'/api/{id}/call/undo_config', data=json.dumps({'context': 'masks'}))
-            config_buffer.append(server._roots[id].config.to_dict())
+            client.post(f'/api/va/{id}/undo_config', data=json.dumps({'context': 'masks'}))
+            client.post(f'/api/va/{id}/undo_config', data=json.dumps({'context': 'masks'}))
+            config_buffer.append(analyzers[id].config.to_dict())
 
             self.assertEqual(  # 'transform' doesn't change since the context is 'masks
                 config_buffer[3]['transform'], config_buffer[4]['transform']
@@ -515,8 +524,8 @@ class ServerAnalyzerTest(unittest.TestCase):
             )
 
             # Redoing with a context -> only the context changes
-            client.post(f'/api/{id}/call/redo_config', data=json.dumps({'context': 'masks'}))
-            config_buffer.append(server._roots[id].config.to_dict())
+            client.post(f'/api/va/{id}/redo_config', data=json.dumps({'context': 'masks'}))
+            config_buffer.append(analyzers[id].config.to_dict())
 
             self.assertEqual(  # 'transform' doesn't change since the context is 'masks'
                 config_buffer[4]['transform'], config_buffer[5]['transform']
@@ -526,109 +535,109 @@ class ServerAnalyzerTest(unittest.TestCase):
             )
 
     def test_analyzer_undo_redo_invalid_context(self):
-        with application() as (server, client, settings):
-            id = json.loads(client.post('/api/init').data)
+        with application() as (server, analyzers, history, client, settings):
+            id = json.loads(client.post('/api/va/init').data)
 
             self.assertRaises(
                 ValueError,
                 client.post,
-                f'/api/{id}/call/undo_config',
+                f'/api/va/{id}/undo_config',
                 data=json.dumps({'context': 'illegal'})
             )
             self.assertRaises(
                 ValueError,
                 client.post,
-                f'/api/{id}/call/redo_config',
+                f'/api/va/{id}/redo_config',
                 data=json.dumps({'context': 'illegal'})
             )
 
     def test_clean_db(self):
         clear_files()
 
-        with application(keep=True) as (server, client, settings):
-            id = json.loads(client.post('/api/init').data)
+        with application(keep=True) as (server, analyzers, history, client, settings):
+            id = json.loads(client.post('/api/va/init').data)
             client.post(
-                f'/api/{id}/call/set_config',
+                f'/api/va/{id}/set_config',
                 data=json.dumps({"config": self.CONFIG})
             )
-            client.post(f'/api/{id}/launch')
+            client.post(f'/api/va/{id}/launch')
 
             for ROI in self.ROI_SEQUENCE:
                 # Changes to 'transform'
                 client.post(
-                    f'/api/{id}/call/set_config',
+                    f'/api/va/{id}/set_config',
                     data=json.dumps({"config": {"transform": {"roi": ROI}}})
                 )
 
             for CLICK in self.TRUE_HITS:
                 # Changes to 'masks'
                 client.post(
-                    f'/api/{id}/call/set_filter_click',
+                    f'/api/va/{id}/set_filter_click',
                     data=json.dumps(
                         {'relative_x': CLICK[0], 'relative_y': CLICK[1]})
                 )
 
             from shapeflow.db import ConfigModel
 
-            with server._history.session() as s:
+            with history.session() as s:
                 n_config_t0 = len(list(s.query(ConfigModel)))
 
-        with application(keep=True) as (server, client, settings):
-            server._history.clean()
+        with application(keep=True) as (server, analyzers, history, client, settings):
+            history.clean()
 
-            with server._history.session() as s:
+            with history.session() as s:
                 n_config_t1 = len(list(s.query(ConfigModel)))
 
         try:
-            self.assertLess(n_config_t1, n_config_t0)
+            self.assertLess(n_config_t1, n_config_t0)  # todo: this fails now, what changed?
         finally:
             clear_files()
 
-    @unittest.skip("doesn't work after 06024b46")  # todo: rethink!
+    @unittest.skip("doesn't work after 06024b46")  # todo: have to bypass CAN_FILTER by setting up all masks
     def test_analyzers_queue_ops(self):
-        with application() as (server, client, settings):
-            id1 = json.loads(client.post('/api/init').data)
+        with application() as (server, analyzers, history, client, settings):
+            id1 = json.loads(client.post('/api/va/init').data)
             client.post(
-                f'/api/{id1}/call/set_config',
+                f'/api/va/{id1}/set_config',
                 data=json.dumps({"config": self.CONFIG})
             )
-            client.post(f'/api/{id1}/launch')
+            client.post(f'/api/va/{id1}/launch')
             client.post(
-                f'/api/{id1}/call/estimate_transform',
+                f'/api/va/{id1}/estimate_transform',
                 data=json.dumps({"roi": self.ROI})
             )
 
-            id2 = json.loads(client.post('/api/init').data)
+            id2 = json.loads(client.post('/api/va/init').data)
 
             client.post(
-                f'/api/{id2}/call/set_config',
-                data=json.dumps({"config": self.CONFIG})
-            )
-
-            self.assertTrue(
-                json.loads(client.post(f'/api/{id2}/launch').data)
-            )
-            client.post(
-                f'/api/{id2}/call/estimate_transform',
-                data=json.dumps({"roi": self.ROI})
-            )
-
-            id3 = json.loads(client.post('/api/init').data)
-
-            client.post(
-                f'/api/{id3}/call/set_config',
+                f'/api/va/{id2}/set_config',
                 data=json.dumps({"config": self.CONFIG})
             )
 
             self.assertTrue(
-                json.loads(client.post(f'/api/{id3}/launch').data)
+                json.loads(client.post(f'/api/va/{id2}/launch').data)
             )
             client.post(
-                f'/api/{id3}/call/estimate_transform',
+                f'/api/va/{id2}/estimate_transform',
                 data=json.dumps({"roi": self.ROI})
             )
 
-            app_state = json.loads(client.get('/api/app_state').data)
+            id3 = json.loads(client.post('/api/va/init').data)
+
+            client.post(
+                f'/api/va/{id3}/set_config',
+                data=json.dumps({"config": self.CONFIG})
+            )
+
+            self.assertTrue(
+                json.loads(client.post(f'/api/va/{id3}/launch').data)
+            )
+            client.post(
+                f'/api/va/{id3}/estimate_transform',
+                data=json.dumps({"roi": self.ROI})
+            )
+
+            app_state = json.loads(client.get('/api/va/state').data)
             self.assertEqual(
                 0,  # QueueState.STOPPED
                 app_state['q_state']
@@ -637,16 +646,16 @@ class ServerAnalyzerTest(unittest.TestCase):
             # Start queue in separate thread (don't block until done)
             thread = Thread(
                 target=client.post,
-                args=['/api/start'],
+                args=['/api/va/start'],
                 kwargs={'data': json.dumps({'queue': [id1, id2, id3]})}
             )
             thread.start()
 
             # Stop queue while not done yet
-            client.post('/api/stop')
+            client.post('/api/va/stop')
             thread.join()
 
-            app_state = json.loads(client.get('/api/app_state').data)
+            app_state = json.loads(client.get('/api/va/state').data)
             self.assertEqual(
                 0,  # QueueState.STOPPED
                 app_state['q_state']
@@ -670,9 +679,9 @@ class ServerAnalyzerTest(unittest.TestCase):
             )
 
             # Start the queue again and block until done
-            client.post('/api/start', data=json.dumps({'queue': [id3, id2, id1]}))
+            client.post('/api/va/start', data=json.dumps({'queue': [id3, id2, id1]}))
 
-            app_state = json.loads(client.get('/api/app_state').data)
+            app_state = json.loads(client.get('/api/va/state').data)
             self.assertEqual(
                 0,  # QueueState.STOPPED
                 app_state['q_state']
@@ -736,13 +745,17 @@ class DbCheckTest(unittest.TestCase):
             c.close()
 
             # run check_history(), replaces invalid db
-            from shapeflow.server import db, check_history
+            from shapeflow.main import _Database, History
             import glob
 
-            check_history()
+            server = MagicMock()
+            server._eventstreamer = None
+
+            db = _Database(server)
+            db.check_history()
 
             # db is now valid
-            self.assertTrue(db.History().check())
+            self.assertTrue(History().check())
 
             # There should be a broken db
             broken = glob.glob(f"{settings.db.path}_broken_*")

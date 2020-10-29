@@ -103,11 +103,7 @@ import SidebarNavAnalysisLink from "./SidebarNavAnalysisLink";
 import Waiting from "./Waiting";
 
 import {
-  AnalyzerState as ast,
-  analyze,
-  close,
-  cancel,
-  AnalyzerState,
+  AnalyzerState as ast, api, url
 } from "../../src/api";
 
 import { events } from "../../src/events";
@@ -158,7 +154,8 @@ export default {
     },
     handleCancel() {
       // console.log(`sidebar: handling cancel event (${this.id})`);
-      cancel(this.id).then(() => {  // todo: should be a store action tho
+      // todo: should be a store action tho
+      api.va.__id__.cancel(this.id).then(() => {
         this.$store.dispatch("analyzers/sync");
       });
     },
@@ -182,9 +179,8 @@ export default {
         align: `/analysis/align?id=${this.id}`,
         filter: `/analysis/filter?id=${this.id}`,
         result: `/analysis/result?id=${this.id}`,
-        cache: `/api/${this.id}/call/cache`,
-        analyze: `/api/${this.id}/call/analyze`,
-        cancel: `/api/${this.id}/call/cancel`,
+        analyze: url("va", this.id, "analyze"),
+        cancel: url("va", this.id, "cancel"),
       };
     },
     event() {

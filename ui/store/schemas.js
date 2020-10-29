@@ -1,12 +1,7 @@
-import Vue from "vue";
-import axios from "axios";
-import { AnalyzerState, get_schemas } from "../src/api";
+import { AnalyzerState, api } from "../src/api";
 import assert from "assert";
 
-import { get_reference, dereference } from "../src/util";
-
 import isEmpty from "lodash/isEmpty";
-import isEqual from "lodash/isEqual";
 
 export const state = () => ({
   analyzer_state: {
@@ -115,7 +110,7 @@ export const getters = {
 export const actions = {
   async sync({ commit, getters }) {
     if (getters["isNotInitialized"]) {
-      return get_schemas().then((schemas) => {
+      return api.schemas().then((schemas) => {
         commit("setConfigSchema", { schema: schemas.config });
         commit("setSettingsSchema", { schema: schemas.settings });
         // todo: include sanity checks

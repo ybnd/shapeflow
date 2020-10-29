@@ -1,4 +1,5 @@
 import os
+import shutil
 import unittest
 from contextlib import contextmanager
 
@@ -16,7 +17,7 @@ STATE = os.path.join(ROOTDIR, 'test_main-state')
 SETTINGS = os.path.join(ROOTDIR, 'settings')
 
 HOST = "127.0.0.1"
-PORT = str(7845)
+PORT = 7951
 
 
 
@@ -42,7 +43,7 @@ def post(url, data=None):
 
 def start_server():
     return subprocess.Popen(
-        ['python', 'sf.py', '--host', HOST, '--port', PORT],
+        ['python', 'sf.py', 'serve', '--background', '--host', HOST, '--port', str(PORT)],
         cwd='..'
     )
 
@@ -50,7 +51,7 @@ def start_server():
 def override_settings():
     # Clean up after previous runs (just in case)
     if os.path.exists(CACHE):
-        os.rmdir(CACHE)
+        shutil.rmtree(CACHE)
     if os.path.exists(DB):
         os.remove(DB)
     if os.path.exists(STATE):
@@ -66,7 +67,7 @@ def override_settings():
         save_settings(settings)
 
         if os.path.exists(CACHE):
-            os.rmdir(CACHE)
+            shutil.rmtree(CACHE)
         if os.path.exists(DB):
             os.remove(DB)
         if os.path.exists(STATE):

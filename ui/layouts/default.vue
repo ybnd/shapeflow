@@ -21,9 +21,9 @@
 </template>
 
 <script>
-import { Sidebar } from "~/components/";
-import NoticeBox from "@/components/notice/NoticeBox";
-import { unload } from "../src/api";
+import Sidebar from "../components/sidebar/Sidebar";
+import NoticeBox from "../components/notice/NoticeBox";
+import { api } from "../src/api";
 
 export default {
   name: "default-layout",
@@ -36,12 +36,12 @@ export default {
     this.$store.dispatch("settings/sync");
   },
   mounted() {
-    window.addEventListener("unload", unload);
+    window.addEventListener("unload", api.unload);
     window.addEventListener("resize", this.checkIfTooSmall);
   },
   destroyed() {
     window.removeEventListener("resize", this.checkIftooSmall);
-    window.removeEventListener("unload", unload);
+    window.removeEventListener("unload", api.unload);
   },
   methods: {
     checkIfTooSmall() {

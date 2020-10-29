@@ -14,7 +14,7 @@ import pandas as pd
 from pydantic import Field
 
 from shapeflow import settings, get_logger, get_cache
-from shapeflow.endpoints import BackendRegistry
+from shapeflow.api import api
 
 from shapeflow.core import RootException, SetupError, RootInstance, Described
 from shapeflow.maths.colors import Color, HsvColor, as_hsv
@@ -28,7 +28,6 @@ from shapeflow.core.interface import InterfaceFactory
 
 
 log = get_logger(__name__)
-backend = BackendRegistry()
 
 
 class BackendSetupError(SetupError):
@@ -97,24 +96,12 @@ class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB 
     """
     _cache: Optional[diskcache.Cache]
 
-    _is_caching: bool
-    _background: threading.Thread
-    _cancel_caching: threading.Event
-
     def __init__(self, config: BaseConfig = None):
         super(CachingInstance, self).__init__(config)
+        self._open_cache()
 
-        self._cache = None
-        self._cancel_caching = threading.Event()
-
-    @backend.expose(backend.is_caching)
-    def is_caching(self) -> bool:
-        return self._is_caching
-
-    @backend.expose(backend.cancel_caching)
-    def cancel_caching(self) -> None:
-        if self._cancel_caching is not None:
-            self._cancel_caching.set()
+    def __del__(self):
+        self._close_cache()
 
     def _get_key(self, method, *args) -> str:
         # Key should be instance-independent to handle multithreading
@@ -123,37 +110,42 @@ class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB 
         return f"{describe_function(method)}{args}"
 
     def _to_cache(self, key: str, value: Any):
-        assert self._cache is not None, CacheAccessError
+        if self._cache is None:
+            raise CacheAccessError
         self._cache.set(key, value)
 
     def _from_cache(self, key: str) -> Optional[Any]:
-        assert self._cache is not None, CacheAccessError
+        if self._cache is None:
+            raise CacheAccessError
         return self._cache.get(key)
 
     def _block(self, key: str):
-        assert self._cache is not None, CacheAccessError
+        if self._cache is None:
+            raise CacheAccessError
         self._cache.set(key, _BLOCKED)
 
     def _is_blocked(self, key: str) -> bool:
-        assert self._cache is not None, CacheAccessError
+        if self._cache is None:
+            raise CacheAccessError
         return key in self._cache \
                and isinstance(self._cache[key], str) \
                and self._from_cache(key) == _BLOCKED
 
     def _touch_keys(self, keys: List[str]):
-        if self._cache is not None:
-            for key in keys:
-                if key in self._cache:
-                    self._cache.touch(key)
-        else:
-            with self.caching():
-                self._touch_keys(keys)
+        if self._cache is None:
+            raise CacheAccessError
+        for key in keys:
+            if key in self._cache:
+                self._cache.touch(key)
 
     def _drop(self, key: str):
-        assert self._cache is not None, CacheAccessError
+        if self._cache is None:
+            raise CacheAccessError
         del self._cache[key]
 
     def _is_cached(self, method, *args):
+        if self._cache is None:
+            raise CacheAccessError
         return self._get_key(method, *args) in self._cache
 
     def _cached_call(self, method, *args, **kwargs):  # todo: kwargs necessary?
@@ -167,58 +159,46 @@ class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB 
                 while self._is_blocked(key) and time.time() < t0 + settings.cache.block_timeout:
                     # Some other thread is currently reading the same frame
                     # Wait a bit and try to get from cache again
-                    log.debug(f'{self.__class__}: waiting for {key} to be released...', 5)
+                    log.debug(f'{self.__class__.__qualname__}: '
+                              f'waiting for {key} to be released...', 5)
                     time.sleep(0.01)
 
                 value = self._from_cache(key)
                 if isinstance(value, str) and value == _BLOCKED:
-                    log.warning(f'{self.__class__}: timed out waiting for {key}.')
+                    log.warning(f'{self.__class__.__qualname__}: '
+                                f'timed out waiting for {key}.')
                 else:
-                    log.debug(f"{self.__class__}: read cached {key}.")
+                    log.debug(f"{self.__class__.__qualname__}: "
+                              f"read cached {key}.")
                     return value
 
             # Cache a temporary string to 'block' the key
-            log.debug(f"{self.__class__}: caching {key}")
-            log.vdebug(f"{self.__class__}: block {key}.")
+            log.debug(f"{self.__class__.__qualname__}: caching {key}")
+            log.vdebug(f"{self.__class__.__qualname__}: block {key}.")
             self._block(key)
-            log.vdebug(f"{self.__class__}: execute {key}.")
+            log.vdebug(f"{self.__class__.__qualname__}: execute {key}.")
             value = method(*args, **kwargs)
-            log.vdebug(f"{self.__class__}: write {key}.")
+            log.vdebug(f"{self.__class__.__qualname__}: write {key}.")
             self._to_cache(key, value)
             return value
+        else:
+            log.vdebug(f"Execute {key}.")
+            return method(*args, **kwargs)
 
-
-        log.vdebug(f"Execute {key}.")
-        return method(*args, **kwargs)
-
-    def __enter__(self, override: bool = False):
+    def _open_cache(self, override: bool = False):
         if settings.cache.do_cache or override:
-            if self._cache is None:
-                log.debug(f'{self.__class__.__qualname__}: opening cache @ {settings.cache.dir}')
-                self._cache = get_cache(settings)
-
-        return self
-
-    def __exit__(self, exc_type, exc_value, tb):
-        if self._cache is not None:
-            log.debug(f'{self.__class__.__qualname__}: closing cache @ {settings.cache.dir}')
-            self._cache.close()
+            log.debug(f"{self.__class__.__qualname__}: "
+                      f"opening cache @ {settings.cache.dir}")
+            self._cache = get_cache(settings)
+        else:
             self._cache = None
 
-        if exc_type is not None:
-            log.error(f"{self.__class__.__qualname__}: {exc_type.__qualname__} {exc_value}")
-            raise
-        else:
-            return True
-
-    @contextmanager
-    def caching(self, override: bool = False):
-        try:
-            self.__enter__(override)
-            yield self
-        finally:
-            self.__exit__(*sys.exc_info())
-
+    def _close_cache(self):
+        if self._cache is not None:
+            log.debug(f"{self.__class__.__qualname__}: "
+                      f"closing cache @ {settings.cache.dir}")
+            self._cache.close()
+            self._cache = None
 
 class FeatureConfig(BaseConfig, abc.ABC):
     """Feature parameters"""
@@ -419,9 +399,6 @@ class BaseAnalyzerConfig(BaseConfig):
 
 
 class BaseVideoAnalyzer(Instance, RootInstance):
-    _endpoints: BackendRegistry = backend
-    _instances: List[Instance]
-    _instance_class = Instance
     _config: BaseAnalyzerConfig
 
     _state: int
@@ -458,6 +435,9 @@ class BaseVideoAnalyzer(Instance, RootInstance):
         self._busy = False
         self._progress = 0.0
         self._model = None
+
+        self._cancel = threading.Event()
+        self._error = threading.Event()
 
     def set_model(self, model: BaseAnalysisModel):
         self._model = model
@@ -502,7 +482,8 @@ class BaseVideoAnalyzer(Instance, RootInstance):
         )
         log.warning(f"'{self.id}': {message}")
 
-    @backend.expose(backend.commit)
+    # @backend.expose(backend.commit)
+    @api.va.__id__.commit.expose()
     def commit(self) -> bool:
         """Save video analysis configuration to history database
         """
@@ -513,8 +494,8 @@ class BaseVideoAnalyzer(Instance, RootInstance):
         else:
             return False
 
+    # @backend.expose(backend.can_launch)
     @abc.abstractmethod
-    @backend.expose(backend.can_launch)
     def can_launch(self) -> bool:
         raise NotImplementedError
 
@@ -522,8 +503,8 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     def can_filter(self) -> bool:
         raise NotImplementedError
 
+    # @backend.expose(backend.can_analyze)
     @abc.abstractmethod
-    @backend.expose(backend.can_analyze)
     def can_analyze(self) -> bool:
         raise NotImplementedError
 
@@ -546,7 +527,8 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     def done(self) -> bool:
         return self.state == AnalyzerState.DONE
 
-    @backend.expose(backend.state_transition)
+    # @backend.expose(backend.state_transition)
+    @api.va.__id__.state_transition.expose()
     def state_transition(self, push: bool = True) -> int:
         """Handle state transitions
         """
@@ -605,7 +587,8 @@ class BaseVideoAnalyzer(Instance, RootInstance):
             self.set_busy(False)
             self.set_state(done_state)
 
-    @backend.expose(backend.cancel)
+    # @backend.expose(backend.cancel)
+    @api.va.__id__.cancel.expose()
     def cancel(self) -> None:
         super().cancel()
         self.set_state(AnalyzerState.CANCELED)
@@ -635,8 +618,8 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     def _new_results(self):
         raise NotImplementedError
 
+    # @backend.expose(backend.analyze)
     @abc.abstractmethod
-    @backend.expose(backend.analyze)
     def analyze(self) -> bool:
         raise NotImplementedError
 
@@ -655,7 +638,8 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     def has_results(self) -> bool:
         raise NotImplementedError
 
-    @backend.expose(backend.status)
+    # @backend.expose(backend.status)
+    @api.va.__id__.status.expose()
     def status(self) -> dict:
         status = {
             'state': self.state,
@@ -671,15 +655,15 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     def push_status(self):
         self.event(PushEvent.STATUS, self.status())
 
-
-    @backend.expose(backend.get_config)
+    # @backend.expose(backend.get_config)
+    @api.va.__id__.get_config.expose()
     def get_config(self, do_tag=False) -> dict:
         self._gather_config()
         config = self.config.to_dict(do_tag)
         return config
 
+    # @backend.expose(backend.set_config)
     @abc.abstractmethod
-    @backend.expose(backend.set_config)
     def set_config(self, config: dict, silent: bool = False) -> dict:
         raise NotImplementedError
 
@@ -687,12 +671,12 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     def _gather_config(self):
         raise NotImplementedError
 
-    @backend.expose(backend.launch)
+    # @backend.expose(backend.launch)
+    @api.va.__id__.launch.expose()
     def launch(self) -> bool:
         with self.lock():
             if self.can_launch():
                 self._launch()
-                self._gather_instances()
 
                 # Commit to history
                 self.commit()
@@ -709,50 +693,17 @@ class BaseVideoAnalyzer(Instance, RootInstance):
                 log.warning(f"{self.__class__.__qualname__} can not be launched.")  # todo: try to be more verbose
                 return False
 
+    @api.va.__id__.get_name.expose()
     def get_name(self) -> str:
-        return self.model.get_name()
+        try:
+            return self.model.get_name()
+        except AttributeError:
+            return self.id
 
-    @backend.expose(backend.get_db_id)
+    # @backend.expose(backend.get_db_id)
+    @api.va.__id__.get_db_id.expose()
     def get_db_id(self) -> int:
         return self.model.get_id()
-
-    @contextmanager
-    def caching(self):
-        """Caching context: propagated context to
-            every object in _instances that implements caching
-        """
-        caching_instances = [
-            e for e in self._instances if
-            isinstance(e, CachingInstance)
-        ]
-        log.debug(f'{self.__class__.__name__}: propagate caching context '
-                  f'to {[i.__class__.__name__ for i in caching_instances]}')
-        try:
-            for element in caching_instances:
-                element.__enter__()
-            yield self
-        finally:
-            for element in caching_instances:
-                element.__exit__(*sys.exc_info())
-
-    def cache_open(self):
-        caching_instances = [
-            e for e in self._instances if
-            isinstance(e, CachingInstance)
-        ]
-        log.debug(f'{self.__class__.__name__}: propagate caching context '
-                  f'to {[i.__class__.__name__ for i in caching_instances]}')
-        for element in caching_instances:
-            element.__enter__()
-
-    def cache_close(self):
-        caching_instances = [
-            e for e in self._instances if
-            isinstance(e, CachingInstance)
-        ]
-        log.debug(f'close cache')
-        for element in caching_instances:
-            element.__exit__(*sys.exc_info())
 
     @contextmanager
     def time(self, message: str = '', logger = log):

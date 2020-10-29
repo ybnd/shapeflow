@@ -1,10 +1,11 @@
 import abc
 import json
+from threading import Thread
 from typing import Optional, Tuple, Generator, Callable, Dict, Type, Any, Union, List
 from functools import wraps
 
 from shapeflow import get_logger
-from shapeflow.core import _Streaming, Lockable
+from shapeflow.core import stream_image, stream_json, stream_plain, Lockable
 
 from shapeflow.util import Singleton
 from shapeflow.util.meta import unbind
@@ -83,6 +84,10 @@ class BaseStreamer(abc.ABC):
     def content_type(cls):
         return cls._content_type
 
+    @property
+    def headers(self):
+        return {}
+
     @abc.abstractmethod
     def _validate(self, value: Any) -> bool:
         raise NotImplementedError
@@ -94,6 +99,44 @@ class BaseStreamer(abc.ABC):
     @abc.abstractmethod
     def _decorate(self, value: Optional[bytes]) -> Optional[bytes]:
         raise NotImplementedError
+
+
+class PlainFileStreamer(BaseStreamer):
+    _boundary = b""
+    _mime_type = "text/plain"
+
+    _path: str
+
+    def __init__(self, path: str):
+        super().__init__()
+        self._path = path
+
+    @property
+    def headers(self):
+        return {
+            "Content-Disposition": f"attachment; filename={self._path}"
+        }
+
+    def read(self):
+        def target():
+            with open(self._path) as f:
+                while not self._stop.is_set():
+                    self._queue.put(f.read())
+                    time.sleep(1)
+        Thread(target=target).start()
+
+    def stream(self) -> Generator[Any, None, None]:
+        self.read()
+        return super().stream()
+
+    def _validate(self, value: Any) -> bool:
+        return True
+
+    def _encode(self, value: Any) -> Optional[bytes]:
+        return value
+
+    def _decorate(self, value: Optional[bytes]) -> Optional[bytes]:
+        return value
 
 
 class JsonStreamer(BaseStreamer):
@@ -178,15 +221,14 @@ class JpegStreamer(FrameStreamer):  # todo: configure quality in settings
 
 
 _stream_mapping: dict = {
-    _Streaming('json'): JsonStreamer,
-    _Streaming('image'): JpegStreamer,
+    stream_plain: PlainFileStreamer,
+    stream_json: JsonStreamer,
+    stream_image: JpegStreamer,
 }
 
-class StreamHandler(Lockable):
-    """A singleton object to handle streaming frames from methods
+class StreamHandler(Lockable, metaclass=Singleton):
+    """A singleton object to handle streaming data from methods
     """
-    __metaclass__ = Singleton
-
     _streams: Dict[object, Dict[Callable, BaseStreamer]]
 
     def __init__(self):

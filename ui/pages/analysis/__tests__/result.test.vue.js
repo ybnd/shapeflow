@@ -180,6 +180,6 @@ describe('with results', () => {
     await w.find('.export-button').trigger('click');
     await flushPromises();
 
-    expect(axios.post).toHaveBeenCalledWith(`/api/db/export_result`, { analysis: 17, run: undefined }, expect.anything());
+    expect(axios.post).toHaveBeenCalledWith(`/api/db/export_result`, { analysis: 17, run: undefined });
   });
 });

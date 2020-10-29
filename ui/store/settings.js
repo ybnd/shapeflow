@@ -1,5 +1,5 @@
 import Vue from "vue";
-import { get_settings, set_settings, settings_schema } from "../src/api";
+import { api } from "../src/api";
 import cloneDeep from "lodash/cloneDeep";
 
 import assert from "assert";
@@ -36,13 +36,13 @@ export const getters = {
 
 export const actions = {
   async get({ commit, getters }) {
-    return get_settings().then((settings) => {
+    return api.get_settings().then((settings) => {
       commit("setSettings", { settings: settings });
       return getters["getSettingsCopy"];
     });
   },
   async set({ commit, getters }, { settings = {} }) {
-    return set_settings(settings).then((settings) => {
+    return api.set_settings(settings).then((settings) => {
       commit("setSettings", { settings: settings });
       return getters["getSettingsCopy"];
     });

@@ -44,7 +44,7 @@ import SchemaForm from "../components/config/SchemaForm";
 
 import cloneDeep from "lodash/cloneDeep";
 
-import { clear_cache, clear_db, get_cache_size, get_db_size, open_root } from "../src/api";
+import { api } from "../src/api";
 
 export default {
   name: "dashboard",
@@ -72,17 +72,17 @@ export default {
       this.$store.dispatch("settings/set", { settings: this.settings });
     },
     clearCache() {
-      clear_cache().then(this.getDiskSize);
+      api.cache.clear().then(this.getDiskSize);
     },
     clearDb() {
-      clear_db().then(this.getDiskSize);
+      api.db.forget().then(this.getDiskSize);
     },
     getDiskSize() {
-      get_cache_size().then((size) => (this.size.cache = size));
+      api.cache.size().then((size) => (this.size.cache = size));
       // get_db_size().then((size) => (this.size.db = size));
     },
     handleOpenRoot() {
-      open_root().then(ok => {
+      api.fs.open_root().then(ok => {
         if (!ok) {
           this.$store.commit("analyzers/newNotice", {
             notice: { message: "Could not open root directory." },

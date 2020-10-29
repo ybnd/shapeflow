@@ -21,7 +21,7 @@
 </template>
 
 <script>
-import { seek, get_total_time, get_seek_position } from "../../src/api";
+import { api } from "../../src/api";
 import { events } from "../../src/events";
 import { seconds2timestr } from "../../src/util";
 
@@ -48,10 +48,10 @@ export default {
   },
   components: { VueSlider, PageHeaderItem },
   beforeMount() {
-    get_seek_position(this.id).then((position) => {
+    api.va.__id__.get_seek_position(this.id).then((position) => {
       this.setPosition(position);
     });
-    get_total_time(this.id).then((total) => {
+    api.va.__id__.get_total_time(this.id).then((total) => {
       this.totalSeconds = total;
     });
 
@@ -75,7 +75,7 @@ export default {
       }, LOADING_INTERVAL);
     },
     doSeek() {
-      seek(this.id, this.position).then((position) => {
+      api.va.__id__.seek(this.id, this.position).then((position) => {
         this.position = position;
       });
     },

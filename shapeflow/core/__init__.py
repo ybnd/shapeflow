@@ -1,13 +1,13 @@
 import abc
 import threading
-from typing import Callable, Dict, List, Tuple, Type, Optional, _GenericAlias  # type: ignore
+from typing import Callable, Dict, List, Tuple, Type, Optional, _GenericAlias, Any  # type: ignore
 import collections
 from contextlib import contextmanager
 
 import uuid
 
 from shapeflow import get_logger
-from shapeflow.util.meta import all_attributes, get_overridden_methods
+from shapeflow.util.meta import all_attributes, get_overridden_methods, bind
 
 
 log = get_logger(__name__)
@@ -28,6 +28,10 @@ class RootException(Exception):
 
 
 class SetupError(RootException):
+    pass
+
+
+class DispatcherError(RootException):
     pass
 
 
@@ -110,26 +114,33 @@ class EnforcedStr(str):
 
 
 class _Streaming(EnforcedStr):
-    _options = ['off', 'image', 'json']
+    _options = ['off', 'image', 'json', 'plain']
 
 
 stream_off = _Streaming('off')
 stream_image = _Streaming('image')
 stream_json = _Streaming('json')
+stream_plain = _Streaming('plain')
 
 
 class Endpoint(object):
     _name: str
     _registered: bool
     _signature: Type[Callable]
+    _method: Optional[Callable]
     _streaming: _Streaming
+    _update: Optional[Callable[['Endpoint'], None]]
 
     def __init__(self, signature: _GenericAlias, streaming: _Streaming = stream_off):  # todo: type Callable[] correctly
-        assert signature.__origin__ == collections.abc.Callable
+        try:
+            assert signature.__origin__ == collections.abc.Callable
+            assert hasattr(signature, '__args__')
+        except Exception:
+            raise TypeError('Invalid Endpoint signature')
 
+        self._method = None
+        self._update = None
         self._registered = False
-        if not hasattr(signature, '__args__'):
-            raise SetupError('Cannot define an Endpoint without a signature!')
         self._signature = signature
         self._streaming = streaming
 
@@ -145,6 +156,33 @@ class Endpoint(object):
         else:
             return False
 
+    def expose(self):
+        """ Expose the endpoint """
+        def wrapper(method):
+            if self._method is not None:
+                log.debug(  # todo: add traceback
+                    f"Exposing '{method.__qualname__}' at endpoint '{self.name}' will override "
+                    f"previously exposed method '{self._method.__qualname__}'."
+                )  # todo: keep in mind we're also marking the methods themselves
+
+            if not self.compatible(method):
+                raise TypeError(
+                    f"Cannot expose '{method.__qualname__}' at endpoint '{self.name}'. "
+                    f"Incompatible signature: {method.__annotations__} vs. {self.signature}"
+                )
+
+            method._endpoint = self
+            self._method = method
+            if self._update is not None:
+                self._update(self)
+
+            return method
+        return wrapper
+
+    @property
+    def method(self) -> Optional[Callable]:
+        return self._method
+
     @property
     def signature(self):
         return self._signature.__args__
@@ -159,110 +197,133 @@ class Endpoint(object):
 
     @property
     def name(self):
-        return self._name
+        try:
+            return self._name
+        except AttributeError:
+            return ''
 
-    def add(self, method):
-        if not self.compatible(method):
-            log.warning(f"Method '{method.__qualname__}' "
-                             f"is incompatible with endpoint '{self.name}'. \n"
-                             f"{method.__annotations__} vs. {self.signature}")
-
-    def register(self, name: str):
+    def register(self, name: str, callback: Callable[['Endpoint'], None]):
         self._registered = True
         self._name = name
+        self._update = callback
 
 
-class EndpointRegistry(object):
-    _entries: List
+class Dispatcher(object):  # todo: these should also register specific instances & handle dispatching?
+    _endpoints: Tuple[Endpoint, ...]  #type: ignore
+    _dispatchers: Tuple['Dispatcher', ...]
 
-    def __init__(self):
-        if not hasattr(self, '_entries'):
-            _entries = []
-            for attr, val in self.__class__.__dict__.items():
-                if isinstance(val, Endpoint):
-                    val.register(attr)
-                    _entries.append(val)
-            self._entries = _entries
+    _name: str
+    _parent: Optional['Dispatcher']
+    _address_space: Dict[str, Callable]
 
-    def _add_entry(self, entry: Endpoint):
-        self._entries.append(entry)
+    _update: Optional[Callable[['Dispatcher'], None]]
 
+    _instance: Optional[object]
 
-class InstanceRegistry(EndpointRegistry):
-    """This one is global, collects callables that expose endpoints
-    """
-    _entries: List[Endpoint]
-    _callable_mapping: Dict[Endpoint, Callable]
-
-    def __init__(self):
-        super(InstanceRegistry, self).__init__()
-        self._callable_mapping = {}
-
-    def expose(self, endpoint: Endpoint):
-        def wrapper(method):
-            if endpoint in self._callable_mapping:
-                log.debug(   # todo: add traceback
-                    f"Exposing '{method.__qualname__}' at endpoint '{endpoint.name}' will override "
-                    f"previously exposed method '{self._callable_mapping[endpoint].__qualname__}'."
-                )  # todo: keep in mind we're also marking the methods themselves
-            try:
-                self._entries.append(endpoint)
-                endpoint.add(method)
-                try:
-                    method._endpoint = endpoint
-                except AttributeError:
-                    method.__func__._endpoint = endpoint
-                self._callable_mapping.update({endpoint: method})
-            except TypeError:
-                raise TypeError(
-                    f"Cannot expose '{method.__qualname__}' at endpoint '{endpoint.name}'."
-                    f"incompatible signature: {method.__annotations__} vs. {endpoint.signature}"
-                )
-            return method
-        return wrapper
-
-    def exposes(self, endpoint: Endpoint):
-        return endpoint in self._callable_mapping
-
-    @property
-    def endpoints(self) -> List[Endpoint]:
-        return list(self._callable_mapping.keys())
-
-
-class ImmutableRegistry(EndpointRegistry):
-    _entries: Tuple[Endpoint, ...]  #type: ignore
-    _endpoints: InstanceRegistry
-
-    def __init__(self, endpoints: InstanceRegistry = None):
-        _entries = []
-        for attr, val in self.__class__.__dict__.items():
-            if isinstance(val, Endpoint):
-                val.register(attr)
-                _entries.append(val)
-
-        if endpoints is not None:
-            self._endpoints = endpoints
+    def __init__(self, instance: object = None):
+        self._update = None
+        if instance is not None:
+            self._set_instance(instance)
         else:
-            self._endpoints = InstanceRegistry()
-
-        self._entries = tuple(_entries)
-        super(ImmutableRegistry, self).__init__()
-
-    def _add_entry(self, entry: Endpoint):
-        raise NotImplementedError
-
-    def expose(self, endpoint: Endpoint):
-        return self._endpoints.expose(endpoint)
-
-    def exposes(self, endpoint: Endpoint):
-        return self._endpoints.exposes(endpoint)
+            self._address_space = {}
+            self._endpoints = tuple()
+            self._dispatchers = tuple()
 
     @property
-    def endpoints(self) -> List[Endpoint]:
-        return self._endpoints.endpoints
+    def name(self):
+        try:
+            return self._name
+        except AttributeError:
+            return self.__class__.__name__
+
+    @property
+    def dispatchers(self) -> Tuple['Dispatcher', ...]:
+        return self._dispatchers
+
+    @property
+    def endpoints(self) -> Tuple[Endpoint, ...]:
+        return self._endpoints
+
+    @property
+    def address_space(self) -> Dict[str, Callable]:
+        return self._address_space
+
+    def _set_instance(self, instance: object):
+        self._instance = instance
+        self._address_space = {}
+        self._endpoints = tuple()
+        self._dispatchers = tuple()
+
+        for attr, val in self.__class__.__dict__.items():
+            if isinstance(val, Endpoint):  # todo: also register dispatchers
+                self._add_endpoint(attr, val)
+            elif isinstance(val, Dispatcher):
+                self._add_dispatcher(attr, val)
+
+    def _register(self, name: str, callback: Callable[['Dispatcher'], None]):
+        self._update = callback
+        self._name = name
+
+    def _add_endpoint(self, name: str, endpoint: Endpoint):
+        endpoint.register(name=name, callback=self._update_endpoint)
+
+        if endpoint.method is not None and self._instance is not None:
+            method = bind(self._instance, endpoint.method)
+        else:
+            method = endpoint.method
+
+        self._address_space[name] = method
+        self._endpoints = tuple(list(self._endpoints) + [endpoint])
+        setattr(self, name, endpoint)
+
+        if self._update is not None:
+            self._update(self)
+
+    def _add_dispatcher(self, name: str, dispatcher: 'Dispatcher'):
+        dispatcher._register(name=name, callback=self._update_dispatcher)
+
+        self._address_space.update({
+            "/".join([name, address]): method
+            for address, method in dispatcher.address_space.items()
+            if method is not None and "__" not in address
+        })
+        self._dispatchers = tuple(list(self._dispatchers) + [dispatcher])
+        setattr(self, name, dispatcher)
+
+        if self._update is not None:
+            self._update(self)
+
+    def _update_endpoint(self, endpoint: Endpoint) -> None:
+        self._address_space.update({
+            endpoint.name: endpoint.method
+        })
+        if self._update is not None:
+            self._update(self)
+
+    def _update_dispatcher(self, dispatcher: 'Dispatcher') -> None:
+        self._address_space.update({  # todo: this doesn't take into account deleted keys!
+            "/".join([dispatcher.name, address]): method
+            for address, method in dispatcher.address_space.items()
+            if method is not None and "__" not in address
+        })
+
+        if self._update is not None:
+            self._update(self)
+
+    def dispatch(self, address: str, *args, **kwargs) -> Any:
+        try:
+            method = self.address_space[address]
+            # todo: consider doing some type checking here, args/kwargs vs. method._endpoint.signature
+            return method(*args, **kwargs)
+        except KeyError:
+            log.debug(f"'{self.name}' can't dispatch address '{address}'.")
+            raise DispatcherError
+
+    def __getitem__(self, item):
+        return getattr(self, item)
 
 
-class Described(object):
+class Described(object):  # todo: maybe this should be a metaclass?
     """..."""
 
     @classmethod
@@ -342,20 +403,8 @@ class Lockable(object):
         return self._ensure_error.clear()
 
 
-class RootInstance(Lockable):
+class RootInstance(Lockable):  # todo: basically deprecated
     _id: str
-
-    _endpoints: ImmutableRegistry
-    _instances: List
-    _instance_class: type
-    _instance_mapping: Dict[Endpoint, List[Callable]]
-
-    def __init__(self):
-        super().__init__()
-        self.get_id()
-
-    def get_id(self):
-        self._id = str(uuid.uuid1())
 
     def _set_id(self, id: str):
         self._id = id
@@ -363,78 +412,3 @@ class RootInstance(Lockable):
     @property
     def id(self):
         return self._id
-
-    @property
-    def instance_mapping(self):
-        return self._instance_mapping
-
-    def _gather_instances(self):  # todo: needs major clean-up
-        log.vdebug(f'{self.__class__.__name__}: gather nested instances')
-        self._instance_mapping = {}
-        instances = []
-        attributes = [attr for attr in self.__dir__()]   # todo: all_attributes fails here because that's ~ class!
-
-        for attr in sorted(attributes):
-            if hasattr(self, attr):
-                value = getattr(self, attr)
-
-                if isinstance(value, self._instance_class) and not isinstance(value, list):
-                    instances.append(value)
-                elif isinstance(value, list) and all(isinstance(v, self._instance_class) for v in value):
-                    instances += list(value)
-                elif isinstance(value, dict) and all(isinstance(v, self._instance_class) for v in value.values()):
-                    instances += [v for v in value.values()]
-
-        for instance in [self] + instances:
-            self._add_instance(instance)
-
-        self._instances = instances
-
-    def _add_instance(self, instance: object):
-        if isinstance(instance, self._instance_class):
-            for attr in all_attributes(instance):
-                if hasattr(instance, attr):
-                    value = getattr(instance, attr)  # bound method
-                    if hasattr(value, '__func__') and not isinstance(getattr(instance.__class__, attr), property):
-                        endpoint = None
-                        implementations = get_overridden_methods(instance.__class__, getattr(instance.__class__, attr))
-
-                        # Returns an empty list for wrapped methods -> workaround
-                        if len(implementations) == 0:
-                            endpoint = value._endpoint
-                            # todo: there will probably be some bugs with inheritance & wrapping
-
-                        for implementation in implementations:  # unbound methods
-                            try:
-                                endpoint = implementation._endpoint  # todo: won't catch endpoints defined at multiple places in the methods inheritance tree
-                            except AttributeError:
-                                pass
-
-                        if endpoint is not None:
-                            if endpoint not in self._instance_mapping:
-                                self._instance_mapping[endpoint] = [value]
-                            else:
-                                if value not in self._instance_mapping[endpoint]:
-                                    self._instance_mapping[endpoint].append(value)
-
-        else:
-            pass
-
-    def get(self, endpoint: Endpoint, index: int = None) -> Callable:
-        if endpoint not in self._endpoints._entries:
-            raise SetupError(f"'{endpoint}' is not defined in '{self._endpoints}'.")
-        elif endpoint not in self._instance_mapping:
-            raise SetupError(f"'{self.__class__.__name__}' does not map "
-                             f"'{endpoint.name}' to a bound method.")
-        else:
-            log.vdebug(f"{self.__class__.__name__}: get callback for "
-                     f"endpoint '{endpoint.name}' with index {index}")
-            methods = self._instance_mapping[endpoint]
-            if index is None:
-                index = 0
-                if index+1 < len(methods):
-                    log.vdebug(f"No index specified for endpoint '{endpoint.name}' "
-                                  f"-- defaulting to entry 0 ({len(methods)} in total)")  # todo: traceback
-            elif len(methods) == 1:
-                index = 0  # Ignore the index if only one method is mapped
-            return self._instance_mapping[endpoint][index]
