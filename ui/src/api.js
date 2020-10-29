@@ -56,14 +56,16 @@ export const api = {
         return false;
       });
   },
-  unload() {
+  async unload() {
     try {
       // axios can't be called on page unload, use sendBeacon instead
       return navigator.sendBeacon(url("unload"));
     } catch(e) {
       // use axios for unit tests
       console.warn(e);
-      return axios.post(url('unload'));
+      return axios
+        .post(url('unload'))
+        .then(return_success);
     }
   },
   async quit() {

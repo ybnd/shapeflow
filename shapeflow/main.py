@@ -13,7 +13,7 @@ from OnionSVG import check_svg
 from shapeflow.util import open_path, sizeof_fmt
 from shapeflow.util.filedialog import filedialog
 from shapeflow import get_logger, get_cache, settings, update_settings, ROOTDIR
-from shapeflow.core import stream_off
+from shapeflow.core import stream_off, Endpoint
 from shapeflow.api import api, _FilesystemDispatcher, _DatabaseDispatcher, _VideoAnalyzerManagerDispatcher, _VideoAnalyzerDispatcher, _CacheDispatcher, ApiDispatcher
 from shapeflow.core.streaming import streams, EventStreamer, PlainFileStreamer, BaseStreamer
 from shapeflow.core.backend import QueueState, AnalyzerState, SetupError, BaseVideoAnalyzer
@@ -47,10 +47,17 @@ class _Main(object):
 
     @api.map.expose()
     def map(self) -> Dict[str, List[str]]:
-        return {
-            '/api/' + k: ['GET', 'PUT', 'POST', 'OPTIONS']  # todo: hacky replacement of Flask map
+        # todo: this is a hacky replacement of Flask map
+        map = {
+            '/api/' + k: ['GET', 'PUT', 'POST', 'OPTIONS']
             for k in api.address_space.keys()
         }
+        va_id_map = {
+            '/api/va/__id__/' + k: ['GET', 'PUT', 'POST', 'OPTIONS']
+            for k in api.va.__id__.__dir__()
+            if isinstance(getattr(api.va.__id__, k), Endpoint)
+        }
+        return {**map, **va_id_map}
 
     @api.schemas.expose()
     def schemas(self) -> dict:

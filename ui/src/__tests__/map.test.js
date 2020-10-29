@@ -1,25 +1,23 @@
 import axios from 'axios';
 import { api } from '../api';
 
+import {retryOnce} from "../util";
 import {startServer, killServer} from "../shapeflow";
-import {test} from "@jest/globals";
+import {test, describe} from "@jest/globals";
 
 
-const SKIP = [api.unload, api.events, api.log];
+const SKIP = [
+  api.events,         // uses EventSource instead of axios
+  api.log,            // uses XMLHttpRequest instead of axios
+  api.va.stream_stop  // special case; URL changes ~ ID / ENDPOINT
+];
 var MAP = undefined;
 
-beforeAll(done => {
+beforeAll(async () => {
   startServer();
 
-  function _map(map) {
-    MAP = map;
-    killServer();
-    done();
-  }
-
-  api.map().then(_map).catch(() => {
-    api.map().then(_map)
-  });
+  MAP = await retryOnce(api.map);
+  killServer();
 })
 
 test('validate map', () => {
@@ -30,51 +28,129 @@ test('validate map', () => {
 });
 
 describe('validate URLs', () => {
-  for (const member in api) {  // todo: need to flatten :/
-    if (api.hasOwnProperty(member) && typeof api[member] === "function" && !SKIP.includes(api[member])) {
-      test(member, () => {
-        var calls = {};
+  var calls;
 
-        // intercept axios requests & remember HTTP methods
-        axios.get = jest.fn((url) => {
-          calls = {...calls, [url]: 'GET'};
-          return new Promise();
-        })
-        axios.put = jest.fn((url) => {
-          calls = {...calls, [url]: 'PUT'};
-          return new Promise();
-        })
-        axios.post = jest.fn((url) => {
-          calls = {...calls, [url]: 'POST'};
-          return new Promise();
-        })
+  beforeEach(() => {
+    calls = {};
 
-        // call method
-        api[member]('<id>', '<endpoint>');
-        // if URL depends on <id>, it's the first argument -> URL gets resolved to Flask rule
-        // if URL dependes on <endpoint>, it's the second arguments
-        // in other cases, these arguments are either unused or used as data and consequently _not_ tested here.
+    // intercept axios requests & remember HTTP methods
+    axios.get = jest.fn((url) => {
+      calls = {...calls, [url]: calls[url] !== undefined ? [...calls[url], 'GET'] : ['GET']};
+      return new Promise();
+    })
+    axios.put = jest.fn((url) => {
+      calls = {...calls, [url]: calls[url] !== undefined ? [...calls[url], 'PUT'] : ['PUT']};
+      return new Promise();
+    })
+    axios.post = jest.fn((url) => {
+      calls = {...calls, [url]: calls[url] !== undefined ? [...calls[url], 'POST'] : ['POST']};
+      return new Promise();
+    })
+  });
 
-        // validate HTTP methods for each URL
-        for (const url in calls) {
-          const method = calls[url];
-          var allowed;
-          if (MAP[url] === undefined) {
-            if (url.match(/^\/api\/<id>\/call\//g)) {
-              // resolve specific endpoint URL to rule
-              allowed = MAP['/api/<id>/call/<endpoint>'];
-            } else if (url.match(/^\/api\/db\//g)) {
-              // resolve specific endpoint URL to rule
-              allowed = MAP['/api/db/<endpoint>'];
-            }
-          } else {
-            allowed = MAP[url];
-          }
-          expect(allowed).toContain(method);
-        }
-      });
+  function _for_every_method(obj, callback) {
+    for (const member in obj) {  // todo: need to flatten :/
+      if (obj.hasOwnProperty(member) && typeof obj[member] === "function" && !SKIP.includes(obj[member])) {
+        callback(obj, member);
+      }
     }
   }
+
+  function _for_every_url_called(callback) {
+    for (const url in calls) {
+      if (calls.hasOwnProperty(url)) {
+        callback(url);
+      } else {
+        console.log('oops')
+      }
+    }
+  }
+
+  describe("/api/", () => {
+    _for_every_method(api, (obj, member) => {
+      test(member, () => {
+        // call method
+        obj[member]();
+
+        // validate HTTP methods for each URL called
+        _for_every_url_called((url) => {
+          expect(MAP[url]).toEqual(expect.arrayContaining(calls[url]))
+        })
+      });
+    });
+  });
+
+  describe("/api/fs", () => {
+    _for_every_method(api.fs, (obj, member) => {
+      test(member, () => {
+        // call method
+        obj[member]();
+
+        // validate HTTP methods for each URL called
+        _for_every_url_called((url) => {
+          expect(MAP[url]).toEqual(expect.arrayContaining(calls[url]))
+        })
+      });
+    });
+  });
+
+  describe("/api/db/", () => {
+    _for_every_method(api.db, (obj, member) => {
+      test(member, () => {
+        // call method
+        obj[member]();
+
+        // validate HTTP methods for each URL called
+        _for_every_url_called((url) => {
+          expect(MAP[url]).toEqual(expect.arrayContaining(calls[url]))
+        })
+      });
+    });
+  });
+
+  describe("/api/cache/", () => {
+    _for_every_method(api.cache, (obj, member) => {
+      test(member, () => {
+        // call method
+        obj[member]();
+
+        // validate HTTP methods for each URL called
+        _for_every_url_called((url) => {
+          expect(MAP[url]).toEqual(expect.arrayContaining(calls[url]))
+        })
+      });
+    });
+  });
+
+  describe("/api/va/", () => {
+    _for_every_method(api.va, (obj, member) => {
+      test(member, () => {
+        // call method
+        obj[member]();
+
+        // validate HTTP methods for each URL called
+        _for_every_url_called((url) => {
+          expect(MAP[url]).toEqual(expect.arrayContaining(calls[url]))
+        })
+      });
+    });
+  });
+
+  describe("/api/va/__id__/", () => {
+    const ID = "__id__";
+
+    _for_every_method(api.va.__id__, (obj, member) => {
+      test(member, () => {
+        // call method
+        obj[member](ID);
+
+        // validate HTTP methods for each URL called
+        _for_every_url_called((url) => {
+          expect(MAP[url]).toEqual(expect.arrayContaining(calls[url]))
+        })
+      });
+    });
+  });
 });
 
 
