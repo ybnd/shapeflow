@@ -121,7 +121,7 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
     masks: Tuple[MaskConfig, ...] = Field(default_factory=tuple)
 
     @classmethod
-    def schema(cls, by_alias: bool = True) -> Dict[str, Any]:
+    def schema(cls, by_alias: bool = True, ref_template: str = '') -> Dict[str, Any]:
         schema = super().schema(by_alias)
 
         schema.update({

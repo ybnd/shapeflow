@@ -106,7 +106,7 @@ class _Settings(BaseModel):
         return value
 
     @classmethod
-    def schema(cls, by_alias: bool = True) -> Dict[str, Any]:
+    def schema(cls, by_alias: bool = True, ref_template: str = '') -> Dict[str, Any]:
         """
         Inject title & description into schema ~ lost due to Enum bugs.
         https://github.com/samuelcolvin/pydantic/pull/1749
