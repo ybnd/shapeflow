@@ -46,9 +46,9 @@ test('quit', done => {
 test('unload', done => {
   try {
     run(() => {
-      api.unload().then(response => {
+      api.unload().then(ok => {
         // console.log('unload callback');
-        expect(response.status).toBe(200);
+        expect(ok).toBe(true);
         // console.log('ping 2');
         api.ping().then(ok => {
           console.log('ping 2 callback');
