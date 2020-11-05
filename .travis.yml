@@ -12,7 +12,7 @@ jobs:
         - travis_retry pip install tox
         - travis_retry tox -c test/tox.ini -e $TOX_ENV $SITE_PACKAGES --notest
       script:
-        - tox -e $TOX_ENV $SITE_PACKAGES
+        - tox -c test/tox.ini -e $TOX_ENV $SITE_PACKAGES
 
     - language: python
       python: 3.7
@@ -21,7 +21,7 @@ jobs:
         - travis_retry pip install tox
         - travis_retry tox -c test/tox.ini -e $TOX_ENV $SITE_PACKAGES --notest
       script:
-        - tox -e $TOX_ENV $SITE_PACKAGES
+        - tox -c test/tox.ini -e $TOX_ENV $SITE_PACKAGES
     
     - language: python
       python: 3.8
@@ -30,7 +30,7 @@ jobs:
         - travis_retry pip install tox
         - travis_retry tox -c test/tox.ini -e $TOX_ENV $SITE_PACKAGES --notest
       script:
-        - tox -e $TOX_ENV $SITE_PACKAGES
+        - tox -c test/tox.ini -e $TOX_ENV $SITE_PACKAGES
 
     - language: python
       python: 3.8
@@ -41,7 +41,7 @@ jobs:
         - travis_retry pip install tox
         - travis_retry tox -c test/tox.ini -e $TOX_ENV $SITE_PACKAGES --notest
       script:
-        - tox -e $TOX_ENV $SITE_PACKAGES
+        - tox -c test/tox.ini -e $TOX_ENV $SITE_PACKAGES
       after_success:
         - codecov -F backend
 
