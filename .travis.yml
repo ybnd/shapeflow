@@ -10,7 +10,7 @@ jobs:
       env: {TOX_ENV: py37-type}
       install:
         - travis_retry pip install tox
-        - travis_retry tox -e $TOX_ENV $SITE_PACKAGES --notest
+        - travis_retry tox -c test/tox.ini -e $TOX_ENV $SITE_PACKAGES --notest
       script:
         - tox -e $TOX_ENV $SITE_PACKAGES
 
@@ -19,7 +19,7 @@ jobs:
       env: {TOX_ENV: py37-test}
       install:
         - travis_retry pip install tox
-        - travis_retry tox -e $TOX_ENV $SITE_PACKAGES --notest
+        - travis_retry tox -c test/tox.ini -e $TOX_ENV $SITE_PACKAGES --notest
       script:
         - tox -e $TOX_ENV $SITE_PACKAGES
     
@@ -28,7 +28,7 @@ jobs:
       env: {TOX_ENV: py38-type}
       install:
         - travis_retry pip install tox
-        - travis_retry tox -e $TOX_ENV $SITE_PACKAGES --notest
+        - travis_retry tox -c test/tox.ini -e $TOX_ENV $SITE_PACKAGES --notest
       script:
         - tox -e $TOX_ENV $SITE_PACKAGES
 
@@ -39,7 +39,7 @@ jobs:
         - travis_retry pip install codecov
       install:
         - travis_retry pip install tox
-        - travis_retry tox -e $TOX_ENV $SITE_PACKAGES --notest
+        - travis_retry tox -c test/tox.ini -e $TOX_ENV $SITE_PACKAGES --notest
       script:
         - tox -e $TOX_ENV $SITE_PACKAGES
       after_success:
