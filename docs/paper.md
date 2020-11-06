@@ -36,7 +36,7 @@ Variability of pumping performance is a well-documented fact in paper-based micr
 
 
 
-# References   !! TEMPORARY !!
+<!--- Reference DOI added to render citations as links. Should be removed when submitting. --->
 
 [@Mohammed:2015]: https://doi.org/10.1016/j.protcy.2015.07.010
 [@Martinez:2010]: https://doi.org/10.1021/ac9013989
