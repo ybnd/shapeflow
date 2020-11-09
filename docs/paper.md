@@ -41,7 +41,81 @@ Given the geometrical complexity of (i)SIMPLE chips, peforming video analyses on
 
 # Overview
 
+> To achieve this, we use leverage the fact that we have a ground-truth design of each chip (required to manufacture it; since we use CNC craft cutters to fabricate the channels)
+>
+> * A chip is designed, fabricated and its operation is recorded.
+>
+> * This design is formatted (separate from the ‘fabrication design’)
+>   * The design should be in ‘real-world units’. This is already satisfied in our case since we use it with CNC machines
+>   * Create an overlay which we can use to align the design to the chip (i.e.: contains all of the channels as strokers)
+>   * To perform an analysis, we mark the areas we want to consider in separate layers.
+> * The analysis is configured
+>   * Number of frames, features to extract, filters to use, …
+> * The design is aligned to the video footage
+>   * Estimate a transform from ‘video space’ to ‘design space’
+> * The filters are set up for each mask in the formatted design
+> * During the analysis
+>   * Each requested frame in the video is transformed into ‘design space’
+>   * For each mask, the configured filter is applied and each requested feature is extracted
+>
+> <there should be a flowchart for the preparation-analysis pipeline here>
 
+# Application
+
+> * The is structured as a frontend (user interface) and a backend server which can handle multiple analyses at the same time. 
+> * Backend <with a diagram>
+>   * REST API (abridged, reference to in-depth version)
+>   * Analyses are associated with an ID which is used by the API
+>     * This ID is volatile
+>   * Video frames are cached, which enables quick re-analysis in case e.g. the user wants to make quick adjustments
+>   * Plugin system to easily add functionality
+>     * Transformations
+>     * Filters
+>     * Features
+>   * Analysis configuration and results are stored in a SQLite database
+>     * Enables undo/redo functionality
+>     * Enables selective exporting of results for further processing
+>     * Enables easier meta-analyses which will be useful in e.g. characterizing the repeatablity of our data analysis approach
+>     * The database also keeps track of video and design files by their hash. This is useful in case files are moved or renamed
+>   * Configuration is exported alongside the results for posterity
+> * Frontend <with some screenshots>
+>   * The user can queue up multiple analyses and configure them separately
+>   * Each analysis can be addressed individually through its configure, align, filter and results pages
+>   * Preparation is non-linear; the user can skip between different pages in the application in any way they choose
+>   * The user can start the analysis queue after preparing multiple analyses to let them run sequentially
+
+# Examples
+
+> add examples from previous Biosensors publications; compare previous manual / ImageJ results to shapeflow
+>
+> * Original SIMPLE paper (or skip it if design files are not available…)
+> * Francesco’s iSIMPLE paper (ask Francesco for the design files)
+> * SIMPLE in Theory (select from examples from own archive)
+> * Some other recent publication? Something flashy/complex would be nice.
+>
+> <graphs with>
+>
+> * original measurements
+> * a fill ~ a couple of shapeflow measurements, which should match the thing more or less
+
+# Further work
+
+> * This principle is applicable to paper microfluidics in general and could be useful with complex shapes (give some examples)
+> * As of now, we don’t have a solid quantitative insight into the expected variability yet (apart from the regular design-chip mismatch, movements, lighting issues and video quantization error, the expected error sources are inconsistencies in manual layout and filter settings)
+> * Currently, the application is run locally by each user; this is something that could pose issues when scaling. Some basic stress testing has shown that the application in its current state is able to handle more than a regular user would need it to. The REST backend is already a good start to transition to a cloud-hosted deployment in case this should prove necessary.
+> * The deployment mechanism used is not suited for larger teams and may be replaced in the future should this prove necessary. For the current team size and the current maintainers this system is easy to use and support.
+> * Support other design file formats and make formatting design files more straightforward
+>   * In our research we use .svg files for designs, which are easy to format
+>   * For now, other file formats could be used if they’re converted to .svg first (e.g. more conventional CAD formats such as .dxf)
+>   * Most of these formats should be relatively easy to convert using Inkscape (also FOSS)
+>   * We use Inkscape for lal of our design work, and developing a plugin to simplify the formatting of design files for use with shapeflow could be interesting to consider for future efforts.
+> * Support multiple formats for exporting results
+>   * Our team mainly uses Excel for other data analysis, so this is the go-to in our case
+>   * We use pandas for result handling, so it will be easy to add support for other formats such as .csv, .json or databases.
+
+
+
+> Should also include the .meta files & results in docs/paper as supplementary info and also host the video files somewhere other than the actual repository.
 
 
 
