@@ -43,6 +43,7 @@ jobs:
       script:
         - tox -c test/tox.ini -e $TOX_ENV $SITE_PACKAGES
       after_success:
+        - pwd  # check where the build ends up
         - codecov -F backend
 
     - language: node_js   # https://stackoverflow.com/questions/27644586/
