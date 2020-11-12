@@ -37,33 +37,40 @@ With the (i)SIMPLE platform, we combine the principles of channel-based microflu
 Variability of pumping performance is a well-documented fact in paper-based microfluidics [@Hu:2014], and even more so when the paper is encapsulated into a chip. 
 This concern highlights the need for smart chip design, which we addressed in a past publication [@DalDosso:2019]. 
 To further facilitate fast prototyping with the (i)SIMPLE platform and support this smart design approach, a fast and convenient way to evaluate an individual chip’s peformance is necessary. 
-Given the geometrical complexity of (i)SIMPLE chips, peforming video analyses on a case-by-case basis is difficult and tedious. We developed `shapeflow` as a solution to this problem.
+Given the geometrical complexity of (i)SIMPLE chips, peforming video analyses on a case-by-case basis is difficult and tedious. We developed `shapeflow` as a solution to this problem. 
 
 # Overview
 
-> To achieve this, we use leverage the fact that we have a ground-truth design of each chip (required to manufacture it; since we use CNC craft cutters to fabricate the channels)
->
-> * A chip is designed, fabricated and its operation is recorded.
->
-> * This design is formatted (separate from the ‘fabrication design’)
->   * The design should be in ‘real-world units’. This is already satisfied in our case since we use it with CNC machines
->   * Create an overlay which we can use to align the design to the chip (i.e.: contains all of the channels as strokers)
->   * To perform an analysis, we mark the areas we want to consider in separate layers.
-> * The analysis is configured
->   * Number of frames, features to extract, filters to use, …
-> * The design is aligned to the video footage
->   * Estimate a transform from ‘video space’ to ‘design space’
-> * The filters are set up for each mask in the formatted design
-> * During the analysis
->   * Each requested frame in the video is transformed into ‘design space’
->   * For each mask, the configured filter is applied and each requested feature is extracted
->
-> <there should be a flowchart for the preparation-analysis pipeline here>
+In order to produce our microfluidics with enough repeatability, we make use of computer-aided design (CAD) software to design the channel geometry for each chip.
+The fiinal designs are then used to manufacture chips using CNC and laser cutter equipment (WHICH EQUIPMENT). 
+While different fabrication methods will use different computer-aided manufacturing (CAM) techniques (such as lithography or 3D printing), in any case the design of a microfluidic chip represents its ground-truth geometry. 
+Furthermore, in order to fabricate chips correctly, the design must match the actual dimensions of the chip it should produce. 
+
+In our image analysis pipeline, we relate the physical chip as recorded in video footage to the actual geometry and dimensions encoded in its design.
+We do this by aligning the design to the video footage and estimating a transformation matrix from 'video coordinates' to 'design coordinates'. 
+Because the original design of the chip often contains information that is not required for this (such as designs for multiple layers or different materials), we use a 'analysis design' based on the original 'fabrication design' for this step.
+The 'analysis design' should include a general outline of the chip to aid alignment along with a number of regions of interest (ROI) to divide the chip into clear parts, such as different channels or different parts of a single channel.
+Currently, the application handles 'analysis designs' in SVG format, with each region of interest in a separate layer for ease of processing. Detailed instructions on how to set up these 'analysis designs' are provided in the `shapeflow` repository.
+
+In each ROI, we want to capture one or multiple liquid plugs over the duration of the video. We achieve this by configuring a filter to binarize this plug. 
+This has to be repeated for all ROIs in the design. 
+The actual data we extract are feature values computed from the resulting binary images. 
+A basic example of such a feature is the area of the liquid plug in “real life” units, which we estimate based on the number of pixels in the binary image and the DPI of the design.
+
+In an analysis, any number of features may be requested, and additional parameters can be configured depending on the type of the feature. 
+Before starting the analysis, we select a number of frames according to the desired temporal resolution. 
+We align the ‘analysis design’ to the video footage and configure the filters for each ROI. 
+At this point we can start the analysis. 
+For every requested frame in the video, the transformation estimated in the alignment step is first applied to map the frame to 'design coordinates'. 
+Then, each ROI in the design is masked off individually, its filter is applied and all requested features are computed based on the resulting binary image.
+The resulting values are exported as a time-series spreadsheet for futher processing.
+
+<a flowchart for the preparation-analysis pipeline>
 
 # Application
 
-> * The is structured as a frontend (user interface) and a backend server which can handle multiple analyses at the same time. 
-> * Backend <with a diagram>
+> * The application is structured as a frontend (user interface) and a backend server which can handle multiple analyses at the same time. 
+> * Backend <with a diagram maybe but not really necessary>
 >   * REST API (abridged, reference to in-depth version)
 >   * Analyses are associated with an ID which is used by the API
 >     * This ID is volatile
@@ -93,10 +100,12 @@ Given the geometrical complexity of (i)SIMPLE chips, peforming video analyses on
 > * SIMPLE in Theory (select from examples from own archive)
 > * Some other recent publication? Something flashy/complex would be nice.
 >
-> <graphs with>
+> <graphs>
 >
-> * original measurements
-> * a fill ~ a couple of shapeflow measurements, which should match the thing more or less
+> 	* original measurements
+> 	* a fill ~ a couple of shapeflow measurements, which should match the thing more or less
+>
+> </graphs>
 
 # Further work
 
