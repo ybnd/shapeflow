@@ -1,7 +1,7 @@
-isimple
+shapeflow
 =======
 
-.. automodule:: isimple
+.. automodule:: shapeflow
 
    
    

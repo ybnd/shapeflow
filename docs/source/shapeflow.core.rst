@@ -1,69 +1,69 @@
-isimple.core package
+shapeflow.core package
 ====================
 
 Submodules
 ----------
 
-isimple.core.backend module
+shapeflow.core.backend module
 ---------------------------
 
-.. automodule:: isimple.core.backend
+.. automodule:: shapeflow.core.backend
    :members:
    :undoc-members:
    :show-inheritance:
 
-isimple.core.common module
+shapeflow.core.common module
 --------------------------
 
-.. automodule:: isimple.core.common
+.. automodule:: shapeflow.core.common
    :members:
    :undoc-members:
    :show-inheritance:
 
-isimple.core.config module
+shapeflow.core.config module
 --------------------------
 
-.. automodule:: isimple.core.config
+.. automodule:: shapeflow.core.config
    :members:
    :undoc-members:
    :show-inheritance:
 
-isimple.core.endpoints module
+shapeflow.core.endpoints module
 -----------------------------
 
-.. automodule:: isimple.core.endpoints
+.. automodule:: shapeflow.core.endpoints
    :members:
    :undoc-members:
    :show-inheritance:
 
-isimple.core.features module
+shapeflow.core.features module
 ----------------------------
 
-.. automodule:: isimple.core.features
+.. automodule:: shapeflow.core.features
    :members:
    :undoc-members:
    :show-inheritance:
 
-isimple.core.log module
+shapeflow.core.log module
 -----------------------
 
-.. automodule:: isimple.core.log
+.. automodule:: shapeflow.core.log
    :members:
    :undoc-members:
    :show-inheritance:
 
-isimple.core.schema module
+shapeflow.core.schema module
 --------------------------
 
-.. automodule:: isimple.core.schema
+.. automodule:: shapeflow.core.schema
    :members:
    :undoc-members:
    :show-inheritance:
 
-isimple.core.util module
+shapeflow.core.util module
 ------------------------
 
-.. automodule:: isimple.core.util
+.. automodule:: shapeflow.core.util
    :members:
    :undoc-members:
    :show-inheritance:
@@ -72,7 +72,7 @@ isimple.core.util module
 Module contents
 ---------------
 
-.. automodule:: isimple.core
+.. automodule:: shapeflow.core
    :members:
    :undoc-members:
    :show-inheritance:

@@ -1,13 +1,13 @@
-isimple.maths package
+shapeflow.maths package
 =====================
 
 Submodules
 ----------
 
-isimple.maths.images module
+shapeflow.maths.images module
 ---------------------------
 
-.. automodule:: isimple.maths.images
+.. automodule:: shapeflow.maths.images
    :members:
    :undoc-members:
    :show-inheritance:
@@ -16,7 +16,7 @@ isimple.maths.images module
 Module contents
 ---------------
 
-.. automodule:: isimple.maths
+.. automodule:: shapeflow.maths
    :members:
    :undoc-members:
    :show-inheritance:

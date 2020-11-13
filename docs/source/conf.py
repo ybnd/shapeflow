@@ -17,12 +17,12 @@ sys.path.insert(0, os.path.abspath('../../'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'isimple'
+project = 'shapeflow'
 copyright = '2020, Yury Bondarenko'
 author = 'Yury Bondarenko'
 
 # The full version, including alpha/beta/rc tags
-release = '0.3.14'
+release = '0.4.3'
 
 
 # -- General configuration ---------------------------------------------------
@@ -76,7 +76,7 @@ html_static_path = ['_static']
 html_context = {
     "display_github": True, # Integrate GitHub
     "github_user": "ybnd", # Username
-    "github_repo": "https://github.com/ybnd/isimple", # Repo name
+    "github_repo": "https://github.com/ybnd/shapeflow", # Repo name
     "github_master": "version", # Version
     "conf_py_path": "/source/", # Path in the checkout to the docs root
 }

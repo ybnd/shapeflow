@@ -1,7 +1,7 @@
-isimple
+shapeflow
 =======
 
 .. toctree::
    :maxdepth: 4
 
-   isimple
+   shapeflow
