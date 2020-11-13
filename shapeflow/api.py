@@ -14,11 +14,11 @@ class _VideoAnalyzerDispatcher(Dispatcher):
     """
     status = Endpoint(Callable[[], dict], stream_json)
     """| Get the analyzer's status
-       | :py:meth:`shapeflow.core.backend.BaseVideoAnalyzer.status`
+       | :py:meth:`shapeflow.core.backend.BaseAnalyzer.status`
     """
     state_transition = Endpoint(Callable[[bool], int])
     """| Trigger a state transition
-       | :py:meth:`shapeflow.core.backend.BaseVideoAnalyzer.state_transition`
+       | :py:meth:`shapeflow.core.backend.BaseAnalyzer.state_transition`
     """
     can_launch = Endpoint(Callable[[], bool])
     """| Returns ``True`` if the analyzer has enough of its configuration set up to launch
@@ -30,11 +30,11 @@ class _VideoAnalyzerDispatcher(Dispatcher):
     """
     launch = Endpoint(Callable[[], bool])
     """| Launch the analyzer
-       | :py:meth:`shapeflow.core.backend.BaseVideoAnalyzer.launch`
+       | :py:meth:`shapeflow.core.backend.BaseAnalyzer.launch`
     """
     commit = Endpoint(Callable[[], bool])
     """| Commit the analyzer to the database
-       | :py:meth:`shapeflow.core.backend.BaseVideoAnalyzer.commit`
+       | :py:meth:`shapeflow.core.backend.BaseAnalyzer.commit`
     """
     analyze = Endpoint(Callable[[], bool])
     """| Run an analysis
@@ -42,11 +42,11 @@ class _VideoAnalyzerDispatcher(Dispatcher):
     """
     cancel = Endpoint(Callable[[], None])
     """| Cancel an analysis
-       | :py:meth:`shapeflow.core.backend.BaseVideoAnalyzer.cancel`
+       | :py:meth:`shapeflow.core.backend.BaseAnalyzer.cancel`
     """
     get_config = Endpoint(Callable[[], dict], stream_json)
     """| Return the analyzer's configuration
-       | :py:meth:`shapeflow.core.backend.BaseVideoAnalyzer.get_config`
+       | :py:meth:`shapeflow.core.backend.BaseAnalyzer.get_config`
     """
     set_config = Endpoint(Callable[[dict, bool], dict])
     """Set the analyzer's configuration
