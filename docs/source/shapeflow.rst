@@ -19,7 +19,7 @@ shapeflow.api module
 
 .. automodule:: shapeflow.api
    :members:
-   :undoc-members:
+   :private-members:
    :show-inheritance:
 
 shapeflow.cli module

@@ -10,6 +10,10 @@ from shapeflow.core.streaming import BaseStreamer, EventStreamer, PlainFileStrea
 
 # todo: also specify http methods maybe?
 class _VideoAnalyzerDispatcher(Dispatcher):
+    """| Video analyzer endpoints
+       | Dispatches ``/api/va/<id>/<endpoint>``
+    """
+
     state_transition = Endpoint(Callable[[bool], int])
     """Trigger a state transition
     | :method:`shapeflow.core.backend.BaseVideoAnalyzer.state_transition`.
@@ -126,9 +130,11 @@ class _VideoAnalyzerDispatcher(Dispatcher):
 
 
 class _VideoAnalyzerManagerDispatcher(Dispatcher):
-    """ Dispatches requests to video analyzer instances. """
-    # todo: this one will be a bit special since it also dispatches to id's
-    # todo: ids should be a bit shorter for more readable URLs
+    """| Video analyzer management endpoints
+       | Dispatches ``/api/va/<endpoint>``
+       | Active analyzers are handled by dispatchers at ``/api/va/<id>``
+    """
+
     init = Endpoint(Callable[[], str])
     """Initialize a new analyzer
     """
@@ -169,7 +175,9 @@ class _VideoAnalyzerManagerDispatcher(Dispatcher):
 
 
 class _DatabaseDispatcher(Dispatcher):
-    """ Dispatches requests to a History instance. """
+    """| Database endpoints
+       | Dispatches ``/api/db/<endpoint>``
+    """
     get_recent_paths = Endpoint(Callable[[], Dict[str, List[str]]])
     """Get a list of recent video and design files
     """
@@ -192,6 +200,9 @@ class _DatabaseDispatcher(Dispatcher):
 
 
 class _FilesystemDispatcher(Dispatcher):
+    """| Filesystem endpoints
+       | Dispatches ``/api/fs/<endpoint>``
+    """
     select_video = Endpoint(Callable[[], Optional[str]])
     """Open a dialog to select a video file
     """
@@ -212,6 +223,9 @@ class _FilesystemDispatcher(Dispatcher):
 
 
 class _CacheDispatcher(Dispatcher):
+    """| Cache endpoints
+       | Dispatches ``/api/cache/<endpoint>``
+    """
     clear = Endpoint(Callable[[], None])
     """Clear the cache
     """
@@ -221,7 +235,9 @@ class _CacheDispatcher(Dispatcher):
 
 
 class ApiDispatcher(Dispatcher):
-    """ Root ``Dispatcher`` for the ``shapeflow`` API """
+    """| Root dispatcher
+       | Invoked by ``Flask`` server for requests to ``/api/``
+    """
 
     ping = Endpoint(Callable[[], bool])
     """Ping the backend
