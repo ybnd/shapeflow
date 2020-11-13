@@ -1,47 +1,47 @@
-shapeflow.core package
-======================
+shapeflow.core
+==============
 
 .. automodule:: shapeflow.core
    :members:
    :undoc-members:
    :show-inheritance:
 
-shapeflow.core.backend module
------------------------------
+shapeflow.core.streaming
+------------------------
 
-.. automodule:: shapeflow.core.backend
+.. automodule:: shapeflow.core.streaming
    :members:
    :undoc-members:
    :show-inheritance:
 
-shapeflow.core.config module
-----------------------------
-
-.. automodule:: shapeflow.core.config
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-shapeflow.core.db module
--------------------------
+shapeflow.core.db
+-----------------
 
 .. automodule:: shapeflow.core.db
    :members:
    :undoc-members:
    :show-inheritance:
 
-shapeflow.core.interface module
--------------------------------
+shapeflow.core.config
+---------------------
+
+.. automodule:: shapeflow.core.config
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+shapeflow.core.interface
+------------------------
 
 .. automodule:: shapeflow.core.interface
    :members:
    :undoc-members:
    :show-inheritance:
 
-shapeflow.core.streaming module
--------------------------------
+shapeflow.core.backend
+----------------------
 
-.. automodule:: shapeflow.core.streaming
+.. automodule:: shapeflow.core.backend
    :members:
    :undoc-members:
    :show-inheritance:

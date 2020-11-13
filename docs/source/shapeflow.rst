@@ -20,13 +20,6 @@ shapeflow.api
    :private-members:
    :show-inheritance:
 
-shapeflow.cli
--------------
-
-.. automodule:: shapeflow.cli
-   :members:
-   :show-inheritance:
-
 shapeflow.config
 ----------------
 
@@ -48,6 +41,13 @@ shapeflow.video
    :members:
    :show-inheritance:
 
+shapeflow.server
+----------------
+
+.. automodule:: shapeflow.server
+   :members:
+   :show-inheritance:
+
 shapeflow.main
 --------------
 
@@ -55,9 +55,9 @@ shapeflow.main
    :members:
    :show-inheritance:
 
-shapeflow.server
-----------------
+shapeflow.cli
+-------------
 
-.. automodule:: shapeflow.server
+.. automodule:: shapeflow.cli
    :members:
    :show-inheritance:

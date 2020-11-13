@@ -11,8 +11,8 @@ shapeflow.maths.colors
    :show-inheritance:
 
 
-shapeflow.maths.cootrdinates
-----------------------------
+shapeflow.maths.coordinates
+---------------------------
 
 .. automodule:: shapeflow.maths.coordinates
    :members:
