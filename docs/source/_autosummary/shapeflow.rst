@@ -1,5 +1,0 @@
-shapeflow
-=========
-
-.. automodule:: shapeflow
-

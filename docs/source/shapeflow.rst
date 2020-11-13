@@ -1,5 +1,5 @@
-shapeflow
-=========
+Python library
+==============
 
 .. toctree::
    :maxdepth: 4
