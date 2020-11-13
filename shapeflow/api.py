@@ -15,20 +15,22 @@ class _VideoAnalyzerDispatcher(Dispatcher):
     """
 
     state_transition = Endpoint(Callable[[bool], int])
-    """Trigger a state transition
-    | :method:`shapeflow.core.backend.BaseVideoAnalyzer.state_transition`.
+    """| Trigger a state transition
+       | :meth:`shapeflow.core.backend.BaseVideoAnalyzer.state_transition`
     """
     can_launch = Endpoint(Callable[[], bool])
-    """Returns ``True`` if the analyzer has enough of its configuration 
+    """| Returns ``True`` if the analyzer has enough of its configuration 
     set up to launch
-    | :method:`shapeflow.video.VideoAnalyzer.can_launch`.
+       | :meth:`shapeflow.video.VideoAnalyzer.can_launch`
     """
     can_analyze = Endpoint(Callable[[], bool])
-    """Returns ``True`` if the analyzer has enough of its configuration 
+    """| Returns ``True`` if the analyzer has enough of its configuration 
     set up to analyze
+       | :meth:`shapeflow.video.VideoAnalyzer.can_analyze`
     """
     launch = Endpoint(Callable[[], bool])
-    """Launch the analyzer
+    """| Launch the analyzer
+       | :meth:`shapeflow.core.backend.BaseVideoAnalyzer.launch`
     """
     commit = Endpoint(Callable[[], bool])
     """Commit the analyzer to the database
