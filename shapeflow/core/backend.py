@@ -398,7 +398,9 @@ class BaseAnalyzerConfig(BaseConfig):
     description: Optional[str] = Field(default=None)
 
 
-class BaseVideoAnalyzer(Instance, RootInstance):
+class BaseAnalyzer(Instance, RootInstance):
+    """Abstract analyzer"""
+
     _config: BaseAnalyzerConfig
 
     _state: int
@@ -730,10 +732,10 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
 
 class AnalyzerType(Factory):
-    _type = BaseVideoAnalyzer
+    _type = BaseAnalyzer
     _mapping: Mapping[str, Type[Described]] = {}
 
-    def get(self) -> Type[BaseVideoAnalyzer]:
+    def get(self) -> Type[BaseAnalyzer]:
         t = super().get()
         assert issubclass(t, self._type)
         return t

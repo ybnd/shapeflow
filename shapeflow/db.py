@@ -18,7 +18,7 @@ from shapeflow.core.config import __meta_sheet__
 from shapeflow.config import normalize_config, VideoAnalyzerConfig
 from shapeflow.core.streaming import EventStreamer
 
-from shapeflow.core.backend import BaseVideoAnalyzer, BaseAnalyzerConfig
+from shapeflow.core.backend import BaseAnalyzer, BaseAnalyzerConfig
 
 
 log = get_logger(__name__)
@@ -82,7 +82,7 @@ class AnalysisModel(BaseAnalysisModel):
     """
     __tablename__ = 'analysis'
 
-    _analyzer: Optional[BaseVideoAnalyzer]
+    _analyzer: Optional[BaseAnalyzer]
     _video: Optional[VideoFileModel]
     _design: Optional[DesignFileModel]
     _config: Optional[ConfigModel]
@@ -130,7 +130,7 @@ class AnalysisModel(BaseAnalysisModel):
         with self.session(add=False):
             return self.id
 
-    def set_analyzer(self, analyzer: BaseVideoAnalyzer):
+    def set_analyzer(self, analyzer: BaseAnalyzer):
         self._analyzer = analyzer
 
     def _add_video(self, path: str) -> VideoFileModel:
@@ -539,7 +539,7 @@ class History(SessionWrapper, RootInstance):
         file.resolve()
         return file
 
-    def add_analysis(self, analyzer: BaseVideoAnalyzer, model: AnalysisModel = None) -> AnalysisModel:
+    def add_analysis(self, analyzer: BaseAnalyzer, model: AnalysisModel = None) -> AnalysisModel:
         if model is None:
             with self.session() as s:
                 model = AnalysisModel()

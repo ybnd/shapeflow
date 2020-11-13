@@ -17,7 +17,7 @@ from shapeflow.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     FrameIntervalSetting, BaseAnalyzerConfig, FlipConfig
 from shapeflow.core import Lockable
 from shapeflow.core.backend import Instance, CachingInstance, \
-    BaseVideoAnalyzer, BackendSetupError, AnalyzerType, Feature, \
+    BaseAnalyzer, BackendSetupError, AnalyzerType, Feature, \
     FeatureSet, \
     FeatureType, AnalyzerState, PushEvent, FeatureConfig, CacheAccessError
 from shapeflow.core.config import extend
@@ -786,7 +786,7 @@ class MaskFunction(Feature):
 
 
 @extend(AnalyzerType)
-class VideoAnalyzer(BaseVideoAnalyzer):
+class VideoAnalyzer(BaseAnalyzer):
     """Main video handling class
             * Load frames from video files
             * Load mask files
@@ -1420,8 +1420,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         return self.transform.get_coordinates()
 
 
-def init(config: BaseAnalyzerConfig) -> BaseVideoAnalyzer:
-    mapping: Dict[Type[BaseAnalyzerConfig], Type[BaseVideoAnalyzer]] = {
+def init(config: BaseAnalyzerConfig) -> BaseAnalyzer:
+    mapping: Dict[Type[BaseAnalyzerConfig], Type[BaseAnalyzer]] = {
         VideoAnalyzerConfig: VideoAnalyzer
     }
 

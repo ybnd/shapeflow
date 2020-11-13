@@ -16,7 +16,7 @@ from shapeflow import get_logger, get_cache, settings, update_settings, ROOTDIR
 from shapeflow.core import stream_off, Endpoint
 from shapeflow.api import api, _FilesystemDispatcher, _DatabaseDispatcher, _VideoAnalyzerManagerDispatcher, _VideoAnalyzerDispatcher, _CacheDispatcher, ApiDispatcher
 from shapeflow.core.streaming import streams, EventStreamer, PlainFileStreamer, BaseStreamer
-from shapeflow.core.backend import QueueState, AnalyzerState, SetupError, BaseVideoAnalyzer
+from shapeflow.core.backend import QueueState, AnalyzerState, SetupError, BaseAnalyzer
 from shapeflow.config import schemas, normalize_config, loads, BaseAnalyzerConfig
 from shapeflow.video import init, VideoAnalyzer
 import shapeflow.plugins
@@ -237,7 +237,7 @@ class _VideoAnalyzerManager(object):
     _q_state: QueueState
 
     _dispatcher: _VideoAnalyzerManagerDispatcher
-    __analyzers__: Dict[str, BaseVideoAnalyzer] = {}  # todo: analyzer manager should register analyzers with api.va on init
+    __analyzers__: Dict[str, BaseAnalyzer] = {}  # todo: analyzer manager should register analyzers with api.va on init
 
     ID_LENGTH = 6
 
@@ -254,7 +254,7 @@ class _VideoAnalyzerManager(object):
     def _set_dispatcher(self, dispatcher: _VideoAnalyzerManagerDispatcher):
         self._dispatcher = dispatcher
 
-    def _add(self, analyzer: BaseVideoAnalyzer) -> str:
+    def _add(self, analyzer: BaseAnalyzer) -> str:
         """Add a new analyzer instance
 
 
