@@ -227,12 +227,11 @@ The design file should be an **.svg file** containing:
   #. 
      Select the overlay
 
+  #.
+     Open ``File > Document > Properties``
+
   #. 
-     Resize the page to it as follows:
-
-     .. code-block::
-
-        File > Document > Properties > Resize page to content... > Resize page to drawing or selection
+     Set ``Resize page to content... > Resize page to drawing or selection``
 
   #. 
      Turn on ``Show page border``
