@@ -21,7 +21,7 @@ shapeflow.core.config module
    :show-inheritance:
 
 shapeflow.core.db module
-----------------------------
+-------------------------
 
 .. automodule:: shapeflow.core.db
    :members:
@@ -29,7 +29,7 @@ shapeflow.core.db module
    :show-inheritance:
 
 shapeflow.core.interface module
-----------------------------
+-------------------------------
 
 .. automodule:: shapeflow.core.interface
    :members:
@@ -37,7 +37,7 @@ shapeflow.core.interface module
    :show-inheritance:
 
 shapeflow.core.streaming module
-----------------------------
+-------------------------------
 
 .. automodule:: shapeflow.core.streaming
    :members:
