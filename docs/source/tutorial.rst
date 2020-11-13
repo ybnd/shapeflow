@@ -9,7 +9,7 @@ To start analyzing microfluidic chips with shapeflow, you need video footage of 
 
 
 #. 
-   **\ `Transformation <transforms.md>`_\ **
+   **Transformation**
 
    The design is aligned to the video frame.
 
@@ -19,30 +19,26 @@ To start analyzing microfluidic chips with shapeflow, you need video footage of 
    Each layer in the design file is used to mask off the corresponding area in the video footage of the chip.
 
 #. 
-   **\ `Filtering <filters.md>`_\ **
+   **Filtering**
 
    The masked off area of the video frame is filtered to retain the portion of interest, i.e. a colored fluid in a channel. This results in a binary image for each mask
 
 #. 
-   **\ `Feature extraction <features.md>`_\ **
+   **Feature extraction**
 
    Finally, these binary images are processed to extract features. By using designs with known real-world dimensions and mapping  “video coordinates” to “design coordinates”, we can compute features with real-world dimensions from the video footage.
 
-With ``shapeflow``\ , you can easily queue up, configure, run and compare such analyses.
+With ``shapeflow``, you can easily queue up, configure, run and compare such analyses.
 
- 
-^
 
 User interface
 ^^^^^^^^^^^^^^
 
 Running ``sf.py`` starts the backend of the application and opens a new window or tab in your browser with the user interface. Its main features are shown below
 
-
-.. raw:: html
-
-   <div align="center"><img src="assets/interface.png" width="600px"/></div>
-
+.. image:: docs/source/assets/interface.png
+    :width: 600px
+    :align: center
 
 The interface consists of several different pages, which you can navigate between with the sidebar. It also acts as your analysis queue. You can change the order by dragging analyses around the sidebar. 
 
@@ -50,21 +46,17 @@ With the queue controls on the home page you can start and stop the queue (analy
 
 To add analyses, click on the ‘plus’ button at the bottom of the analysis queue (if you have a lot of analyses queued you may need to scroll down to find it). You’ll see the popup below
 
-
-.. raw:: html
-
-   <div align="center"><img src="assets/new-analysis.png" width="600px"/></div>
-
+.. image:: docs/source/assets/new-analysis.png
+    :width: 600px
+    :align: center
 
 With this form you can select the files, frame settings and features to use for your new analysis. 
 
 You can browse for files by clicking the leftmost button next to the file fields, or select files from a list of previously used ones with the dropdown button. If the files exist and can be read by the application, they will be highlighted in green as shown above. However, if the files show up in red as shown below, they either don’t exist (a typo maybe?) or are not the correct file type.
 
-
-.. raw:: html
-
-   <div align="center"><img src="assets/invalid-paths.png" width="500px"/></div>
-
+.. image:: docs/source/assets/invalid-paths.png
+    :width: 600px
+    :align: center
 
 You can set up multiple features for an analysis, and configure any corresponding parameters. Each feature will be shown in a separate graph and will be exported to a separate worksheet after analyzing. See `here <features.md>`_ information about the available features.
 
@@ -73,26 +65,21 @@ Alignment
 
 When you add a new analysis, the align page for that analysis will open so you can start configuring it. With the seek controls in the top bar you can select different frames in the video. In many cases chips may move slightly when pressed during activation, so it’s often best to align the design to a frame after the chip has been activated. If the alignment has not been set yet, you can start by dragging a rectangle as shown below
 
-
-.. raw:: html
-
-   <div align="center"><img src="assets/align-page1.png" width="600px"/></div>
-
+.. image:: docs/source/assets/align-page1.png
+    :width: 600px
+    :align: center
 
 Once the initial alignment rectangle is set, you can adjust it by dragging its edges and corners, or rotating it with its rotation control.
 
-
-.. raw:: html
-
-   <div align="center"><img src="assets/align-page2.png" width="600px"/></div>
-
+.. image:: docs/source/assets/align-page2.png
+    :width: 600px
+    :align: center
 
 Additionally, you can flip and rotate the design relative to the alignment rectangle with the controls in the top bar. The undo/redo buttons only affect the alignment; any changes you may have made to the rest of the configuration will stay unchanged. Clearing the alignment allows you to draw a new rectangle and start aligning all over again. Finally, you can toggle the frame boundaries, as shown in the image below. This looks wonky, but may be useful for cases where the entire chip doesn’t fit into the frame.
 
-
-.. raw:: html
-
-   <div align="center"><img src="assets/ignore-bounds.png" width="600px"/></div>
+.. image:: docs/source/assets/ignore-bounds.png
+    :width: 600px
+    :align: center
 
 
 Filters
@@ -100,27 +87,21 @@ Filters
 
 Once you set an alignment, you can start configuring the filters. In each of the design’s masks, you should select the liquid you want to follow to filter that specific color. You can seek through the video to catch every liquid of interest. Masks with no color set are highlighted with a rectangle.
 
-
-.. raw:: html
-
-   <div align="center"><img src="assets/filter-page1.png" width="600px"/></div>
-
+.. image:: docs/source/assets/filter-page1.png
+    :width: 600px
+    :align: center
 
 By default, the filter page shows the transformed video frame, the “state frame” (the filtered area of all masks in the design) and the design overlay. To evaluate how well the filters perform, it can be useful to toggle some of these images on and off. For example, you can alternately toggle the state frame to more clearly see how well the filtered area corresponds to the liquid you want to measure.
 
+.. image:: docs/source/assets/image-toggles.png
+    :width: 600px
+    :align: center
 
-.. raw:: html
+For additional configuration, you can toggle the configuration sidebar as shown above. Here you can configure every mask and filter in the analysis in more detail. See `here <filters.rst>`_ for information on the available filters and their options. Checking the ‘skip’ option will skip masks in the analysis. Finally, you can override the global feature parameters for the design for every mask by expanding the ‘parameters’ section.
 
-   <div align="center"><img src="assets/image-toggles.png" width="600px"/></div>
-
-
-For additional configuration, you can toggle the configuration sidebar as shown above. Here you can configure every mask and filter in the analysis in more detail. See `here <filters.md>`_ for information on the available filters and their options. Checking the ‘skip’ option will skip masks in the analysis. Finally, you can override the global feature parameters for the design for every mask by expanding the ‘parameters’ section.     
-
-
-.. raw:: html
-
-   <div align="center"><img src="assets/filter-page2.png" width="600px"/></div>
-
+.. image:: docs/source/assets/filter-page2.png
+    :width: 600px
+    :align: center
 
 If you see issues with the alignment once you start configuring the filters, you can always navigate back to the alignment page to adjust it.
 
@@ -131,11 +112,9 @@ Once all filters are configured (or skipped) you can run the analysis, either by
 
 On the results page, you can visualize the results of different runs.
 
-
-.. raw:: html
-
-   <div align="center"><img src="assets/results-page.png" width="600px"/></div>
-
+.. image:: docs/source/assets/results-page.png
+    :width: 600px
+    :align: center
 
 By default, results are exported to .xlsx files after a run is done, but they can also be exported manually with the ‘Save’ button in the top bar. Each .xlsx file has a separate sheet for every feature in the analysis and another sheet with the configuration the run was performed at for future reference.
 
@@ -146,11 +125,9 @@ Configuring analyses
 
 The full configuration of the analysis can be seen and edited on the configure page (shown below)
 
-
-.. raw:: html
-
-   <div align="center"><img src="assets/configure-page.png" width="600px"/></div>
-
+.. image:: docs/source/assets/configure-page.png
+    :width: 600px
+    :align: center
 
 You can change the name of the analysis and add a description and modify the initial configuration you set when creating the analysis. Finally, you have access to the rest of the configuration
 
@@ -164,12 +141,9 @@ Application settings
 
 On the settings page you can edit the global application settings, as shown below. For changes to the settings to take effect, you must press the ‘Save settings & restart’ button in the top bar. From here, you can also clear the database (this will clear your recent files and remove any analysis results that haven’t been exported yet) and the cache (this will make the application slower for videos you’ve already analyzed). The most relevant settings are explained below
 
-
-.. raw:: html
-
-   <div align="center"><img src="assets/settings-page.png" width="600px"/></div>
-
-
+.. image:: docs/source/assets/settings-page.png
+    :width: 600px
+    :align: center
 
 * 
   Application
@@ -222,7 +196,7 @@ In order to start analyzing videos, you must first prepare a specially formatted
 
 .. raw:: html
 
-   <div align="center"><img src="../test/test.svg" width="400px"/></div>
+   <div align="center"><img src="test/test.svg" width="400px"/></div>
 
 
 The design file should be an **.svg file** containing:
@@ -266,7 +240,7 @@ The design file should be an **.svg file** containing:
   #. 
      Enable ``Snap to page border`` in the snap controls bar
 
-  #. 
-     In the background layer, draw a rectangle over the page border (solid white fill, no stroke, no transparency)
+  #.
+    In the background layer, draw a rectangle over the page border (solid white fill, no stroke, no transparency).
 
     Because reading individual frames from video files can be relatively slow, the application caches frames in the background. Therefore, re-running an analysis is significantly faster than running it for the first time. Because uncompressed images are weighty, the cache can become large. If you want to conserve disk space, you can set the size limit to a lower value. Conversely, if you think you get slower re-runs when analyzing many different videos, you may want to increase the cache size limit. 
