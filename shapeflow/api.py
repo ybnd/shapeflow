@@ -12,7 +12,10 @@ from shapeflow.core.streaming import BaseStreamer, EventStreamer, PlainFileStrea
 class _VideoAnalyzerDispatcher(Dispatcher):
     """Dispatches ``/api/va/<id>/<endpoint>``
     """
-
+    status = Endpoint(Callable[[], dict], stream_json)
+    """| Get the analyzer's status
+       | :meth:`shapeflow.core.backend.BaseVideoAnalyzer.status`
+    """
     state_transition = Endpoint(Callable[[bool], int])
     """| Trigger a state transition
        | :meth:`shapeflow.core.backend.BaseVideoAnalyzer.state_transition`
