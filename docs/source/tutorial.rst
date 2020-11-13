@@ -36,7 +36,7 @@ User interface
 
 Running ``sf.py`` starts the backend of the application and opens a new window or tab in your browser with the user interface. Its main features are shown below
 
-.. image:: /docs/source/assets/interface.png
+.. image:: /assets/interface.png
     :width: 600px
     :align: center
 
@@ -46,7 +46,7 @@ With the queue controls on the home page you can start and stop the queue (analy
 
 To add analyses, click on the ‘plus’ button at the bottom of the analysis queue (if you have a lot of analyses queued you may need to scroll down to find it). You’ll see the popup below
 
-.. image:: /docs/source/assets/new-analysis.png
+.. image:: /assets/new-analysis.png
     :width: 600px
     :align: center
 
@@ -54,7 +54,7 @@ With this form you can select the files, frame settings and features to use for 
 
 You can browse for files by clicking the leftmost button next to the file fields, or select files from a list of previously used ones with the dropdown button. If the files exist and can be read by the application, they will be highlighted in green as shown above. However, if the files show up in red as shown below, they either don’t exist (a typo maybe?) or are not the correct file type.
 
-.. image:: /docs/source/assets/invalid-paths.png
+.. image:: /assets/invalid-paths.png
     :width: 600px
     :align: center
 
@@ -65,19 +65,19 @@ Alignment
 
 When you add a new analysis, the align page for that analysis will open so you can start configuring it. With the seek controls in the top bar you can select different frames in the video. In many cases chips may move slightly when pressed during activation, so it’s often best to align the design to a frame after the chip has been activated. If the alignment has not been set yet, you can start by dragging a rectangle as shown below
 
-.. image:: /docs/source/assets/align-page1.png
+.. image:: /assets/align-page1.png
     :width: 600px
     :align: center
 
 Once the initial alignment rectangle is set, you can adjust it by dragging its edges and corners, or rotating it with its rotation control.
 
-.. image:: /docs/source/assets/align-page2.png
+.. image:: /assets/align-page2.png
     :width: 600px
     :align: center
 
 Additionally, you can flip and rotate the design relative to the alignment rectangle with the controls in the top bar. The undo/redo buttons only affect the alignment; any changes you may have made to the rest of the configuration will stay unchanged. Clearing the alignment allows you to draw a new rectangle and start aligning all over again. Finally, you can toggle the frame boundaries, as shown in the image below. This looks wonky, but may be useful for cases where the entire chip doesn’t fit into the frame.
 
-.. image:: /docs/source/assets/ignore-bounds.png
+.. image:: /assets/ignore-bounds.png
     :width: 600px
     :align: center
 
@@ -87,19 +87,19 @@ Filters
 
 Once you set an alignment, you can start configuring the filters. In each of the design’s masks, you should select the liquid you want to follow to filter that specific color. You can seek through the video to catch every liquid of interest. Masks with no color set are highlighted with a rectangle.
 
-.. image:: /docs/source/assets/filter-page1.png
+.. image:: /assets/filter-page1.png
     :width: 600px
     :align: center
 
 By default, the filter page shows the transformed video frame, the “state frame” (the filtered area of all masks in the design) and the design overlay. To evaluate how well the filters perform, it can be useful to toggle some of these images on and off. For example, you can alternately toggle the state frame to more clearly see how well the filtered area corresponds to the liquid you want to measure.
 
-.. image:: /docs/source/assets/image-toggles.png
+.. image:: /assets/image-toggles.png
     :width: 600px
     :align: center
 
 For additional configuration, you can toggle the configuration sidebar as shown above. Here you can configure every mask and filter in the analysis in more detail. See `here <filters.rst>`_ for information on the available filters and their options. Checking the ‘skip’ option will skip masks in the analysis. Finally, you can override the global feature parameters for the design for every mask by expanding the ‘parameters’ section.
 
-.. image:: /docs/source/assets/filter-page2.png
+.. image:: /assets/filter-page2.png
     :width: 600px
     :align: center
 
@@ -112,7 +112,7 @@ Once all filters are configured (or skipped) you can run the analysis, either by
 
 On the results page, you can visualize the results of different runs.
 
-.. image:: /docs/source/assets/results-page.png
+.. image:: /assets/results-page.png
     :width: 600px
     :align: center
 
@@ -125,7 +125,7 @@ Configuring analyses
 
 The full configuration of the analysis can be seen and edited on the configure page (shown below)
 
-.. image:: /docs/source/assets/configure-page.png
+.. image:: /assets/configure-page.png
     :width: 600px
     :align: center
 
@@ -141,7 +141,7 @@ Application settings
 
 On the settings page you can edit the global application settings, as shown below. For changes to the settings to take effect, you must press the ‘Save settings & restart’ button in the top bar. From here, you can also clear the database (this will clear your recent files and remove any analysis results that haven’t been exported yet) and the cache (this will make the application slower for videos you’ve already analyzed). The most relevant settings are explained below
 
-.. image:: /docs/source/assets/settings-page.png
+.. image:: /assets/settings-page.png
     :width: 600px
     :align: center
 
