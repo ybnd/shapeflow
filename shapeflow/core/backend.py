@@ -530,7 +530,8 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     # @backend.expose(backend.state_transition)
     @api.va.__id__.state_transition.expose()
     def state_transition(self, push: bool = True) -> int:
-        """Handle state transitions
+        """| Handle state transitions
+           | :attr:`shapeflow.api._VideoAnalyzerDispatcher.state_transition`
         """
 
         if self.state == AnalyzerState.INCOMPLETE and self.can_launch():

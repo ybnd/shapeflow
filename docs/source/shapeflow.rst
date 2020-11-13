@@ -27,7 +27,6 @@ shapeflow.cli module
 
 .. automodule:: shapeflow.cli
    :members:
-   :undoc-members:
    :show-inheritance:
 
 shapeflow.config module
@@ -35,7 +34,6 @@ shapeflow.config module
 
 .. automodule:: shapeflow.config
    :members:
-   :undoc-members:
    :show-inheritance:
 
 shapeflow.db module
@@ -43,7 +41,6 @@ shapeflow.db module
 
 .. automodule:: shapeflow.db
    :members:
-   :undoc-members:
    :show-inheritance:
 
 shapeflow.main module
@@ -51,7 +48,6 @@ shapeflow.main module
 
 .. automodule:: shapeflow.main
    :members:
-   :undoc-members:
    :show-inheritance:
 
 shapeflow.server module
@@ -59,7 +55,6 @@ shapeflow.server module
 
 .. automodule:: shapeflow.server
    :members:
-   :undoc-members:
    :show-inheritance:
 
 shapeflow.video module
@@ -67,7 +62,6 @@ shapeflow.video module
 
 .. automodule:: shapeflow.video
    :members:
-   :undoc-members:
    :show-inheritance:
 
 
@@ -76,5 +70,4 @@ Module contents
 
 .. automodule:: shapeflow
    :members:
-   :undoc-members:
    :show-inheritance:
