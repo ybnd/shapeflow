@@ -12,10 +12,12 @@ from shapeflow.core.streaming import BaseStreamer, EventStreamer, PlainFileStrea
 class _VideoAnalyzerDispatcher(Dispatcher):
     state_transition = Endpoint(Callable[[bool], int])
     """Trigger a state transition
+    | :method:`shapeflow.core.backend.BaseVideoAnalyzer.state_transition`.
     """
     can_launch = Endpoint(Callable[[], bool])
     """Returns ``True`` if the analyzer has enough of its configuration 
     set up to launch
+    | :method:`shapeflow.video.VideoAnalyzer.can_launch`.
     """
     can_analyze = Endpoint(Callable[[], bool])
     """Returns ``True`` if the analyzer has enough of its configuration 
