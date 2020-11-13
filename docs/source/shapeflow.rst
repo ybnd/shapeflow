@@ -1,15 +1,5 @@
-shapeflow package
-=================
-
-Module contents
----------------
-
-.. automodule:: shapeflow
-   :members:
-   :show-inheritance:
-
-Subpackages
------------
+shapeflow
+=========
 
 .. toctree::
    :maxdepth: 4
@@ -18,55 +8,56 @@ Subpackages
    shapeflow.maths
    shapeflow.plugins
 
-Submodules
-----------
+.. automodule:: shapeflow
+   :members:
+   :show-inheritance:
 
-shapeflow.api module
---------------------
+shapeflow.api
+-------------
 
 .. automodule:: shapeflow.api
    :members:
    :private-members:
    :show-inheritance:
 
-shapeflow.cli module
---------------------
+shapeflow.cli
+-------------
 
 .. automodule:: shapeflow.cli
    :members:
    :show-inheritance:
 
-shapeflow.config module
------------------------
+shapeflow.config
+----------------
 
 .. automodule:: shapeflow.config
    :members:
    :show-inheritance:
 
-shapeflow.db module
--------------------
+shapeflow.db
+------------
 
 .. automodule:: shapeflow.db
    :members:
    :show-inheritance:
 
-shapeflow.main module
----------------------
+shapeflow.video
+---------------
+
+.. automodule:: shapeflow.video
+   :members:
+   :show-inheritance:
+
+shapeflow.main
+--------------
 
 .. automodule:: shapeflow.main
    :members:
    :show-inheritance:
 
-shapeflow.server module
------------------------
+shapeflow.server
+----------------
 
 .. automodule:: shapeflow.server
-   :members:
-   :show-inheritance:
-
-shapeflow.video module
-----------------------
-
-.. automodule:: shapeflow.video
    :members:
    :show-inheritance:

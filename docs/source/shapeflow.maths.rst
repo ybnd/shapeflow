@@ -1,12 +1,9 @@
-shapeflow.maths package
-=======================
+shapeflow.maths
+===============
 
 
-Submodules
-----------
-
-shapeflow.maths.colors module
------------------------------
+shapeflow.maths.colors
+----------------------
 
 .. automodule:: shapeflow.maths.colors
    :members:
@@ -14,8 +11,8 @@ shapeflow.maths.colors module
    :show-inheritance:
 
 
-shapeflow.maths.cootrdinates module
------------------------------------
+shapeflow.maths.cootrdinates
+----------------------------
 
 .. automodule:: shapeflow.maths.coordinates
    :members:
@@ -23,8 +20,8 @@ shapeflow.maths.cootrdinates module
    :show-inheritance:
 
 
-shapeflow.maths.images module
------------------------------
+shapeflow.maths.images
+----------------------
 
 .. automodule:: shapeflow.maths.images
    :members:

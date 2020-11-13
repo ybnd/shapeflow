@@ -1,9 +1,5 @@
-shapeflow.plugins package
-=========================
-
-
-Module contents
----------------
+shapeflow.plugins
+=================
 
 .. automodule:: shapeflow.plugins
    :members:

@@ -1,8 +1,10 @@
 shapeflow.core package
 ======================
 
-Submodules
-----------
+.. automodule:: shapeflow.core
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
 shapeflow.core.backend module
 -----------------------------
@@ -40,15 +42,6 @@ shapeflow.core.streaming module
 -------------------------------
 
 .. automodule:: shapeflow.core.streaming
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: shapeflow.core
    :members:
    :undoc-members:
    :show-inheritance:
