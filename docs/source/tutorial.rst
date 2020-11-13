@@ -185,7 +185,8 @@ On the settings page you can edit the global application settings, as shown belo
 
   * 
     **cache size limit**
- 
+
+    Because reading individual frames from video files can be relatively slow, the application caches frames in the background. Therefore, re-running an analysis is significantly faster than running it for the first time. Because uncompressed images are weighty, the cache can become large. If you want to conserve disk space, you can set the size limit to a lower value. Conversely, if you think you get slower re-runs when analyzing many different videos, you may want to increase the cache size limit.
 
 
 Preparing design files
@@ -241,5 +242,3 @@ The design file should be an **.svg file** containing:
 
   #.
     In the background layer, draw a rectangle over the page border (solid white fill, no stroke, no transparency).
-
-    Because reading individual frames from video files can be relatively slow, the application caches frames in the background. Therefore, re-running an analysis is significantly faster than running it for the first time. Because uncompressed images are weighty, the cache can become large. If you want to conserve disk space, you can set the size limit to a lower value. Conversely, if you think you get slower re-runs when analyzing many different videos, you may want to increase the cache size limit. 
