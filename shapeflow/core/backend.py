@@ -52,6 +52,8 @@ class PushEvent(Enum):
 
 
 class AnalyzerState(IntEnum):
+    """The state of an analyzer"""
+
     UNKNOWN = 0
     INCOMPLETE = 1
     CAN_LAUNCH = 2
@@ -65,6 +67,7 @@ class AnalyzerState(IntEnum):
 
     @classmethod
     def can_launch(cls, state: int) -> bool:
+        """Returns ``True`` if an analyzer can launch from this state"""
         return state in [
             cls.CAN_LAUNCH,
             cls.LAUNCHED,
@@ -75,6 +78,7 @@ class AnalyzerState(IntEnum):
 
     @classmethod
     def is_launched(cls, state: int) -> bool:
+        """Returns ``True`` if an analyzer is launched in this state"""
         return state in [
             cls.LAUNCHED,
             cls.CAN_FILTER,
@@ -86,6 +90,7 @@ class AnalyzerState(IntEnum):
 
 
 class QueueState(IntEnum):
+    """The state of the analysis queue"""
     STOPPED = 0
     RUNNING = 1
     PAUSED = 2

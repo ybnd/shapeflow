@@ -1,6 +1,13 @@
 shapeflow package
 =================
 
+Module contents
+---------------
+
+.. automodule:: shapeflow
+   :members:
+   :show-inheritance:
+
 Subpackages
 -----------
 
@@ -61,13 +68,5 @@ shapeflow.video module
 ----------------------
 
 .. automodule:: shapeflow.video
-   :members:
-   :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: shapeflow
    :members:
    :show-inheritance:
