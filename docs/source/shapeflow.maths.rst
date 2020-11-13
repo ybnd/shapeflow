@@ -1,9 +1,9 @@
-shapeflow.maths
-===============
+maths
+=====
 
 
-shapeflow.maths.colors
-----------------------
+colors
+------
 
 .. automodule:: shapeflow.maths.colors
    :members:
@@ -11,8 +11,8 @@ shapeflow.maths.colors
    :show-inheritance:
 
 
-shapeflow.maths.coordinates
----------------------------
+coordinates
+-----------
 
 .. automodule:: shapeflow.maths.coordinates
    :members:
@@ -20,8 +20,8 @@ shapeflow.maths.coordinates
    :show-inheritance:
 
 
-shapeflow.maths.images
-----------------------
+images
+------
 
 .. automodule:: shapeflow.maths.images
    :members:

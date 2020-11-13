@@ -1,5 +1,9 @@
-Python library
-==============
+shapeflow
+=========
+
+.. automodule:: shapeflow
+   :members:
+   :show-inheritance:
 
 .. toctree::
    :maxdepth: 4
@@ -8,55 +12,52 @@ Python library
    shapeflow.maths
    shapeflow.plugins
 
-.. automodule:: shapeflow
-   :members:
-   :show-inheritance:
 
-shapeflow.api
--------------
+api
+---
 
 .. automodule:: shapeflow.api
    :members:
    :private-members:
    :show-inheritance:
 
-shapeflow.config
-----------------
+config
+------
 
 .. automodule:: shapeflow.config
    :members:
    :show-inheritance:
 
-shapeflow.db
-------------
+db
+---
 
 .. automodule:: shapeflow.db
    :members:
    :show-inheritance:
 
-shapeflow.video
----------------
+video
+-----
 
 .. automodule:: shapeflow.video
    :members:
    :show-inheritance:
 
-shapeflow.server
-----------------
+server
+-----
 
 .. automodule:: shapeflow.server
    :members:
    :show-inheritance:
 
-shapeflow.main
---------------
+main
+----
 
 .. automodule:: shapeflow.main
    :members:
    :show-inheritance:
 
-shapeflow.cli
--------------
+cli
+---
 
 .. automodule:: shapeflow.cli
    :members:
