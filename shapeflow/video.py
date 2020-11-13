@@ -1065,12 +1065,6 @@ class VideoAnalyzer(BaseAnalyzer):
     def get_inverse_transformed_overlay(self) -> np.ndarray:
         return self.transform.inverse(self.design._overlay)
 
-    # @backend.expose(backend.get_overlaid_frame)
-    @api.va.__id__.get_overlaid_frame.expose()
-    def get_frame_overlay(self, frame_number: int) -> np.ndarray:
-        return self.design.overlay_frame(
-            self.get_transformed_frame(frame_number))
-
     # @backend.expose(backend.get_colors)  # todo: per feature in each feature set; maybe better as a dict instead of a list of tuples?
     @api.va.__id__.get_colors.expose()
     def get_colors(self) -> Tuple[str, ...]:

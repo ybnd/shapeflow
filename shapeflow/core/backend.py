@@ -661,7 +661,6 @@ class BaseAnalyzer(Instance, RootInstance):
             'position': self.position,
             'progress': self.progress,
         }
-
         return status
 
     def push_status(self):
@@ -705,7 +704,6 @@ class BaseAnalyzer(Instance, RootInstance):
                 log.warning(f"{self.__class__.__qualname__} can not be launched.")  # todo: try to be more verbose
                 return False
 
-    @api.va.__id__.get_name.expose()
     def get_name(self) -> str:
         try:
             return self.model.get_name()
