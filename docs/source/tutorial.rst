@@ -196,7 +196,7 @@ In order to start analyzing videos, you must first prepare a specially formatted
 
 .. raw:: html
 
-   <div align="center"><img src="/test/test.svg" width="400px"/></div>
+   <div align="center"><img src="/../../test/test.svg" width="400px"/></div>
 
 
 The design file should be an **.svg file** containing:
