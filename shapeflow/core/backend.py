@@ -201,7 +201,7 @@ class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB 
             self._cache = None
 
 class FeatureConfig(BaseConfig, abc.ABC):
-    """Feature parameters"""
+    """Abstract :class:`~shapeflow.core.backend.Feature` parameters"""
     pass
 
 
@@ -303,6 +303,8 @@ class Feature(abc.ABC, Configurable):  # todo: should probably use Config for pa
 
 
 class FeatureSet(Configurable):
+    """A set of :class:`~shapeflow.core.backend.Feature` instances"""
+
     _feature: Tuple[Feature, ...]
     _colors: Tuple[Color, ...]
     _config_class = FeatureConfig
@@ -369,6 +371,8 @@ class FeatureSet(Configurable):
 
 
 class FeatureType(InterfaceFactory):
+    """:class:`~shapeflow.core.backend.Feature` factory"""
+
     _type = Feature
     _mapping: Mapping[str, Type[Feature]] = {}
     _config_type = FeatureConfig
