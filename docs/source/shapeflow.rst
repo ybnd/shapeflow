@@ -19,8 +19,6 @@ shapeflow.api module
 
 .. automodule:: shapeflow.api
    :members:
-   :private-members:
-   :special-members:
    :undoc-members:
    :show-inheritance:
 
