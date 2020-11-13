@@ -1,11 +1,11 @@
 shapeflow.maths package
-=====================
+=======================
 
 Submodules
 ----------
 
 shapeflow.maths.images module
----------------------------
+-----------------------------
 
 .. automodule:: shapeflow.maths.images
    :members:

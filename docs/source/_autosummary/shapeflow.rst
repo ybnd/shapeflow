@@ -3,21 +3,3 @@ shapeflow
 
 .. automodule:: shapeflow
 
-   
-   
-   
-
-   
-   
-   
-
-   
-   
-   
-
-   
-   
-   
-
-
-

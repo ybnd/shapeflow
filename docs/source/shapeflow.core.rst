@@ -1,69 +1,45 @@
 shapeflow.core package
-====================
+======================
 
 Submodules
 ----------
 
 shapeflow.core.backend module
----------------------------
+-----------------------------
 
 .. automodule:: shapeflow.core.backend
    :members:
    :undoc-members:
    :show-inheritance:
 
-shapeflow.core.common module
---------------------------
-
-.. automodule:: shapeflow.core.common
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 shapeflow.core.config module
---------------------------
+----------------------------
 
 .. automodule:: shapeflow.core.config
    :members:
    :undoc-members:
    :show-inheritance:
 
-shapeflow.core.endpoints module
------------------------------
-
-.. automodule:: shapeflow.core.endpoints
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-shapeflow.core.features module
+shapeflow.core.db module
 ----------------------------
 
-.. automodule:: shapeflow.core.features
+.. automodule:: shapeflow.core.db
    :members:
    :undoc-members:
    :show-inheritance:
 
-shapeflow.core.log module
------------------------
+shapeflow.core.interface module
+----------------------------
 
-.. automodule:: shapeflow.core.log
+.. automodule:: shapeflow.core.interface
    :members:
    :undoc-members:
    :show-inheritance:
 
-shapeflow.core.schema module
---------------------------
+shapeflow.core.streaming module
+----------------------------
 
-.. automodule:: shapeflow.core.schema
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-shapeflow.core.util module
-------------------------
-
-.. automodule:: shapeflow.core.util
+.. automodule:: shapeflow.core.streaming
    :members:
    :undoc-members:
    :show-inheritance:
