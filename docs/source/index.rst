@@ -14,3 +14,4 @@ Welcome to shapeflow's documentation!
    tutorial
    about
    shapeflow
+   changelog
