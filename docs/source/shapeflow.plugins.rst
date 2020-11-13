@@ -2,6 +2,6 @@ shapeflow.plugins
 =================
 
 .. automodule:: shapeflow.plugins
-   :members:
+   :imported-members:
    :undoc-members:
    :show-inheritance:
