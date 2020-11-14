@@ -86,7 +86,7 @@ class ResultModel(DbModel):
 
 class AnalysisModel(BaseAnalysisModel):
     """Database model of an analysis.
-    Contains a reference to a ``BaseVideoAnalyzer`` instance.
+    Contains a reference to a ``BaseAnalyzer`` instance.
     """
     __tablename__ = 'analysis'
 
