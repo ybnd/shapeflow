@@ -61,5 +61,7 @@ cli
 
 .. automodule:: shapeflow.cli
    :members:
+   :undoc-members: __command__
+   :private-members: __command__
    :special-members: __command__, __getitem__, __usage__, __help__
    :show-inheritance:

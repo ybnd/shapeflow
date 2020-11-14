@@ -36,7 +36,7 @@ class IterCommand(abc.ABCMeta):
     """
     __command__: str
     """Command name. This is how the command is addressed from the commandline.
-    """
+    """  # todo: nope, doesn't work'
 
     def __str__(cls):
         try:
