@@ -61,4 +61,5 @@ cli
 
 .. automodule:: shapeflow.cli
    :members:
+   :special-members: __command__, __getitem__, __usage__, __help__
    :show-inheritance:

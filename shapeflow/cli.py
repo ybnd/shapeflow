@@ -31,7 +31,7 @@ class CliError(Exception):
 class IterCommand(abc.ABCMeta):
     """Command iterator metaclass.
 
-    Iterates over its subclasses, skipping any without a __command__.
+    Iterates over its subclasses, skipping any without a ``__command__``.
     If any of these should remain abstract, they shouldn't define one.
     """
     __command__: str
