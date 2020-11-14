@@ -19,13 +19,12 @@ from contextlib import contextmanager
 import yaml
 
 from pydantic import BaseModel, Field, FilePath, DirectoryPath, validator
-from pydantic.error_wrappers import ValidationError, ErrorWrapper
-from pydantic.errors import PathNotExistsError, PathNotADirectoryError, PathNotAFileError
-
 import diskcache
 
-# Library version
+
 __version__: str = '0.4.3'
+"""shapeflow library version
+"""
 
 # Get root directory
 _user_dir = pathlib.Path.home()
@@ -35,6 +34,8 @@ else:
     _subdirs = ['.local', 'share', 'shapeflow']
 
 ROOTDIR = Path(_user_dir, *_subdirs)
+"""application root directory
+"""
 
 _SETTINGS_FILE = ROOTDIR / 'settings.yaml'
 
@@ -47,10 +48,20 @@ if not ROOTDIR.is_dir():
 
 
 class _Settings(BaseModel):
+    """Abstract application settings
+    """
+
     class Config:
         validate_assignment = True
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
+        """
+        Returns
+        -------
+        dict
+            Application settings as a dict
+
+        """
         d = {}
         for k,v in self.__dict__.items():
             if isinstance(v, _Settings):
@@ -72,7 +83,20 @@ class _Settings(BaseModel):
         return d
 
     @contextmanager
-    def override(self, overrides: dict):
+    def override(self, overrides: dict):  # todo: consider deprecating in favor of mocks
+        """Override some parameters of the settings in a context.
+        Settings will only be modified within this context and restored to
+        their previous values afterwards.
+        Usage::
+            with settings.override({"parameter": "override value"}):
+                <do something>
+
+        Parameters
+        ----------
+        overrides: dict
+            A ``dict`` mapping field names to values with which to
+            override those fields
+        """
         originals: dict = {}
         try:
             for attribute, value in overrides.items():
@@ -107,8 +131,7 @@ class _Settings(BaseModel):
 
     @classmethod
     def schema(cls, by_alias: bool = True, ref_template: str = '') -> Dict[str, Any]:
-        """
-        Inject title & description into schema ~ lost due to Enum bugs.
+        """Inject title & description into schema ~ lost due to Enum bugs.
         https://github.com/samuelcolvin/pydantic/pull/1749
         """
 
@@ -131,6 +154,7 @@ class _Settings(BaseModel):
 
 
 class FormatSettings(_Settings):
+    """Format settings"""
     datetime_format: str = Field(default='%Y/%m/%d %H:%M:%S.%f', description="date/time format")
     datetime_format_fs: str = Field(default='%Y-%m-%d_%H-%M-%S', description="file system date/time format")
 
@@ -161,6 +185,8 @@ class LoggingLevel(str, Enum):
 
 
 class LogSettings(_Settings):
+    """Log settings"""
+
     path: FilePath = Field(default=str(ROOTDIR / 'current.log'), title='running log file')
     dir: DirectoryPath = Field(default=str(ROOTDIR / 'log'), title='log file directory')
     keep: int = Field(default=16, title="# of log files to keep")
@@ -172,6 +198,8 @@ class LogSettings(_Settings):
 
 
 class CacheSettings(_Settings):
+    """Cache settings"""
+
     dir: DirectoryPath = Field(default=str(ROOTDIR / 'cache'), title="cache directory")
     size_limit_gb: float = Field(default=4.0, title="cache size limit (GB)")
     do_cache: bool = Field(default=True, title="use the cache")
@@ -183,6 +211,8 @@ class CacheSettings(_Settings):
 
 
 class RenderSettings(_Settings):
+    """Rendering settings"""
+
     dir: DirectoryPath = Field(default=str(ROOTDIR / 'render'), title="render directory")
     keep: bool = Field(default=False, title="keep files after rendering")
 
@@ -190,6 +220,8 @@ class RenderSettings(_Settings):
 
 
 class DatabaseSettings(_Settings):
+    """Database settings"""
+
     path: FilePath = Field(default=str(ROOTDIR / 'history.db'), title="database file")
     cleanup_interval: int = Field(default=7, title='clean-up interval (days)')
 
@@ -197,6 +229,8 @@ class DatabaseSettings(_Settings):
 
 
 class ResultSaveMode(str, Enum):
+    """Where (or whether) to save results"""
+
     skip = "skip"
     next_to_video = "next to video file"
     next_to_design = "next to design file"
@@ -204,6 +238,8 @@ class ResultSaveMode(str, Enum):
 
 
 class ApplicationSettings(_Settings):
+    """Application settings"""
+
     save_state: bool = Field(default=True, title="save application state on exit")
     load_state: bool = Field(default=False, title="load application state on start")
     state_path: FilePath = Field(default=str(ROOTDIR / 'state'), title="application state file")
@@ -228,6 +264,8 @@ class ApplicationSettings(_Settings):
 
 
 class Settings(_Settings):
+    """shapeflow settings"""
+
     app: ApplicationSettings = Field(default=ApplicationSettings(), title="Application")
     log: LogSettings = Field(default=LogSettings(), title="Logging")
     cache: CacheSettings = Field(default=CacheSettings(), title="Caching")
@@ -248,9 +286,14 @@ class Settings(_Settings):
 
 
 global settings
+"""This global :class:`~shapeflow.Settings` instance is used throughout the
+    library
+"""
 
 
 def _load_settings(path: str = str(_SETTINGS_FILE)) -> Settings:  # todo: if there are unexpected fields: warn, don't crash
+    """Load the settings from .yaml"""
+
     with open(path, 'r') as f:
         settings_yaml = yaml.safe_load(f)
 
@@ -282,10 +325,12 @@ def _load_settings(path: str = str(_SETTINGS_FILE)) -> Settings:  # todo: if the
 
 
 def save_settings(s: Settings, path: str = str(_SETTINGS_FILE)):
+    """Save the settings to .yaml"""
     with open(path, 'w+') as f:
         yaml.safe_dump(s.to_dict(), f)
 
 
+# Instantiate global settings object
 if not os.path.isfile(_SETTINGS_FILE):
     settings = Settings()
 else:
@@ -296,9 +341,19 @@ save_settings(settings)
 
 
 def update_settings(s: dict) -> dict:
-    """Update global settings ~ dict
-        Note: doing `settings = Settings(**new_settings)` would prevent
-        importing modules from accessing the updated settings!
+    """Update the global settings instance.
+    Note: doing `settings = Settings(**new_settings)` would prevent
+    importing modules from accessing the updated settings!
+
+    Parameters
+    ----------
+    s : dict
+        new settings to integrate into the global settings
+
+    Returns
+    -------
+    dict
+        the current global settings as a ``dict``
     """
     for cat, cat_new in s.items():
         sub = getattr(settings, cat)
@@ -358,6 +413,21 @@ waitress.propagate = False
 
 
 def get_logger(name: str, log_settings: LogSettings = settings.log) -> Logger:
+    """Get a new :class:`~shapeflow.Logger` object
+
+    Parameters
+    ----------
+    name : str
+        name of the logger
+    log_settings : LogSettings
+        logger settings (the global settings `shapeflow.settings.log` are used
+        by default)
+
+    Returns
+    -------
+    Logger
+        a fresh logging handle
+    """
     if log_settings is None:
         log_settings = LogSettings()
 
@@ -380,6 +450,26 @@ log.debug(f"settings: {settings.dict()}")
 
 
 def get_cache(s: Settings = settings, retry: bool = False) -> diskcache.Cache:
+    """Get a new :class:`diskcache.Cache` object
+    In some rare cases this can fail due to a corrupt cache.
+    If ``settings.cache.reset_on_error`` is on, and an exception is
+    raised the cache directory is removed and :func:`get_cache` is
+    called again with ``retry`` set to ``True``.
+
+    Parameters
+    ----------
+    s : Settings
+
+    retry : bool
+        Whether this call is a "retry call".
+        Defaults to ``False``, i.e. a first call
+
+    Returns
+    -------
+    diskcache.Cache
+        a fresh cache handle
+
+    """
     try:
         return diskcache.Cache(
             directory=str(s.cache.dir),

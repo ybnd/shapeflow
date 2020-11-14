@@ -1,6 +1,4 @@
 from typing import Optional, Tuple, Dict, Any, Type, Union
-
-import yaml
 import json
 
 from pydantic import Field, validator
@@ -20,7 +18,7 @@ from shapeflow.maths.colors import HsvColor
 from shapeflow.util import before_version
 
 
-class ColorSpace(EnforcedStr):
+class ColorSpace(EnforcedStr):  # todo: this is never used outside of tests
     _options = ['hsv', 'bgr', 'rgb']
 
 

@@ -1,19 +1,7 @@
 """Tiny commands to be called from sf.py
 
-* Calling from the commandline:
-    ```
+Calling from the commandline::
     python sf.py --do <command name> <arguments>
-    ```
-
-* Calling from Python:
-    ```
-    from shapeflow.commands import do
-    do('<command name>', ['<arguments>'])
-    ```
-    to resolve command names in the IDE,
-    ```
-    do(Command.<command name>, ['<arguments>'])
-    ```
 """
 
 import sys
@@ -42,11 +30,13 @@ class CliError(Exception):
 
 class IterCommand(abc.ABCMeta):
     """Command iterator metaclass.
-        * associates a __command__ string with a class
-        * iterates over its subclasses, skipping any without a __command__
-            -> abstract classes and entry points shouldn't define a __command__
+
+    Iterates over its subclasses, skipping any without a __command__.
+    If any of these should remain abstract, they shouldn't define one.
     """
     __command__: str
+    """Command name. This is how the command is addressed from the commandline.
+    """
 
     def __str__(cls):
         try:
@@ -65,6 +55,9 @@ class IterCommand(abc.ABCMeta):
 
     @property
     def dict(cls) -> dict:
+        """Get a ``dict`` mapping all defined command names to their
+        respective class
+        """
         return {str(sub):sub for sub in cls}
 
     def __getitem__(cls, item: str) -> 'IterCommand':
@@ -77,17 +70,21 @@ class IterCommand(abc.ABCMeta):
 
     @abc.abstractmethod
     def __usage__(cls) -> str:
+        """Usage string"""
         raise NotImplementedError
 
     @abc.abstractmethod
     def __help__(cls) -> str:
+        """Help string"""
         raise NotImplementedError
 
 
 class Command(abc.ABC, metaclass=IterCommand):
     """Abstract command.
-        * handles argument parsing & execution
-        * subclasses can implement their functionality in command()
+
+    * handles argument parsing & execution
+
+    * subclasses can implement their functionality in :meth:`Command.command()`
     """
     parser: argparse.ArgumentParser
     args: argparse.Namespace
@@ -107,16 +104,18 @@ class Command(abc.ABC, metaclass=IterCommand):
 
     @abc.abstractmethod
     def command(self) -> None:
-        self.command()
+        raise NotImplementedError
 
     @classmethod
     def __help__(cls) -> str:
-        """ Return cleaned-up help string """
+        """Cleaned-up help string
+        """
         return cls._fix_call(cls.parser.format_help())
 
     @classmethod
     def __usage__(cls) -> str:
-        """ Return cleaned-up usage string """
+        """Cleaned-up usage string
+        """
         usage = cls.parser.format_usage()[7:].strip()
         return cls._fix_call(usage)
 
@@ -126,7 +125,8 @@ class Command(abc.ABC, metaclass=IterCommand):
 
     @classmethod
     def _fix_call(cls, text: str) -> str:
-        """ Fix text by appending __command__ to the program name """
+        """Fix text by appending __command__ to the program name
+        """
         if cls.sub:
             call = ' '.join([cls.parser.prog, str(cls)])
             return text.replace(cls.parser.prog, call)
@@ -135,8 +135,9 @@ class Command(abc.ABC, metaclass=IterCommand):
 
 
 class Sf(Command):
-    """Entry point
-        * gets called first and calls subcommands
+    """Commandline entry point.
+    This is the command that gets called first and calls any subcommands
+    if requested.
     """
     parser = argparse.ArgumentParser(
         description=f"""https://github.com/ybnd/shapeflow v{__version__}""",
@@ -166,7 +167,7 @@ class Sf(Command):
         )
         super().__init__(args)
 
-    def command(self):
+    def command(self) -> None:
         if self.args.help:
             if self.args.command is not None:
                 # print the help string of the requested command
@@ -191,7 +192,8 @@ class Sf(Command):
 
 
 class Serve(Command):
-    """start the shapeflow server"""
+    """Starts the ``shapeflow`` server.
+    """
 
     __command__ = 'serve'
     parser = argparse.ArgumentParser(
@@ -248,7 +250,8 @@ class Serve(Command):
 
 
 class Dump(Command):
-    """dump application schemas and settings to JSON"""
+    """Dump application schemas and settings to JSON
+    """
 
     __command__ = 'dump'
     parser = argparse.ArgumentParser(

@@ -295,6 +295,7 @@ class ApiDispatcher(Dispatcher):
     va = _VideoAnalyzerManagerDispatcher()
     cache = _CacheDispatcher()
 
+
 api = ApiDispatcher()
 """| Global :class:`~shapeflow.api.ApiDispatcher` instance. 
    | Endpoints should be exposed against this object. 

@@ -25,6 +25,8 @@ log = get_logger(__name__)
 
 
 class VideoFileModel(FileModel):
+    """Database model of a video file.
+    """
     __tablename__ = 'video_file'
 
     def resolve(self) -> 'VideoFileModel':
@@ -34,6 +36,8 @@ class VideoFileModel(FileModel):
 
 
 class DesignFileModel(FileModel):
+    """Database model of a design file.
+    """
     __tablename__ = 'design_file'
 
     def resolve(self) -> 'DesignFileModel':
@@ -43,6 +47,8 @@ class DesignFileModel(FileModel):
 
 
 class ConfigModel(DbModel):
+    """Database model of a configuration.
+    """
     __tablename__ = 'config'
 
     id = Column(Integer, primary_key=True)
@@ -57,6 +63,8 @@ class ConfigModel(DbModel):
 
 
 class ResultModel(DbModel):
+    """Database model of a result.
+    """
     __tablename__ = 'results'
 
     id = Column(Integer, primary_key=True)
@@ -112,8 +120,12 @@ class AnalysisModel(BaseAnalysisModel):
                 setattr(self, attr, None)
 
     def get_name(self) -> str:
-        """Name of the analysis from the database. Unset names are reset
-        to '#{id}'
+        """
+        Returns
+        -------
+        str
+            Name of the analysis from the database.
+            Empty names are reset to '#{id}'
         """
         with self.session(add=False):
             if self.name is None:
@@ -121,16 +133,28 @@ class AnalysisModel(BaseAnalysisModel):
             return self.name
 
     def get_runs(self) -> int:
+        """
+        Returns
+        -------
+        int
+            Number of completed runs for the analysis
+        """
         with self.session(add=False):
             if self.runs is None:
                 self.runs = 0
             return self.runs
 
     def get_id(self) -> int:
+        """
+        Returns
+        -------
+        int
+            The database id of the analysis
+        """
         with self.session(add=False):
             return self.id
 
-    def set_analyzer(self, analyzer: BaseAnalyzer):
+    def _set_analyzer(self, analyzer: BaseAnalyzer):
         self._analyzer = analyzer
 
     def _add_video(self, path: str) -> VideoFileModel:
@@ -192,8 +216,9 @@ class AnalysisModel(BaseAnalysisModel):
             return None
 
     def store(self):  # todo: consider passing analyzer to store() instead of keeping a reference
-        """Store analysis information from wrapped ``BaseVideoAnalyzer``
-        to the database."""
+        """Store analysis information from the
+        :class:`~shapeflow.core.backend.BaseVideoAnalyzer` to the database.
+        """
         self._resolve_attributes()
         if self._analyzer is not None:
             config_json = json.dumps(self._analyzer.get_config(do_tag=True))
@@ -246,6 +271,18 @@ class AnalysisModel(BaseAnalysisModel):
                         self.results = model.id
 
     def export_result(self, run: int = None, manual: bool = False):
+        """Export a result to disk
+
+        Parameters
+        ----------
+        run : int
+            The run to export
+        manual : bool
+            Whether this export request is manual (i.e. explicitly requested
+            by the user). This setting determines whether to follow
+            ``settings.app.save_result_manual`` or ``settings.app.save_result_auto``
+            when choosing where or whether to actually save.
+        """
         with self.session() as s:
             if self.runs is None or self.runs < 1:
                 raise ValueError(f"'{self}' has no runs to export!")
@@ -319,18 +356,18 @@ class AnalysisModel(BaseAnalysisModel):
 
         Parameters
         ----------
-        video_path: str
+        video_path : str
             Path to video file
-        design_path: str
+        design_path : str
             Path to design file
-        include: List[str]
+        include : List[str]
             List of fields which must be included in the configuration. If a
             matching ConfigModel doesn't provide all of these, the
             other matches will be parsed to complete it.
 
         Returns
         -------
-        dict:
+        dict
             Configuration dict, if a matching config is found. Otherwise,
             returns ``None``
 
@@ -454,7 +491,7 @@ class AnalysisModel(BaseAnalysisModel):
 
         Parameters
         ----------
-        context: str
+        context : str
             Name of a ``VideoAnalyzerConfig`` field
 
         Raises
@@ -477,7 +514,7 @@ class AnalysisModel(BaseAnalysisModel):
 
         Parameters
         ----------
-        context: str
+        context : str
             Name of a ``VideoAnalyzerConfig`` field
 
         Raises
@@ -524,33 +561,81 @@ class History(SessionWrapper, RootInstance):
         )
 
     def add_video_file(self, path: str) -> VideoFileModel:
-        """Add a video file to the database. Duplicate files are resolved
-        to the original entry."""
+        """Add a video file to the database.
+        Duplicate files are resolved to their original entry.
+
+        Parameters
+        ----------
+        path : str
+            The path of the file to add
+
+        Returns
+        -------
+        VideoFileModel
+            A database model of the file. Will reference the original entry
+            if the user tried to add a previously used file again.
+        """
         file = VideoFileModel(path=path)
         file.connect(self)
         file.resolve()
         return file
 
     def add_design_file(self, path: str) -> DesignFileModel:
-        """Add a design file to the database. Duplicate files are resolved
-        to the original entry."""
+        """Add a design file to the database.
+        Duplicate files are resolved to their original entry.
+
+        Parameters
+        ----------
+        path : str
+            The path of the file to add
+
+        Returns
+        -------
+        DesignFileModel
+            A database model of the file. Will reference the original entry
+            if the user tried to add a previously used file again.
+        """
         file = DesignFileModel(path=path)
         file.connect(self)
         file.resolve()
         return file
 
     def add_analysis(self, analyzer: BaseAnalyzer, model: AnalysisModel = None) -> AnalysisModel:
+        """Add a new analysis to the database.
+
+        Parameters
+        ----------
+        analyzer : BaseAnalyzer
+            The analyzer object to add to the database
+        model : AnalysisModel
+            Optionally, an existing model can be specified.
+            Defaults to ``None``
+
+        Returns
+        -------
+        AnalysisModel
+            If a ``model`` is provided, no new :class:`~AnalysisModel`
+            will be created and the ``analyzer`` will be linked to the
+            existing ``model`` instead.
+        """
         if model is None:
             with self.session() as s:
                 model = AnalysisModel()
                 s.add(model)
         model.connect(self)
 
-        model.set_analyzer(analyzer)
+        model._set_analyzer(analyzer)
         analyzer.set_model(model)
         return model
 
     def fetch_analysis(self, id: int) -> Optional[AnalysisModel]:
+        """Fetch an analysis model from the database.
+
+        Parameters
+        ----------
+        id : int
+            Database id of the analysis to fetch
+        """
         with self.session() as s:
             return s.query(AnalysisModel).filter(AnalysisModel.id == id).\
                 first()
@@ -574,6 +659,18 @@ class History(SessionWrapper, RootInstance):
     # @history.expose(history.get_result_list)
     @api.db.get_result_list.expose()
     def get_result_list(self, analysis: int) -> dict:
+        """Fetch the result list for a given analysis
+
+        Parameters
+        ----------
+        analysis : int
+            Database id of the analysis
+
+        Returns
+        -------
+        dict
+            A ``dict`` mapping run id ``int`` to result id ``int``
+        """
         with self.session() as s:
             runs = s.query(AnalysisModel).\
                 filter(AnalysisModel.id == analysis).first().runs
@@ -588,6 +685,21 @@ class History(SessionWrapper, RootInstance):
     # @history.expose(history.get_result)
     @api.db.get_result.expose()
     def get_result(self, analysis: int, run: int) -> dict:
+        """Fetch the result for a given analysis and run
+
+        Parameters
+        ----------
+        analysis : int
+            Database id of the analysis
+        run : int
+            Run number of the result to fetch
+
+        Returns
+        -------
+        dict
+            Analysis results, as a ``dict`` formatted ~
+            ``pandas.DataFrame.to_json(orient='split')``
+        """
         with self.session() as s:
             return {
                 r.feature: json.loads(r.data)
@@ -599,6 +711,21 @@ class History(SessionWrapper, RootInstance):
     # @history.expose(history.export_result)
     @api.db.export_result.expose()
     def export_result(self, analysis: int, run: int = None) -> bool:
+        """Export the result for a given analysis and run
+
+        Parameters
+        ----------
+        analysis : int
+            Database id of the analysis
+        run : int
+            Run number of the result to fetch
+
+        Returns
+        -------
+        bool
+            ``True`` if exported,
+            ``False`` if something went wrong.
+        """
         with self.session() as s:
             try:
                 a = s.query(AnalysisModel).filter_by(
@@ -615,6 +742,15 @@ class History(SessionWrapper, RootInstance):
                 return False
 
     def check(self) -> bool:
+        """Check the database's integrity (somewhat).
+        Makes sure that the required tables exist and that their columns match.
+
+        Returns
+        -------
+        bool
+            ``True`` if everything's fine,
+            ``False`` if the database is messed up
+        """
         log.debug('checking history')
 
         ok = []
@@ -663,14 +799,20 @@ class History(SessionWrapper, RootInstance):
     # @history.expose(history.clean)
     @api.db.clean.expose()
     def clean(self) -> None:
-        """Clean the database
+        """Clean the database.
 
         * remove 'video_file & 'design_file' entries with <null> path
-           * resolve entries with <null> hash
+
+           * resolve entries with ``<null>`` hash
+
         * remove 'analysis' entries with ``<null>`` config
+
         * remove 'config' entries with ``<null>`` json
+
         * for 'analysis' entries older than ``settings.db.cleanup_interval``
+
            * remove all non-primary 'config' entries
+
            * remove all non-primary 'results' entries
         """
         log.debug(f"cleaning history")
@@ -709,7 +851,8 @@ class History(SessionWrapper, RootInstance):
     # @history.expose(history.forget)
     @api.db.forget.expose()
     def forget(self) -> None:
-        """Remove everything."""
+        """Remove everything.
+        """
         log.info(f"clearing history")
         models = [
             AnalysisModel,
