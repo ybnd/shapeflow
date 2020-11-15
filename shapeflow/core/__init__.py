@@ -311,7 +311,7 @@ class Dispatcher(object):  # todo: these should also register specific instances
         return self._endpoints
 
     @property
-    def address_space(self) -> Dict[str, Callable]:
+    def address_space(self) -> Dict[str, Optional[Callable]]:
         """The address-method mapping of this dispatcher.
         """
         return self._address_space
