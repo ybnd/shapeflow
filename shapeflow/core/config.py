@@ -3,7 +3,7 @@ import copy
 import json
 
 import numpy as np
-from typing import Optional, Union, Type, Dict, Any, Mapping
+from typing import Optional, Union, Type, Dict, Any, Mapping, List
 from functools import partial
 
 from shapeflow import get_logger, __version__
@@ -28,12 +28,20 @@ __meta_ext__ = '.meta'
 __meta_sheet__ = 'metadata'
 
 
+# todo: move up to shapeflow.core
 class Factory(EnforcedStr):  # todo: add a _class & issubclass check
+    """An enforced string which maps its options to types.
+
+    Included types should be subclasses of :class:`shapeflow.core.Described`
+    in order to generate descriptions for all options.
+    """
     _mapping: Mapping[str, Type[Described]] = {}
     _default: Optional[str] = None
     _type: Type[Described] = Described
 
-    def get(self) -> type:
+    def get(self) -> Type[Described]:
+        """Get the type associated with the current string.
+        """
         if self._str in self._mapping:
             return self._mapping[self._str]
         else:
@@ -41,7 +49,9 @@ class Factory(EnforcedStr):  # todo: add a _class & issubclass check
                              f"{self._str} to a class.")
 
     @classmethod
-    def get_str(cls, mapped_value):
+    def get_str(cls, mapped_value: Type[Described]):
+        """Get the string for a specific type.
+        """
         str = cls.default
         for k,v in cls._mapping.items():
             if mapped_value == v:
@@ -50,15 +60,21 @@ class Factory(EnforcedStr):  # todo: add a _class & issubclass check
         return str
 
     @property
-    def options(self):
+    def options(self) -> List[str]:
+        """The options for this factory.
+        """
         return list(self._mapping.keys())
 
     @property
-    def descriptions(self):
+    def descriptions(self) -> Dict[str, str]:
+        """The descriptions for this factory.
+        """
         return { k:v._description() for k,v in self._mapping.items() }
 
     @property
-    def default(self):
+    def default(self) -> Optional[str]:
+        """The default for this factory.
+        """
         if self._default is not None:
             return self._default
         else:
@@ -68,7 +84,10 @@ class Factory(EnforcedStr):  # todo: add a _class & issubclass check
                 return None
 
     @classmethod
-    def _extend(cls, key: str, extension: Type[Described]):
+    def extend(cls, key: str, extension: Type[Described]):
+        """Add a new type to this factory.
+        Used to dynamically add options e.g. for including plugins.
+        """
         if not hasattr(cls, '_mapping'):
             cls._mapping = {}
 
@@ -84,6 +103,9 @@ class Factory(EnforcedStr):  # todo: add a _class & issubclass check
 
     @abc.abstractmethod
     def config_schema(self) -> dict:
+        """The ``pydantic`` configuration schema for
+        the members of this factory
+        """
         raise NotImplementedError
 
 
@@ -98,7 +120,7 @@ class extend(object):  # todo: can this be a function instead? look at the @data
     def __call__(self, cls):
         if self._key is None:
             self._key = cls.__name__
-        self._factory._extend(self._key, cls)
+        self._factory.extend(self._key, cls)
         return cls
 
 
@@ -121,33 +143,28 @@ class NpArray(np.ndarray):
 
 
 class BaseConfig(BaseModel, Described):
-    """Abstract configuration"""
-    """
-    * Usage, where `SomeConfig` is a subclass of `BaseConfig`:
-        * Instantiating:
-            ```
-                config = SomeConfig()
-                config = SomeConfig(field1=1.0, field2='text')
-                config = SomeConfig(**dict_with_fields_and_values)
-            ```
-        * Updating:
-            ```
-                config(field1=1.0, field2='text')
-                config(**dict_with_fields_and_values)
-            ```
+    """Abstract configuration
+
+    * Usage, where ``SomeConfig`` is a subclass of ``BaseConfig``:
+        * Instantiating::
+            config = SomeConfig()
+            config = SomeConfig(field1=1.0, field2='text')
+            config = SomeConfig(**dict_with_fields_and_values)
+        * Updating::
+            config(field1=1.0, field2='text')
+            config(**dict_with_fields_and_values)
 
         * Saving:
-            ```
-                dict_with_fields_and_values = config.to_dict()
-            ```
+            dict_with_fields_and_values = config.to_dict()
 
-    * Writing `BaseConfig` subclasses:
-        * Use the `@extends(ConfigType)` decorator to make your configuration
-            class accessible from the `ConfigType` Factory (defined below)
-        * Configuration keys are declared as pydantic `Field` instances
-            - Must be type-annotated for type resolution to work properly!
-            -
-    ```
+    * Writing ``BaseConfig`` subclasses:
+        * Use the ``@extends(ConfigType)`` decorator to make your configuration
+            class accessible from the :class:`~shapeflow.core.config.ConfigType`
+            factory
+        * Configuration keys are declared as ``pydantic.Field`` instances
+            * Must be type-annotated for type resolution to work properly!
+
+    Example::
         from pydantic import Field
         from shapeflow.core.config import BaseConfig
 
@@ -155,10 +172,9 @@ class BaseConfig(BaseModel, Described):
         class SomeConfig(BaseConfig):
             field1: int = Field(default=42)
             field2: SomeNestedConfig = Field(default_factory=SomeOtherConfig)
-    ```
     """
     class Config:
-        """pydantic configuration class"""
+        """``pydantic`` configuration class"""
         arbitrary_types_allowed = False
         use_enum_value = True
         validate_assignment = True
@@ -228,15 +244,23 @@ class BaseConfig(BaseModel, Described):
 
     def to_dict(self, do_tag: bool = False) -> dict:  # todo: should be replaced by pydantic internals + serialization
         """Return the configuration as a serializable dict.
+
+        Parameters
+        ----------
+        do_tag : bool
+            If `True`, add configuration class and version fields to the dict
+
+        Returns
+        -------
+        dict
+            A serializable representation of this configuration object.
+        """
+        """Return the configuration as a serializable dict.
         :param do_tag: if `True`, add configuration class and version fields to the dict
         :return: dict
         """
         output: dict = {}
         def _represent(obj) -> Union[dict, str]:
-            """Represent an object in a YAML-serializable way
-            :param obj: object
-            :return:
-            """
             if isinstance(obj, BaseConfig):
                 # Recurse, but don't tag
                 return obj.to_dict(do_tag = False)
@@ -279,16 +303,23 @@ class BaseConfig(BaseModel, Described):
         return output
 
     def tag(self, d: dict) -> dict:
+        """Tag a ``dict`` with this object's class and the library version.
+        This information is used to deserialize correctly later on.
+        """
         d[VERSION] = __version__
         d[CLASS] = self.__class__.__name__
         return d
 
 
 class ConfigType(Factory):
+    """Configuration type factory
+    """
     _type = BaseConfig
     _mapping: Mapping[str, Type[Described]] = {}
 
     def get(self) -> Type[BaseConfig]:
+        """Return the configuration type.
+        """
         config = super().get()
         if issubclass(config, BaseConfig):
             return config
@@ -299,10 +330,14 @@ class ConfigType(Factory):
             )
 
     def config_schema(self) -> dict:
+        """Return the configuration schema.
+        """
         return self.get().schema()
 
 
 class Configurable(Described):
+    """A class with an associated configuration type.
+    """
     _config_class: Type[BaseConfig]
 
     @classmethod
@@ -314,7 +349,7 @@ class Configurable(Described):
         return cls.config_class().schema()
 
 
-class Instance(Configurable):
+class Instance(Configurable):  # todo: why isn't this just in Configurable?
     _config: BaseConfig
 
     @property

@@ -13,10 +13,10 @@ from OnionSVG import check_svg
 from shapeflow.util import open_path, sizeof_fmt
 from shapeflow.util.filedialog import filedialog
 from shapeflow import get_logger, get_cache, settings, update_settings, ROOTDIR
-from shapeflow.core import stream_off, Endpoint
+from shapeflow.core import stream_off, Endpoint, RootException
 from shapeflow.api import api, _FilesystemDispatcher, _DatabaseDispatcher, _VideoAnalyzerManagerDispatcher, _VideoAnalyzerDispatcher, _CacheDispatcher, ApiDispatcher
 from shapeflow.core.streaming import streams, EventStreamer, PlainFileStreamer, BaseStreamer
-from shapeflow.core.backend import QueueState, AnalyzerState, SetupError, BaseAnalyzer
+from shapeflow.core.backend import QueueState, AnalyzerState, BaseAnalyzer
 from shapeflow.config import schemas, normalize_config, loads, BaseAnalyzerConfig
 from shapeflow.video import init, VideoAnalyzer
 import shapeflow.plugins
@@ -465,7 +465,7 @@ class _VideoAnalyzerManager(object):
                         if config_json is not None:
                             config = loads(config_json)
                         else:
-                            raise SetupError('invalid config from database')
+                            raise RootException('invalid config from database')
                         assert isinstance(config, BaseAnalyzerConfig)
 
                         analyzer = init(config)

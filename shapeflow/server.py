@@ -15,7 +15,7 @@ import webbrowser
 import shapeflow
 import shapeflow.config
 import shapeflow.util as util
-from shapeflow.core import SetupError, DispatcherError
+from shapeflow.core import DispatchingError
 import shapeflow.core.streaming as streaming
 from shapeflow.api import ApiDispatcher
 
@@ -188,7 +188,7 @@ class ShapeflowServer(shapeflow.core.Lockable):
                     return response
                 else:
                     return respond(result)
-            except DispatcherError:
+            except DispatchingError:
                 abort(404)
             except Exception as e:
                 log.error(f"'{address}' - {e.__class__.__name__}: {str(e)}")

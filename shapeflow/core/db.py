@@ -138,7 +138,7 @@ class DbModel(Base, SessionWrapper, Lockable):
 
 
 class FileModel(DbModel):
-    """Abstrat database model for files.
+    """Abstract database model for files.
 
     Files are hashed and resolved in order to keep a single entry per file.
     """
@@ -237,7 +237,8 @@ class FileModel(DbModel):
 
 
 class BaseAnalysisModel(DbModel):
-    """AnalysisModel interface"""
+    """AnalysisModel interface.
+    """
     __abstract__ = True
 
     @abc.abstractmethod

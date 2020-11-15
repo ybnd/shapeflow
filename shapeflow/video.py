@@ -193,7 +193,7 @@ class VideoFileHandler(CachingInstance, Lockable):
         if settings.cache.resolve_frame_number:
             frame_number = self._resolve_frame(frame_number)
 
-        return self._cached_call(self._read_frame, self.path, frame_number)
+        return self.cached_call(self._read_frame, self.path, frame_number)
 
     def seek(self, position: float = None) -> float:
         """Seek to the relative position ~ [0,1]
@@ -674,10 +674,10 @@ class DesignFileHandler(CachingInstance):
         return masks, names
 
     def peel_design(self, design_path: str, dpi: int) -> np.ndarray:
-        return self._cached_call(self._peel_design, design_path, dpi)
+        return self.cached_call(self._peel_design, design_path, dpi)
 
     def read_masks(self, design_path: str, dpi: int) -> Tuple[List[np.ndarray], List[str]]:
-        return self._cached_call(self._read_masks, design_path, dpi)
+        return self.cached_call(self._read_masks, design_path, dpi)
 
     @property
     def shape(self):
