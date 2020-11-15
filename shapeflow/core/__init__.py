@@ -19,6 +19,9 @@ class RootException(Exception):
     Automatically logs the exception class and message at the ``ERROR`` level.
     """
     msg = ''
+    """The message to log
+    """
+
     def __init__(self, *args):
         # https://stackoverflow.com/questions/49224770/
         # if no arguments are passed set the first positional argument
@@ -39,8 +42,7 @@ class DispatchingError(RootException):
 
 class EnforcedStr(str):
     """A string that is enforced to be one of several options.
-
-    Works like a dynamic ``Enum`` -- options can be added at runtime
+    Works like a dynamic ``Enum`` -- options can be added at runtime.
     """
     _options: List[str] = ['']
     _descriptions: Dict[str, str] = {}
