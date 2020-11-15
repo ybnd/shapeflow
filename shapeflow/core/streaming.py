@@ -413,7 +413,7 @@ class StreamHandler(Lockable, metaclass=Singleton):
 
 
 streams = StreamHandler()
-"""Global StreamHandler instance.
+"""Global :class:`~shapeflow.core.streaming.StreamHandler` instance.
 """
 
 
@@ -421,7 +421,7 @@ def stream(method):
     """Decorator to mark streaming methods.
 
     Only works for methods exposed at :class:`~shapeflow.core.Endpoint` objects,
-    should be placed *above* the :method:`~shapeflow.core.Endpoint.expose`
+    should be placed *above* the :func:`~shapeflow.core.Endpoint.expose`
     decorator::
         from shapeflow.core import Endpoint, _Streaming
 

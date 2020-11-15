@@ -855,7 +855,7 @@ class BaseAnalyzer(Instance, RootInstance):
 
     @property
     def timing(self) -> Optional[Timing]:
-        """Get the timing info from the latest run of :method:`~shapeflow.core.backend.BaseAnalyzer.time`
+        """Get the timing info from the latest run of :func:`~shapeflow.core.backend.BaseAnalyzer.time`
         """
         if self._timer.timing is not None:
             return Timing(*self._timer.timing)

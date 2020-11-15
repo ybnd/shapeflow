@@ -156,8 +156,8 @@ class TransformInterface(Configurable, abc.ABC):
     @abc.abstractmethod
     def estimate(self, roi: Roi, from_shape: tuple, to_shape: tuple) -> Optional[np.ndarray]:
         """Estimate the transformation matrix from
-        :method:`~shapeflow.core.interface.TransformInterface.from_coordinates`
-        to :method:`~shapeflow.core.interface.TransformInterface.ro_coordinates`
+        :func:`~shapeflow.core.interface.TransformInterface.from_coordinates`
+        to :func:`~shapeflow.core.interface.TransformInterface.to_coordinates`
 
         Parameters
         ----------
