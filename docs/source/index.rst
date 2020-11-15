@@ -42,5 +42,4 @@ Dependencies
    troubleshooting
    developing
    changelog
-   backend
-   frontend
+   python-library

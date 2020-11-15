@@ -1,5 +1,5 @@
-Backend
-#######
+Python library
+##############
 
 shapeflow
 =========
