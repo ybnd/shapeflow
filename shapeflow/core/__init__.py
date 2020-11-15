@@ -399,8 +399,10 @@ class Dispatcher(object):  # todo: these should also register specific instances
         """
         try:
             method = self.address_space[address]
-            # todo: consider doing some type checking here, args/kwargs vs. method._endpoint.signature
-            return method(*args, **kwargs)
+
+            if method is not None:
+                # todo: consider doing some type checking here, args/kwargs vs. method._endpoint.signature
+                return method(*args, **kwargs)
         except KeyError:
             raise DispatchingError(
                 f"'{self.name}' can't dispatch address '{address}'."
