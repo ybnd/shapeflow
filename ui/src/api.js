@@ -257,11 +257,6 @@ export const api = {
           .get(url("va", id, "get_colors"))
           .then(return_data);
       },
-      async get_state(id) {
-        return axios
-          .get(url("va", id, "get_state"))
-          .then(return_data);
-      },
       async get_status(id) {
         return axios
           .get(url("va", id, "status"))
