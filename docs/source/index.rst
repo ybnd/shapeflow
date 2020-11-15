@@ -40,5 +40,7 @@ Dependencies
 
    tutorial
    troubleshooting
-   library
+   developing
    changelog
+   backend
+   frontend
