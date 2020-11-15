@@ -32,7 +32,7 @@ __meta_sheet__ = 'metadata'
 class Factory(EnforcedStr):  # todo: add a _class & issubclass check
     """An enforced string which maps its options to types.
 
-    Included types should be subclasses of :class:`shapeflow.core.Described`
+    Included types should be subclasses of :class:`~shapeflow.core.Described`
     in order to generate descriptions for all options.
     """
     _mapping: Mapping[str, Type[Described]] = {}
@@ -110,6 +110,14 @@ class Factory(EnforcedStr):  # todo: add a _class & issubclass check
 
 
 class extend(object):  # todo: can this be a function instead? look at the @dataclass decorator, something weird is going on there with * and /
+    """Decorator to extend :class:`~shapeflow.core.config.Factory` classes.
+    Usage::
+        from shapeflow.core.config import extend
+
+        @extend(SomeFactory)
+        class SomeClass:
+            pass
+    """
     _factory: Type[Factory]
     _key: Optional[str]
 
@@ -125,46 +133,55 @@ class extend(object):  # todo: can this be a function instead? look at the @data
 
 
 def untag(d: dict) -> dict:
+    """Remove the tags from a configuration ``dict``
+
+    Parameters
+    ----------
+    d : dict
+        Any configuration dict
+
+    Returns
+    -------
+    dict
+        The original configuration ``dict`` without class and version info
+    """
     for tag in TAGS:
         if tag in d:
             d.pop(tag)
     return d
 
 
-class NpArray(np.ndarray):
-    @classmethod
-    def __get_validators__(cls):
-        yield cls.validate
-
-    @classmethod
-    def validate(cls, v: Any) -> str:
-        # validate data...
-        return v
-
-
 class BaseConfig(BaseModel, Described):
     """Abstract configuration
 
     * Usage, where ``SomeConfig`` is a subclass of ``BaseConfig``:
+
         * Instantiating::
+
             config = SomeConfig()
             config = SomeConfig(field1=1.0, field2='text')
             config = SomeConfig(**dict_with_fields_and_values)
         * Updating::
+
             config(field1=1.0, field2='text')
             config(**dict_with_fields_and_values)
 
         * Saving:
+
             dict_with_fields_and_values = config.to_dict()
 
     * Writing ``BaseConfig`` subclasses:
+
         * Use the ``@extends(ConfigType)`` decorator to make your configuration
             class accessible from the :class:`~shapeflow.core.config.ConfigType`
             factory
+
         * Configuration keys are declared as ``pydantic.Field`` instances
+
             * Must be type-annotated for type resolution to work properly!
 
     Example::
+
         from pydantic import Field
         from shapeflow.core.config import BaseConfig
 
@@ -342,10 +359,14 @@ class Configurable(Described):
 
     @classmethod
     def config_class(cls):
+        """The configuration class.
+        """
         return cls._config_class
 
     @classmethod
     def config_schema(cls):
+        """The configuration schema.
+        """
         return cls.config_class().schema()
 
 

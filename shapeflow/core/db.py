@@ -78,7 +78,7 @@ class DbModel(Base, SessionWrapper, Lockable):
         """SQLAlchemy session context manager.
 
         Opens a SQLAlchemy session and commits after the block is done.
-        Changes are rolled back if an exception is raised. Usage:
+        Changes are rolled back if an exception is raised. Usage::
 
             with self.session() as s:
                 # interact with the database here

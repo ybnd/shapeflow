@@ -214,7 +214,7 @@ class EventStreamer(JsonStreamer):
 class FrameStreamer(BaseStreamer):
     """Streams images.
     Subclasses can define specific encodings, for now
-    :method:`~shapeflow.core.streaming.JpegStreamer` seems to work best.
+    :class:`~shapeflow.core.streaming.JpegStreamer` seems to work best.
     """
     _boundary = b"frame"
 

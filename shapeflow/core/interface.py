@@ -75,7 +75,7 @@ class HandlerConfig(BaseConfig, abc.ABC):
     """The handler's interface implementation.
     """
     data: BaseConfig
-    """The implementaion's configuration.
+    """The implementation's configuration.
     """
 
     @validator('type', pre=True)

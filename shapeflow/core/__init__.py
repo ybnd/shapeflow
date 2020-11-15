@@ -96,7 +96,7 @@ class EnforcedStr(str):
 
     @property
     def default(self):
-        """The default option for this :class:`shapeflow.core.EnforcedStr`
+        """The default option for this :class:`~shapeflow.core.EnforcedStr`
         """
         if self._default is not None:
             return self._default
@@ -425,9 +425,9 @@ class Described(object):  # todo: maybe this should be a metaclass?
 class Lockable(object):
     """Wrapper around :class:`threading.Lock` & :class:`threading.Event`
 
-    Defines a :method:`shapeflow.core.Lockable.lock` context to handle locking
+    Defines a :class:`~shapeflow.core.Lockable.lock` context to handle locking
     and unlocking along with a ``_cancel`` and ``_error`` events to communicate
-    with :class:`shapeflow.core.Lockable` objects from other threads.
+    with :class:`~shapeflow.core.Lockable` objects from other threads.
 
     Doesn't need to initialize; lock & events are created when they're needed.
     """
