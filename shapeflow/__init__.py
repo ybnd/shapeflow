@@ -54,7 +54,7 @@ class _Settings(BaseModel):
     class Config:
         validate_assignment = True
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> Dict[str, Any]:
         """
         Returns
         -------

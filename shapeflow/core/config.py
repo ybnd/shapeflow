@@ -52,12 +52,9 @@ class Factory(EnforcedStr):  # todo: add a _class & issubclass check
     def get_str(cls, mapped_value: Type[Described]):
         """Get the string for a specific type.
         """
-        str = cls.default
         for k,v in cls._mapping.items():
             if mapped_value == v:
-                str = k
-
-        return str
+                return k
 
     @property
     def options(self) -> List[str]:

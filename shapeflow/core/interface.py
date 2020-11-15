@@ -256,7 +256,7 @@ class FilterInterface(Configurable, abc.ABC):
     """
 
     @abc.abstractmethod
-    def set_filter(self, filter: FilterConfig, color: Color) -> FilterConfig:
+    def set_filter(self, filter, color: Color) -> FilterConfig:
         """Set the filter to a specific color.
 
         Parameters
@@ -274,7 +274,7 @@ class FilterInterface(Configurable, abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def mean_color(self, filter: FilterConfig) -> Color:
+    def mean_color(self, filter) -> Color:
         """Get the mean color from a filter configuration
 
         Parameters
@@ -290,7 +290,7 @@ class FilterInterface(Configurable, abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def filter(self, filter: FilterConfig, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
+    def filter(self, filter, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
         """Filter a frame.
 
         Parameters

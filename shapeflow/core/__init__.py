@@ -234,7 +234,7 @@ class Endpoint(object):
     def signature(self) -> tuple:
         """The signature of this endpoint.
         """
-        return self._signature.__args__
+        return self._signature.__args__  # type: ignore
 
     @property
     def streaming(self) -> _Streaming:
@@ -274,7 +274,7 @@ class Dispatcher(object):  # todo: these should also register specific instances
 
     _name: str
     _parent: Optional['Dispatcher']
-    _address_space: Dict[str, Callable]
+    _address_space: Dict[str, Optional[Callable]]
 
     _update: Optional[Callable[['Dispatcher'], None]]
 
