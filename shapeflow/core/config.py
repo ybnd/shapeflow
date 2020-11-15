@@ -152,33 +152,29 @@ def untag(d: dict) -> dict:
 
 
 class BaseConfig(BaseModel, Described):
-    """Abstract configuration
+    """Abstract configuration class.
+    All other configuration classes should derive from this one.
 
-    * Usage, where ``SomeConfig`` is a subclass of ``BaseConfig``:
+    Usage, where ``SomeConfig`` is a subclass of ``BaseConfig``::
 
-        * Instantiating::
-
+            # instantiating
             config = SomeConfig()
             config = SomeConfig(field1=1.0, field2='text')
             config = SomeConfig(**dict_with_fields_and_values)
-        * Updating::
 
+            # updating
             config(field1=1.0, field2='text')
             config(**dict_with_fields_and_values)
 
-        * Saving:
-
+            # saving
             dict_with_fields_and_values = config.to_dict()
 
-    * Writing ``BaseConfig`` subclasses:
-
-        * Use the ``@extends(ConfigType)`` decorator to make your configuration
-            class accessible from the :class:`~shapeflow.core.config.ConfigType`
-            factory
-
-        * Configuration keys are declared as ``pydantic.Field`` instances
-
-            * Must be type-annotated for type resolution to work properly!
+    When writing ``BaseConfig`` subclasses, use the
+    :class:`~shapeflow.core.config.extends` decorator to make your
+    configuration class accessible through the
+    :class:`~shapeflow.core.config.ConfigType` factory. Configuration fields
+     are declared as ``pydantic.Field`` instances and must be type-annotated
+     for type resolution to work properly.
 
     Example::
 
