@@ -65,6 +65,9 @@ autosummary_generate = True
 # import sphinx_glpi_theme
 
 html_theme = "sphinx_rtd_theme"
+html_theme_options = {
+    'prev_next_buttons_location': 'both',
+}
 
 # html_theme_path = sphinx_glpi_theme.get_html_themes_path()
 
