@@ -19,5 +19,5 @@ Written by Yury Bondarenko with moral and QA support of the `KU Leuven MeBioS Bi
    installation
    tutorial
    troubleshooting
-   shapeflow
+   library
    changelog
