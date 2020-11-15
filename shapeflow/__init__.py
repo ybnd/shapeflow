@@ -54,7 +54,7 @@ class _Settings(BaseModel):
     class Config:
         validate_assignment = True
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict:
         """
         Returns
         -------
@@ -62,7 +62,7 @@ class _Settings(BaseModel):
             Application settings as a dict
 
         """
-        d = {}
+        d: dict = {}
         for k,v in self.__dict__.items():
             if isinstance(v, _Settings):
                 d.update({
@@ -74,8 +74,8 @@ class _Settings(BaseModel):
                 })
             elif isinstance(v, Path):
                 d.update({
-                    k:str(v)
-                })
+                    k:str(v)  # type: ignore
+                })            # todo: fix ` Dict entry 0 has incompatible type "str": "str"; expected "str": "Dict[str, Any]" `
             else:
                 d.update({
                     k:v
