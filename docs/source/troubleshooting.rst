@@ -13,7 +13,7 @@ Application won't install
            cd <the directory you want to install in>
            python deploy_<...>.py
 
-      Now the terminal window should stay up, and you’ll have time to scroll through the output and maybe get more of an idea as to what went wrong.
+    Now the terminal window should stay up, and you’ll have time to scroll through the output and maybe get more of an idea as to what went wrong.
 
   * Check if ``python`` and ``git`` are installed and accessible from the terminal
 
