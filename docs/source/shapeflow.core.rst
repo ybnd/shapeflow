@@ -3,7 +3,7 @@ core
 
 .. automodule:: shapeflow.core
    :members:
-   :undoc-members:
+   :special-members: __modify_schema__
    :show-inheritance:
 
 streaming
@@ -11,7 +11,6 @@ streaming
 
 .. automodule:: shapeflow.core.streaming
    :members:
-   :undoc-members:
    :show-inheritance:
 
 db
@@ -19,7 +18,6 @@ db
 
 .. automodule:: shapeflow.core.db
    :members:
-   :undoc-members:
    :show-inheritance:
 
 config
@@ -27,7 +25,7 @@ config
 
 .. automodule:: shapeflow.core.config
    :members:
-   :undoc-members:
+   :private-members: _resolve_enforcedstr, _odd_add, _int_limits, _float_limits
    :show-inheritance:
 
 interface
@@ -35,7 +33,7 @@ interface
 
 .. automodule:: shapeflow.core.interface
    :members:
-   :undoc-members:
+   :special-members: __modify_schema__
    :show-inheritance:
 
 backend
@@ -43,5 +41,5 @@ backend
 
 .. automodule:: shapeflow.core.backend
    :members:
-   :undoc-members:
+   :special-members: __modify_schema__
    :show-inheritance:

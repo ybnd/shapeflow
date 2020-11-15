@@ -185,9 +185,12 @@ class BaseConfig(BaseModel, Described):
         class SomeConfig(BaseConfig):
             field1: int = Field(default=42)
             field2: SomeNestedConfig = Field(default_factory=SomeOtherConfig)
+
+
     """
     class Config:
-        """``pydantic`` configuration class"""
+        """``pydantic`` configuration class
+        """
         arbitrary_types_allowed = False
         use_enum_value = True
         validate_assignment = True
@@ -198,6 +201,9 @@ class BaseConfig(BaseModel, Described):
 
     @classmethod
     def _resolve_enforcedstr(cls, value, field):
+        """Resolve :class:`~shapeflow.core.EnforcedStr` objects
+        from regular ``str`` objects. To be used in ``pydantic`` validators.
+        """
         if isinstance(value, field.type_):
             return value
         elif isinstance(value, str):
@@ -207,6 +213,9 @@ class BaseConfig(BaseModel, Described):
 
     @classmethod
     def _odd_add(cls, value):
+        """Make sure a value stays odd by incrementing even values.
+        To be used in ``pydantic`` validators.
+        """
         if value:
             if not (value % 2):
                 return value + 1
@@ -217,6 +226,9 @@ class BaseConfig(BaseModel, Described):
 
     @classmethod
     def _int_limits(cls, value, field):
+        """Enforce ``pydantic`` field limits (`le`, `lt`, `ge`, `gt`)
+        for ``int`` fields. To be used in ``pydantic`` validators.
+        """
         if field.field_info.le is not None and not value <= field.field_info.le:
             return field.field_info.le
         elif field.field_info.lt is not None and not value < field.field_info.lt:
@@ -230,6 +242,9 @@ class BaseConfig(BaseModel, Described):
 
     @classmethod
     def _float_limits(cls, value, field):
+        """Enforce ``pydantic`` field limits (`le`, `lt`, `ge`, `gt`)
+        for ``float`` fields. To be used in ``pydantic`` validators.
+        """
         if field.field_info.le is not None and not value <= field.field_info.le:
             return field.field_info.le
         elif field.field_info.lt is not None and not value < field.field_info.lt:
