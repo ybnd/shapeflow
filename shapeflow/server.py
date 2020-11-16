@@ -137,7 +137,13 @@ class ShapeflowServer(shapeflow.core.Lockable):
 
         @app.route('/api/<path:address>', methods=['GET', 'POST', 'PUT'])
         def call_api(address: str):
-            """Dispatch request to the API
+            """Dispatch request to the API.
+
+            Handles multiple types of return data:
+            * ``bytes`` data are handled by ``flask.make_response``
+            * for :class:`BaseStreamer` instances, custom ``flask.Response``
+              objects are made from their :func:`BaseStreamer.stream` generator
+            * all other data are handled by ``flask.jsonify``
 
             Parameters
             ----------

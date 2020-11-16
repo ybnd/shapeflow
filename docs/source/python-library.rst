@@ -195,6 +195,8 @@ main
 
 .. automodule:: shapeflow.main
    :members:
+   :private-members: _Main, _Cache, _Filesystem, _VideoAnalyzerManager
+   :special-members: __analyzers__
    :show-inheritance:
 
 cli

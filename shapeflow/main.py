@@ -1,3 +1,13 @@
+"""Main functionality of the ``shapeflow`` server.
+
+Implements ``shapeflow.api`` endpoints related to the global application and
+analyzer management.
+
+The classes defined below should not be instantiated individually, but as a
+whole using :func:`shapeflow.main.load`, because their setup process is not
+very intuitive.
+"""
+
 import os
 import time
 import pickle
@@ -29,6 +39,8 @@ log = get_logger(__name__)
 
 
 class _Main(object):
+    """Implements root-level endpoints of :module:`shapeflow.api`.
+    """
     _lock: Lock
     _server: ShapeflowServer
 
@@ -127,6 +139,8 @@ class _Main(object):
 
 
 class _Cache(object):
+    """Implements :data:`shapeflow.api.api.cache` endpoints.
+    """
     _cache: diskcache.Cache
 
     def __init__(self):
@@ -145,6 +159,8 @@ class _Cache(object):
 
 
 class _Filesystem(object):
+    """Implements :data:`shapeflow.api.api.fs` endpoints.
+    """
     _history: History
 
     def __init__(self):
@@ -227,6 +243,15 @@ class _Database(object):
 
 
 class _VideoAnalyzerManager(object):
+    """Implements :data:`shapeflow.api.api.va` endpoints.
+
+    Manages :class:`BaseAnalyzer` instances
+    * Adds / removes instances
+    * Handles saving / loading of application state
+    * Handles analysis queueing
+    * Handles analyzer-specific streams
+    """
+
     _server: ShapeflowServer
     _history: History
 
@@ -237,11 +262,17 @@ class _VideoAnalyzerManager(object):
     _q_state: QueueState
 
     _dispatcher: _VideoAnalyzerManagerDispatcher
-    __analyzers__: Dict[str, BaseAnalyzer] = {}  # todo: analyzer manager should register analyzers with api.va on init
+    __analyzers__: Dict[str, BaseAnalyzer]  # todo: analyzer manager should register analyzers with api.va on init
+    """The currently active analyzers.
+    """
 
     ID_LENGTH = 6
+    """Length of ``id`` strings. Kept relatively short for readable URLs.
+    """
 
     def __init__(self, server: ShapeflowServer):
+        self.__analyzers__ = {}
+
         self._server = server
         self._history = History()
         self._history.set_eventstreamer(server._eventstreamer)
@@ -255,14 +286,6 @@ class _VideoAnalyzerManager(object):
         self._dispatcher = dispatcher
 
     def _add(self, analyzer: BaseAnalyzer) -> str:
-        """Add a new analyzer instance
-
-
-        Returns
-        -------
-        str
-            The ``id`` of the new analyzer
-        """
         if not hasattr(analyzer, 'id'):
             id = shortuuid.ShortUUID().random(length=self.ID_LENGTH)
 
@@ -282,13 +305,6 @@ class _VideoAnalyzerManager(object):
         return analyzer.id
 
     def _remove(self, id: str):
-        """Remove an analyzer instance
-
-        Parameters
-        ----------
-        id: str
-            The ``id`` of the analyzer to close
-        """
         del self.__analyzers__[id]
         for k in filter(lambda k: id in k, list(self._dispatcher._address_space.keys())):  # todo: this is a bit lame
             del self._dispatcher._address_space[k]  # todo: there should be a _remove_dispatcher probably
@@ -317,6 +333,15 @@ class _VideoAnalyzerManager(object):
 
     @api.va.init.expose()
     def init(self) -> str:
+        """Initialize a new analyzer. A short unique ``ìd`` will be generated.
+        For example, a new analyzer with ``rG7bgH`` as its ``id`` can be
+        addressed via ``/api/va/rG7bgH``.
+
+        Returns
+        -------
+        str
+            The ``id`` string of the newly added analyzer
+        """
         with self._lock:
             analyzer = VideoAnalyzer()
             analyzer.set_eventstreamer(self._server._eventstreamer)
@@ -330,6 +355,18 @@ class _VideoAnalyzerManager(object):
 
     @api.va.close.expose()
     def close(self, id: str) -> bool:
+        """Remove an analyzer.
+
+        Parameters
+        ----------
+        id: str
+            The ``id`` string of the analyzer to remove
+
+        Returns
+        -------
+        bool
+            Whether the analyzer was removed successfully
+        """
         self._valid(id)
 
         with self._lock:
@@ -344,7 +381,7 @@ class _VideoAnalyzerManager(object):
 
     @api.va.start.expose()
     def q_start(self, queue: List[str]) -> bool:
-        """Queue analysis
+        """Start analyzing a queue.
 
         Parameters
         ----------
@@ -397,7 +434,8 @@ class _VideoAnalyzerManager(object):
 
     @api.va.stop.expose()
     def q_stop(self) -> None:
-        """Stop analysis queue"""
+        """Stop analyzing the current queue.
+        """
         log.info('stopping analysis queue')
         if self._pause_q.is_set():
             self._pause_q.clear()
@@ -411,13 +449,25 @@ class _VideoAnalyzerManager(object):
 
     @api.va.cancel.expose()
     def q_cancel(self) -> None:
-        """Cancel analysis queue"""
+        """Cancel analyzing the current queue.
+        """
         for analyzer in self.__analyzers__.values():
             if analyzer.state == AnalyzerState.ANALYZING:
                 analyzer.cancel()
 
     @api.va.state.expose()
     def state(self) -> dict:
+        """Get the queue state and the status of all analyzers.
+
+        Returns
+        -------
+        dict
+            A ``dict`` of the form::
+                {
+                    "q_state": 0,  # QueueState
+                    "ids": [""]
+                }
+        """
         with self._lock:
             return {
                 'q_state': self._q_state,
@@ -483,6 +533,20 @@ class _VideoAnalyzerManager(object):
 
     @api.va.stream.expose()
     def stream(self, id: str, endpoint: str) -> BaseStreamer:
+        """Stream something.
+
+        Parameters
+        ----------
+        id: str
+            The ``id`` of an analyzer
+        endpoint: str
+            The endpoint to stream
+
+        Returns
+        -------
+        BaseStreamer
+            A stream handler object
+        """
         self._check_streaming(id, endpoint)
 
         with self._lock:
@@ -492,6 +556,15 @@ class _VideoAnalyzerManager(object):
 
     @api.va.stream_stop.expose()
     def stream_stop(self, id: str, endpoint: str) -> None:
+        """Stop streaming something.
+
+        Parameters
+        ----------
+        id: str
+            The ``id`` of an analyzer
+        endpoint: str
+            The endpoint to stop streaming
+        """
         try:
             self._check_streaming(id, endpoint)
 
@@ -512,8 +585,24 @@ class _VideoAnalyzerManager(object):
 
 
 def load(server: ShapeflowServer) -> ApiDispatcher:
+    """Initialize :data:`~shapeflow.api.api` and return a reference to it.
+
+    Parameters
+    ----------
+    server: ShapeflowServer
+        The ``shapeflow`` server object
+
+    Returns
+    -------
+    ApiDispatcher
+        A reference to :data:`~shapeflow.api.api`
+    """
     api._set_instance(_Main(server))
-    api._add_dispatcher('db', _DatabaseDispatcher(History()))
+
+    history = History()
+    history.set_eventstreamer(server._eventstreamer)
+
+    api._add_dispatcher('db', _DatabaseDispatcher(history))
     api._add_dispatcher('fs', _FilesystemDispatcher(_Filesystem()))
     api._add_dispatcher('cache', _CacheDispatcher(_Cache()))
 
