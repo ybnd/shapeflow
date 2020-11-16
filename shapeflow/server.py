@@ -146,9 +146,6 @@ class ShapeflowServer(shapeflow.core.Lockable):
             """
             self.active()
 
-            if self.api is None:
-                self.load_api()
-
             kwargs = {}
             if request.data:
                 try:
@@ -167,10 +164,7 @@ class ShapeflowServer(shapeflow.core.Lockable):
                     log.error(f"could not decode '{request.args.to_dict()}'")
                     raise e
 
-
-
             try:
-                assert self.api is not None
                 result = self.api.dispatch(address, **kwargs)
 
                 if result is None:
@@ -236,8 +230,6 @@ class ShapeflowServer(shapeflow.core.Lockable):
             log.info('interrupted by user')
         self._done.set()
 
-        if self.api is None:
-            self.load_api()
         self.api.dispatch('va/save_state')
         streaming.streams.stop()
 
@@ -257,10 +249,9 @@ class ShapeflowServer(shapeflow.core.Lockable):
             self._unload.clear()
             self._ping.set()
 
-    def load_api(self):
-        from shapeflow.main import load
-        self._api = load(self)
-
     @property
-    def api(self):
+    def api(self) -> ApiDispatcher:
+        if self._api is None:
+            from shapeflow.main import load
+            self._api = load(self)
         return self._api
