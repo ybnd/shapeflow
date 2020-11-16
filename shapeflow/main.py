@@ -262,7 +262,7 @@ class _VideoAnalyzerManager(object):
     _q_state: QueueState
 
     _dispatcher: _VideoAnalyzerManagerDispatcher
-    __analyzers__: Dict[str, BaseAnalyzer]  # todo: analyzer manager should register analyzers with api.va on init
+    __analyzers__: Dict[str, BaseAnalyzer] = {}  # todo: analyzer manager should register analyzers with api.va on init
     """The currently active analyzers.
     """
 
@@ -271,8 +271,6 @@ class _VideoAnalyzerManager(object):
     """
 
     def __init__(self, server: ShapeflowServer):
-        self.__analyzers__ = {}
-
         self._server = server
         self._history = History()
         self._history.set_eventstreamer(server._eventstreamer)
