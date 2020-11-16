@@ -231,7 +231,7 @@ class ShapeflowServer(object):
                 return response
             else:
                 return jsonify(result)
-        except DispatcherError:
+        except DispatchingError:
             abort(404)
         except Exception as e:
             log.error(f"'{address}' - {e.__class__.__name__}: {str(e)}")
