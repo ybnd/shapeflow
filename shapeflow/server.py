@@ -59,7 +59,7 @@ class ServerThread(Thread, metaclass=util.Singleton):
         os._exit(0)
 
 
-class ShapeflowServer(metaclass=util.Singleton):
+class ShapeflowServer(object):
     """Wrapper for a ``Flask`` server
     """
 
