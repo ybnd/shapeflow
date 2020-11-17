@@ -86,8 +86,7 @@ class Color(BaseConfig):
         Parameters
         ----------
         color: str
-            A color string formatted as::
-                "SomeColor(a=1, b=2, c=3)"
+            A color string formatted as ``"SomeColor(a=1,b=2,c=3)"``
 
         Returns
         -------
@@ -303,7 +302,9 @@ def complementary(color: Color) -> Color:
 
 
 def css_hex(color: Color) -> str:
-    """Get the color as a CSS-compatible hex RGB string.
+    """Get the color as a CSS-compatible hex RGB string::
+        >>> css_hex(RgbColor(r=170,g=187,b=204))
+        "#aabbcc"
 
     Parameters
     ----------
@@ -313,9 +314,7 @@ def css_hex(color: Color) -> str:
     Returns
     -------
     str
-        A hex RGB string, e.g.::
-            >>> css_hex(RgbColor(r=170,g=187,b=204))
-            "#aabbcc"
+        A hex RGB string
     """
     rgb = as_rgb(color)
 
