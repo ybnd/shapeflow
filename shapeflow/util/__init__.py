@@ -128,18 +128,23 @@ def frame_number_iterator(total: int,
         -> Generator[int, None, None]:
     """Get an iterator of frame numbers, based on either a number of frames
     ``Nf`` or a frame interval ``dt``.
-    Raises ``ValueError`` if both are ``None``.
 
     Parameters
     ----------
     total: int
-        The total number of frames
+        The total number of frames.
     Nf: int
-        The number of frames to return
+        The number of frames to return. Defaults to ``None``.
     dt: float
-        The frame interval to return
+        The frame interval to return. Defaults to ``None``.
+        If using ``dt``, ``fps`` must also be provided.
     fps: float
-        The framerate
+        The framerate. Defaults to ``None``
+
+    Raises
+    ------
+    ValueError
+        When both ``Nf`` and ``dt`` are ``None``
 
     Returns
     -------
@@ -160,6 +165,7 @@ def frame_number_iterator(total: int,
 
 def before_version(version_a, version_b):
     """Check whether ``version_a`` precedes ``version_b``.
+
     .. note::
        Only handles numerics, i.e. ``"1.25b.3v7"`` won't work.
     """
@@ -169,6 +175,7 @@ def before_version(version_a, version_b):
 
 def after_version(version_a, version_b):
     """Check whether ``version_a`` supercedes ``version_b``.
+
     .. note::
        Only handles numerics, i.e. ``"1.25b.3v7"`` won't work.
     """
@@ -226,7 +233,11 @@ def suppress_stdout():
 
 
 def sizeof_fmt(num: int, suffix='B'):
-    """Get a file size in bytes as a human-readable string.
+    """Get a file size in bytes as a human-readable string. For example::
+        >>> sizeof_fmt(10**3)
+        "1 KB"
+        >>> sizeof_fmt(10**9)
+        "1 GB"
 
     Parameters
     ----------
@@ -238,12 +249,7 @@ def sizeof_fmt(num: int, suffix='B'):
     Returns
     -------
     str
-        The file size as a human-readable string in decimal bytes. For example::
-            >>> sizeof_fmt(10**3)
-            "1 KB"
-            >>> sizeof_fmt(10**9)
-            "1 GB"
-
+        The file size as a human-readable string in decimal bytes.
     """
     for unit in ['','K','M','G','T','P','E','Z']:
         if abs(num) < 1000:
