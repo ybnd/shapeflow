@@ -6,10 +6,10 @@ def describe_function(f: Callable) -> str:
     More specific than regular old ``__qualname__``.
 
     .. note::
-        For nested functions, ``__qualname__`` contains ``<locals>``.
-        ``diskcache.Cache`` can write keys containing ``<`` or ``>`` but
-        crashes when trying to read these back. To prevent weird bugs,
-        ``<`` and ``>`` are replaced with ``_``
+       For nested functions, ``__qualname__`` contains ``<locals>``.
+       ``diskcache.Cache`` can write keys containing ``<`` or ``>`` but
+       crashes when trying to read these back. To prevent weird bugs,
+       ``<`` and ``>`` are replaced with ``_``
 
     Parameters
     ----------
@@ -29,7 +29,7 @@ def bases(c: type) -> List[type]:
     """Returns the bases of a class, including the bases of its bases.
 
     .. note::
-        Just in general, don't do ``list(set())`` if the order is important!
+       Just in general, don't do ``list(set())`` if the order is important!
 
     Parameters
     ----------

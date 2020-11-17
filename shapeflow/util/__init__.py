@@ -161,7 +161,7 @@ def frame_number_iterator(total: int,
 def before_version(version_a, version_b):
     """Check whether ``version_a`` precedes ``version_b``.
     .. note::
-        Only handles numerics, i.e. ``"1.25b.3v7"`` won't work.
+       Only handles numerics, i.e. ``"1.25b.3v7"`` won't work.
     """
     return tuple(int(s) for s in version_a.split('.')) \
             < tuple(int(s) for s in version_b.split('.'))
@@ -170,7 +170,7 @@ def before_version(version_a, version_b):
 def after_version(version_a, version_b):
     """Check whether ``version_a`` supercedes ``version_b``.
     .. note::
-        Only handles numerics, i.e. ``"1.25b.3v7"`` won't work.
+       Only handles numerics, i.e. ``"1.25b.3v7"`` won't work.
     """
     return not before_version(version_a, version_b)
 
