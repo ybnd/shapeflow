@@ -30,9 +30,7 @@ class _Config(FilterConfig):
     for by increasing the ``v`` value (lightness of the color).
     """
     close: int = Field(default=0, ge=0, le=200)
-    """int
-    
-    Kernel size (circular) of a `morphological closing operation <https://en.wikipedia.org/wiki/Closing_(morphology)>`.    
+    """Kernel size (circular) of a `morphological closing operation <https://en.wikipedia.org/wiki/Closing_(morphology)>`_.    
     If ``close`` is set to 0 (the default), no closing will be performed.
     
     This attribute will be coerced to an odd integer below 200 in order to
@@ -43,9 +41,7 @@ class _Config(FilterConfig):
     pixels) *outside* of its main area.
     """
     open: int = Field(default=0, ge=0, le=200)
-    """int
-    
-    Kernel size (circular) of a `morphological opening operation <https://en.wikipedia.org/wiki/Opening_(morphology)>`.    
+    """Kernel size (circular) of a `morphological opening operation <https://en.wikipedia.org/wiki/Opening_(morphology)>`_.    
     If ``open`` is set to 0 (the default), no opening will be performed.
     
     This attribute will be coerced to an odd integer below 200 in order to
