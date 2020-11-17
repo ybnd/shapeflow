@@ -111,7 +111,7 @@ def mask(image: np.ndarray, mask: np.ndarray, rect: np.ndarray) -> np.ndarray:
     return cv2.bitwise_and(cropped_image, mask)
 
 
-def area_pixelsum(image: Optional[np.ndarray]) -> int:
+def area_pixelsum(image: Optional[np.ndarray]) -> Optional[int]:
     """Get the total number of ``True`` pixels in a binary image.
 
     Parameters
