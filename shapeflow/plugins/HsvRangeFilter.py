@@ -30,8 +30,9 @@ class HsvRangeFilterConfig(FilterConfig):
     for by increasing the ``v`` value (lightness of the color).
     """
     close: int = Field(default=0, ge=0, le=200)
-    """Kernel size (circular) of a `morphological closing operation <https://en.wikipedia.org/wiki/Closing_(morphology)>`.
+    """int
     
+    Kernel size (circular) of a `morphological closing operation <https://en.wikipedia.org/wiki/Closing_(morphology)>`.    
     If ``close`` is set to 0 (the default), no closing will be performed.
     
     This attribute will be coerced to an odd integer below 200 in order to
@@ -42,8 +43,9 @@ class HsvRangeFilterConfig(FilterConfig):
     pixels) *outside* of its main area.
     """
     open: int = Field(default=0, ge=0, le=200)
-    """Kernel size (circular) of a `morphological opening operation <https://en.wikipedia.org/wiki/Opening_(morphology)>`.
+    """int
     
+    Kernel size (circular) of a `morphological opening operation <https://en.wikipedia.org/wiki/Opening_(morphology)>`.    
     If ``open`` is set to 0 (the default), no opening will be performed.
     
     This attribute will be coerced to an odd integer below 200 in order to
