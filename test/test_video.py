@@ -13,7 +13,7 @@ from OnionSVG import OnionSVG
 
 from shapeflow.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     DesignFileHandlerConfig, VideoAnalyzerConfig, TransformType
-from shapeflow.plugins.PerspectiveTransform import PerspectiveTransformConfig
+from shapeflow.plugins.PerspectiveTransform import _Config
 
 from shapeflow.plugins import *
 

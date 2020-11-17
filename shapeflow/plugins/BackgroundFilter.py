@@ -12,21 +12,21 @@ log = get_logger(__name__)
 COLOR = HsvColor(h=0, s=0, v=0)
 
 
-@extend(ConfigType)
-class BackgroundFilterConfig(FilterConfig):
-    """Configuration for :class:`shapeflow.plugins.BackgroundFilter.BackgroundFilter`
+@extend(ConfigType, __name__.split('.')[-1])
+class _Config(FilterConfig):
+    """Configuration for :class:`shapeflow.plugins.BackgroundFilter._Filter`
     """
     color: HsvColor = Field(default=HsvColor())
-    """See :attr:`shapeflow.plugins.HsvRangeFilter.HsvRangeFilterConfig.color`
+    """See :attr:`shapeflow.plugins.HsvRangeFilter._Config.color`
     """
     range: HsvColor = Field(default=HsvColor(h=10, s=75, v=75))
-    """See :attr:`shapeflow.plugins.HsvRangeFilter.HsvRangeFilterConfig.range`
+    """See :attr:`shapeflow.plugins.HsvRangeFilter._Config.range`
     """
     close: int = Field(default=0, ge=0, le=200)
-    """:attr:`shapeflow.plugins.HsvRangeFilter.HsvRangeFilterConfig.close`
+    """:attr:`shapeflow.plugins.HsvRangeFilter._Config.close`
     """
     open: int = Field(default=0, ge=0, le=200)
-    """:attr:`shapeflow.plugins.HsvRangeFilter.HsvRangeFilterConfig.open`
+    """:attr:`shapeflow.plugins.HsvRangeFilter._Config.open`
     """
 
     @property
@@ -35,13 +35,13 @@ class BackgroundFilterConfig(FilterConfig):
 
     @property
     def c0(self) -> HsvColor:
-        """See :func:`shapeflow.plugins.HsvRangeFilter.HsvRangeFilterConfig.c0`
+        """See :func:`shapeflow.plugins.HsvRangeFilter._Config.c0`
         """
         return self.color - self.range
 
     @property
     def c1(self) -> HsvColor:
-        """See :func:`shapeflow.plugins.HsvRangeFilter.HsvRangeFilterConfig.c1`
+        """See :func:`shapeflow.plugins.HsvRangeFilter._Config.c1`
         """
         return self.color + self.range
 
@@ -51,24 +51,24 @@ class BackgroundFilterConfig(FilterConfig):
     _open_limits = validator('open', pre=True, allow_reuse=True)(BaseConfig._int_limits)
 
 
-@extend(FilterType)
-class BackgroundFilter(FilterInterface):
+@extend(FilterType, __name__.split('.')[-1])
+class _Filter(FilterInterface):
     """Filters out colors outside of a :class:`~shapeflow.maths.color.HsvColor`
     radius around a center color and inverts the resulting image.
     """
-    _config_class = BackgroundFilterConfig
+    _config_class = _Config
 
-    def set_filter(self, filter: BackgroundFilterConfig, color: Color) -> BackgroundFilterConfig:
+    def set_filter(self, filter: _Config, color: Color) -> _Config:
         color = convert(color, HsvColor)
 
         log.debug(f'Setting filter {filter} ~ color {color}')
         filter(color=color)
         return filter
 
-    def mean_color(self, filter: BackgroundFilterConfig) -> Color:
+    def mean_color(self, filter: _Config) -> Color:
         return COLOR
 
-    def filter(self, filter: BackgroundFilterConfig, img: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
+    def filter(self, filter: _Config, img: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
         if mask is None:
             raise ValueError('No mask provided to BackgroundFilter')
 

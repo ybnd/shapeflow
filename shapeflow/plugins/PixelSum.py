@@ -6,8 +6,8 @@ from shapeflow.maths.images import area_pixelsum
 from shapeflow.video import MaskFunction, FeatureType
 
 
-@extend(FeatureType)
-class PixelSum(MaskFunction):
+@extend(FeatureType, __name__.split('.')[-1])
+class _Feature(MaskFunction):
     """The most basic feature: it just returns the number of
     ``True`` pixels the filtered frame.
     """

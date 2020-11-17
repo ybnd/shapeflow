@@ -11,9 +11,9 @@ from shapeflow.maths.colors import Color, HsvColor, convert, WRAP
 log = get_logger(__name__)
 
 
-@extend(ConfigType)
-class HsvRangeFilterConfig(FilterConfig):
-    """Configuration for :class:`shapeflow.plugins.HsvRangeFilter.HsvRangeFilter`
+@extend(ConfigType, __name__.split('.')[-1])
+class _Config(FilterConfig):
+    """Configuration for :class:`shapeflow.plugins.HsvRangeFilter._Filter`
     """
     color: HsvColor = Field(default=HsvColor())
     """The center color.
@@ -78,26 +78,26 @@ class HsvRangeFilterConfig(FilterConfig):
     _open_limits = validator('open', pre=True, allow_reuse=True)(BaseConfig._int_limits)
 
 
-@extend(FilterType)
-class HsvRangeFilter(FilterInterface):
+@extend(FilterType, __name__.split('.')[-1])
+class _Filter(FilterInterface):
     """Filters out colors outside of a :class:`~shapeflow.maths.color.HsvColor`
     radius around a center color.
     """
-    _config_class = HsvRangeFilterConfig
+    _config_class = _Config
 
-    def set_filter(self, filter: HsvRangeFilterConfig, color: Color) -> HsvRangeFilterConfig:
+    def set_filter(self, filter: _Config, color: Color) -> _Config:
         color = convert(color, HsvColor)
 
         log.debug(f'Setting filter {filter} ~ color {color}')
         filter(color=color)
         return filter
 
-    def mean_color(self, filter: HsvRangeFilterConfig) -> Color:
+    def mean_color(self, filter: _Config) -> Color:
         # S and V are arbitrary but work relatively well
         # for both overlay & plot colors
         return HsvColor(h=filter.color.h, s=255, v=200)
 
-    def filter(self, filter: HsvRangeFilterConfig, img: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
+    def filter(self, filter: _Config, img: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
         if filter.c0.h > filter.c1.h:
             # handle hue wrapping situation with two ranges
             c0_a = np.float32(filter.c0.list)
