@@ -77,7 +77,7 @@ def logged(f, logger: Logger):
 class Timer(object):
     """A timer context manager. Starts timing on ``__enter__`` and stops on
     ``__exit__``.
-    Timing info can be retreived with :attr:`~shapeflow.util.Timer.timing`.
+    Timing info can be retrieved with :attr:`~shapeflow.util.Timer.timing`.
     """
     _t0: float
     _t1: float
@@ -246,7 +246,7 @@ def sizeof_fmt(num: int, suffix='B'):
     num: int
         A file size in bytes
     suffix: str
-        The suffix to use. Defaults to ``"B"``
+        The suffix to use. Defaults to ``"B"``.
 
     Returns
     -------

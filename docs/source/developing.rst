@@ -16,16 +16,15 @@ To work on shapeflow, you should set up a virtual environment in ``.venv``
 
 With this environment in place, the entrypoint ``shapeflow.py`` can be run either from ``(.venv)`` or with your the global Python interpreter. In the latter case, ``.venv`` will be used implicitly.
 
-Adding plugins
-^^^^^^^^^^^^^^
+Writing plugins
+^^^^^^^^^^^^^^^
 
-`Features <../python-library.rst#Features>`__, `filters <../python-library.rst#Filters>`__ and `transforms <../python-library.rst#Transforms>`_ are handled by a plugin system. You can use `the existing plugins <../python-library.rst#Plugins>`_ as examples.
-
+Features, transforms and filters are handled by a plugin system. You can use existing plugins as examples.
 
 * A plugin should be a subclass of its respective interface (:class:`~shapeflow.core.backend.Feature` for features, :class:`~shapeflow.core.interface.TransformInterface` for transforms and :class:`~shapeflow.core.interface.FilterInterface` for filters)
 * If you define configuration for the plugin, it should derive from its respective configuration class as well (:class:`~shapeflow.core.backend.FeatureConfig` for features, :class:`~shapeflow.core.interface.TransformConfig` for transforms and :class:`~shapeflow.core.interface.FilterConfig` for filters), and should be linked to the plugin class itself as the class variable :attr:`~shapeflow.core.config.Configurable._class_config`. Configuration parameters should be defined as ``pydantic.Field`` instances, and should include a default and a description.
-* Plugins should have short descriptive docstring
-* Feature plugins should also define a :attr:`~shapeflow.core.backend.Feature._label` and :attr:`~shapeflow.core.backend.Feature._unit` as class variables. These values will be used to label the y-axis on the result page of the frontend.
+* Plugins should have a descriptive docstring
+* :class:`~shapeflow.core.backend.Feature` subclasses should also define a :attr:`~shapeflow.core.backend.Feature._label` and :attr:`~shapeflow.core.backend.Feature._unit` as class variables. These values will be used to label the y-axis on the result page of the frontend.
 
 All plugin files are automatically loaded when ``shapeflow.plugins`` is imported.
 
