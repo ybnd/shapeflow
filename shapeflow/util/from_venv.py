@@ -1,5 +1,4 @@
-"""
-Execute a Python script from virtual environment
+"""Run Python scripts from a virtual environment.
 """
 
 import abc
@@ -11,7 +10,14 @@ import subprocess
 environment = '.venv'
 
 
-def from_venv(env):
+def from_venv(env: str) -> None:
+    """Re-run the current script from a virtual environment
+
+    Parameters
+    ----------
+    env: str
+        The directory of the virtual environment.
+    """
     arguments = sys.argv[1:]  # pass the arguments on to a subprocess
     command, shell = _resolve(env, os.path.basename(sys.executable))
 

@@ -7,7 +7,7 @@ from contextlib import contextmanager
 import uuid
 
 from shapeflow import get_logger
-from shapeflow.util.meta import all_attributes, get_overridden_methods, bind
+from shapeflow.util.meta import bind
 
 
 log = get_logger(__name__)

@@ -1,3 +1,11 @@
+"""Cross-platform file dialogs.
+
+Tries to use `zenity <https://help.gnome.org/users/zenity/stable/>`_
+if available, because ``tkinter`` looks fugly in GNOME don't @ me.
+
+Defaults to ``tkinter`` to support basically any platform.
+"""
+
 import abc
 from typing import List, Optional
 import subprocess as sp
@@ -118,6 +126,9 @@ class _Zenity(_FileDialog):
             return None
 
 
+# try using zenity by default
 filedialog: _FileDialog = _Zenity()
+# if zenity doesn't work (e.g. it's not installed or we're on Windows),
+# default to tkinter.
 if not filedialog.ok:
     filedialog = _Tkinter()

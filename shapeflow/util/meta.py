@@ -1,21 +1,54 @@
-import inspect
-from typing import List, Union, Dict, Any, Collection, _GenericAlias  # type: ignore
+"""Metaprogramming utility functions.
+"""
+
+from typing import List, Union
 
 
-def describe_function(f):
-    """ Returns a function description.
-        Note: __qualname__ may contain `<locals>`
-              diskcache can write but not read (!!!) keys containing < or >.
+def describe_function(f: Callable) -> str:
+    """Return a function description.
+    More specific than regular old ``__qualname__``.
+
+    .. note::
+        For nested functions, ``__qualname__`` contains ``<locals>``.
+        ``diskcache.Cache`` can write keys containing ``<`` or ``>`` but
+        crashes when trying to read these back. To prevent weird bugs,
+        ``<`` and ``>`` are replaced with ``_``
+
+    Parameters
+    ----------
+    f: Callable
+        Any function or method
+
+    Returns
+    -------
+    str
+        A unique
+    """
+    """ 
     """
     return f"{f.__module__}." \
            f"{f.__qualname__.replace('<', '_').replace('>', '_')}"
 
 
-def bases(c: type) -> list:
-    """ Returns the bases of a class, including the bases of its bases.
-        Note: don't use list(set()) if the order is important!
+def bases(c: type) -> List[type]:
+    """Returns the bases of a class, including the bases of its bases.
+
+    .. note::
+        Just in general, don't do ``list(set())`` if the order is important!
+
+    Parameters
+    ----------
+    c: type
+        Any class
+
+    Returns
+    -------
+    List[type]
+        A list of all bases of ``c``
     """
-    def _bases(c) -> list:
+    """ 
+    """
+    def _bases(c) -> List[type]:
         bases = list(c.__bases__)
         for b in bases:
             for bb in _bases(b):
@@ -26,46 +59,42 @@ def bases(c: type) -> list:
     return _bases(c)[::-1]
 
 
-def all_attributes(
-        t: Union[object, type],
-        include_under: bool = True,
-        include_methods: bool = True,
-        include_mro: bool = False,
-) -> List[str]:
-    if not isinstance(t, type):
-        t = t.__class__
-
-    attributes: list = []
-    for base in [t] + bases(t):
-        attributes += base.__dict__
-
-    return list(filter(lambda a: a[0:3] != 'mro', set(attributes)))
-
-
-def get_overridden_methods(c, m) -> list:
-    b = [c] + bases(c)
-    implementations = []
-    for base in b:
-        if m.__name__ in base.__dict__:
-            implementations.append(getattr(base, m.__name__))
-
-    return implementations
-
-
 def unbind(m):
+    """Unbind a method from its instance.
+
+    Parameters
+    ----------
+    m
+        Any method
+
+    Returns
+    -------
+    The method ``m``, not bound to any instance
+    """
     try:
         return m.__func__
     except AttributeError:
         return m
 
 
-def bind(instance, func):
-    # https://stackoverflow.com/a/1015405/12259362
-    bound_method = func.__get__(instance, instance.__class__)
-    setattr(instance, func.__name__, bound_method)
+def bind(instance, m):
+    """Bind a method to an instance.
+
+    https://stackoverflow.com/a/1015405/12259362
+
+    Parameters
+    ----------
+    instance
+        An object
+    m
+        Any bound or unbound method of the class of ``instance``
+
+    Returns
+    -------
+    Callable
+        The method ``m``, bound to ``instance``
+    """
+
+    bound_method = m.__get__(instance, instance.__class__)
+    setattr(instance, m.__name__, bound_method)
     return bound_method
-
-
-def separate(m):
-    assert hasattr(m, '__self__')
-    return m.__self__, unbind(m)
