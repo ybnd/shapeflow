@@ -363,8 +363,10 @@ class ConfigType(Factory):
 class Configurable(Described):
     """A class with an associated configuration type.
     """
-    _config_class: Type[BaseConfig]
-    """Configuration type
+    _config_class: Type[BaseConfig] = BaseConfig
+    """The configuration class as a class attribute. When subclassing, set this 
+    attribute to a specific :class:`~shapeflow.core.config.BaseConfig` type to
+    associate it with this class.
     """
 
     @classmethod
