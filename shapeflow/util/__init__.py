@@ -233,7 +233,9 @@ def suppress_stdout():
 
 
 def sizeof_fmt(num: int, suffix='B'):
-    """Get a file size in bytes as a human-readable string. For example::
+    """Get a file size in bytes as a human-readable string.
+    For example::
+
         >>> sizeof_fmt(10**3)
         "1 KB"
         >>> sizeof_fmt(10**9)
