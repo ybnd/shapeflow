@@ -127,6 +127,8 @@ def area_pixelsum(image: Optional[np.ndarray]) -> Optional[int]:
     """
     if image is not None:
         return int(np.sum(image > 1))
+    else:
+        return None
 
 
 def to_mask(image: np.ndarray, kernel: np.ndarray = ckernel(7)) -> np.ndarray:

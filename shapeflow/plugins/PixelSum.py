@@ -13,5 +13,5 @@ class PixelSum(MaskFunction):
     _label = "Pixels"
     _unit = "#"
 
-    def _function(self, frame: np.ndarray) -> int:
+    def _function(self, frame: np.ndarray) -> Optional[int]:
         return area_pixelsum(frame)

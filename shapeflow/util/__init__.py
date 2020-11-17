@@ -254,10 +254,10 @@ def sizeof_fmt(num: int, suffix='B'):
         The file size as a human-readable string in decimal bytes.
     """
     for unit in ['','K','M','G','T','P','E','Z']:
-        if abs(num) < 1000:
+        if abs(num) < 1000.0:
             return "%.0f %s%s" % (num, unit, suffix)
-        num /= 1000.0
-    return "%.1f %s%s" % (num, 'Y', suffix)
+        size /= 1000.0
+    return "%.1f %s%s" % (size, 'Y', suffix)
 
 
 class Singleton(type):
