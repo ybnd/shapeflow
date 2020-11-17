@@ -5,22 +5,29 @@ Changelog
 * ``0.4.3`` -- **API overhaul**
 
   * Add frontend tests
+  
     * And also some general clean-up and fixes in the process
 
   * Deprecate caching contexts and related functionality
+  
     * We’re assuming that caching will never be performed *in advance*
       of an analysis. Instead, we rely on caching during an analysis to
       speed up any subsequent analyses.
 
   * Separate internal routing from general ``Flask`` routing
+  
     * API routes are organised based on :class:`shapeflow.core.Dispatcher`
+    
     * :class:`~shapeflow.core.Dispatcher` instances map addresses to
       :class:`~shapeflow.core.Endpoint` instances
+      
     * Nested :class:`~shapeflow.core.Dispatcher`s include the addresses
       of any child :class:`~shapeflow.core.Dispatcher` instances in their
       own address space
+      
     * The top-level :class:`~shapeflow.core.Dispatcher` has a flat
       address space of all endpoints, which it uses to resolve requests
+      
     * The Flask server delegates requests to this top-level
       :class:`~shapeflow.core.Dispatcher` for addresses
       starting with ``"/api/"``
@@ -29,6 +36,7 @@ Changelog
     :func:`~shapeflow.core.Endpoint.expose` method instead of global function
 
   * Deprecate ``RootInstance`` / ``BackendInstance``
+  
     * Implementation should not care about routing
 
     .. note::
@@ -39,13 +47,21 @@ Changelog
         :class:`~shapeflow.core.Dispatcher` instances can be exposed.
 
   * More sensible API structure
+  
     * Global top-level API at :data:`shapeflow.api.api`
+    
     * Group related functionality
+    
       * ``api``: general stuff
+      
       * ``api.fs``: dealing with files and directories
+      
       * ``api.cache``: dealing with the cache
+      
       * ``api.db``: dealing with the database
+      
       * ``api.va``: dealing with analyzers
+      
       * ``api.va.<id>``: dealing with a specific analyzer
 
   * Open analyzers are handled by new
@@ -59,10 +75,13 @@ Changelog
 
     * New analyzers are opened from
       :class:`~shapeflow.main._VideoAnalyzerManager` and given an ``id``
+      
       * Use shorter ``id`` strings for URL readability
+      
       * Associate newly instantiated
         :class:`~shapeflow.video.VideoAnalyzer` with a new
         :class:`~shapeflow.core.Dispatcher` instance at ``api.va.<id>``
+        
       * This :class:`~shapeflow.core.Dispatcher`, binds methods exposed in
         ``api.va.__id__`` to the :class:`~shapeflow.video.VideoAnalyzer`
         instance
@@ -84,15 +103,20 @@ Changelog
       run ``sf.py dump <path>``. The server is now a subcommand, ``serve``.
 
     * Potentially useful commands to add in the future
+    
       * ``analyze`` could run a single analysis as specified in a .json file
+      
       * ``checkout`` could set the repository to a specific version
+      
       * ``setup`` could replace in-repo setup scripts
 
     * It may also be interesting to make these commands accessible
       from the frontend
 
   * Some major naming changes
+  
     * Entry point script ``shapeflow.py`` becomes ``sf.py``
+    
     * Server-related stuff renamed from ``main`` to ``server``
 
 * ``0.4.1`` -- **Usability improvements and tutorial**
