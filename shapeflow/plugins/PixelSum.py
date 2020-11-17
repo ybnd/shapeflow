@@ -1,3 +1,4 @@
+from typing import Optional
 import numpy as np
 
 from shapeflow.config import extend
