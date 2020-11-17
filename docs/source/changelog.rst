@@ -116,9 +116,9 @@ Changelog
 
       * Compiled JavaScript from ``ui/dist/``
 
-      * `An accidentally huge screenshot, mysteriously named datetime <rm1>`_
+      * `An accidentally huge screenshot, mysteriously named datetime <rm1_>`_
 
-      * `An accidentally huge BMP file <rm2>`_
+      * `An accidentally huge BMP file <rm2_>`_
 
   * All in all, the repo went from almost 30MB to about 6MB.
 
