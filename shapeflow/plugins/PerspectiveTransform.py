@@ -3,23 +3,25 @@ from typing import Optional, Tuple
 import cv2
 import numpy as np
 
-from shapeflow import get_logger, settings
-from shapeflow.config import extend, ConfigType, Field
-
+from shapeflow import get_logger
+from shapeflow.config import extend, ConfigType
 from shapeflow.core.interface import TransformConfig, TransformInterface, TransformType
-
 from shapeflow.maths.coordinates import ShapeCoo, Roi
 
 log = get_logger(__name__)
 
+
 @extend(ConfigType)
-class PerspectiveTransformConfig(TransformConfig):
+class PerspectiveTransformConfig(TransformConfig):  # todo: not really necessary?
     pass
 
 
 @extend(TransformType)
 class PerspectiveTransform(TransformInterface):
-    """Perspective transform"""
+    """Wraps ``OpenCV``’s `getPerspectiveTransform <https://docs.opencv.org/2.4.13.7/modules/imgproc/doc/geometric_transformations.html?#getperspectivetransform>`_
+    function to estimate the transformation matrix and `warpPerspective <https://docs.opencv.org/2.4.13.7/modules/imgproc/doc/geometric_transformations.html?#warpperspective>`_
+    to apply it to a video frame or a coordinate.
+    """
 
     _config_class = PerspectiveTransformConfig
 

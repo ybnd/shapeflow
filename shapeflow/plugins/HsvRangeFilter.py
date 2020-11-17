@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 
-from shapeflow import get_logger, settings
+from shapeflow import get_logger
 from shapeflow.config import extend, ConfigType, Field, validator, BaseConfig
 
 from shapeflow.core.interface import FilterConfig, FilterInterface, FilterType
@@ -13,11 +13,44 @@ log = get_logger(__name__)
 
 @extend(ConfigType)
 class HsvRangeFilterConfig(FilterConfig):
-    """HSV range filter"""
-    range: HsvColor = Field(default=HsvColor(h=10, s=75, v=75))
     color: HsvColor = Field(default=HsvColor())
+    """The center color.
+    """
+    range: HsvColor = Field(default=HsvColor(h=10, s=75, v=75))
+    """The range around the center color.
+    
+    The default setting of ``HsvColor(h=10,s=75,v=75)`` works well 
+    for most cases, but if you notice false positive or false negative regions
+    you can try adjusting the range. 
+    
+    Mixing or separating colors can be handled by increasing the ``h`` value 
+    (allowing more hues through) and uneven lighting/shadows can be compensated 
+    for by increasing the ``v`` value (lightness of the color).
+    """
     close: int = Field(default=0, ge=0, le=200)
+    """Kernel size (circular) of a `morphological closing operation <https://en.wikipedia.org/wiki/Closing_(morphology)>`.
+    
+    If ``close`` is set to 0 (the default), no closing will be performed.
+    
+    This attribute will be coerced to an odd integer below 200 in order to
+    keep performance somewhat reasonable.
+    
+    You may want to configure a higher ``close`` if you notice that the state 
+    image of the corresponding frame includes noise (small objects or colored 
+    pixels) *outside* of its main area.
+    """
     open: int = Field(default=0, ge=0, le=200)
+    """Kernel size (circular) of a `morphological opening operation <https://en.wikipedia.org/wiki/Opening_(morphology)>`.
+    
+    If ``open`` is set to 0 (the default), no opening will be performed.
+    
+    This attribute will be coerced to an odd integer below 200 in order to
+    keep performance somewhat reasonable.
+    
+    You may want to configure a higher ``open`` if you notice that the state 
+    image of the corresponding frame includes noise (small ‘holes’ or 
+    non-colored pixels) *inside* of its main area.
+    """
 
     @property
     def ready(self) -> bool:
@@ -25,10 +58,14 @@ class HsvRangeFilterConfig(FilterConfig):
 
     @property
     def c0(self) -> HsvColor:
+        """The center color minus the range.
+        """
         return self.color - self.range
 
     @property
     def c1(self) -> HsvColor:
+        """The center color plus the range.
+        """
         return self.color + self.range
 
     _resolve_close = validator('close', allow_reuse=True)(BaseConfig._odd_add)
@@ -39,7 +76,8 @@ class HsvRangeFilterConfig(FilterConfig):
 
 @extend(FilterType)
 class HsvRangeFilter(FilterInterface):
-    """Filters by a range of hues ~ HSV representation
+    """Filters out colors outside of a :class:`~shapeflow.maths.color.HsvColor`
+    radius around a center color.
     """
     _config_class = HsvRangeFilterConfig
 

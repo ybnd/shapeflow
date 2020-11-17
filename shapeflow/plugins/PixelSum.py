@@ -1,16 +1,15 @@
 import numpy as np
 
-from shapeflow import get_logger, settings
-from shapeflow.config import extend, ConfigType, Field
-
+from shapeflow.config import extend
 from shapeflow.maths.images import area_pixelsum
-
-from shapeflow.video import MaskFunction, Feature, FeatureType
+from shapeflow.video import MaskFunction, FeatureType
 
 
 @extend(FeatureType)
 class PixelSum(MaskFunction):
-    "Masked & filtered area as number of pixels"
+    """The most basic feature: it just returns the number of
+    ``True`` pixels the filtered frame.
+    """
     _label = "Pixels"
     _unit = "#"
 

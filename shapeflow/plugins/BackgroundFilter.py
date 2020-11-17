@@ -9,18 +9,24 @@ from shapeflow.maths.images import ckernel
 from shapeflow.maths.colors import Color, HsvColor, convert, WRAP
 
 log = get_logger(__name__)
-
-
 COLOR = HsvColor(h=0, s=0, v=0)
 
 
 @extend(ConfigType)
 class BackgroundFilterConfig(FilterConfig):
     """HSV range filter"""
-    range: HsvColor = Field(default=HsvColor(h=10, s=75, v=75))
     color: HsvColor = Field(default=HsvColor())
+    """See :attr:`shapeflow.plugins.HsvRangeFilterConfig.color`
+    """
+    range: HsvColor = Field(default=HsvColor(h=10, s=75, v=75))
+    """See :attr:`shapeflow.plugins.HsvRangeFilterConfig.range`
+    """
     close: int = Field(default=0, ge=0, le=200)
+    """:attr:`~shapeflow.plugins.HsvRangeFilterConfig.close`
+    """
     open: int = Field(default=0, ge=0, le=200)
+    """:attr:`~shapeflow.plugins.HsvRangeFilterConfig.open`
+    """
 
     @property
     def ready(self) -> bool:
@@ -28,10 +34,14 @@ class BackgroundFilterConfig(FilterConfig):
 
     @property
     def c0(self) -> HsvColor:
+        """See :func:`shapeflow.plugins.HsvRangeFilterConfig.c0`
+        """
         return self.color - self.range
 
     @property
     def c1(self) -> HsvColor:
+        """See :func:`shapeflow.plugins.HsvRangeFilterConfig.c1`
+        """
         return self.color + self.range
 
     _resolve_close = validator('close', allow_reuse=True)(BaseConfig._odd_add)
@@ -42,7 +52,8 @@ class BackgroundFilterConfig(FilterConfig):
 
 @extend(FilterType)
 class BackgroundFilter(FilterInterface):
-    """Filters by a range of hues ~ HSV representation
+    """Filters out colors outside of a :class:`~shapeflow.maths.color.HsvColor`
+    radius around a center color and inverts the resulting image.
     """
     _config_class = BackgroundFilterConfig
 
