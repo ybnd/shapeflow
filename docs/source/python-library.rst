@@ -64,6 +64,25 @@ backend
    :show-inheritance:
 
 
+util
+====
+
+.. automodule:: shapeflow.util
+   :members:
+   :show-inheritance:
+
+.. automodule:: shapeflow.util.meta
+   :members:
+
+.. automodule:: shapeflow.util.from_venv
+   :members:
+   :show-inheritance:
+
+.. automodule:: shapeflow.util.filedialog
+   :members:
+   :show-inheritance:
+
+
 maths
 =====
 
@@ -92,7 +111,6 @@ images
    :members:
    :undoc-members:
    :show-inheritance:
-
 
 plugins
 =======
