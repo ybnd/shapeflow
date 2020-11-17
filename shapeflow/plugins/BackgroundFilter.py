@@ -14,18 +14,19 @@ COLOR = HsvColor(h=0, s=0, v=0)
 
 @extend(ConfigType)
 class BackgroundFilterConfig(FilterConfig):
-    """HSV range filter"""
+    """Configuration for :class:`shapeflow.plugins.BackgroundFilter.BackgroundFilter`
+    """
     color: HsvColor = Field(default=HsvColor())
-    """See :attr:`shapeflow.plugins.HsvRangeFilterConfig.color`
+    """See :attr:`shapeflow.plugins.HsvRangeFilter.HsvRangeFilterConfig.color`
     """
     range: HsvColor = Field(default=HsvColor(h=10, s=75, v=75))
-    """See :attr:`shapeflow.plugins.HsvRangeFilterConfig.range`
+    """See :attr:`shapeflow.plugins.HsvRangeFilter.HsvRangeFilterConfig.range`
     """
     close: int = Field(default=0, ge=0, le=200)
-    """:attr:`~shapeflow.plugins.HsvRangeFilterConfig.close`
+    """:attr:`~shapeflow.plugins.HsvRangeFilter.HsvRangeFilterConfig.close`
     """
     open: int = Field(default=0, ge=0, le=200)
-    """:attr:`~shapeflow.plugins.HsvRangeFilterConfig.open`
+    """:attr:`~shapeflow.plugins.HsvRangeFilter.HsvRangeFilterConfig.open`
     """
 
     @property
@@ -34,13 +35,13 @@ class BackgroundFilterConfig(FilterConfig):
 
     @property
     def c0(self) -> HsvColor:
-        """See :func:`shapeflow.plugins.HsvRangeFilterConfig.c0`
+        """See :func:`shapeflow.plugins.HsvRangeFilter.HsvRangeFilterConfig.c0`
         """
         return self.color - self.range
 
     @property
     def c1(self) -> HsvColor:
-        """See :func:`shapeflow.plugins.HsvRangeFilterConfig.c1`
+        """See :func:`shapeflow.plugins.HsvRangeFilter.HsvRangeFilterConfig.c1`
         """
         return self.color + self.range
 

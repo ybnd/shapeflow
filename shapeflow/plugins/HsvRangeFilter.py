@@ -13,6 +13,8 @@ log = get_logger(__name__)
 
 @extend(ConfigType)
 class HsvRangeFilterConfig(FilterConfig):
+    """Configuration for :class:`shapeflow.plugins.HsvRangeFilter.HsvRangeFilter`
+    """
     color: HsvColor = Field(default=HsvColor())
     """The center color.
     """
