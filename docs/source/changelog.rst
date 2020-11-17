@@ -2,7 +2,7 @@ Changelog
 =========
 
 
-* ``0.4.3`` -- **API overhaul**
+* **0.4.3 -- API overhaul**
 
   * Add frontend tests
   
@@ -94,7 +94,7 @@ Changelog
 
   * Mirror API structure in frontend ``api.js``
 
-* ``0.4.2`` -- **CLI overhaul**
+* **0.4.2 -- CLI overhaul**
 
   * Subcommands to divide up the functionality of the library. 
 
@@ -119,11 +119,11 @@ Changelog
     
     * Server-related stuff renamed from ``main`` to ``server``
 
-* ``0.4.1`` -- **Usability improvements and tutorial**
+* **0.4.1 -- Usability improvements and tutorial**
 
   * Tutorials and high-level documentation
 
-* ``0.4.0`` -- **Rebranding**
+* **0.4.0 -- Rebranding**
 
 * **Clean-up git history**
 
