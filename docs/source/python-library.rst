@@ -1,19 +1,13 @@
 Python library
 ##############
 
+
 shapeflow
 =========
 
 .. automodule:: shapeflow
    :members:
    :show-inheritance:
-
-.. toctree::
-   :maxdepth: 4
-
-   shapeflow.core
-   shapeflow.maths
-   shapeflow.plugins
 
 
 util
@@ -112,6 +106,7 @@ images
    :undoc-members:
    :show-inheritance:
 
+
 plugins
 =======
 
@@ -181,12 +176,14 @@ api
    :private-members:
    :show-inheritance:
 
+
 config
 ======
 
 .. automodule:: shapeflow.config
    :members:
    :show-inheritance:
+
 
 db
 ==
@@ -195,6 +192,7 @@ db
    :members:
    :show-inheritance:
 
+
 video
 =====
 
@@ -202,12 +200,14 @@ video
    :members:
    :show-inheritance:
 
+
 server
 ======
 
 .. automodule:: shapeflow.server
    :members:
    :show-inheritance:
+
 
 main
 ====
@@ -217,6 +217,7 @@ main
    :private-members: _Main, _Cache, _Filesystem, _VideoAnalyzerManager
    :special-members: __analyzers__
    :show-inheritance:
+
 
 cli
 ===

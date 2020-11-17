@@ -1,7 +1,7 @@
 from typing import List
 
 
-def describe_function(f: Callable) -> str:
+def describe_function(f) -> str:
     """Return a function description.
     More specific than regular old ``__qualname__``.
 
@@ -13,13 +13,13 @@ def describe_function(f: Callable) -> str:
 
     Parameters
     ----------
-    f: Callable
+    f
         Any function or method
 
     Returns
     -------
     str
-        A unique
+        A unique name for this method
     """
     return f"{f.__module__}." \
            f"{f.__qualname__.replace('<', '_').replace('>', '_')}"

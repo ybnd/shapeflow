@@ -104,7 +104,7 @@ class Timer(object):
 
     @property
     def timing(self) -> Optional[tuple]:
-        """Timing information: start time, end time, elapsed time.
+        """Optional[tuple]: start time, end time, elapsed time.
         """
         if all([hasattr(self, attr) for attr in ('_t0', '_t1', '_elapsed')]):
             return self._t0, self._t1, self._elapsed
@@ -238,11 +238,11 @@ def sizeof_fmt(num: int, suffix='B'):
     Returns
     -------
     str
-    The file size as a human-readable string in decimal bytes. For example::
-        >>> sizeof_fmt(10**3)
-        "1 KB"
-        >>> sizeof_fmt(10**9)
-        "1 GB"
+        The file size as a human-readable string in decimal bytes. For example::
+            >>> sizeof_fmt(10**3)
+            "1 KB"
+            >>> sizeof_fmt(10**9)
+            "1 GB"
 
     """
     for unit in ['','K','M','G','T','P','E','Z']:
@@ -280,7 +280,7 @@ def open_path(path: str) -> None:
 @contextmanager
 def ensure_path(path: Union[str, Path]):
     """ A hacky way to allow imports from arbitrary directories.
-    only use this for testing ``sf.py`` please :(
+    Only use this for testing ``sf.py`` please :(
     """
     if isinstance(path, str):
         path = Path(path)
