@@ -23,10 +23,10 @@ class BackgroundFilterConfig(FilterConfig):
     """See :attr:`shapeflow.plugins.HsvRangeFilter.HsvRangeFilterConfig.range`
     """
     close: int = Field(default=0, ge=0, le=200)
-    """:attr:`~shapeflow.plugins.HsvRangeFilter.HsvRangeFilterConfig.close`
+    """:attr:`shapeflow.plugins.HsvRangeFilter.HsvRangeFilterConfig.close`
     """
     open: int = Field(default=0, ge=0, le=200)
-    """:attr:`~shapeflow.plugins.HsvRangeFilter.HsvRangeFilterConfig.open`
+    """:attr:`shapeflow.plugins.HsvRangeFilter.HsvRangeFilterConfig.open`
     """
 
     @property
