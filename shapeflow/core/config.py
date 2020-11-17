@@ -364,6 +364,8 @@ class Configurable(Described):
     """A class with an associated configuration type.
     """
     _config_class: Type[BaseConfig]
+    """Configuration type
+    """
 
     @classmethod
     def config_class(cls):

@@ -43,7 +43,7 @@ config
 
 .. automodule:: shapeflow.core.config
    :members:
-   :private-members: _resolve_enforcedstr, _odd_add, _int_limits, _float_limits
+   :private-members: _resolve_enforcedstr, _odd_add, _int_limits, _float_limits, _config_class
    :show-inheritance:
 
 interface
@@ -59,6 +59,7 @@ backend
 
 .. automodule:: shapeflow.core.backend
    :members:
+   :private-members: _label, _unit
    :special-members: __modify_schema__
    :show-inheritance:
 

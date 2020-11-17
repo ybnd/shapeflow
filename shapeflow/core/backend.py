@@ -237,7 +237,11 @@ class Feature(abc.ABC, Configurable):  # todo: should probably use Config for pa
     _state: Optional[np.ndarray]
 
     _label: str = ''  # todo: keep these in the config instead?
+    """Label string, to be used in exported data and the user interface
+    """
     _unit: str = ''
+    """Unit string, to be used in exported data and the user interface
+    """
     _elements: Tuple[Instance, ...] = ()
 
     _config: Optional[FeatureConfig]
