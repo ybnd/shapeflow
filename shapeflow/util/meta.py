@@ -1,7 +1,4 @@
-"""Metaprogramming utility functions.
-"""
-
-from typing import List, Union
+from typing import List
 
 
 def describe_function(f: Callable) -> str:
@@ -24,8 +21,6 @@ def describe_function(f: Callable) -> str:
     str
         A unique
     """
-    """ 
-    """
     return f"{f.__module__}." \
            f"{f.__qualname__.replace('<', '_').replace('>', '_')}"
 
@@ -45,8 +40,6 @@ def bases(c: type) -> List[type]:
     -------
     List[type]
         A list of all bases of ``c``
-    """
-    """ 
     """
     def _bases(c) -> List[type]:
         bases = list(c.__bases__)
@@ -94,7 +87,6 @@ def bind(instance, m):
     Callable
         The method ``m``, bound to ``instance``
     """
-
     bound_method = m.__get__(instance, instance.__class__)
     setattr(instance, m.__name__, bound_method)
     return bound_method

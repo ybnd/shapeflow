@@ -16,6 +16,25 @@ shapeflow
    shapeflow.plugins
 
 
+util
+====
+
+.. automodule:: shapeflow.util
+   :members:
+   :show-inheritance:
+
+.. automodule:: shapeflow.util.meta
+   :members:
+
+.. automodule:: shapeflow.util.from_venv
+   :members:
+   :show-inheritance:
+
+.. automodule:: shapeflow.util.filedialog
+   :members:
+   :show-inheritance:
+
+
 core
 ====
 
@@ -61,25 +80,6 @@ backend
    :members:
    :private-members: _label, _unit
    :special-members: __modify_schema__
-   :show-inheritance:
-
-
-util
-====
-
-.. automodule:: shapeflow.util
-   :members:
-   :show-inheritance:
-
-.. automodule:: shapeflow.util.meta
-   :members:
-
-.. automodule:: shapeflow.util.from_venv
-   :members:
-   :show-inheritance:
-
-.. automodule:: shapeflow.util.filedialog
-   :members:
    :show-inheritance:
 
 

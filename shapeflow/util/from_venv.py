@@ -1,6 +1,3 @@
-"""Run Python scripts from a virtual environment.
-"""
-
 import abc
 import sys
 from typing import List, Tuple
@@ -11,7 +8,10 @@ environment = '.venv'
 
 
 def from_venv(env: str) -> None:
-    """Re-run the current script from a virtual environment
+    """Re-run the current script from a virtual environment.
+
+    Gathers call arguments from ``sys.argv`` and starts a child process
+    from the virtual environment.
 
     Parameters
     ----------
