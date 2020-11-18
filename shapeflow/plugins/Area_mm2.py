@@ -7,7 +7,7 @@ from shapeflow.video import MaskFunction, FeatureType
 
 @extend(FeatureType, __name__.split('.')[-1])
 class _Feature(MaskFunction):
-    """Convert :class:`~shapeflow.plugins.PixelSum` to an area in mm²,
+    """Convert :mod:`~shapeflow.plugins.PixelSum` to an area in mm²,
     taking into account the DPI of the design file.
     """
     _label = "Area"

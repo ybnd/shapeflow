@@ -399,7 +399,7 @@ class ApplicationSettings(_Settings):
     _validate_dir = validator('result_dir', allow_reuse=True, pre=True)(_Settings._validate_directorypath)
     _validate_state_path = validator('state_path', allow_reuse=True, pre=True)(_Settings._validate_filepath)
 
-    @validator('threads', pre=True)
+    @validator('threads', pre=True, allow_reuse=True)
     def _validate_threads(cls, value):
         if value < 8:
             return 8  # At least 8 threads to run decently
@@ -440,7 +440,7 @@ class Settings(_Settings):
                for field in cls.__fields__.values()}
         )
 
-settings = Settings()
+settings: Settings
 """This global :class:`~shapeflow.Settings` object is used throughout the
    library
 """
@@ -458,6 +458,8 @@ def _load_settings() -> Settings:  # todo: if there are unexpected fields: warn,
             # Get settings
             if settings_yaml is not None:
                 settings = Settings.from_dict(settings_yaml)
+            else:
+                settings = Settings()
 
             # Move the previous log file to ROOTDIR/log
             if Path(settings.log.path).is_file():
@@ -476,8 +478,10 @@ def _load_settings() -> Settings:  # todo: if there are unexpected fields: warn,
             files.sort(key=lambda f: os.path.getmtime(f), reverse=True)
             while len(files) > settings.log.keep:
                 os.remove(files.pop())
+    else:
+        settings = Settings()
 
-            return settings
+    return settings
 
 
 def save_settings(path: str = str(_SETTINGS_FILE)):

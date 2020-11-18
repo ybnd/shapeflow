@@ -65,6 +65,7 @@ autosummary_generate = True
 import inspect
 import pydantic
 
+
 def edit_signature(app, what, name, obj, options, signature, return_annotation):
     if inspect.isclass(obj):
         # Don't render pydantic model signature, it's too biiiig
@@ -72,9 +73,6 @@ def edit_signature(app, what, name, obj, options, signature, return_annotation):
 
         if is_pydanticBaseModel:
             signature = ""
-    elif name == "shapeflow.settings":
-        # Don't render shapeflow.settings signature, it's also too biiiig
-        signature = ""
 
     return signature, return_annotation
 

@@ -267,9 +267,8 @@ class ShapeflowServer(object):
     @property
     def api(self) -> ApiDispatcher:
         """Get a reference to :data:`shapeflow.api.api` and ensure it has
-        been initialized properly and bound to this
-        :class:`~shapeflow.server.ShapeflowServer` instance with
-        :func:`~shapefow.main.load`.
+        been initialized properly with :mod:`shapeflow.main` and bound to this
+        :class:`~shapeflow.server.ShapeflowServer` instance
 
         Returns
         -------
