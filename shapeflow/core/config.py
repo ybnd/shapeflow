@@ -182,8 +182,6 @@ class BaseConfig(BaseModel, Described):
         class SomeConfig(BaseConfig):
             field1: int = Field(default=42)
             field2: SomeNestedConfig = Field(default_factory=SomeOtherConfig)
-
-
     """
     class Config:
         """``pydantic`` configuration class
