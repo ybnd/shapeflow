@@ -455,29 +455,29 @@ def _load_settings(path: str = str(_SETTINGS_FILE)) -> Settings:  # todo: if the
 
         # Get settings
         if settings_yaml is not None:
-            s = Settings.from_dict(settings_yaml)
+            settings = Settings.from_dict(settings_yaml)
         else:
-            s = Settings()
+            settings = Settings()
 
         # Move the previous log file to ROOTDIR/log
-        if Path(s.log.path).is_file():
+        if Path(settings.log.path).is_file():
             shutil.move(
-                s.log.path,  # todo: convert to pathlib
+                settings.log.path,  # todo: convert to pathlib
                 os.path.join(
-                    s.log.dir,
+                    settings.log.dir,
                     datetime.datetime.fromtimestamp(
-                        os.path.getmtime(s.log.path)
-                    ).strftime(s.format.datetime_format_fs) + '.log'
+                        os.path.getmtime(settings.log.path)
+                    ).strftime(settings.format.datetime_format_fs) + '.log'
                 )
             )
 
         # If more files than specified in ini.log.keep, remove the oldest
-        files = glob.glob(os.path.join(s.log.dir, '*.log'))  # todo: convert to pathlib
+        files = glob.glob(os.path.join(settings.log.dir, '*.log'))  # todo: convert to pathlib
         files.sort(key=lambda f: os.path.getmtime(f), reverse=True)
-        while len(files) > s.log.keep:
+        while len(files) > settings.log.keep:
             os.remove(files.pop())
 
-        return s
+        return settings
 
 
 def save_settings(path: str = str(_SETTINGS_FILE)):
@@ -500,8 +500,11 @@ def update_settings(s: dict) -> dict:
     """Update the global settings instance.
 
     .. note::
-       Just doing::
+       Just doing
+
+       .. code-block:: python
           settings = Settings(**new_settings_dict)
+
        would prevent other modules from accessing the updated settings!
 
     Parameters
@@ -528,7 +531,7 @@ class Logger(logging.Logger):
 
     * Adds a verbose debug logging level :func:`~shapeflow.Logger.vdebug`
 
-    * Strips ``\n`` from log output to keep each log event on its own line
+    * Strips newlines from log output to keep each log event on its own line
     """
     _pattern = re.compile(r'(\n|\r|\t| [ ]+)')
 
@@ -553,7 +556,7 @@ class Logger(logging.Logger):
         super().critical(self._remove_newlines(msg))
 
     def vdebug(self, message, *args, **kwargs):
-        f"""Log message with severity 'VDEBUG', i.e. {VDEBUG}.
+        """Log message with severity 'VDEBUG'.
         A slightly more verbose debug level for really dense logs.
         """
         if self.isEnabledFor(VDEBUG):
