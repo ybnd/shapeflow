@@ -31,7 +31,7 @@ import diskcache
 
 
 __version__: str = '0.4.3'
-"""shapeflow library version
+"""Library version
 """
 
 # Get root directory

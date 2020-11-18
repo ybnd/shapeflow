@@ -2,6 +2,9 @@ Python library
 ##############
 
 
+.. autodata:: shapeflow.__version__
+
+
 shapeflow
 =========
 
@@ -9,7 +12,6 @@ shapeflow
    :members:
    :exclude-members: settings, save_settings, update_settings, Logger, get_logger, get_cache
    :private-members: _Settings
-   :special-members: __version__
    :show-inheritance:
 
 .. autodata:: shapeflow.settings
