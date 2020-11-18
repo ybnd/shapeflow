@@ -440,44 +440,44 @@ class Settings(_Settings):
                for field in cls.__fields__.values()}
         )
 
-
-global settings
+settings = Settings()
 """This global :class:`~shapeflow.Settings` object is used throughout the
    library
 """
 
 
-def _load_settings(path: str = str(_SETTINGS_FILE)) -> Settings:  # todo: if there are unexpected fields: warn, don't crash
+def _load_settings() -> Settings:  # todo: if there are unexpected fields: warn, don't crash
     """Load :class:`~shapeflow.Settings` from .yaml
     """
-    with open(path, 'r') as f:
-        settings_yaml = yaml.safe_load(f)
+    global settings
 
-        # Get settings
-        if settings_yaml is not None:
-            settings = Settings.from_dict(settings_yaml)
-        else:
-            settings = Settings()
+    if _SETTINGS_FILE.is_file():
+        with open(_SETTINGS_FILE, 'r') as f:
+            settings_yaml = yaml.safe_load(f)
 
-        # Move the previous log file to ROOTDIR/log
-        if Path(settings.log.path).is_file():
-            shutil.move(
-                settings.log.path,  # todo: convert to pathlib
-                os.path.join(
-                    settings.log.dir,
-                    datetime.datetime.fromtimestamp(
-                        os.path.getmtime(settings.log.path)
-                    ).strftime(settings.format.datetime_format_fs) + '.log'
+            # Get settings
+            if settings_yaml is not None:
+                settings = Settings.from_dict(settings_yaml)
+
+            # Move the previous log file to ROOTDIR/log
+            if Path(settings.log.path).is_file():
+                shutil.move(
+                    settings.log.path,  # todo: convert to pathlib
+                    os.path.join(
+                        settings.log.dir,
+                        datetime.datetime.fromtimestamp(
+                            os.path.getmtime(settings.log.path)
+                        ).strftime(settings.format.datetime_format_fs) + '.log'
+                    )
                 )
-            )
 
-        # If more files than specified in ini.log.keep, remove the oldest
-        files = glob.glob(os.path.join(settings.log.dir, '*.log'))  # todo: convert to pathlib
-        files.sort(key=lambda f: os.path.getmtime(f), reverse=True)
-        while len(files) > settings.log.keep:
-            os.remove(files.pop())
+            # If more files than specified in ini.log.keep, remove the oldest
+            files = glob.glob(os.path.join(settings.log.dir, '*.log'))  # todo: convert to pathlib
+            files.sort(key=lambda f: os.path.getmtime(f), reverse=True)
+            while len(files) > settings.log.keep:
+                os.remove(files.pop())
 
-        return settings
+            return settings
 
 
 def save_settings(path: str = str(_SETTINGS_FILE)):
@@ -488,16 +488,12 @@ def save_settings(path: str = str(_SETTINGS_FILE)):
 
 
 # Instantiate global settings object
-if not os.path.isfile(_SETTINGS_FILE):
-    settings = Settings()
-else:
-    settings = _load_settings(str(_SETTINGS_FILE))
-
+_load_settings()
 save_settings()
 
 
 def update_settings(s: dict) -> dict:
-    """Update the global settings instance.
+    """Update the global settings object.
 
     .. note::
        Just doing ``settings = Settings(**new_settings_dict)``
@@ -513,6 +509,8 @@ def update_settings(s: dict) -> dict:
     dict
         the current global settings as a ``dict``
     """
+    global settings
+
     for cat, cat_new in s.items():
         sub = getattr(settings, cat)
         for kw, val in cat_new.items():
