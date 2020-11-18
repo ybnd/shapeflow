@@ -412,12 +412,12 @@ class Dispatcher(object):  # todo: these should also register specific instances
         return getattr(self, item)
 
 
-class Described(object):  # todo: maybe this should be a metaclass?
+class Described(object):
     """A class with a description.
+
     This description is taken from the first line of the docstring if there is
     one or set to the name of the class if there isn't.
     """
-
     @classmethod
     def _description(cls):
         if cls.__doc__ is not None:
