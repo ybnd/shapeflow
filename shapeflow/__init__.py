@@ -155,8 +155,8 @@ class _Settings(BaseModel):
 
 class FormatSettings(_Settings):
     """Format settings"""
-    datetime_format: str = Field(default='%Y/%m/%d %H:%M:%S.%f', description="date/time format")
-    datetime_format_fs: str = Field(default='%Y-%m-%d_%H-%M-%S', description="file system date/time format")
+    datetime_format: str = Field(default='%Y/%m/%d %H:%M:%S.%f', title="date/time format")
+    datetime_format_fs: str = Field(default='%Y-%m-%d_%H-%M-%S', title="file system date/time format")
 
 
 VDEBUG = 9
