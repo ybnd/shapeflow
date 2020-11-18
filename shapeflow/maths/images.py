@@ -131,7 +131,7 @@ def area_pixelsum(image: Optional[np.ndarray]) -> Optional[int]:
         return None
 
 
-def to_mask(image: np.ndarray, kernel: np.ndarray = ckernel(7)) -> np.ndarray:
+def to_mask(image: np.ndarray, kernel: np.ndarray = None) -> np.ndarray:
     """Convert a PNG image to a binary mask array.
 
     Parameters
@@ -139,15 +139,19 @@ def to_mask(image: np.ndarray, kernel: np.ndarray = ckernel(7)) -> np.ndarray:
     image: np.ndarray
         A ``numpy`` array representing a full-color PNG image
         without transparency
-    kernel: np.ndarray
+    kernel: Optional[np.ndarray]
         A smoothing kernel.
-        Defaults to :func:`~shapeflow.maths.images.ckernel` of size 7.
+        If set to ``None``, defaults to a
+        :func:`~shapeflow.maths.images.ckernel` of size 7.
 
 
     Returns
     -------
 
     """
+    if kernel is None:
+        kernel = ckernel(7)
+
     # Convert to grayscale
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     # Threshold to binary
