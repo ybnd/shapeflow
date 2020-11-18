@@ -13,125 +13,184 @@ class _VideoAnalyzerDispatcher(Dispatcher):
     """Dispatches ``/api/va/<id>/<endpoint>``
     """
     status = Endpoint(Callable[[], dict], stream_json)
-    """| Get the analyzer's status
-       | :py:meth:`shapeflow.core.backend.BaseAnalyzer.status`
+    """Get the analyzer's status
+    
+    :func:`shapeflow.core.backend.BaseAnalyzer.status`
     """
     state_transition = Endpoint(Callable[[bool], int])
-    """| Trigger a state transition
-       | :py:meth:`shapeflow.core.backend.BaseAnalyzer.state_transition`
+    """Trigger a state transition
+    
+    :func:`shapeflow.core.backend.BaseAnalyzer.state_transition`
     """
     can_launch = Endpoint(Callable[[], bool])
-    """| Returns ``True`` if the analyzer has enough of its configuration set up to launch
-       | :py:meth:`shapeflow.video.VideoAnalyzer.can_launch`
+    """Returns ``True`` if the analyzer has enough of its configuration set up to launch
+            
+    :func:`shapeflow.video.VideoAnalyzer.can_launch`
     """
     can_analyze = Endpoint(Callable[[], bool])
-    """| Returns ``True`` if the analyzer has enough of its configuration set up to analyze
-       | :py:meth:`shapeflow.video.VideoAnalyzer.can_analyze`
+    """Returns ``True`` if the analyzer has enough of its configuration set up to analyze
+            
+    :func:`shapeflow.video.VideoAnalyzer.can_analyze`
     """
     launch = Endpoint(Callable[[], bool])
-    """| Launch the analyzer
-       | :py:meth:`shapeflow.core.backend.BaseAnalyzer.launch`
+    """Launch the analyzer
+    
+    :func:`shapeflow.core.backend.BaseAnalyzer.launch`
     """
     commit = Endpoint(Callable[[], bool])
-    """| Commit the analyzer to the database
-       | :py:meth:`shapeflow.core.backend.BaseAnalyzer.commit`
+    """Commit the analyzer to the database
+
+    :func:`shapeflow.core.backend.BaseAnalyzer.commit`
     """
     analyze = Endpoint(Callable[[], bool])
-    """| Run an analysis
-       | :py:meth:`shapeflow.video.VideoAnalyzer.analyze`
+    """Run an analysis
+        
+    :func:`shapeflow.video.VideoAnalyzer.analyze`
     """
     cancel = Endpoint(Callable[[], None])
-    """| Cancel an analysis
-       | :py:meth:`shapeflow.core.backend.BaseAnalyzer.cancel`
+    """Cancel an analysis
+        
+    :func:`shapeflow.core.backend.BaseAnalyzer.cancel`
     """
     get_config = Endpoint(Callable[[], dict], stream_json)
-    """| Return the analyzer's configuration
-       | :py:meth:`shapeflow.core.backend.BaseAnalyzer.get_config`
+    """Return the analyzer's configuration
+    
+    :func:`shapeflow.core.backend.BaseAnalyzer.get_config`
     """
     set_config = Endpoint(Callable[[dict, bool], dict])
     """Set the analyzer's configuration
+    
+    :func:`shapeflow.video.VideoAnalyzer.set_config`
     """
     undo_config = Endpoint(Callable[[str], dict])
     """Undo the latest change to the analyzer's configuration
+    
+    :func:`shapeflow.video.VideoAnalyzer.undo_config`
     """
     redo_config = Endpoint(Callable[[str], dict])
     """Redo the latest undone change to the analyzer's configuration
+    
+    :func:`shapeflow.video.VideoAnalyzer.redo_config`
     """
     estimate_transform = Endpoint(Callable[[dict], Optional[dict]])
     """Estimate a transform based on the provided ROI
+    
+    :func:`shapeflow.video.VideoAnalyzer.estimate_transform`
     """
     turn_cw = Endpoint(Callable[[], None])
     """Turn the ROI clockwise
+    
+    :func:`shapeflow.video.VideoAnalyzer.turn_cw`
     """
     turn_ccw = Endpoint(Callable[[], None])
     """Turn the ROI counter-clockwise
+    
+    :func:`shapeflow.video.VideoAnalyzer.turn_ccw`
     """
     flip_h = Endpoint(Callable[[], None])
     """Flip the ROI horizontally
+    
+    :func:`shapeflow.video.VideoAnalyzer.flip_h`
     """
     flip_v = Endpoint(Callable[[], None])
     """Flip the ROI vertically
+    
+    :func:`shapeflow.video.VideoAnalyzer.flip_v`
     """
     clear_roi = Endpoint(Callable[[], None])
     """Clear the ROI
+    
+    :func:`shapeflow.video.VideoAnalyzer.clear_roi`
     """
     get_overlay_png = Endpoint(Callable[[], bytes])
     """Return the overlay image
+    
+    :func:`shapeflow.video.VideoAnalyzer.get_overlay_png`
     """
     get_frame = Endpoint(Callable[[Optional[int]], np.ndarray], stream_image)
     """Return the transformed frame at the provided frame number 
     (or the current frame number if ``None``)
+    
+    :func:`shapeflow.video.VideoAnalyzer.get_frame`
     """
     set_filter_click = Endpoint(Callable[[float, float], None])
     """Configure a filter based on a click position 
     (in ROI-relative coordinates)
+    
+    :func:`shapeflow.video.VideoAnalyzer.set_filter_click`
     """
     get_inverse_transformed_overlay = Endpoint(Callable[[], np.ndarray], stream_image)
     """Return the inverse transformed overlay image
+    
+    :func:`shapeflow.video.VideoAnalyzer.get_inverse_transformed_overlay`
     """
     get_inverse_overlaid_frame = Endpoint(Callable[[Optional[int]], np.ndarray], stream_image)
     """Return the inverse overlaid frame at the provided frame number 
     (or the current frame number if ``None``)
+    
+    :func:`shapeflow.video.VideoAnalyzer.get_inverse_overlaid_frame`
     """
     get_state_frame = Endpoint(Callable[[Optional[int], Optional[int]], np.ndarray], stream_image)
     """Return the state frame at the provided frame number 
     (or the current frame number if ``None``)
+    
+    :func:`shapeflow.video.VideoAnalyzer.get_state_frame`
     """
     get_colors = Endpoint(Callable[[], Tuple[str, ...]])
     """Return the color list
     """
     get_db_id = Endpoint(Callable[[], int])
     """Return the database ID associated with this analyzer
+    
+    :func:`shapeflow.core.backend.BaseAnalyzer.get_db_id`
     """
     clear_filters = Endpoint(Callable[[], bool])
     """Clear all filter configuration
+    
+    :func:`shapeflow.video.VideoAnalyzer.clear_filters`
     """
     seek = Endpoint(Callable[[float], float])
     """Seek to the provided position (relative, 0-1)
+    
+    :func:`shapeflow.video.VideoAnalyzer.seek`
     """
 
-    get_relative_roi = Endpoint(Callable[[], dict])
+    get_relative_roi = Endpoint(Callable[[], dict])  # todo: ROI should always be relative, redundant
     """Return the current ROI in relative coordinates
+    
+    :func:`shapeflow.video.VideoAnalyzer.get_relative_roi`
     """
     get_coordinates = Endpoint(Callable[[], Optional[list]])  # todo: deprecated?
     """Return the current relative coordinates
+    
+    :func:`shapeflow.video.VideoAnalyzer.get_coordinates`
     """
 
     get_time = Endpoint(Callable[[int], float])
-    """Return the current video timestamp
+    """Return the current time in the video in seconds
+    
+    :func:`shapeflow.video.VideoAnalyzer.get_time`
     """
     get_total_time = Endpoint(Callable[[], float])
-    """Return the total time of the video file
+    """Return the total time of the video file in seconds
+    
+    :func:`shapeflow.video.VideoAnalyzer.get_total_time`
     """
     get_fps = Endpoint(Callable[[], float])
     """Return the framerate of the video file
+    
+    :func:`shapeflow.video.VideoAnalyzer.get_fps`
     """
     get_raw_frame = Endpoint(Callable[[Optional[int]], np.ndarray], stream_image)
     """Return the raw frame at the provided frame number 
     (or the current frame number if ``None``)
+    
+    :func:`shapeflow.video.VideoAnalyzer.get_raw_frame`
     """
     get_seek_position = Endpoint(Callable[[], float])
     """Return the current seek position (relative, 0-1)
+    
+    :func:`shapeflow.video.VideoAnalyzer.get_seek_position`
     """
 
 
@@ -297,7 +356,7 @@ class ApiDispatcher(Dispatcher):
 
 
 api = ApiDispatcher()
-"""| Global :class:`~shapeflow.api.ApiDispatcher` instance. 
-   | Endpoints should be exposed against this object. 
-   | API calls should be dispatched from this object.
+"""Global :class:`~shapeflow.api.ApiDispatcher` instance. 
+Endpoints should be exposed against this object. 
+API calls should be dispatched from this object.
 """
