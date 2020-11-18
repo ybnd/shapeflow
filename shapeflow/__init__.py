@@ -1,5 +1,13 @@
+"""Common elements.
+
+* Application settings
+
+* Logging
+
+* Caching
+"""
+
 import os
-import abc
 import glob
 import shutil
 import pathlib
@@ -36,8 +44,9 @@ else:
 ROOTDIR = Path(_user_dir, *_subdirs)
 """Root directory of the application.
 
-On Linux, this will be something like ``/home/<user>/.local/.share/shapeflow``,
-on Windows something like ``C:\\Users\\<user>\\AppData\\Roaming\\shapeflow``.
+Linux: ``/home/<user>/.local/.share/shapeflow``
+
+Windows: ``C:\\Users\\<user>\\AppData\\Roaming\\shapeflow``
 """
 
 _SETTINGS_FILE = ROOTDIR / 'settings.yaml'
@@ -134,8 +143,11 @@ class _Settings(BaseModel):
 
     @classmethod
     def schema(cls, by_alias: bool = True, ref_template: str = '') -> Dict[str, Any]:
-        """Inject title & description into schema ~ lost due to Enum bugs.
-        https://github.com/samuelcolvin/pydantic/pull/1749
+        """Inject title & description into ``pydantic`` schema.
+
+        These get lost due to some `bug`_ with ``Enum``.
+
+        .. _bug: https://github.com/samuelcolvin/pydantic/pull/1749
         """
 
         schema = super().schema(by_alias)
@@ -179,7 +191,7 @@ logging.addLevelName(VDEBUG, "VDEBUG")
 
 
 class LoggingLevel(str, Enum):
-    """Logging level ``Enum``.
+    """Logging level.
     """
     critical = "critical"
     """Only log critical (unrecoverable) errors
@@ -202,7 +214,8 @@ class LoggingLevel(str, Enum):
 
     @property
     def level(self) -> int:
-        """Return the ``int`` logging level
+        """Return the ``int`` logging level for compatibility with built-in
+        ``logging`` library
         """
         _levels: dict = {
             LoggingLevel.critical: logging.CRITICAL,
@@ -235,14 +248,14 @@ class LogSettings(_Settings):
     
     Defaults to :attr:`~shapeflow.LoggingLevel.info` to keep the console from 
     getting too spammy. 
-    Set to a lower level such as :attr:`~shapeflow.LoggingLevel.default` to show
+    Set to a lower level such as :attr:`~shapeflow.LoggingLevel.debug` to show
     more detailed logs in the console.
     """
     lvl_file: LoggingLevel = Field(default=LoggingLevel.debug, title="logging level (file)")
     """The level at which the application logs to the log file at
     :attr:`~shapeflow.LogSettings.path`.
     
-    Defaults to :attr:`shapeflow.LoggingLevel.default`.
+    Defaults to :attr:`shapeflow.LoggingLevel.debug`.
     """
 
     _validate_path = validator('path', allow_reuse=True, pre=True)(_Settings._validate_filepath)
@@ -396,6 +409,18 @@ class ApplicationSettings(_Settings):
 
 class Settings(_Settings):
     """``shapeflow`` settings.
+
+    * app: :class:`~shapeflow.ApplicationSettings`
+
+    * log: :class:`~shapeflow.LogSettings`
+
+    * cache: :class:`~shapeflow.CacheSettings`
+
+    * render: :class:`~shapeflow.RenderSettings`
+
+    * format: :class:`~shapeflow.FormatSettings`
+
+    * db: :class:`~shapeflow.DatabaseSettings`
     """
     app: ApplicationSettings = Field(default=ApplicationSettings(), title="Application")
     log: LogSettings = Field(default=LogSettings(), title="Logging")
@@ -473,8 +498,11 @@ save_settings()
 
 def update_settings(s: dict) -> dict:
     """Update the global settings instance.
-    Note: doing `settings = Settings(**new_settings)` would prevent
-    importing modules from accessing the updated settings!
+
+    .. note::
+       Just doing::
+          settings = Settings(**new_settings_dict)
+       would prevent other modules from accessing the updated settings!
 
     Parameters
     ----------
@@ -496,24 +524,38 @@ def update_settings(s: dict) -> dict:
 
 
 class Logger(logging.Logger):
+    """``shapeflow`` logger.
+
+    * Adds a verbose debug logging level :func:`~shapeflow.Logger.vdebug`
+
+    * Strips ``\n`` from log output to keep each log event on its own line
+    """
     _pattern = re.compile(r'(\n|\r|\t| [ ]+)')
 
     def debug(self, msg, *args, **kwargs):
+        """:meta private:"""
         super().debug(self._remove_newlines(msg))
 
     def info(self, msg, *args, **kwargs):
+        """:meta private:"""
         super().info(self._remove_newlines(msg))
 
     def warning(self, msg, *args, **kwargs):
+        """:meta private:"""
         super().warning(self._remove_newlines(msg))
 
     def error(self, msg, *args, **kwargs):
+        """:meta private:"""
         super().error(self._remove_newlines(msg))
 
     def critical(self, msg, *args, **kwargs):
+        """:meta private:"""
         super().critical(self._remove_newlines(msg))
 
     def vdebug(self, message, *args, **kwargs):
+        f"""Log message with severity 'VDEBUG', i.e. {VDEBUG}.
+        A slightly more verbose debug level for really dense logs.
+        """
         if self.isEnabledFor(VDEBUG):
             self.log(
                 VDEBUG, self._remove_newlines(message), *args, **kwargs
