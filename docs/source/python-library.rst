@@ -199,6 +199,7 @@ config
 
 .. automodule:: shapeflow.config
    :members:
+   :exclude-members: ColorSpace, FrameIntervalSetting
    :show-inheritance:
 
 
