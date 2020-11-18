@@ -57,6 +57,25 @@ autodoc_member_order = 'bysource'
 autosummary_generate = True
 
 
+# -- autodoc configuration ---------------------------------------------------
+
+def edit_signature(app, what, name, obj, options, signature, return_annotation):
+    print(app)
+    print(what)
+    print(name)
+    print(obj)
+    print(options)
+    print(signature)
+    print(return_annotation)
+
+    return signature, return_annotation
+
+
+def setup(app):
+    app.connect("autodoc-process-signature", edit_signature)
+
+
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
