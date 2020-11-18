@@ -788,8 +788,11 @@ class MaskFunction(Feature):
 @extend(AnalyzerType)
 class VideoAnalyzer(BaseAnalyzer):
     """Main video handling class
+
             * Load frames from video files
+
             * Load mask files
+
             * Load/save measurement metadata
     """
     _config: VideoAnalyzerConfig

@@ -246,9 +246,13 @@ class _VideoAnalyzerManager(object):
     """Implements ``va`` endpoints in :data:`~shapeflow.api.api`.
 
     Manages :class:`~shapeflow.core.backend.BaseAnalyzer` instances
+
     * Adds / removes instances
+
     * Handles saving / loading of application state
+
     * Handles analysis queueing
+
     * Handles analyzer-specific streams
     """
 

@@ -106,9 +106,12 @@ class ShapeflowServer(object):
         browser window/tab if requested.
 
         This method keeps serving until either
+
         * :func:`~shapeflow.main._Main.quit` is called
+
         * :func:`~shapeflow.main._Main.unload` is called and no incoming traffic
           is received for 5 seconds.
+
         * The user interrupts the process with ``Ctrl+C``
 
         Parameters
@@ -183,10 +186,13 @@ class ShapeflowServer(object):
         ``request.args``
 
         Handles multiple types of return data:
+
         * ``bytes`` data are handled by ``flask.make_response``
+
         * for :class:`shapeflow.core.streaming.BaseStreamer` instances,
           custom ``flask.Response`` objects are made from their
           :func:`shapeflow.core.streaming.BaseStreamer.stream` generator
+
         * all other data are handled by ``flask.jsonify``
 
         Parameters
