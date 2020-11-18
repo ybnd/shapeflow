@@ -53,7 +53,7 @@ class _Config(FilterConfig):
 
 @extend(FilterType, __name__.split('.')[-1])
 class _Filter(FilterInterface):
-    """Filters out colors outside of a :class:`~shapeflow.maths.color.HsvColor`
+    """Filters out colors outside of a :class:`~shapeflow.maths.colors.HsvColor`
     radius around a center color and inverts the resulting image.
     """
     _config_class = _Config

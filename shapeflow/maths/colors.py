@@ -201,21 +201,21 @@ class BgrColor(Color):
 
 # noinspection PyArgumentList
 def convert(color: Color, to: Type[Color]) -> Color:
-    """Convert a :class:`~shapeflow.maths.color.Color` object to another
-    :class:`~shapeflow.maths.color.Color` type.
+    """Convert a :class:`~shapeflow.maths.colors.Color` object to another
+    :class:`~shapeflow.maths.colors.Color` type.
 
     Parameters
     ----------
     color: Color
-        The original :class:`~shapeflow.maths.color.Color` object
+        The original :class:`~shapeflow.maths.colors.Color` object
     to: Type[Color]
-        The :class:`~shapeflow.maths.color.Color` type to convert it to
+        The :class:`~shapeflow.maths.colors.Color` type to convert it to
 
     Returns
     -------
     Color
-        The original :class:`~shapeflow.maths.color.Color` object converted to
-        the new :class:`~shapeflow.maths.color.Color` type.
+        The original :class:`~shapeflow.maths.colors.Color` object converted to
+        the new :class:`~shapeflow.maths.colors.Color` type.
     """
     if not isinstance(color, Color):
         raise ValueError(f"'{color}' is not a valid color.")
@@ -232,13 +232,13 @@ def as_hsv(color: Color) -> HsvColor:
     Parameters
     ----------
     color: Color
-        Any :class:`~shapeflow.maths.color.Color` object.
+        Any :class:`~shapeflow.maths.colors.Color` object.
 
     Returns
     -------
     HsvColor
-        The original :class:`~shapeflow.maths.color.Color` object as a
-        :class:`~shapeflow.maths.color.HsvColor` object.
+        The original :class:`~shapeflow.maths.colors.Color` object as a
+        :class:`~shapeflow.maths.colors.HsvColor` object.
     """
     out = convert(color, HsvColor)
     assert isinstance(out, HsvColor)
@@ -251,13 +251,13 @@ def as_bgr(color: Color) -> BgrColor:
     Parameters
     ----------
     color: Color
-        Any :class:`~shapeflow.maths.color.Color` object.
+        Any :class:`~shapeflow.maths.colors.Color` object.
 
     Returns
     -------
     BgrColor
-        The original :class:`~shapeflow.maths.color.Color` object as a
-        :class:`~shapeflow.maths.color.BgrColor` object.
+        The original :class:`~shapeflow.maths.colors.Color` object as a
+        :class:`~shapeflow.maths.colors.BgrColor` object.
     """
     out = convert(color, BgrColor)
     assert isinstance(out, BgrColor)
@@ -270,13 +270,13 @@ def as_rgb(color: Color) -> RgbColor:
     Parameters
     ----------
     color: Color
-        Any :class:`~shapeflow.maths.color.Color` object.
+        Any :class:`~shapeflow.maths.colors.Color` object.
 
     Returns
     -------
     RgbColor
-        The original :class:`~shapeflow.maths.color.Color` object as a
-        :class:`~shapeflow.maths.color.RgbColor` object.
+        The original :class:`~shapeflow.maths.colors.Color` object as a
+        :class:`~shapeflow.maths.colors.RgbColor` object.
     """
     out = convert(color, RgbColor)
     assert isinstance(out, RgbColor)
@@ -289,7 +289,7 @@ def complementary(color: Color) -> Color:
     Parameters
     ----------
     color: Color
-        Any :class:`~shapeflow.maths.color.Color` object.
+        Any :class:`~shapeflow.maths.colors.Color` object.
 
     Returns
     -------
@@ -309,7 +309,7 @@ def css_hex(color: Color) -> str:
     Parameters
     ----------
     color: Color
-        Any :class:`~shapeflow.maths.color.Color` object.
+        Any :class:`~shapeflow.maths.colors.Color` object.
 
     Returns
     -------

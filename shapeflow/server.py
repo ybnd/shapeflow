@@ -184,8 +184,9 @@ class ShapeflowServer(object):
 
         Handles multiple types of return data:
         * ``bytes`` data are handled by ``flask.make_response``
-        * for :class:`BaseStreamer` instances, custom ``flask.Response``
-          objects are made from their :func:`BaseStreamer.stream` generator
+        * for :class:`shapeflow.core.streaming.BaseStreamer` instances,
+          custom ``flask.Response`` objects are made from their
+          :func:`shapeflow.core.streaming.BaseStreamer.stream` generator
         * all other data are handled by ``flask.jsonify``
 
         Parameters
@@ -268,7 +269,7 @@ class ShapeflowServer(object):
         """Get a reference to :data:`shapeflow.api.api` and ensure it has
         been initialized properly and bound to this
         :class:`~shapeflow.server.ShapeflowServer` instance with
-        :func:`~shapefow.api.load`.
+        :func:`~shapefow.main.load`.
 
         Returns
         -------

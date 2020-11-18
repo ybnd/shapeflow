@@ -86,7 +86,9 @@ class ResultModel(DbModel):
 
 class AnalysisModel(BaseAnalysisModel):
     """Database model of an analysis.
-    Contains a reference to a ``BaseAnalyzer`` instance.
+
+    Contains a reference to a
+    :class:`~shapeflow.core.backend.BaseAnalyzer` instance.
     """
     __tablename__ = 'analysis'
 
@@ -217,7 +219,7 @@ class AnalysisModel(BaseAnalysisModel):
 
     def store(self):  # todo: consider passing analyzer to store() instead of keeping a reference
         """Store analysis information from the
-        :class:`~shapeflow.core.backend.BaseVideoAnalyzer` to the database.
+        :class:`~shapeflow.core.backend.BaseAnalyzer` to the database.
         """
         self._resolve_attributes()
         if self._analyzer is not None:

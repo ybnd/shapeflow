@@ -167,7 +167,7 @@ class BaseConfig(BaseModel, Described):
             dict_with_fields_and_values = config.to_dict()
 
     When writing ``BaseConfig`` subclasses, use the
-    :class:`~shapeflow.core.config.extends` decorator to make your
+    :class:`~shapeflow.core.config.extend` decorator to make your
     configuration class accessible through the
     :class:`~shapeflow.core.config.ConfigType` factory. Configuration fields
      are declared as ``pydantic.Field`` instances and must be type-annotated

@@ -39,7 +39,7 @@ log = get_logger(__name__)
 
 
 class _Main(object):
-    """Implements root-level endpoints of :module:`shapeflow.api`.
+    """Implements root-level :data:`~shapeflow.api.api` endpoints.
     """
     _lock: Lock
     _server: ShapeflowServer
@@ -139,7 +139,7 @@ class _Main(object):
 
 
 class _Cache(object):
-    """Implements :data:`shapeflow.api.api.cache` endpoints.
+    """Implements ``cache`` endpoints in :data:`~shapeflow.api.api`.
     """
     _cache: diskcache.Cache
 
@@ -159,7 +159,7 @@ class _Cache(object):
 
 
 class _Filesystem(object):
-    """Implements :data:`shapeflow.api.api.fs` endpoints.
+    """Implements ``fs`` endpoints in :data:`~shapeflow.api.api`.
     """
     _history: History
 
@@ -243,9 +243,9 @@ class _Database(object):
 
 
 class _VideoAnalyzerManager(object):
-    """Implements :data:`shapeflow.api.api.va` endpoints.
+    """Implements ``va`` endpoints in :data:`~shapeflow.api.api`.
 
-    Manages :class:`BaseAnalyzer` instances
+    Manages :class:`~shapeflow.core.backend.BaseAnalyzer` instances
     * Adds / removes instances
     * Handles saving / loading of application state
     * Handles analysis queueing
