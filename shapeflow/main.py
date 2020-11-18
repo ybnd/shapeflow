@@ -144,7 +144,7 @@ class _Cache(object):
     _cache: diskcache.Cache
 
     def __init__(self):
-        self._cache = get_cache(settings)
+        self._cache = get_cache()
 
     @api.cache.clear.expose()
     def _clear_cache(self) -> None:

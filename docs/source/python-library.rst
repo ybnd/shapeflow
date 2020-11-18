@@ -7,7 +7,7 @@ shapeflow
 
 .. automodule:: shapeflow
    :members:
-   :private-members: _Settings
+   :private-members: _Settings, _load_settings
    :special-members: __version__
    :show-inheritance:
 
