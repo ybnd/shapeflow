@@ -67,11 +67,6 @@ def edit_signature(app, what, name, obj, options, signature, return_annotation):
         # Don't render pydantic model signature, it's too biiiig
         is_pydanticBaseModel = issubclass(obj, pydantic.BaseModel)
 
-        print(
-            f"{obj} object '{name}' is a pydantic.BaseModel? "
-            f"{is_pydanticBaseModel}"
-        )
-
         if is_pydanticBaseModel:
             signature = ""
     elif name == "shapeflow.settings":
