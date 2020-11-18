@@ -500,11 +500,7 @@ def update_settings(s: dict) -> dict:
     """Update the global settings instance.
 
     .. note::
-       Just doing
-
-       .. code-block:: python
-          settings = Settings(**new_settings_dict)
-
+       Just doing ``settings = Settings(**new_settings_dict)``
        would prevent other modules from accessing the updated settings!
 
     Parameters
