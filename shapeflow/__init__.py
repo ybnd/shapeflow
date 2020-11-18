@@ -37,7 +37,7 @@ ROOTDIR = Path(_user_dir, *_subdirs)
 """Root directory of the application.
 
 On Linux, this will be something like ``/home/<user>/.local/.share/shapeflow``,
-on Windows something like ``C:\Users\<user>\AppData\Roaming\shapeflow``.
+on Windows something like ``C:\\Users\\<user>\\AppData\\Roaming\\shapeflow``.
 """
 
 _SETTINGS_FILE = ROOTDIR / 'settings.yaml'
