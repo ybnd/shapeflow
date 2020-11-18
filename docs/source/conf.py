@@ -59,14 +59,20 @@ autosummary_generate = True
 
 # -- autodoc configuration ---------------------------------------------------
 
+import inspect
+import pydantic
+
 def edit_signature(app, what, name, obj, options, signature, return_annotation):
-    print(app)
-    print(what)
-    print(name)
-    print(obj)
-    print(options)
-    print(signature)
-    print(return_annotation)
+    if inspect.isclass(obj):
+        is_pydanticBaseModel = issubclass(obj, pydantic.BaseModel)
+
+        print(
+            f"{obj} object '{name}' is a pydantic.BaseModel? "
+            f"{is_pydanticBaseModel}"
+        )
+
+        if is_pydanticBaseModel:
+            signature = ""
 
     return signature, return_annotation
 
