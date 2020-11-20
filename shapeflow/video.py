@@ -959,7 +959,7 @@ class VideoAnalyzer(BaseAnalyzer):
 
     @api.va.__id__.can_launch.expose()
     def can_launch(self) -> bool:
-        """:func:`shapeflow.api._VideoAnalyzerDispatcher.can_launch`
+        """:attr:`shapeflow.api._VideoAnalyzerDispatcher.can_launch`
 
         Returns
         -------
@@ -1074,7 +1074,7 @@ class VideoAnalyzer(BaseAnalyzer):
     def set_config(self, config: dict, silent: bool = False) -> dict:
         """Set the analyzer's configuration
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.set_config`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.set_config`
 
         Parameters
         ----------
@@ -1207,7 +1207,7 @@ class VideoAnalyzer(BaseAnalyzer):
     def get_transformed_frame(self, frame_number: Optional[int] = None) -> np.ndarray:
         """Get a video frame transformed to design-space
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.get_transformed_frame`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_transformed_frame`
 
         Can be streamed to the user interface.
 
@@ -1228,7 +1228,7 @@ class VideoAnalyzer(BaseAnalyzer):
     def get_inverse_transformed_overlay(self) -> np.ndarray:
         """Get the design overlay image transformed to video-space
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.get_inverse_transformed_overlay`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_inverse_transformed_overlay`
 
         Can be streamed tothe user interface.
 
@@ -1243,7 +1243,7 @@ class VideoAnalyzer(BaseAnalyzer):
     def get_colors(self) -> Tuple[str, ...]:
         """Get the list of colors to use for each mask
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.get_colors`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_colors`
 
         Returns
         -------
@@ -1275,7 +1275,7 @@ class VideoAnalyzer(BaseAnalyzer):
         """Get a raw video frame overlaid with the inverse transformed design
         overlay. Used to evaluate video-design alignment.
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.get_inverse_overlaid_frame`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_inverse_overlaid_frame`
 
         Can be streamed tothe user interface.
 
@@ -1304,7 +1304,7 @@ class VideoAnalyzer(BaseAnalyzer):
     def seek(self, position: Optional[float] = None) -> float:
         """Seek the video to a relative position
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.seek`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.seek`
 
         Parameters
         ----------
@@ -1328,11 +1328,11 @@ class VideoAnalyzer(BaseAnalyzer):
     def estimate_transform(self, roi: Optional[dict] = None) -> Optional[dict]:
         """Estimate the video-design transform from a ROI
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.estimate_transform`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.estimate_transform`
 
         Parameters
         ----------
-        roi: Optional[dict
+        roi: Optional[dict]
             A region of interest as a ``dict``. Must be compatible with
             :class:`shapeflow.maths.coordinates.Roi`. If ``None``, the current
             :attr:`shapeflow.config.TransformHandlerConfig.roi` will be used.
@@ -1362,7 +1362,7 @@ class VideoAnalyzer(BaseAnalyzer):
     def clear_roi(self) -> None:
         """Clear the current region of interest and video-design transform
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.clear_roi`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.clear_roi`
         """
         self.transform.clear()
         self.state_transition()
@@ -1372,7 +1372,7 @@ class VideoAnalyzer(BaseAnalyzer):
         """Add a clockwise 90° turn to this analyzer's
         :attr:`shapeflow.config.TransformHandlerConfig.turn`
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.turn_cw`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.turn_cw`
         """
         self.set_config(
             {'transform': {'turn': self.config.transform.turn + 1}}
@@ -1383,7 +1383,7 @@ class VideoAnalyzer(BaseAnalyzer):
         """Add a counter-clockwise 90° turn to this analyzer's
         :attr:`shapeflow.config.TransformHandlerConfig.turn`
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.turn_ccw`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.turn_ccw`
         """
         self.set_config(
             {'transform': {'turn': self.config.transform.turn - 1}}
@@ -1395,7 +1395,7 @@ class VideoAnalyzer(BaseAnalyzer):
         :attr:`shapeflow.config.TransformHandlerConfig.flip`'s
         :attr:`~shapeflow.config.FlipConfig.horizontal`
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.flip_h`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.flip_h`
         """
         self.set_config(
             {'transform': {'flip': {'horizontal': not self.config.transform.flip.horizontal}}}
@@ -1407,7 +1407,7 @@ class VideoAnalyzer(BaseAnalyzer):
         :attr:`shapeflow.config.TransformHandlerConfig.flip`'s
         :attr:`~shapeflow.config.FlipConfig.vertical`
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.flip_v`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.flip_v`
         """
         self.set_config(
             {'transform': {'flip': {'vertical': not self.config.transform.flip.vertical}}}
@@ -1417,7 +1417,7 @@ class VideoAnalyzer(BaseAnalyzer):
     def undo_config(self, context: Optional[str] = None) -> dict:  # todo: implement undo/redo context (e.g. transform, masks)
         """Undo this analyzer's last configuration change
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.undo_config`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.undo_config`
 
         Parameters
         ----------
@@ -1444,7 +1444,7 @@ class VideoAnalyzer(BaseAnalyzer):
     def redo_config(self, context: Optional[str] = None) -> dict:
         """Redo this analyzer's last undone configuration change
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.redo_config`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.redo_config`
 
         Parameters
         ----------
@@ -1472,7 +1472,7 @@ class VideoAnalyzer(BaseAnalyzer):
     def set_filter_click(self, relative_x: float, relative_y: float) -> None:
         """Configure a filter by clicking an "in"-pixel on the image
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.set_filter_click`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.set_filter_click`
 
         Parameters
         ----------
@@ -1530,7 +1530,7 @@ class VideoAnalyzer(BaseAnalyzer):
     def clear_filters(self) -> bool:
         """Clear this analyzer's filter configuration
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.clear_filters`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.clear_filters`
         """
         log.debug(f"clearing filters")
 
@@ -1551,7 +1551,7 @@ class VideoAnalyzer(BaseAnalyzer):
     def get_state_frame(self, frame_number: Optional[int] = None, featureset: Optional[int] = None) -> np.ndarray:
         """Get a state frame. Used to evaluate filter configuration.
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.get_state_frame`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_state_frame`
 
         Can be streamed tothe user interface.
 
@@ -1602,7 +1602,7 @@ class VideoAnalyzer(BaseAnalyzer):
     def get_overlay_png(self) -> bytes:
         """Get this analyzer's design overlay
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.get_overlay_png`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_overlay_png`
 
         Returns
         -------
@@ -1652,7 +1652,7 @@ class VideoAnalyzer(BaseAnalyzer):
     def analyze(self) -> bool:
         """Run the configured analysis
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.analyze`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.analyze`
 
         Returns
         -------
@@ -1732,7 +1732,7 @@ class VideoAnalyzer(BaseAnalyzer):
     def get_time(self, frame_number: Optional[int] = None) -> float:
         """Get the time corresponding to a video frame number
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.get_time`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_time`
 
         Parameters
         ----------
@@ -1750,7 +1750,7 @@ class VideoAnalyzer(BaseAnalyzer):
     def get_fps(self) -> float:
         """Get the framerate of the video
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.get_fps`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_fps`
         """
         return self.video.get_fps()
 
@@ -1758,7 +1758,7 @@ class VideoAnalyzer(BaseAnalyzer):
     def get_total_time(self) -> float:
         """Get the total time of the video in seconds
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.get_total_time`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_total_time`
         """
         return self.video.get_total_time()
 
@@ -1767,7 +1767,7 @@ class VideoAnalyzer(BaseAnalyzer):
     def read_frame(self, frame_number: Optional[int] = None) -> np.ndarray:
         """Get a raw video frame.
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.get_raw_frame`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_raw_frame`
 
         Can be streamed tothe user interface.
 
@@ -1787,7 +1787,7 @@ class VideoAnalyzer(BaseAnalyzer):
     def get_seek_position(self) -> float:
         """Get the current relative seek position in the video
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.get_seek_posititon`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_seek_posititon`
         """
         return self.video.get_seek_position()
 
@@ -1795,7 +1795,7 @@ class VideoAnalyzer(BaseAnalyzer):
     def get_relative_roi(self) -> dict:
         """Get the current region of interest in relative video-space
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.get_relative_roi`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_relative_roi`
         """
         return self.transform.get_relative_roi()
 
@@ -1803,7 +1803,7 @@ class VideoAnalyzer(BaseAnalyzer):
     def get_coordinates(self) -> Optional[list]:
         """Get the current coordinates
 
-        :func:`shapeflow.api._VideoAnalyzerDispatcher.get_coordinates`
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_coordinates`
         """
         return self.transform.get_coordinates()
 

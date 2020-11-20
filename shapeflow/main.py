@@ -54,6 +54,17 @@ class _Main(object):
 
     @api.ping.expose()
     def ping(self) -> bool:
+        """Ping the server
+
+        :attr:`shapeflow.api.ApiDispatcher.ping`
+
+        Returns
+        -------
+        bool
+            If the server is up, ``True``.
+            If the server is down, a ``/api/ping`` request will not
+            get any response.
+        """
         self._server.active()
         return True
 
