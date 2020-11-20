@@ -62,17 +62,17 @@ class _VideoAnalyzerDispatcher(Dispatcher):
     
     :func:`shapeflow.video.VideoAnalyzer.set_config`
     """
-    undo_config = Endpoint(Callable[[str], dict])
+    undo_config = Endpoint(Callable[[Optional[str]], dict])
     """Undo the latest change to the analyzer's configuration
     
     :func:`shapeflow.video.VideoAnalyzer.undo_config`
     """
-    redo_config = Endpoint(Callable[[str], dict])
+    redo_config = Endpoint(Callable[[Optional[str]], dict])
     """Redo the latest undone change to the analyzer's configuration
     
     :func:`shapeflow.video.VideoAnalyzer.redo_config`
     """
-    estimate_transform = Endpoint(Callable[[dict], Optional[dict]])
+    estimate_transform = Endpoint(Callable[[Optional[dict]], Optional[dict]])
     """Estimate a transform based on the provided ROI
     
     :func:`shapeflow.video.VideoAnalyzer.estimate_transform`
@@ -149,7 +149,7 @@ class _VideoAnalyzerDispatcher(Dispatcher):
     
     :func:`shapeflow.video.VideoAnalyzer.clear_filters`
     """
-    seek = Endpoint(Callable[[float], float])
+    seek = Endpoint(Callable[[Optional[float]], float])
     """Seek to the provided position (relative, 0-1)
     
     :func:`shapeflow.video.VideoAnalyzer.seek`
@@ -166,7 +166,7 @@ class _VideoAnalyzerDispatcher(Dispatcher):
     :func:`shapeflow.video.VideoAnalyzer.get_coordinates`
     """
 
-    get_time = Endpoint(Callable[[int], float])
+    get_time = Endpoint(Callable[[Optional[int]], float])
     """Return the current time in the video in seconds
     
     :func:`shapeflow.video.VideoAnalyzer.get_time`

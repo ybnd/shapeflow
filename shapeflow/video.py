@@ -1411,7 +1411,7 @@ class VideoAnalyzer(BaseAnalyzer):
         return self.set_config(undo, silent=(context is None))
 
     @api.va.__id__.redo_config.expose()
-    def redo_config(self, context: str = None) -> dict:
+    def redo_config(self, context: Optional[str] = None) -> dict:
         """Redo this analyzer's last undone configuration change
 
         :func:`shapeflow.api._VideoAnalyzerDispatcher.redo_config`
