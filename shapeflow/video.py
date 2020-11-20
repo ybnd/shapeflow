@@ -41,6 +41,8 @@ class VideoFileHandler(CachingInstance, Lockable):
     """Interface to video files ~ ``OpenCV``
     """
     path: str
+    """Path to the video file
+    """
 
     frame_count: int
     fps: float
@@ -476,6 +478,9 @@ class Mask(Instance):
     """Handles masks in the context of a video file
     """
     filter: FilterHandler
+    """The filter associated with this mask
+    """
+
     _design: 'DesignFileHandler'
 
     _config_class = MaskConfig
@@ -768,7 +773,7 @@ class MaskFunction(Feature):
     """An abstract feature based on a :class:`~shapeflow.video.Mask`
     """
     mask: Mask
-    filter: FilterHandler
+    filter: FilterHandler  # todo: adress through mask
     dpi: int
 
     _feature_type: FeatureType
@@ -805,12 +810,13 @@ class MaskFunction(Feature):
 
         Parameters
         ----------
-        value
+        value: float
             Distance in # of pixels
 
         Returns
         -------
-        Distance in mm
+        float
+            Distance in mm
         """
         return value / (self.dpi / 25.4)
 
@@ -819,12 +825,13 @@ class MaskFunction(Feature):
 
         Parameters
         ----------
-        value
+        value: float
             Area in pixels
 
         Returns
         -------
-        Area in mm²
+        float
+            Area in mm²
         """
         return value / (self.dpi / 25.4) ** 2
 
@@ -895,10 +902,28 @@ class VideoAnalyzer(BaseAnalyzer):
     # _endpoints: BackendRegistry = backend
 
     video: VideoFileHandler
+    """Handles video operations for this analyzer
+    
+    * Reads frames from the video file
+    """
     design: DesignFileHandler
+    """Handles design operations for this analyzer.
+    
+    * Renders the design
+    
+    * Reads in the overlay and mask images
+    
+    * Initializes the :class:`~shapeflow.video.Mask` instances
+    """
     transform: TransformHandler
+    """Handles the transform for this analyzer
+    """
     features: Tuple[Feature,...]
+    """The features used in this analysis
+    """
     results: Dict[str, pd.DataFrame]
+    """The results of the current run of this analysis
+    """
 
     _featuresets: Dict[FeatureType, FeatureSet]
 
@@ -1183,6 +1208,7 @@ class VideoAnalyzer(BaseAnalyzer):
         """Get a video frame transformed to design-space
 
         :func:`shapeflow.api._VideoAnalyzerDispatcher.get_transformed_frame`
+
         Can be streamed to the user interface.
 
         Parameters
@@ -1203,7 +1229,8 @@ class VideoAnalyzer(BaseAnalyzer):
         """Get the design overlay image transformed to video-space
 
         :func:`shapeflow.api._VideoAnalyzerDispatcher.get_inverse_transformed_overlay`
-        Can be streamed to the user interface.
+
+        Can be streamed tothe user interface.
 
         Returns
         -------
@@ -1249,7 +1276,8 @@ class VideoAnalyzer(BaseAnalyzer):
         overlay. Used to evaluate video-design alignment.
 
         :func:`shapeflow.api._VideoAnalyzerDispatcher.get_inverse_overlaid_frame`
-        Can be streamed to the user interface.
+
+        Can be streamed tothe user interface.
 
         Parameters
         ----------
@@ -1275,6 +1303,8 @@ class VideoAnalyzer(BaseAnalyzer):
     @api.va.__id__.seek.expose()
     def seek(self, position: Optional[float] = None) -> float:
         """Seek the video to a relative position
+
+        :func:`shapeflow.api._VideoAnalyzerDispatcher.seek`
 
         Parameters
         ----------
@@ -1522,7 +1552,8 @@ class VideoAnalyzer(BaseAnalyzer):
         """Get a state frame. Used to evaluate filter configuration.
 
         :func:`shapeflow.api._VideoAnalyzerDispatcher.get_state_frame`
-        Can be streamed to the user interface.
+
+        Can be streamed tothe user interface.
 
         Parameters
         ----------
@@ -1737,7 +1768,8 @@ class VideoAnalyzer(BaseAnalyzer):
         """Get a raw video frame.
 
         :func:`shapeflow.api._VideoAnalyzerDispatcher.get_raw_frame`
-        Can be streamed to the user interface.
+
+        Can be streamed tothe user interface.
 
         Parameters
         ----------
