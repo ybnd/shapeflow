@@ -464,7 +464,7 @@ def _load_settings() -> Settings:  # todo: if there are unexpected fields: warn,
             # Move the previous log file to ROOTDIR/log
             if Path(settings.log.path).is_file():
                 shutil.move(
-                    settings.log.path,  # todo: convert to pathlib
+                    str(settings.log.path),  # todo: convert to pathlib
                     os.path.join(
                         settings.log.dir,
                         datetime.datetime.fromtimestamp(
