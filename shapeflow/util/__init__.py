@@ -232,7 +232,7 @@ def suppress_stdout():
             sys.stdout = old_stdout
 
 
-def sizeof_fmt(num: int, suffix='B'):
+def sizeof_fmt(size, suffix='B'):
     """Get a file size in bytes as a human-readable string.
     For example::
 
@@ -243,7 +243,7 @@ def sizeof_fmt(num: int, suffix='B'):
 
     Parameters
     ----------
-    num: int
+    num
         A file size in bytes
     suffix: str
         The suffix to use. Defaults to ``"B"``.
@@ -254,8 +254,8 @@ def sizeof_fmt(num: int, suffix='B'):
         The file size as a human-readable string in decimal bytes.
     """
     for unit in ['','K','M','G','T','P','E','Z']:
-        if abs(num) < 1000.0:
-            return "%.0f %s%s" % (num, unit, suffix)
+        if abs(size) < 1000.0:
+            return "%.0f %s%s" % (size, unit, suffix)
         size /= 1000.0
     return "%.1f %s%s" % (size, 'Y', suffix)
 
