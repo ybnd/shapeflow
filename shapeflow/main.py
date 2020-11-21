@@ -656,34 +656,33 @@ class _VideoAnalyzerManager(object):
     @api.va.state.expose()
     def state(self) -> dict:
         """Get the queue state and the status of all analyzers.
-
         Example::
-            {
-                "q_state": 0,                   # QueueState
-                "ids": ["abc123", "def456"],
-                "status": {
-                    "abc123": {
-                        "state": 7,             # AnalyzerState
-                        "busy": True,
-                        "cached": True,
-                        "results": False,
-                        "position": 0.7,
-                        "progress": 0.75,
-                    },
-                    "def456": {
-                        "state": 6,             # AnalyzerState
-                        "busy": False,
-                        "cached": True,
-                        "results": False,
-                        "position": 0.0,
-                        "progress": 0.0,
-                    },
-                }
-            }
+           {
+               "q_state": 0,                   # QueueState
+               "ids": ["abc123", "def456"],
+               "status": {
+                   "abc123": {
+                       "state": 7,             # AnalyzerState
+                       "busy": True,
+                       "cached": True,
+                       "results": False,
+                       "position": 0.7,
+                       "progress": 0.75,
+                   },
+                   "def456": {
+                       "state": 6,             # AnalyzerState
+                       "busy": False,
+                       "cached": True,
+                       "results": False,
+                       "position": 0.0,
+                       "progress": 0.0,
+                   },
+               }
+           }
 
-        With the state ``int`` values acocrding to the ``Enum`` classes
-        :class:`shapeflow.core.backend.QueueState` and
-        :class:`shapeflow.core.backend.AnalyzerState`.
+        With the state ``int`` values according to the ``Enum`` classes
+        :class:`~shapeflow.core.backend.QueueState` and
+        :class:`~shapeflow.core.backend.AnalyzerState`.
 
         :attr:`shapeflow.api._VideoAnalyzerManagerDispatcher.state`
 
