@@ -646,7 +646,11 @@ class History(SessionWrapper, RootInstance):
     @api.db.get_recent_paths.expose()
     def get_paths(self) -> Dict[str, List[str]]:
         """Fetch the latest video and design file paths from the
-        database. Number of paths is limited by ``settings.app.recent_files``
+        database.
+
+        Number of paths is limited by ``settings.app.recent_files``
+
+        :attr:`shapeflow.api._DatabaseDispatcher.get_recent_paths`
         """
         with self.session() as s:
             return {
@@ -662,6 +666,8 @@ class History(SessionWrapper, RootInstance):
     @api.db.get_result_list.expose()
     def get_result_list(self, analysis: int) -> dict:
         """Fetch the result list for a given analysis
+
+        :attr:`shapeflow.api._DatabaseDispatcher.get_result_list`
 
         Parameters
         ----------
@@ -689,6 +695,8 @@ class History(SessionWrapper, RootInstance):
     def get_result(self, analysis: int, run: int) -> dict:
         """Fetch the result for a given analysis and run
 
+        :attr:`shapeflow.api._DatabaseDispatcher.get_result`
+
         Parameters
         ----------
         analysis : int
@@ -714,6 +722,8 @@ class History(SessionWrapper, RootInstance):
     @api.db.export_result.expose()
     def export_result(self, analysis: int, run: int = None) -> bool:
         """Export the result for a given analysis and run
+
+        :attr:`shapeflow.api._DatabaseDispatcher.export_result`
 
         Parameters
         ----------
@@ -816,6 +826,8 @@ class History(SessionWrapper, RootInstance):
            * remove all non-primary 'config' entries
 
            * remove all non-primary 'results' entries
+
+        :attr:`shapeflow.api._DatabaseDispatcher.clean`
         """
         log.debug(f"cleaning history")
         threshold = datetime.datetime.now() - datetime.timedelta(
@@ -854,6 +866,8 @@ class History(SessionWrapper, RootInstance):
     @api.db.forget.expose()
     def forget(self) -> None:
         """Remove everything.
+
+        :attr:`shapeflow.api._DatabaseDispatcher.forget`
         """
         log.info(f"clearing history")
         models = [

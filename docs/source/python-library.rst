@@ -192,7 +192,8 @@ api
 
 .. automodule:: shapeflow.api
    :members:
-   :private-members:
+   :private-members: __id__
+   :special-members: __id__
    :show-inheritance:
 
 
