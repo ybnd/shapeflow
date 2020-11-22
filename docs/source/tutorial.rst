@@ -6,7 +6,7 @@ Introduction
 ^^^^^^^^^^^^
 
 To start analyzing microfluidic chips with shapeflow, you need video footage
-of your chip along with a :ref:`preparing-design-files`.
+of your chip along with a :ref:`formatted design file <preparing-design-files>`.
 The image analysis pipeline consists of the following steps
 
 
@@ -84,7 +84,7 @@ However, if the files show up in red as shown below, they either don’t exist
 You can set up multiple features for an analysis, and configure any
 corresponding parameters. Each feature will be shown in a separate graph
 and will be exported to a separate worksheet after analyzing.
-See :ref:`features` information about the available features.
+See :ref:`here <features>` for information about the available features.
 
 Alignment
 ~~~~~~~~~
@@ -145,7 +145,7 @@ corresponds to the liquid you want to measure.
 
 For additional configuration, you can toggle the configuration sidebar
 as shown above. Here you can configure every mask and filter in the analysis
-in more detail. See :ref:`filters` for information on the available
+in more detail. See :ref:`here <filters>` for information on the available
 filters and their options. Checking the ‘skip’ option will skip masks in the
 analysis. Finally, you can override the global feature parameters for the
 design for every mask by expanding the ‘parameters’ section.
@@ -203,7 +203,8 @@ access to the rest of the configuration
 
 * The transform section can be modified more easily from the alignment page.
 
-You’ll find some information on the available transform types :ref:`transforms`.
+You’ll find some information on the available transform types
+:ref:`here <transforms>`.
 
 * The masks section can also be accessed from the filter page
 
