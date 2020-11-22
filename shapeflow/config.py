@@ -1,6 +1,4 @@
 from typing import Optional, Tuple, Dict, Any, Type, Union
-
-import yaml
 import json
 
 from pydantic import Field, validator
@@ -20,7 +18,7 @@ from shapeflow.maths.colors import HsvColor
 from shapeflow.util import before_version
 
 
-class ColorSpace(EnforcedStr):
+class ColorSpace(EnforcedStr):  # todo: this is never used outside of tests
     _options = ['hsv', 'bgr', 'rgb']
 
 
@@ -34,33 +32,41 @@ class FrameIntervalSetting(EnforcedStr):
 
 @extend(ConfigType)
 class VideoFileHandlerConfig(BaseConfig):
-    """Video file handler configuration"""
     pass
 
 
 class FlipConfig(BaseConfig):
-    """Flip the selected ROI before estimating the transform"""
-
     vertical: bool = Field(default=False)
     horizontal: bool = Field(default=False)
 
 
 @extend(ConfigType)
 class TransformHandlerConfig(HandlerConfig):
-    """Transform handler configuration"""
-
+    """Transform handler configuration
+    """
     type: TransformType = Field(default_factory=TransformType)
     data: TransformConfig = Field(default_factory=TransformConfig)
 
-    roi: Optional[Roi] = Field(default=None)  # todo: maybe make this a config?
+    roi: Optional[Roi] = Field(default=None)
+    """The region of interest (ROI).
+    
+    This is the position of the chip in the video in relative coordinates with
+    respect to its resolution.
+    """
     flip: FlipConfig = Field(default_factory=FlipConfig)
-    turn: int = Field(default=0) # number of 90° turns (CW)
+    """Flip the selected ROI horizontally/vertically 
+    before estimating the transform
+    """
+    turn: int = Field(default=0)
+    """Turn the ROI a number of clockwise 90° turns
+    before estimating the transform
+    """
 
 
 @extend(ConfigType)
 class FilterHandlerConfig(HandlerConfig):
-    """Filter handler configuration"""
-
+    """Filter handler configuration
+    """
     type: FilterType = Field(default_factory=FilterType)
     data: FilterConfig = Field(default_factory=FilterConfig)
 
@@ -71,16 +77,31 @@ class FilterHandlerConfig(HandlerConfig):
 
 @extend(ConfigType)
 class MaskConfig(BaseConfig):
-    """Mask configuration"""
-
+    """Mask configuration
+    """
     name: str = Field(default=None)
+    """The name of this mask.
+    
+    Taken from the name of its layer in the design file.
+    """
     skip: bool = Field(default=False)
+    """Whether to skip this mask when analyzing
+    """
     filter: FilterHandlerConfig = Field(default_factory=FilterHandlerConfig)
+    """Filter configuration for this mask.
+    """
 
     parameters: Tuple[Optional[dict],...] = Field(default=())
+    """Feature parameter overrides for this mask.
+    
+    If ``None``, the global feature parameters are used 
+    when computing the feature value.
+    """
 
     @property
     def ready(self):
+        """Whether this mask is ready to be analyzed
+        """
         return self.filter.ready
 
     @validator('parameters')
@@ -90,12 +111,18 @@ class MaskConfig(BaseConfig):
 
 @extend(ConfigType)
 class DesignFileHandlerConfig(BaseConfig):
-    """Design file handler configuration"""
-
+    """Design file handler configuration
+    """
     dpi: int = Field(default=400, ge=50, le=1200)
+    """The details per inch (DPI) at which to render the design
+    """
 
-    overlay_alpha: float = Field(default=0.1, ge=0.0, le=1.0)
+    overlay_alpha: float = Field(default=0.1, ge=0.0, le=1.0)  # todo: more of a application setting maybe?
+    """Transparency of the overlay
+    """
     smoothing: int = Field(default=7, ge=0, le=50)
+    """The smoothing kernel size used when generating masks from renders
+    """
 
     _resolve_smoothing = validator('smoothing', allow_reuse=True)(BaseConfig._odd_add)
     _limit_smoothing = validator('smoothing', allow_reuse=True, pre=True)(BaseConfig._int_limits)
@@ -105,20 +132,43 @@ class DesignFileHandlerConfig(BaseConfig):
 
 @extend(ConfigType)
 class VideoAnalyzerConfig(BaseAnalyzerConfig):
-    """Video analyzer configuration"""
-
+    """Video analyzer configuration
+    """
     frame_interval_setting: FrameIntervalSetting = Field(default_factory=FrameIntervalSetting)
+    """Determines which parameter to use when requesting a set of frames 
+    to analyze.
+    
+    * ``Nf``: request :attr:`shapeflow.video.VideoAnalyzerConfig.Nf` frames in total
+    
+    * ``dt``: request a frame every seconds :attr:`shapeflow.video.VideoAnalyzerConfig.dt` seconds
+    """
     dt: Optional[float] = Field(default=5.0)
+    """Frame interval in seconds
+    """
     Nf: Optional[int] = Field(default=100, description="Nf")
+    """Total number of frames
+    """
 
     video: VideoFileHandlerConfig = Field(default_factory=VideoFileHandlerConfig)
+    """Video file handler configuration
+    """
     design: DesignFileHandlerConfig = Field(default_factory=DesignFileHandlerConfig)
+    """Design file handler configuration
+    """
     transform: TransformHandlerConfig = Field(default_factory=TransformHandlerConfig)
+    """Transform handler configuration
+    """
 
     features: Tuple[FeatureType, ...] = Field(default=())
+    """The features to extract
+    """
     feature_parameters: Tuple[FeatureConfig, ...] = Field(default=())
+    """The feature parameters to use
+    """
 
     masks: Tuple[MaskConfig, ...] = Field(default_factory=tuple)
+    """Mask configuration
+    """
 
     @classmethod
     def schema(cls, by_alias: bool = True, ref_template: str = '') -> Dict[str, Any]:
@@ -218,6 +268,16 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
 
 
 def schemas() -> Dict[str, dict]:
+    """Get the JSON schemas of
+
+    * :class:`shapeflow.video.VideoAnalyzerConfig`
+
+    * :class:`shapeflow.Settings`
+
+    * :class:`shapeflow.core.backend.AnalyzerState`
+
+    * :class:`shapeflow.core.backend.QueueState`
+    """
     return {
         'config': VideoAnalyzerConfig.schema(),
         'settings': settings.schema(),
@@ -226,12 +286,24 @@ def schemas() -> Dict[str, dict]:
     }
 
 def loads(config: str) -> BaseConfig:
+    """Load a configuration object from a JSON string.
+
+    Parameters
+    ----------
+    config: str
+        JSON string configuration
+
+    Returns
+    -------
+    BaseConfig
+        A configuration object
+    """
     d = json.loads(config)
 
     try:
         config_cls = ConfigType(d[CLASS]).get()
     except KeyError:
-        log.error('')
+        log.error('')  # todo: not very transparent...
         config_cls = VideoAnalyzerConfig
 
     try:
@@ -243,11 +315,19 @@ def loads(config: str) -> BaseConfig:
 
 
 def normalize_config(d: dict) -> dict:
-    """Normalize a configuration dictionary to match the current version of `shapeflow.core.config`
-    :param d: configuration dictionary
-    :return:
-    """
+    """Normalize a configuration dictionary to match the current
+    :data:`~shapeflow.__version__`
 
+    Parameters
+    ----------
+    d: dict
+        A configuration ``dict``
+
+    Returns
+    -------
+    dict
+        A normalized configuration ``dict``
+    """
     # If empty dict, return empty dict
     if len(d) == 0:
         return d

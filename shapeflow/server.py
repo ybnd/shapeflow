@@ -12,7 +12,7 @@ import webbrowser
 import shapeflow
 import shapeflow.config
 import shapeflow.util as util
-from shapeflow.core import DispatcherError
+from shapeflow.core import DispatchingError
 import shapeflow.core.streaming as streaming
 from shapeflow.api import ApiDispatcher
 
@@ -59,7 +59,7 @@ class ServerThread(Thread, metaclass=util.Singleton):
         os._exit(0)
 
 
-class ShapeflowServer(metaclass=util.Singleton):
+class ShapeflowServer(object):
     """Wrapper for a ``Flask`` server
     """
 
@@ -106,9 +106,12 @@ class ShapeflowServer(metaclass=util.Singleton):
         browser window/tab if requested.
 
         This method keeps serving until either
+
         * :func:`~shapeflow.main._Main.quit` is called
+
         * :func:`~shapeflow.main._Main.unload` is called and no incoming traffic
           is received for 5 seconds.
+
         * The user interrupts the process with ``Ctrl+C``
 
         Parameters
@@ -182,6 +185,16 @@ class ShapeflowServer(metaclass=util.Singleton):
         Arguments are gathered from ``Flask``'s ``request.data`` or
         ``request.args``
 
+        Handles multiple types of return data:
+
+        * ``bytes`` data are handled by ``flask.make_response``
+
+        * for :class:`shapeflow.core.streaming.BaseStreamer` instances,
+          custom ``flask.Response`` objects are made from their
+          :func:`shapeflow.core.streaming.BaseStreamer.stream` generator
+
+        * all other data are handled by ``flask.jsonify``
+
         Parameters
         ----------
         address: str
@@ -225,7 +238,7 @@ class ShapeflowServer(metaclass=util.Singleton):
                 return response
             else:
                 return jsonify(result)
-        except DispatcherError:
+        except DispatchingError:
             abort(404)
         except Exception as e:
             log.error(f"'{address}' - {e.__class__.__name__}: {str(e)}")
@@ -260,9 +273,8 @@ class ShapeflowServer(metaclass=util.Singleton):
     @property
     def api(self) -> ApiDispatcher:
         """Get a reference to :data:`shapeflow.api.api` and ensure it has
-        been initialized properly and bound to this
-        :class:`~shapeflow.server.ShapeflowServer` instance with
-        :func:`~shapefow.api.load`.
+        been initialized properly with :mod:`shapeflow.main` and bound to this
+        :class:`~shapeflow.server.ShapeflowServer` instance
 
         Returns
         -------

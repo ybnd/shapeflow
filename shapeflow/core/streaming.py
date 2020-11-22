@@ -1,3 +1,6 @@
+"""Streaming various data over ``Flask``.
+"""
+
 import abc
 import json
 from threading import Thread
@@ -5,7 +8,7 @@ from typing import Optional, Tuple, Generator, Callable, Dict, Type, Any, Union,
 from functools import wraps
 
 from shapeflow import get_logger
-from shapeflow.core import stream_image, stream_json, stream_plain, Lockable
+from shapeflow.core import Lockable, _Streaming
 
 from shapeflow.util import Singleton
 from shapeflow.util.meta import unbind
@@ -24,6 +27,8 @@ log = get_logger(__name__)
 
 
 class BaseStreamer(abc.ABC):
+    """Abstract streamer.
+    """
     _queue: queue.Queue
     _stop: threading.Event
     _paused: bool
@@ -42,13 +47,27 @@ class BaseStreamer(abc.ABC):
         self._stop = threading.Event()
         self._paused = False
 
-    def push(self, value: Any):
+    def push(self, value: Any) -> None:
+        """Push something to the stream.
+
+        Parameters
+        ----------
+        value : Any
+            Anything, really. If it doesn't work, you'll hear it.
+        """
         if self._validate(value):
             self._queue.put(value)
         else:
             log.warning(f"{self.__class__.__name__}: skipping invalid value")
 
     def stream(self) -> Generator[Any, None, None]:
+        """Start a stream.
+
+        Returns
+        -------
+        Generator[Any, None, None]
+            A generator that can be returned as a ``Flask`` response.
+        """
         self._stop.clear()
 
         while not self._stop.is_set():
@@ -67,13 +86,17 @@ class BaseStreamer(abc.ABC):
             else:
                 time.sleep(self._empty_queue_timeout)
 
-    def stop(self):
+    def stop(self) -> None:
+        """Stop the stream.
+        """
         self._stop.set()
         with self._queue.mutex:
             self._queue.queue.clear()
 
     @classmethod
     def mime_type(cls) -> str:
+        """Get the streamer's MIME type (for ``Flask`` response).
+        """
         if cls._mime_type is None:
             assert cls._boundary is not None
             return f"multipart/x-mixed-replace; boundary={cls._boundary.decode('utf-8')}"
@@ -82,10 +105,14 @@ class BaseStreamer(abc.ABC):
 
     @classmethod
     def content_type(cls):
+        """Get the streamer's content type (for ``Flask`` response).
+        """
         return cls._content_type
 
     @property
     def headers(self):
+        """Get the streamer's headers (for ``Flask`` response).
+        """
         return {}
 
     @abc.abstractmethod
@@ -102,6 +129,10 @@ class BaseStreamer(abc.ABC):
 
 
 class PlainFileStreamer(BaseStreamer):
+    """Streams plaintext files.
+    Used to stream logs to the frontend.
+    """
+
     _boundary = b""
     _mime_type = "text/plain"
 
@@ -127,7 +158,7 @@ class PlainFileStreamer(BaseStreamer):
 
     def stream(self) -> Generator[Any, None, None]:
         self.read()
-        return super().stream()
+        return super().stream()  # todo: typing issue?
 
     def _validate(self, value: Any) -> bool:
         return True
@@ -140,6 +171,8 @@ class PlainFileStreamer(BaseStreamer):
 
 
 class JsonStreamer(BaseStreamer):
+    """Streams JSON data.
+    """
     _boundary = b"data"
     _mime_type = "text/event-stream"
 
@@ -160,6 +193,8 @@ class JsonStreamer(BaseStreamer):
 
 
 class EventStreamer(JsonStreamer):
+    """Streams server-sent events with JSON data.
+    """
     def event(self, category: str, id: str, data: Any):
         """Push a JSON event
 
@@ -177,6 +212,10 @@ class EventStreamer(JsonStreamer):
 
 
 class FrameStreamer(BaseStreamer):
+    """Streams images.
+    Subclasses can define specific encodings, for now
+    :class:`~shapeflow.core.streaming.JpegStreamer` seems to work best.
+    """
     _boundary = b"frame"
 
     _empty_queue_timeout: float = 0.02
@@ -205,6 +244,8 @@ class FrameStreamer(BaseStreamer):
 
 
 class JpegStreamer(FrameStreamer):  # todo: configure quality in settings
+    """Streams JPEG images.
+    """
     _content_type = b"image/jpeg"
 
     def _encode(self, frame: np.ndarray) -> Optional[bytes]:
@@ -220,14 +261,17 @@ class JpegStreamer(FrameStreamer):  # todo: configure quality in settings
             return None
 
 
-_stream_mapping: dict = {
-    stream_plain: PlainFileStreamer,
-    stream_json: JsonStreamer,
-    stream_image: JpegStreamer,
+_stream_mapping: Dict[_Streaming, Type[BaseStreamer]] = {
+    _Streaming('plain'): PlainFileStreamer,
+    _Streaming('json'): JsonStreamer,
+    _Streaming('image'): JpegStreamer,
 }
+"""Maps :data:`shapeflow.core._Streaming` 
+to :class:`~shapeflow.core.streaming.BaseStreamer` implementations.
+"""
 
 class StreamHandler(Lockable, metaclass=Singleton):
-    """A singleton object to handle streaming data from methods
+    """Handles streaming of method return values
     """
     _streams: Dict[object, Dict[Callable, BaseStreamer]]
 
@@ -235,9 +279,22 @@ class StreamHandler(Lockable, metaclass=Singleton):
         super().__init__()
         self._streams = {}
 
-    def register(self, instance: object, method, stream_type: Type[BaseStreamer] = None) -> BaseStreamer:
-        """Register `method`, start a streamer.
-            If `method` has been registered already, return its streamer.
+    def register(self, instance: object, method) -> BaseStreamer:
+        """Register an instance/method combination, start a streamer.
+        If this combination has been registered already, return its streamer.
+
+        Parameters
+        ----------
+        instance : object
+            Any instance that contains ``method``
+        method
+            Any method of ``instance`` that's mapped to a streaming
+            :class:`~shapeflow.core.Endpoint` object
+
+        Returns
+        -------
+        BaseStreamer
+            A streamer
         """
         with self.lock():
             method = unbind(method)
@@ -263,6 +320,8 @@ class StreamHandler(Lockable, metaclass=Singleton):
             return stream
 
     def is_registered(self, instance: object, method = None) -> bool:
+        """Check whether an instance/method combo is registered.
+        """
         if instance in self._streams:
             if method is not None:
                 return method in self._streams[instance]
@@ -271,8 +330,18 @@ class StreamHandler(Lockable, metaclass=Singleton):
         else:
             return False
 
-    def push(self, instance: object, method, data):
-        """If `method` is registered, push `data` to its streamer.
+    def push(self, instance: object, method, data) -> None:
+        """Push some data, if this instance/method combination is registered.
+
+        Parameters
+        ----------
+        instance : object
+            Any instance that contains ``method``
+        method
+            Any method of ``instance`` that's mapped to a streaming
+            :class:`~shapeflow.core.Endpoint` object
+        data : Any
+            Anything, really. If it doesn't work, you'll hear it.
         """
         method = unbind(method)
 
@@ -286,9 +355,18 @@ class StreamHandler(Lockable, metaclass=Singleton):
                 log.debug(f"pushing {method.__qualname__} to {self._streams[instance][method]}")
                 self._streams[instance][method].push(data)
 
-    def unregister(self, instance: object, method = None):
-        """Unregister `method`: stop its streamer & delete
-        """  # todo: should unregister explicitly e.g. when closing a page
+    def unregister(self, instance: object, method = None) -> None:
+        """Unregister an instance/method combination and stop streaming.
+
+        Parameters
+        ----------
+        instance : object
+            Any instance that contains ``method``
+        method
+            Any method of ``instance`` that's mapped to a streaming
+            :class:`~shapeflow.core.Endpoint` object. If ``None``, unregister
+            all methods for this ``instance``.
+        """
         def _unregister(method):
             method = unbind(method)
             if self.is_registered(instance, method):
@@ -303,7 +381,12 @@ class StreamHandler(Lockable, metaclass=Singleton):
                 for method in self._streams[instance].values():
                     _unregister(method)
 
-    def update(self):
+    def update(self) -> None:
+        """Update all streams.
+
+        For all registered streamers, invoke their ``method`` against their
+        ``instance`` and push the return value.
+        """
         try:
             for instance in self._streams.keys():
                 for method in self._streams[instance].keys():
@@ -322,19 +405,36 @@ class StreamHandler(Lockable, metaclass=Singleton):
         except Exception as e:
             log.error(f"{e} occurred")
 
-    def stop(self):
+    def stop(self) -> None:
+        """Unregister everything and stop streaming altogether.
+        """
         for instance in list(self._streams):
             self.unregister(instance)
 
 
-# Global StreamHandler instance
 streams = StreamHandler()
+"""Global :class:`~shapeflow.core.streaming.StreamHandler` instance.
+"""
 
 
 def stream(method):
-    """Decorator for streaming methods.
-        To stream frames, the wrapped method should be registered
-         in the global StreamHandler `streams`.
+    """Decorator to mark streaming methods.
+
+    Only works for methods exposed at :class:`~shapeflow.core.Endpoint` objects,
+    should be placed *above* the :func:`~shapeflow.core.Endpoint.expose`
+    decorator::
+        from shapeflow.core import Endpoint, _Streaming
+
+        some_endpoint = Endpoint(Callable[[...], ...], _Streaming())
+
+        class SomeClass:
+            @stream
+            @some_endpoint.expose()
+            def some_method(self, ...):
+                pass
+
+    To actually stream, the wrapped method and an instance should be registered
+    in :data:`shapeflow.core.streaming.streams`.
     """
 
     @wraps(method)

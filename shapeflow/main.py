@@ -1,3 +1,13 @@
+"""Main functionality of the ``shapeflow`` server.
+
+Implements ``shapeflow.api`` endpoints related to the global application and
+analyzer management.
+
+The classes defined below should not be instantiated individually, but as a
+whole using :func:`shapeflow.main.load`, because their setup process is not
+very intuitive.
+"""
+
 import os
 import time
 import pickle
@@ -13,10 +23,10 @@ from OnionSVG import check_svg
 from shapeflow.util import open_path, sizeof_fmt
 from shapeflow.util.filedialog import filedialog
 from shapeflow import get_logger, get_cache, settings, update_settings, ROOTDIR
-from shapeflow.core import stream_off, Endpoint
+from shapeflow.core import stream_off, Endpoint, RootException
 from shapeflow.api import api, _FilesystemDispatcher, _DatabaseDispatcher, _VideoAnalyzerManagerDispatcher, _VideoAnalyzerDispatcher, _CacheDispatcher, ApiDispatcher
 from shapeflow.core.streaming import streams, EventStreamer, PlainFileStreamer, BaseStreamer
-from shapeflow.core.backend import QueueState, AnalyzerState, SetupError, BaseVideoAnalyzer
+from shapeflow.core.backend import QueueState, AnalyzerState, BaseAnalyzer
 from shapeflow.config import schemas, normalize_config, loads, BaseAnalyzerConfig
 from shapeflow.video import init, VideoAnalyzer
 import shapeflow.plugins
@@ -29,6 +39,8 @@ log = get_logger(__name__)
 
 
 class _Main(object):
+    """Implements root-level :data:`~shapeflow.api.api` endpoints.
+    """
     _lock: Lock
     _server: ShapeflowServer
 
@@ -42,11 +54,32 @@ class _Main(object):
 
     @api.ping.expose()
     def ping(self) -> bool:
+        """Ping the server
+
+        :attr:`shapeflow.api.ApiDispatcher.ping`
+
+        Returns
+        -------
+        bool
+            If the server is up, ``True``.
+            If the server is down, a ``/api/ping`` request will not
+            get any response.
+        """
         self._server.active()
         return True
 
     @api.map.expose()
     def map(self) -> Dict[str, List[str]]:
+        """Get the URL map of the API
+
+        :attr:`shapeflow.api.ApiDispatcher.map`
+
+        Returns
+        -------
+        Dict[str, List[str]]
+            A flat ``dict`` mapping each available URL to a list of accepted
+            HTTP methods
+        """
         # todo: this is a hacky replacement of Flask map
         map = {
             '/api/' + k: ['GET', 'PUT', 'POST', 'OPTIONS']
@@ -61,33 +94,102 @@ class _Main(object):
 
     @api.schemas.expose()
     def schemas(self) -> dict:
+        """Get the application schemas
+
+        :attr:`shapeflow.api.ApiDispatcher.schemas`
+
+        Returns
+        -------
+        dict
+            A ``dict`` with schemas
+        """
         return schemas()
 
     @api.normalize_config.expose()
     def normalize_config(self, config: dict) -> dict:
+        """Normalize a configuration ``dict`` with
+        :func:`shapeflow.config.normalize_config`
+
+        :attr:`shapeflow.api.ApiDispatcher.normalize_config`
+
+        Parameters
+        ----------
+        config: dict
+            A configuration ``dict``
+
+        Returns
+        -------
+        dict
+            A normalized configuration ``dict``
+        """
         return normalize_config(config)
 
     @api.get_settings.expose()
     def get_settings(self) -> dict:
+        """Get the application settings
+
+        :attr:`shapeflow.api.ApiDispatcher.get_settings`
+
+        Returns
+        -------
+        dict
+            The application settings as a ``dict``
+        """
         return settings.to_dict()
 
     @api.set_settings.expose()
     def set_settings(self, settings: dict) -> dict:
+        """Set the application settings
+
+        :attr:`shapeflow.api.ApiDispatcher.set_settings`
+
+        Parameters
+        ----------
+        settings: dict
+            New application settings as a ``dict``
+
+        Returns
+        -------
+        dict
+            The new application settings ``dict``, which may have been modified.
+        """
         new_settings = update_settings(settings)
         self.restart()
         return new_settings
 
     @api.events.expose()
     def events(self) -> EventStreamer:  # todo: att Flask server level, should catch & convert to stream response
+        """Get a server-sent event stream
+
+        :attr:`shapeflow.api.ApiDispatcher.events`
+
+        Returns
+        -------
+        EventStreamer
+            A :class:`~shapeflow.core.streaming.BaseStreamer` object, to be
+            streamed by ``Flask``
+        """
         return self._server._eventstreamer
 
     @api.stop_events.expose()
     def stop_events(self) -> None:
+        """Stop streaming server-sent events
+
+        :attr:`shapeflow.api.ApiDispatcher.stop_events`
+        """
         self._server._eventstreamer.stop()
 
     @api.log.expose()
     def log(self) -> PlainFileStreamer:
         """Start streaming log file
+
+        :attr:`shapeflow.api.ApiDispatcher.log`
+
+        Returns
+        -------
+        PlainFileStreamer
+            A :class:`~shapeflow.core.streaming.BaseStreamer` object, to be
+            streamed by ``Flask``
         """
         if self._log is not None:
             self.stop_log()
@@ -100,6 +202,8 @@ class _Main(object):
     @api.stop_log.expose()
     def stop_log(self) -> None:
         """Stop streaming log file
+
+        :attr:`shapeflow.api.ApiDispatcher.stop_log`
         """
         log.debug("stopping log file stream")
         if self._log is not None:
@@ -107,44 +211,84 @@ class _Main(object):
 
     @api.unload.expose()
     def unload(self) -> bool:
+        """Unload the application. Called when the user closes or refreshes a
+        tab with the user interface.
+
+        :attr:`shapeflow.api.ApiDispatcher.unload`
+        """
         self._server._unload.set()
         return True
 
     @api.quit.expose()
     def quit(self) -> bool:
+        """Quit the API server.
+
+        :attr:`shapeflow.api.ApiDispatcher.quit`
+        """
         self._server._quit.set()
         return True
 
     @api.restart.expose()
     def restart(self) -> bool:
+        """Restart the API server
+
+        :attr:`shapeflow.api.ApiDispatcher.restart`
+        """
         self._server.restart()
         return True
 
     @api.pid_hash.expose()
     def pid_hash(self) -> str:
+        """Get the current ``pid`` hash of the API server.
+
+        :attr:`shapeflow.api.ApiDispatcher.pid_hash`
+
+        Returns
+        -------
+        str
+            The hash of the current ``pid``. The actual ``pid`` is not given to
+            avoid cheekiness.
+        """
         import hashlib
         return hashlib.sha1(bytes(os.getpid())).hexdigest() + '\n'
 
 
 class _Cache(object):
+    """Implements ``cache`` endpoints in :data:`~shapeflow.api.api`.
+    """
     _cache: diskcache.Cache
 
     def __init__(self):
-        self._cache = get_cache(settings)
+        self._cache = get_cache()
 
     @api.cache.clear.expose()
-    def _clear_cache(self) -> None:
+    def clear_cache(self) -> None:
+        """Clear the cache
+
+        :attr:`shapeflow.api._CacheDispatcher.clear`
+        """
         log.info(f"clearing cache")
         self._cache.clear()
 
     @api.cache.size.expose()
-    def _cache_size(self) -> str:
+    def cache_size(self) -> str:
+        """Get the size of the cache
+
+        :attr:`shapeflow.api._CacheDispatcher.size`
+
+        Returns
+        -------
+        str
+            The size of the cache in human-readable form
+        """
         size = sizeof_fmt(self._cache.size)
 
         return size
 
 
 class _Filesystem(object):
+    """Implements ``fs`` endpoints in :data:`~shapeflow.api.api`.
+    """
     _history: History
 
     def __init__(self):
@@ -152,6 +296,15 @@ class _Filesystem(object):
 
     @api.fs.select_video.expose()
     def select_video(self) -> Optional[str]:
+        """Open a video selection dialog
+
+        :attr:`shapeflow.api._FilesystemDispatcher.select_video`
+
+        Returns
+        -------
+        Optional[str]
+            The path of the selected video file, if any.
+        """
         return filedialog.load(
             title='Select a video file...',
             pattern=settings.app.video_pattern,
@@ -160,6 +313,15 @@ class _Filesystem(object):
 
     @api.fs.select_design.expose()
     def select_design(self) -> Optional[str]:
+        """Open a design selection dialog
+
+        :attr:`shapeflow.api._FilesystemDispatcher.select_design`
+
+        Returns
+        -------
+        Optional[str]
+            The path of the selected design file, if any.
+        """
         return filedialog.load(
             title='Select a design file...',
             pattern=settings.app.design_pattern,
@@ -168,6 +330,24 @@ class _Filesystem(object):
 
     @api.fs.check_video.expose()
     def check_video(self, path: str) -> bool:
+        """Check if a video file path is valid:
+
+        * Whether it exists
+
+        * Whether it's a valid video file that can be opened with ``OpenCV``
+
+        :attr:`shapeflow.api._FilesystemDispatcher.check_video`
+
+        Parameters
+        ----------
+        path: str
+            A path
+
+        Returns
+        -------
+        bool
+            Whether the path is a valid video file
+        """
         log.debug(f"checking video file '{path}'")
         if os.path.isfile(path):
             try:
@@ -184,6 +364,24 @@ class _Filesystem(object):
 
     @api.fs.check_design.expose()
     def check_design(self, path: str) -> bool:
+        """Check if a design file path is valid:
+
+        * Whether it exists
+
+        * Whether it's a valid design file
+
+        :attr:`shapeflow.api._FilesystemDispatcher.check_design`
+
+        Parameters
+        ----------
+        path: str
+            A path
+
+        Returns
+        -------
+        bool
+            Whether the path is a valid design file
+        """
         log.debug(f"checking design file '{path}'")
         if os.path.isfile(path):
             try:
@@ -197,6 +395,10 @@ class _Filesystem(object):
 
     @api.fs.open_root.expose()
     def open_root(self) -> None:
+        """Open :data:`shapeflow.ROOTDIR` in the file explorer
+
+        :attr:`shapeflow.api._FilesystemDispatcher.open_root`
+        """
         try:
             open_path(str(ROOTDIR))
         except Exception as e:
@@ -227,6 +429,19 @@ class _Database(object):
 
 
 class _VideoAnalyzerManager(object):
+    """Implements ``va`` endpoints in :data:`~shapeflow.api.api`.
+
+    Manages :class:`~shapeflow.core.backend.BaseAnalyzer` instances
+
+    * Adds / removes instances
+
+    * Handles saving / loading of application state
+
+    * Handles analysis queueing
+
+    * Handles analyzer-specific streams
+    """
+
     _server: ShapeflowServer
     _history: History
 
@@ -237,9 +452,13 @@ class _VideoAnalyzerManager(object):
     _q_state: QueueState
 
     _dispatcher: _VideoAnalyzerManagerDispatcher
-    __analyzers__: Dict[str, BaseVideoAnalyzer] = {}  # todo: analyzer manager should register analyzers with api.va on init
+    __analyzers__: Dict[str, BaseAnalyzer] = {}  # todo: analyzer manager should register analyzers with api.va on init
+    """The currently active analyzers.
+    """
 
     ID_LENGTH = 6
+    """Length of ``id`` strings. Kept relatively short for readable URLs.
+    """
 
     def __init__(self, server: ShapeflowServer):
         self._server = server
@@ -254,15 +473,7 @@ class _VideoAnalyzerManager(object):
     def _set_dispatcher(self, dispatcher: _VideoAnalyzerManagerDispatcher):
         self._dispatcher = dispatcher
 
-    def _add(self, analyzer: BaseVideoAnalyzer) -> str:
-        """Add a new analyzer instance
-
-
-        Returns
-        -------
-        str
-            The ``id`` of the new analyzer
-        """
+    def _add(self, analyzer: BaseAnalyzer) -> str:
         if not hasattr(analyzer, 'id'):
             id = shortuuid.ShortUUID().random(length=self.ID_LENGTH)
 
@@ -282,13 +493,6 @@ class _VideoAnalyzerManager(object):
         return analyzer.id
 
     def _remove(self, id: str):
-        """Remove an analyzer instance
-
-        Parameters
-        ----------
-        id: str
-            The ``id`` of the analyzer to close
-        """
         del self.__analyzers__[id]
         for k in filter(lambda k: id in k, list(self._dispatcher._address_space.keys())):  # todo: this is a bit lame
             del self._dispatcher._address_space[k]  # todo: there should be a _remove_dispatcher probably
@@ -317,6 +521,19 @@ class _VideoAnalyzerManager(object):
 
     @api.va.init.expose()
     def init(self) -> str:
+        """Initialize a new analyzer.
+
+        :attr:`shapeflow.api._VideoAnalyzerManagerDispatcher.init`
+
+        A short unique ``ìd`` will be generated.
+        For example, a new analyzer with ``rG7bgH`` as its ``id`` can be
+        addressed via ``/api/va/rG7bgH``.
+
+        Returns
+        -------
+        str
+            The ``id`` string of the newly added analyzer
+        """
         with self._lock:
             analyzer = VideoAnalyzer()
             analyzer.set_eventstreamer(self._server._eventstreamer)
@@ -330,6 +547,20 @@ class _VideoAnalyzerManager(object):
 
     @api.va.close.expose()
     def close(self, id: str) -> bool:
+        """Close an analyzer.
+
+        :attr:`shapeflow.api._VideoAnalyzerManagerDispatcher.close`
+
+        Parameters
+        ----------
+        id: str
+            The ``id`` string of the analyzer to remove
+
+        Returns
+        -------
+        bool
+            Whether the analyzer was removed successfully
+        """
         self._valid(id)
 
         with self._lock:
@@ -344,7 +575,9 @@ class _VideoAnalyzerManager(object):
 
     @api.va.start.expose()
     def q_start(self, queue: List[str]) -> bool:
-        """Queue analysis
+        """Start analyzing a queue.
+
+        :attr:`shapeflow.api._VideoAnalyzerManagerDispatcher.start`
 
         Parameters
         ----------
@@ -397,7 +630,10 @@ class _VideoAnalyzerManager(object):
 
     @api.va.stop.expose()
     def q_stop(self) -> None:
-        """Stop analysis queue"""
+        """Stop analyzing the current queue.
+
+        :attr:`shapeflow.api._VideoAnalyzerManagerDispatcher.stop`
+        """
         log.info('stopping analysis queue')
         if self._pause_q.is_set():
             self._pause_q.clear()
@@ -411,13 +647,54 @@ class _VideoAnalyzerManager(object):
 
     @api.va.cancel.expose()
     def q_cancel(self) -> None:
-        """Cancel analysis queue"""
+        """Cancel analyzing the current queue.
+
+        :attr:`shapeflow.api._VideoAnalyzerManagerDispatcher.cancel`
+        """
         for analyzer in self.__analyzers__.values():
             if analyzer.state == AnalyzerState.ANALYZING:
                 analyzer.cancel()
 
     @api.va.state.expose()
     def state(self) -> dict:
+        """Get the queue state and the status of all analyzers.
+
+        :attr:`shapeflow.api._VideoAnalyzerManagerDispatcher.state`
+
+        Example::
+
+           {
+               "q_state": 0,                   # QueueState
+               "ids": ["abc123", "def456"],
+               "status": {
+                   "abc123": {
+                       "state": 7,             # AnalyzerState
+                       "busy": True,
+                       "cached": True,
+                       "results": False,
+                       "position": 0.7,
+                       "progress": 0.75,
+                   },
+                   "def456": {
+                       "state": 6,             # AnalyzerState
+                       "busy": False,
+                       "cached": True,
+                       "results": False,
+                       "position": 0.0,
+                       "progress": 0.0,
+                   },
+               }
+           }
+
+        With the state ``int`` values according to the ``Enum`` classes
+        :class:`~shapeflow.core.backend.QueueState` and
+        :class:`~shapeflow.core.backend.AnalyzerState`.
+
+        Returns
+        -------
+        dict
+            A state ``dict``
+        """
         with self._lock:
             return {
                 'q_state': self._q_state,
@@ -428,6 +705,8 @@ class _VideoAnalyzerManager(object):
     @api.va.save_state.expose()
     def save_state(self) -> None:
         """Save application state to ``shapeflow.settings.app.state_path``
+
+        :attr:`shapeflow.api._VideoAnalyzerManagerDispatcher.save_state`
         """
         if settings.app.save_state:
             log.debug(f"saving application state")
@@ -444,6 +723,8 @@ class _VideoAnalyzerManager(object):
     @api.va.load_state.expose()
     def load_state(self) -> None:
         """Load application state from ``shapeflow.settings.app.state_path``
+
+        :attr:`shapeflow.api._VideoAnalyzerManagerDispatcher.load_state`
         """
         if settings.app.load_state:
             log.info(f"loading application state")
@@ -465,7 +746,7 @@ class _VideoAnalyzerManager(object):
                         if config_json is not None:
                             config = loads(config_json)
                         else:
-                            raise SetupError('invalid config from database')
+                            raise RootException('invalid config from database')
                         assert isinstance(config, BaseAnalyzerConfig)
 
                         analyzer = init(config)
@@ -483,6 +764,22 @@ class _VideoAnalyzerManager(object):
 
     @api.va.stream.expose()
     def stream(self, id: str, endpoint: str) -> BaseStreamer:
+        """Stream something.
+
+        :attr:`shapeflow.api._VideoAnalyzerManagerDispatcher.stream`
+
+        Parameters
+        ----------
+        id: str
+            The ``id`` of an analyzer
+        endpoint: str
+            The endpoint to stream
+
+        Returns
+        -------
+        BaseStreamer
+            A stream handler object
+        """
         self._check_streaming(id, endpoint)
 
         with self._lock:
@@ -492,6 +789,17 @@ class _VideoAnalyzerManager(object):
 
     @api.va.stream_stop.expose()
     def stream_stop(self, id: str, endpoint: str) -> None:
+        """Stop streaming something.
+
+        :attr:`shapeflow.api._VideoAnalyzerManagerDispatcher.stream_stop`
+
+        Parameters
+        ----------
+        id: str
+            The ``id`` of an analyzer
+        endpoint: str
+            The endpoint to stop streaming
+        """
         try:
             self._check_streaming(id, endpoint)
 
@@ -512,8 +820,24 @@ class _VideoAnalyzerManager(object):
 
 
 def load(server: ShapeflowServer) -> ApiDispatcher:
+    """Initialize :data:`~shapeflow.api.api` and return a reference to it.
+
+    Parameters
+    ----------
+    server: ShapeflowServer
+        The ``shapeflow`` server object
+
+    Returns
+    -------
+    ApiDispatcher
+        A reference to :data:`~shapeflow.api.api`
+    """
     api._set_instance(_Main(server))
-    api._add_dispatcher('db', _DatabaseDispatcher(History()))
+
+    history = History()
+    history.set_eventstreamer(server._eventstreamer)
+
+    api._add_dispatcher('db', _DatabaseDispatcher(history))
     api._add_dispatcher('fs', _FilesystemDispatcher(_Filesystem()))
     api._add_dispatcher('cache', _CacheDispatcher(_Cache()))
 

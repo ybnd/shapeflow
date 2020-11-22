@@ -16,7 +16,7 @@ from pydantic import Field
 from shapeflow import settings, get_logger, get_cache
 from shapeflow.api import api
 
-from shapeflow.core import RootException, SetupError, RootInstance, Described
+from shapeflow.core import RootException, RootInstance, Described
 from shapeflow.maths.colors import Color, HsvColor, as_hsv
 from shapeflow.util.meta import describe_function
 from shapeflow.util import Timer, Timing
@@ -24,13 +24,13 @@ from shapeflow.core.db import BaseAnalysisModel
 from shapeflow.core.config import Factory, BaseConfig, Instance, Configurable
 from shapeflow.core.streaming import EventStreamer
 
-from shapeflow.core.interface import InterfaceFactory
+from shapeflow.core.interface import InterfaceType
 
 
 log = get_logger(__name__)
 
 
-class BackendSetupError(SetupError):
+class BackendSetupError(RootException):
     msg = 'Error while setting up backend'
 
 
@@ -46,12 +46,16 @@ _BLOCKED = 'BLOCKED'
 
 
 class PushEvent(Enum):
+    """Categories of server-pushed events.
+    """
     STATUS = 'status'
     CONFIG = 'config'
     NOTICE = 'notice'
 
 
 class AnalyzerState(IntEnum):
+    """The state of an analyzer
+    """
     UNKNOWN = 0
     INCOMPLETE = 1
     CAN_LAUNCH = 2
@@ -65,6 +69,8 @@ class AnalyzerState(IntEnum):
 
     @classmethod
     def can_launch(cls, state: int) -> bool:
+        """Returns ``True`` if an analyzer can launch from this state
+        """
         return state in [
             cls.CAN_LAUNCH,
             cls.LAUNCHED,
@@ -75,6 +81,8 @@ class AnalyzerState(IntEnum):
 
     @classmethod
     def is_launched(cls, state: int) -> bool:
+        """Returns ``True`` if an analyzer is launched in this state
+        """
         return state in [
             cls.LAUNCHED,
             cls.CAN_FILTER,
@@ -86,13 +94,15 @@ class AnalyzerState(IntEnum):
 
 
 class QueueState(IntEnum):
+    """The state of the analysis queue
+    """
     STOPPED = 0
     RUNNING = 1
     PAUSED = 2
 
 
 class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB in-memory, 4GB on-disk, finally the actual video
-    """Interface to diskcache.Cache
+    """Cache method results with ``diskcache.Cache``
     """
     _cache: Optional[diskcache.Cache]
 
@@ -148,8 +158,22 @@ class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB 
             raise CacheAccessError
         return self._get_key(method, *args) in self._cache
 
-    def _cached_call(self, method, *args, **kwargs):  # todo: kwargs necessary?
-        """Wrapper for a method, handles caching 'at both ends'
+    def cached_call(self, method, *args, **kwargs):  # todo: kwargs necessary?
+        """Call a method or get the result from the cache if available.
+
+        Parameters
+        ----------
+        method
+            The method to call
+        args
+            Any positional arguments to pass on to the method
+        kwargs
+            Any keyword arguments to pass on to the method
+
+        Returns
+        -------
+        Any
+            Whatever the method returns.
         """
         key = self._get_key(method, *args)
         if self._cache is not None:
@@ -189,7 +213,7 @@ class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB 
         if settings.cache.do_cache or override:
             log.debug(f"{self.__class__.__qualname__}: "
                       f"opening cache @ {settings.cache.dir}")
-            self._cache = get_cache(settings)
+            self._cache = get_cache()
         else:
             self._cache = None
 
@@ -201,7 +225,7 @@ class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB 
             self._cache = None
 
 class FeatureConfig(BaseConfig, abc.ABC):
-    """Feature parameters"""
+    """Abstract :class:`~shapeflow.core.backend.Feature` parameters"""
     pass
 
 
@@ -213,7 +237,11 @@ class Feature(abc.ABC, Configurable):  # todo: should probably use Config for pa
     _state: Optional[np.ndarray]
 
     _label: str = ''  # todo: keep these in the config instead?
+    """Label string, to be used in exported data and the user interface
+    """
     _unit: str = ''
+    """Unit string, to be used in exported data and the user interface
+    """
     _elements: Tuple[Instance, ...] = ()
 
     _config: Optional[FeatureConfig]
@@ -236,8 +264,25 @@ class Feature(abc.ABC, Configurable):  # todo: should probably use Config for pa
 
     def calculate(self, frame: np.ndarray, state: np.ndarray = None) \
             -> Tuple[Any, Optional[np.ndarray]]:
-        """Calculate Feature for given frame
-            and update state image (optional)
+        """Calculate the feature for the given frame
+
+        Parameters
+        ----------
+        frame : np.ndarray
+            A video frame
+        state : Optional[np.ndarray]
+            An ``np.ndarray`` for the state image. Should have the same
+            dimensions as the ``frame``
+
+        Returns
+        -------
+        Any
+            The calculated feature value
+        Optional[np.ndarray]
+            If a state image was provided, return this state frame with the
+            feature's state frame added onto it. If not, return ``None``.
+        """
+        """Calculate the feature for given frame
         """
         if state is not None:
             state = self.state(frame, state)
@@ -245,18 +290,26 @@ class Feature(abc.ABC, Configurable):  # todo: should probably use Config for pa
 
     @classmethod
     def label(cls) -> str:
+        """The label of this feature. Used in the user interface and results.
+        """
         return cls._label
 
     @classmethod
     def unit(cls) -> str:
+        """The unit of this feature. Used in the user interface and results.
+        """
         return cls._unit
 
     @property
     def skip(self) -> bool:
+        """Whether this feature should be skipped
+        """
         raise NotImplementedError
 
     @property
     def ready(self) -> bool:
+        """Whether this feature is ready to be calculated
+        """
         raise NotImplementedError
 
     def set_color(self, color: Color):
@@ -264,11 +317,10 @@ class Feature(abc.ABC, Configurable):  # todo: should probably use Config for pa
 
     @property
     def color(self) -> Color:
-        """Color of the Feature in figures.
+        """Color of the feature in figures.
 
-            A Feature's color must be set as not to overlap with
-            other Features in the same FeatureSet.
-            Therefore, <Feature>._color must be determined by FeatureSet!
+        A feature's color is handled by its :class:`~shapeflow.core.backend.FeatureSet`
+        as not to overlap with any other features in that set.
         """
         if self._color is not None:
             return self._color
@@ -277,25 +329,28 @@ class Feature(abc.ABC, Configurable):  # todo: should probably use Config for pa
 
     @abc.abstractmethod
     def _guideline_color(self) -> Color:
-        """Returns the 'guideline color' of a Feature instance
-            Used by FeatureSet to determine the actual _color
+        """Returns the 'guideline color' of a feature, which is used to resolve
+        to the final color within a feature set.
         """
         raise NotImplementedError
 
     @abc.abstractmethod  # todo: we're dealing with frames explicitly, so maybe this should be an shapeflow.video thing...
     def state(self, frame: np.ndarray, state: np.ndarray) -> np.ndarray:
-        """Return the Feature instance's state image for a given frame
+        """Return the feature's state image for a given frame
         """
         raise NotImplementedError
 
     @abc.abstractmethod
     def value(self, frame: np.ndarray) -> Any:
-        """Compute the value of the Feature instance for a given frame
+        """Compute the value of the feature for a given frame
         """
         raise NotImplementedError
 
     @property
     def config(self):
+        """The configuration of the feature.
+        Default to the global configuration if no specific one is provided.
+        """
         if self._config is not None:
             return self._config
         else:
@@ -303,6 +358,8 @@ class Feature(abc.ABC, Configurable):  # todo: should probably use Config for pa
 
 
 class FeatureSet(Configurable):
+    """A set of :class:`~shapeflow.core.backend.Feature` instances
+    """
     _feature: Tuple[Feature, ...]
     _colors: Tuple[Color, ...]
     _config_class = FeatureConfig
@@ -311,7 +368,12 @@ class FeatureSet(Configurable):
         self._features = features
 
     def resolve_colors(self) -> Tuple[Color, ...]:
-        guideline_colors = [as_hsv(f._guideline_color()) for f in self._features]
+        """Resolve the colors of all features in this set so that none of them
+        overlap.
+        """
+        guideline_colors = [
+            as_hsv(f._guideline_color()) for f in self._features
+        ]
 
         min_v = 20.0
         max_v = 255.0
@@ -325,7 +387,10 @@ class FeatureSet(Configurable):
             else:
                 in_bin = False
                 for bin in bins:
-                    if abs(float(color.h) - np.mean([guideline_colors[i].h for i in bin])) < tolerance:
+                    if abs(
+                            float(color.h) -
+                            np.mean([guideline_colors[i].h for i in bin])
+                    ) < tolerance:
                         bin.append(index)
                         in_bin = True
                         break
@@ -352,13 +417,35 @@ class FeatureSet(Configurable):
 
     @property
     def colors(self) -> Tuple[Color, ...]:
+        """The resolved colors in this feature set
+        """
         return self._colors
 
     @property
     def features(self) -> Tuple[Feature, ...]:
+        """The features in this feature set
+        """
         return self._features
 
     def calculate(self, frame: np.ndarray, state: Optional[np.ndarray]) -> Tuple[List[Any], Optional[np.ndarray]]:
+        """Calculate all features in this set for a given frame
+
+        Parameters
+        ----------
+        frame : np.ndarray
+            An image
+        state : Optional[np.ndarray]
+            An empty ``np.ndarray`` for the state image. Should have the same
+            dimensions as the ``frame``
+
+        Returns
+        -------
+        List[Any]
+            The calculated feature values
+        Optional[np.ndarray]
+            If a state image was provided, return the composite state image of
+            this feature set. If not, return ``None``.
+        """
         values = []
 
         for feature in self.features:
@@ -368,21 +455,30 @@ class FeatureSet(Configurable):
         return values, state
 
 
-class FeatureType(InterfaceFactory):
+class FeatureType(InterfaceType):
+    """:class:`~shapeflow.core.backend.Feature` factory
+    """
     _type = Feature
     _mapping: Mapping[str, Type[Feature]] = {}
     _config_type = FeatureConfig
 
     def get(self) -> Type[Feature]:
+        """Get the :class:`~shapeflow.core.backend.Feature` for this feature type
+        """
         feature = super().get()
         assert issubclass(feature, Feature)
         return feature
 
     def config_schema(self) -> dict:
+        """The ``pydantic`` configuration schema for
+        this type of :class:`~shapeflow.core.backend.Feature`
+        """
         return self.get().config_schema()
 
     @classmethod
     def __modify_schema__(cls, field_schema):
+        """Modify ``pydantic`` schema to include units and labels.
+        """
         super().__modify_schema__(field_schema)
         field_schema.update(
             units={ k:v._unit for k,v in cls._mapping.items() },
@@ -391,14 +487,17 @@ class FeatureType(InterfaceFactory):
 
 
 class BaseAnalyzerConfig(BaseConfig):
-    """Abstract analyzer configuration"""
+    """Abstract analyzer configuration.
+    """
     video_path: Optional[str] = Field(default=None)
     design_path: Optional[str] = Field(default=None)
     name: Optional[str] = Field(default=None)
     description: Optional[str] = Field(default=None)
 
 
-class BaseVideoAnalyzer(Instance, RootInstance):
+class BaseAnalyzer(Instance, RootInstance):
+    """Abstract analyzer.
+    """
     _config: BaseAnalyzerConfig
 
     _state: int
@@ -448,10 +547,14 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
     @property
     def model(self):
+        """The database model associated with this analyzer.
+        """
         return self._model
 
     @property
     def runs(self):
+        """The number of runs performed for this analysis.
+        """
         return self._runs
 
     def _new_run(self):
@@ -459,33 +562,50 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
     @property
     def eventstreamer(self):
+        """Return the server-sent event streamer.
+        """
         return self._eventstreamer
 
     def set_eventstreamer(self, eventstreamer: EventStreamer = None):
+        """Set the server-sent event streamer.
+        """
         self._eventstreamer = eventstreamer
 
-    def event(self, category: PushEvent, data: dict):
-        """Push an event
+    def event(self, category: PushEvent, data: dict) -> None:
+        """Push an event.
 
-        :param category: event category
-        :param data: event data
-        :return:
+        Parameters
+        ----------
+        category : PushEvent
+            The category of event to push
+        data : dict
+            The data to push
         """
-
         if self.eventstreamer is not None:
             self.eventstreamer.event(category.value, self.id, data)
 
-    def notice(self, message: str, persist: bool = False):
+    def notice(self, message: str, persist: bool = False) -> None:
+        """Push a notice.
+
+        Parameters
+        ----------
+        message : str
+            The notice message to push
+        persist : bool
+            Whether the notice should be persistent (i.e. stay up on the user
+            interface until dismissed manually)
+        """
         self.event(
             PushEvent.NOTICE,
             data={'message': message, 'persist': persist}
         )
         log.warning(f"'{self.id}': {message}")
 
-    # @backend.expose(backend.commit)
     @api.va.__id__.commit.expose()
     def commit(self) -> bool:
         """Save video analysis configuration to history database
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.commit`
         """
         if self._model is not None:
             log.debug(f"committing '{self.id}'")
@@ -494,7 +614,6 @@ class BaseVideoAnalyzer(Instance, RootInstance):
         else:
             return False
 
-    # @backend.expose(backend.can_launch)
     @abc.abstractmethod
     def can_launch(self) -> bool:
         raise NotImplementedError
@@ -503,7 +622,6 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     def can_filter(self) -> bool:
         raise NotImplementedError
 
-    # @backend.expose(backend.can_analyze)
     @abc.abstractmethod
     def can_analyze(self) -> bool:
         raise NotImplementedError
@@ -527,12 +645,23 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     def done(self) -> bool:
         return self.state == AnalyzerState.DONE
 
-    # @backend.expose(backend.state_transition)
     @api.va.__id__.state_transition.expose()
     def state_transition(self, push: bool = True) -> int:
-        """Handle state transitions
-        """
+        """Handle state transitions.
 
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.state_transition`
+
+        Parameters
+        ----------
+        push : bool
+            Whether to push an event once the state is set.
+
+        Returns
+        -------
+        int
+            The resulting state ~ :class:`~shapeflow.backend.AnalyzerState`
+        """
+        # todo: actually type as AnalyzerState
         if self.state == AnalyzerState.INCOMPLETE and self.can_launch():
             self.set_state(AnalyzerState.CAN_LAUNCH, push)
         elif self.state == AnalyzerState.LAUNCHED or self.state == AnalyzerState.CAN_FILTER:
@@ -587,9 +716,12 @@ class BaseVideoAnalyzer(Instance, RootInstance):
             self.set_busy(False)
             self.set_state(done_state)
 
-    # @backend.expose(backend.cancel)
     @api.va.__id__.cancel.expose()
     def cancel(self) -> None:
+        """Cancel a running analysis.
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.cancel`
+        """
         super().cancel()
         self.set_state(AnalyzerState.CANCELED)
 
@@ -618,7 +750,6 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     def _new_results(self):
         raise NotImplementedError
 
-    # @backend.expose(backend.analyze)
     @abc.abstractmethod
     def analyze(self) -> bool:
         raise NotImplementedError
@@ -638,9 +769,12 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     def has_results(self) -> bool:
         raise NotImplementedError
 
-    # @backend.expose(backend.status)
     @api.va.__id__.status.expose()
     def status(self) -> dict:
+        """Get the analyzer's status.
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.status`
+        """
         status = {
             'state': self.state,
             'busy': self.busy,
@@ -649,20 +783,21 @@ class BaseVideoAnalyzer(Instance, RootInstance):
             'position': self.position,
             'progress': self.progress,
         }
-
         return status
 
     def push_status(self):
         self.event(PushEvent.STATUS, self.status())
 
-    # @backend.expose(backend.get_config)
     @api.va.__id__.get_config.expose()
     def get_config(self, do_tag=False) -> dict:
+        """Get the analyzer's configuration.
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_config`
+        """
         self._gather_config()
         config = self.config.to_dict(do_tag)
         return config
 
-    # @backend.expose(backend.set_config)
     @abc.abstractmethod
     def set_config(self, config: dict, silent: bool = False) -> dict:
         raise NotImplementedError
@@ -671,9 +806,27 @@ class BaseVideoAnalyzer(Instance, RootInstance):
     def _gather_config(self):
         raise NotImplementedError
 
-    # @backend.expose(backend.launch)
     @api.va.__id__.launch.expose()
     def launch(self) -> bool:
+        """Launch the analyzer.
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.launch`
+
+        If the analyzer's configuration is sufficiently filled out,
+        the analyzer will instantiate any other objects it needs to start
+        configuring the analysis further.
+
+        To launch, the analyzer needs at least
+
+        * A valid video file
+        * A valid design file
+        * At least one valid feature configuration
+
+        Returns
+        -------
+        bool
+            Whether the launch was successful or not.
+        """
         with self.lock():
             if self.can_launch():
                 self._launch()
@@ -693,20 +846,24 @@ class BaseVideoAnalyzer(Instance, RootInstance):
                 log.warning(f"{self.__class__.__qualname__} can not be launched.")  # todo: try to be more verbose
                 return False
 
-    @api.va.__id__.get_name.expose()
     def get_name(self) -> str:
         try:
             return self.model.get_name()
         except AttributeError:
             return self.id
 
-    # @backend.expose(backend.get_db_id)
     @api.va.__id__.get_db_id.expose()
     def get_db_id(self) -> int:
+        """Get the database id of this analyzer.
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_db_id`
+        """
         return self.model.get_id()
 
     @contextmanager
-    def time(self, message: str = '', logger = log):
+    def time(self, message: str = ''):
+        """A timing context.
+        """
         try:
             self._timer.__enter__(message)
             yield self
@@ -715,6 +872,8 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
     @property
     def timing(self) -> Optional[Timing]:
+        """Get the timing info from the latest run of :func:`~shapeflow.core.backend.BaseAnalyzer.time`
+        """
         if self._timer.timing is not None:
             return Timing(*self._timer.timing)
         else:
@@ -729,13 +888,19 @@ class BaseVideoAnalyzer(Instance, RootInstance):
 
 
 class AnalyzerType(Factory):
-    _type = BaseVideoAnalyzer
+    """Analyzer type factory
+    """
+    _type = BaseAnalyzer
     _mapping: Mapping[str, Type[Described]] = {}
 
-    def get(self) -> Type[BaseVideoAnalyzer]:
+    def get(self) -> Type[BaseAnalyzer]:
+        """Return the analyzer type.
+        """
         t = super().get()
         assert issubclass(t, self._type)
         return t
 
     def config_schema(self) -> dict:
+        """Return the config schema of the analyzer type.
+        """
         return self.get().config_class()().schema()

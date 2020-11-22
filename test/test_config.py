@@ -2,7 +2,7 @@ import unittest
 
 import yaml
 
-from shapeflow.plugins.HsvRangeFilter import HsvRangeFilter
+from shapeflow.plugins.HsvRangeFilter import _Filter
 from shapeflow.video import *
 from shapeflow.core.config import Factory, Field, BaseConfig, validator, VERSION, CLASS
 from shapeflow.core import EnforcedStr
@@ -31,7 +31,7 @@ class EnforcedStrTest(unittest.TestCase):
         self.assertNotEqual(ColorSpace('hsv'), ColorSpace('bgr'))
 
     def test_factory(self):
-        self.assertEqual(HsvRangeFilter, FilterType('hsv range').get())
+        self.assertEqual(_Filter, FilterType('hsv range').get())
 
     def test_subclassing(self):
         class TestEnfStr(EnforcedStr):

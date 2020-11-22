@@ -9,18 +9,25 @@ from shapeflow.maths.images import ckernel
 from shapeflow.maths.colors import Color, HsvColor, convert, WRAP
 
 log = get_logger(__name__)
-
-
 COLOR = HsvColor(h=0, s=0, v=0)
 
 
-@extend(ConfigType)
-class BackgroundFilterConfig(FilterConfig):
-    """HSV range filter"""
-    range: HsvColor = Field(default=HsvColor(h=10, s=75, v=75))
+@extend(ConfigType, __name__.split('.')[-1])
+class _Config(FilterConfig):
+    """Configuration for :class:`shapeflow.plugins.BackgroundFilter._Filter`
+    """
     color: HsvColor = Field(default=HsvColor())
+    """See :attr:`shapeflow.plugins.HsvRangeFilter._Config.color`
+    """
+    range: HsvColor = Field(default=HsvColor(h=10, s=75, v=75))
+    """See :attr:`shapeflow.plugins.HsvRangeFilter._Config.range`
+    """
     close: int = Field(default=0, ge=0, le=200)
+    """:attr:`shapeflow.plugins.HsvRangeFilter._Config.close`
+    """
     open: int = Field(default=0, ge=0, le=200)
+    """:attr:`shapeflow.plugins.HsvRangeFilter._Config.open`
+    """
 
     @property
     def ready(self) -> bool:
@@ -28,10 +35,14 @@ class BackgroundFilterConfig(FilterConfig):
 
     @property
     def c0(self) -> HsvColor:
+        """See :func:`shapeflow.plugins.HsvRangeFilter._Config.c0`
+        """
         return self.color - self.range
 
     @property
     def c1(self) -> HsvColor:
+        """See :func:`shapeflow.plugins.HsvRangeFilter._Config.c1`
+        """
         return self.color + self.range
 
     _resolve_close = validator('close', allow_reuse=True)(BaseConfig._odd_add)
@@ -40,23 +51,24 @@ class BackgroundFilterConfig(FilterConfig):
     _open_limits = validator('open', pre=True, allow_reuse=True)(BaseConfig._int_limits)
 
 
-@extend(FilterType)
-class BackgroundFilter(FilterInterface):
-    """Filters by a range of hues ~ HSV representation
+@extend(FilterType, __name__.split('.')[-1])
+class _Filter(FilterInterface):
+    """Filters out colors outside of a :class:`~shapeflow.maths.colors.HsvColor`
+    radius around a center color and inverts the resulting image.
     """
-    _config_class = BackgroundFilterConfig
+    _config_class = _Config
 
-    def set_filter(self, filter: BackgroundFilterConfig, color: Color) -> BackgroundFilterConfig:
+    def set_filter(self, filter: _Config, color: Color) -> _Config:
         color = convert(color, HsvColor)
 
         log.debug(f'Setting filter {filter} ~ color {color}')
         filter(color=color)
         return filter
 
-    def mean_color(self, filter: BackgroundFilterConfig) -> Color:
+    def mean_color(self, filter: _Config) -> Color:
         return COLOR
 
-    def filter(self, filter: BackgroundFilterConfig, img: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
+    def filter(self, filter: _Config, img: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
         if mask is None:
             raise ValueError('No mask provided to BackgroundFilter')
 
