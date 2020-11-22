@@ -53,7 +53,7 @@ def application(keep: bool = False):
                 settings.db.override({"path": DB, "cleanup_interval": 0}), \
                 settings.app.override({"state_path": STATE, "save_result_auto": 'in result directory', "result_dir": RESULTS, "cancel_on_q_stop": False}), \
                 settings.log.override({'lvl_console': 'debug', 'lvl_file': 'debug'}):
-            save_settings(settings)
+            save_settings()
 
             # import from shapeflow.server here -> current settings are respected
             import shapeflow.server
@@ -72,7 +72,7 @@ def application(keep: bool = False):
 
             yield server, analyzers, history, client, settings
     finally:
-        save_settings(settings)
+        save_settings()
 
         # Explicitly remove any leftover analyzers
         app_state = json.loads(client.get('/api/va/state').data)
@@ -715,7 +715,7 @@ class DbCheckTest(unittest.TestCase):
 
         with settings.db.override({'path': DB}):
             clear_files()
-            save_settings(settings)
+            save_settings()
 
             import sqlite3
 

@@ -17,7 +17,7 @@ from shapeflow.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     FrameIntervalSetting, BaseAnalyzerConfig, FlipConfig
 from shapeflow.core import Lockable
 from shapeflow.core.backend import Instance, CachingInstance, \
-    BaseVideoAnalyzer, BackendSetupError, AnalyzerType, Feature, \
+    BaseAnalyzer, BackendSetupError, AnalyzerType, Feature, \
     FeatureSet, \
     FeatureType, AnalyzerState, PushEvent, FeatureConfig, CacheAccessError
 from shapeflow.core.config import extend
@@ -38,9 +38,11 @@ class VideoFileTypeError(BackendSetupError):
 
 
 class VideoFileHandler(CachingInstance, Lockable):
-    """Interface to video files ~ OpenCV
+    """Interface to video files ~ ``OpenCV``
     """
     path: str
+    """Path to the video file
+    """
 
     frame_count: int
     fps: float
@@ -97,7 +99,7 @@ class VideoFileHandler(CachingInstance, Lockable):
     def cached(self):
         return self._cached
 
-    def check_cached(self) -> Optional[bool]:
+    def _check_cached(self) -> Optional[bool]:
         try:
             self._cached = all([
                 self._is_cached(self._read_frame, self.path, fn)
@@ -108,23 +110,25 @@ class VideoFileHandler(CachingInstance, Lockable):
             return None
 
     def set_requested_frames(self, requested_frames: List[int]) -> None:
-        """Add a list of requested frames.
-            Used to determine which frames to cache in the background and
-            in `_resolve_frame`
+        """Add a list of requested frames
+
+        Limiting the set of possible frames decreases the disk space cost
+        needed to get a performance advantage through caching.
         """
         log.debug(f"Requested frames: {requested_frames}")
         self._requested_frames = requested_frames
 
-        self.check_cached()
+        self._check_cached()
         # self._touch_keys(
         #     [self._get_key(self._read_frame, self.path, fn)
         #      for fn in requested_frames]
         # )
 
     def _resolve_frame(self, frame_number) -> int:
-        """Resolve a frame_number to the nearest requested frame number.
-            This is done in order to limit the polled frames to the
-            frames that are to be cached or are cached already.
+        """Resolve a frame_number to the nearest requested frame number
+
+        This is done in order to limit the polled frames to the
+        frames that are to be cached or are cached already.
         """
 
         if hasattr(self, '_requested_frames'):
@@ -136,24 +140,26 @@ class VideoFileHandler(CachingInstance, Lockable):
             return frame_number
 
     def _set_position(self, frame_number: int):
-        """Set the position of the OpenCV VideoCapture.
+        """Set the position of the ``cv2.VideoCapture``.
         """
         self._capture.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
         self._get_position()
 
     def _get_position(self) -> int:
-        """Get the position of the OpenCV VideoCapture.
-            Due to some internal workings of OpenCV, the actual position the
-            capture object ends up at may differ from the requested position.
+        """Get the position of the ``cv2.VideoCapture``.
+
+        Due to some internal workings of OpenCV, the actual position the
+        capture object ends up at may differ from the requested position.
         """
         self.frame_number = self._capture.get(cv2.CAP_PROP_POS_FRAMES)
         return self.frame_number
 
     def _read_frame(self, _: str, frame_number: int = None) -> np.ndarray:
         """Read frame from video file, HSV color space
-            the `_` parameter is a placeholder for the (unused) path of the
-            video file, which is used to make the cache key in order to make
-            this function cachable across multiple files.
+
+        The `_` parameter is a placeholder for the (unused) path of the
+        video file, which is used to make the cache key in order to make
+        this function cachable across multiple files.
         """
         with self.lock():
             if frame_number is None:
@@ -183,9 +189,7 @@ class VideoFileHandler(CachingInstance, Lockable):
         return self.frame_count / self.fps
 
     def read_frame(self, frame_number: Optional[int] = None) -> np.ndarray:
-        """Wrapper for `_read_frame`.
-            Enables caching (if in a caching context!) and provides the video
-            file's path to determine the cache key.
+        """Read a frame from ``cv2.VideoCapture``.
         """
         if frame_number is None:
             frame_number = self.frame_number
@@ -193,10 +197,10 @@ class VideoFileHandler(CachingInstance, Lockable):
         if settings.cache.resolve_frame_number:
             frame_number = self._resolve_frame(frame_number)
 
-        return self._cached_call(self._read_frame, self.path, frame_number)
+        return self.cached_call(self._read_frame, self.path, frame_number)
 
     def seek(self, position: float = None) -> float:
-        """Seek to the relative position ~ [0,1]
+        """Seek to a relative position in the video ~ [0,1]
         """
         # todo: had to remove lock to enable reading frames :/
         #       (otherwise streams.update() can get deadocked @ VideoFileHandler if not reading frames from cache)
@@ -213,13 +217,13 @@ class VideoFileHandler(CachingInstance, Lockable):
         return self.frame_number / self.frame_count
 
     def get_seek_position(self) -> float:
-        """Get current relative position ~ [0,1]
+        """Get current relative position in the video ~ [0,1]
         """
         return self.frame_number / self.frame_count
 
 
 class TransformHandler(Instance, Handler):  # todo: clean up config / config.data -> Handler should not care what goes on in config.data!
-    """Handles coordinate transforms.
+    """Handles coordinate transforms
     """
     _video_shape: Tuple[int, int]
     _design_shape: Tuple[int, int]
@@ -268,12 +272,16 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
 
     @property
     def is_set(self) -> bool:
+        """Whether the transform matrix is set
+        """
         if hasattr(self, '_matrix'):
             return self._matrix is not None
         else:
             return False
 
     def get_relative_roi(self) -> dict:
+        """Get the relative ROI as a ``dict``
+        """
         if self.config.roi is not None:
             try:
                 return {
@@ -289,10 +297,11 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
 
     def estimate(self, roi: Roi = None) -> None:
         """Estimate the transform matrix from a set of coordinates.
-            Coordinates should correspond to the corners of the outline of
-            the design, relative to the video frame size:
-                x in [0,1] ~ width
-                y in [0,1] ~ height
+
+        Coordinates should correspond to the corners of the outline of
+        the design, relative to the video frame size:
+        * x in [0,1] ~ width
+        * y in [0,1] ~ height
         """
         # todo: sanity check roi
 
@@ -351,6 +360,8 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
         return roi
 
     def clear(self) -> None:
+        """Clear the ROI
+        """
         self.config(roi=None)
         self.set(None)
 
@@ -363,9 +374,11 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
             return None
 
     def __call__(self, img: np.ndarray) -> np.ndarray:
-        """Transform a frame.
-            Writes to the provided variable!
-            If caller needs the original value, they should copy explicitly
+        """Transform an image
+
+        .. note::
+           Writes to the provided variable!
+           If caller needs the original value, they should copy explicitly.
         """
         return self._implementation.transform(self._matrix, img, self._design_shape)
 
@@ -377,10 +390,14 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
         return co
 
     def inverse(self, img: np.ndarray) -> np.ndarray:
+        """Inverse transform an image
+        """
         return self._implementation.transform(self._inverse, img, self._video_shape)
 
 
 class FilterHandler(Instance, Handler):
+    """Handles filters
+    """
     _implementation: FilterInterface
     _implementation_factory = FilterType
     _implementation_class = FilterInterface
@@ -403,6 +420,8 @@ class FilterHandler(Instance, Handler):
         return self._config
 
     def set_config(self, config: dict) -> None:
+        """Set the configuration of this filter
+        """
         self._config(**config)
         self.set_implementation()
 
@@ -414,6 +433,8 @@ class FilterHandler(Instance, Handler):
         return self.implementation.mean_color(self.config.data)
 
     def set(self, color: HsvColor = None) -> FilterConfig:
+        """Set the filter to a color.
+        """
         # if isinstance(self.config.data, dict):  todo: should be ok
         #     self.config.data = self.implementation.config_class()(**self.config.data)
 
@@ -427,6 +448,8 @@ class FilterHandler(Instance, Handler):
         return self.config.data
 
     def set_implementation(self, implementation: str = None) -> str:
+        """Set the filter implementation
+        """
         if implementation is None:
             implementation = self.config.type.__str__()
 
@@ -446,14 +469,18 @@ class FilterHandler(Instance, Handler):
         return implementation
 
     def __call__(self, frame: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
+        """Filter an image
+        """
         return self.implementation.filter(self.config.data, frame, mask)
 
 
 class Mask(Instance):
     """Handles masks in the context of a video file
     """
-
     filter: FilterHandler
+    """The filter associated with this mask
+    """
+
     _design: 'DesignFileHandler'
 
     _config_class = MaskConfig
@@ -499,29 +526,38 @@ class Mask(Instance):
         return self._config
 
     def set_config(self, config: dict) -> None:
+        """Set the configuration of this mask
+        """
         self._config(**config)
         self.filter.set_config(self.config.filter.to_dict())
 
     def set_filter(self, color: Optional[HsvColor]):
+        """Set the filter of this mask
+        """
         self.filter.set(color=color)
         self.config.filter(**self.filter.config.to_dict())  # todo: otherwise, mask config is not updated!
 
     def __call__(self, img: np.ndarray) -> np.ndarray:
         """Mask an image.
-            Writes to the provided variable!
-            If caller needs the original value, they should copy explicitly
+
+        .. note::
+           Writes to the provided variable!
+           If caller needs the original value, they should copy explicitly
         """
         img = self._crop(img)
         return cv2.bitwise_and(img, img, mask=self.part)
 
     def _crop(self, img: np.ndarray) -> np.ndarray:
         """Crop an image to fit self._part
-            Writes to the provided variable!
-            If caller needs the original value, they should copy explicitly
+        .. note::
+           Writes to the provided variable!
+           If caller needs the original value, they should copy explicitly
         """
         return img[self.rows, self.cols]
 
     def contains(self, coordinate: ShapeCoo) -> bool:
+        """Whether a coordinate is contained within this mask
+        """
         if rect_contains(self.rect, coordinate):
             return bool(
                 self.part[coordinate.idx[0] - self.rect[0], coordinate.idx[1] - self.rect[2]]
@@ -530,6 +566,8 @@ class Mask(Instance):
             return False
 
     def clear_filter(self):
+        """Clear this mask's filter
+        """
         self.set_filter(color=None)
 
     @property
@@ -538,10 +576,22 @@ class Mask(Instance):
 
     @property
     def rows(self):
+        """This mask's row slice
+
+        To crop an image to this mask::
+
+           crop = img[mask.rows, mask.cols]
+        """
         return slice(self._rect[0], self._rect[1])
 
     @property
     def cols(self):
+        """This mask's column slice
+
+        To crop an image to this mask::
+
+           crop = img[mask.rows, mask.cols]
+        """
         return slice(self._rect[2], self._rect[3])
 
     @property
@@ -566,6 +616,8 @@ class Mask(Instance):
 
 
 class DesignFileHandler(CachingInstance):
+    """Handles design files
+    """
     _overlay: np.ndarray
     _masks: List[Mask]
 
@@ -674,32 +726,56 @@ class DesignFileHandler(CachingInstance):
         return masks, names
 
     def peel_design(self, design_path: str, dpi: int) -> np.ndarray:
-        return self._cached_call(self._peel_design, design_path, dpi)
+        """Render out all of the layers in a design
+        """
+        return self.cached_call(self._peel_design, design_path, dpi)
 
     def read_masks(self, design_path: str, dpi: int) -> Tuple[List[np.ndarray], List[str]]:
-        return self._cached_call(self._read_masks, design_path, dpi)
+        """Load masks from the rendered files
+        """
+        return self.cached_call(self._read_masks, design_path, dpi)
 
     @property
     def shape(self):
+        """The ``numpy.ndarray.shape`` of the design
+        """
         return self._shape
 
     def overlay(self) -> np.ndarray:
+        """The overlay of this design
+        """
         return cv2.cvtColor(self._overlay, cv2.COLOR_BGR2HSV)
 
     def overlay_frame(self, frame: np.ndarray) -> np.ndarray:
+        """Apply this design's overlay to a frame
+
+        Parameters
+        ----------
+        frame: np.ndarray
+            An image
+
+        Returns
+        -------
+        np.ndarray
+            The image with the overlay laid over it
+        """
         frame = cv2.cvtColor(frame, cv2.COLOR_HSV2BGR)
         frame = overlay(frame, self._overlay, self.config.overlay_alpha)
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         return frame
 
     @property
-    def masks(self):
+    def masks(self) -> List[Mask]:
+        """The masks of this design
+        """
         return self._masks
 
 
 class MaskFunction(Feature):
+    """An abstract feature based on a :class:`~shapeflow.video.Mask`
+    """
     mask: Mask
-    filter: FilterHandler
+    filter: FilterHandler  # todo: adress through mask
     dpi: int
 
     _feature_type: FeatureType
@@ -733,15 +809,31 @@ class MaskFunction(Feature):
 
     def px2mm(self, value):
         """Convert design-space pixels to mm
-        :param value: # of pixels
-        :return:
+
+        Parameters
+        ----------
+        value: float
+            Distance in # of pixels
+
+        Returns
+        -------
+        float
+            Distance in mm
         """
         return value / (self.dpi / 25.4)
 
     def pxsq2mmsq(self, value):
         """Convert design-space pixels to mm²
-        :param value:
-        :return:
+
+        Parameters
+        ----------
+        value: float
+            Area in pixels
+
+        Returns
+        -------
+        float
+            Area in mm²
         """
         return value / (self.dpi / 25.4) ** 2
 
@@ -749,6 +841,18 @@ class MaskFunction(Feature):
         return self.filter.mean_color()
 
     def value(self, frame) -> Any:
+        """The value of this feature for a given frame
+
+        Parameters
+        ----------
+        frame
+            An image
+
+        Returns
+        -------
+        Any
+            Some value
+        """
         return self._function(self.filter(self.mask(frame), self.mask.part))
 
     def state(self, frame: np.ndarray, state: np.ndarray) -> np.ndarray:
@@ -786,10 +890,13 @@ class MaskFunction(Feature):
 
 
 @extend(AnalyzerType)
-class VideoAnalyzer(BaseVideoAnalyzer):
+class VideoAnalyzer(BaseAnalyzer):
     """Main video handling class
+
             * Load frames from video files
+
             * Load mask files
+
             * Load/save measurement metadata
     """
     _config: VideoAnalyzerConfig
@@ -797,10 +904,28 @@ class VideoAnalyzer(BaseVideoAnalyzer):
     # _endpoints: BackendRegistry = backend
 
     video: VideoFileHandler
+    """Handles video operations for this analyzer
+    
+    * Reads frames from the video file
+    """
     design: DesignFileHandler
+    """Handles design operations for this analyzer.
+    
+    * Renders the design
+    
+    * Reads in the overlay and mask images
+    
+    * Initializes the :class:`~shapeflow.video.Mask` instances
+    """
     transform: TransformHandler
+    """Handles the transform for this analyzer
+    """
     features: Tuple[Feature,...]
+    """The features used in this analysis
+    """
     results: Dict[str, pd.DataFrame]
+    """The results of the current run of this analysis
+    """
 
     _featuresets: Dict[FeatureType, FeatureSet]
 
@@ -836,6 +961,13 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
     @api.va.__id__.can_launch.expose()
     def can_launch(self) -> bool:
+        """:attr:`shapeflow.api._VideoAnalyzerDispatcher.can_launch`
+
+        Returns
+        -------
+        bool
+            Whether this analyzer can launch
+        """
         video_ok = False
         design_ok = False
 
@@ -855,9 +987,18 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
     @api.va.__id__.can_analyze.expose()
     def can_analyze(self) -> bool:
+        """:attr:`shapeflow.api._VideoAnalyzerDispatcher.can_analyze`
+
+        Returns
+        -------
+        bool
+            Whether this analyzer can analyze
+        """
         return self.launched and all([mask.ready or mask.skip for mask in self.masks])
 
     def _launch(self):
+        """Initializes nested objects
+        """
         self.load_config()
 
         log.debug(f'{self.__class__.__name__}: launch nested instances.')
@@ -940,6 +1081,23 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
     @api.va.__id__.set_config.expose()
     def set_config(self, config: dict, silent: bool = False) -> dict:
+        """Set the analyzer's configuration
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.set_config`
+
+        Parameters
+        ----------
+        config: dict
+            A configuration ``dict``
+        silent: bool
+            If ``True``, don't push server-sent events. ``False`` by default.
+
+        Returns
+        -------
+        dict
+            The updated configuration ``dict``. Some fields may have been
+            changed due to incompatibility.
+        """
         with self.lock():
             if True:  # todo: sanity check
                 do_commit = False
@@ -1053,32 +1211,66 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 return config
 
 
-    # @backend.expose(backend.get_frame)
     @stream
     @api.va.__id__.get_frame.expose()
     def get_transformed_frame(self, frame_number: Optional[int] = None) -> np.ndarray:
+        """Get a video frame transformed to design-space
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_transformed_frame`
+
+        Can be streamed to the user interface.
+
+        Parameters
+        ----------
+        frame_number: Optional[int]
+            The frame number to get. If ``None``, get the current frame number.
+
+        Returns
+        -------
+        np.ndarray
+            An image (design-space)
+        """
         return self.transform(self.read_frame(frame_number))
 
-    # @backend.expose(backend.get_inverse_transformed_overlay)
     @stream
     @api.va.__id__.get_inverse_transformed_overlay.expose()
     def get_inverse_transformed_overlay(self) -> np.ndarray:
+        """Get the design overlay image transformed to video-space
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_inverse_transformed_overlay`
+
+        Can be streamed tothe user interface.
+
+        Returns
+        -------
+        np.ndarray
+            An image (in video-space)
+        """
         return self.transform.inverse(self.design._overlay)
 
-    # @backend.expose(backend.get_overlaid_frame)
-    @api.va.__id__.get_overlaid_frame.expose()
-    def get_frame_overlay(self, frame_number: int) -> np.ndarray:
-        return self.design.overlay_frame(
-            self.get_transformed_frame(frame_number))
-
-    # @backend.expose(backend.get_colors)  # todo: per feature in each feature set; maybe better as a dict instead of a list of tuples?
-    @api.va.__id__.get_colors.expose()
+    @api.va.__id__.get_colors.expose()  # todo: per feature in each feature set; maybe better as a dict instead of a list of tuples?
     def get_colors(self) -> Tuple[str, ...]:
+        """Get the list of colors to use for each mask
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_colors`
+
+        Returns
+        -------
+        Tuple[str, ...]
+            A tuple of CSS-compatible hex RGB strings
+        """
         if len(self.config.features) == 0:
             return tuple([])
         return tuple([css_hex(c) for c in self._featuresets[self.config.features[0]].resolve_colors()]) # todo: assuming that number of masks doesn't change per featureset
 
     def frame_numbers(self) -> Generator[int, None, None]:
+        """Get the requested frame numbers
+
+        Returns
+        -------
+        Generator[int, None, None]
+            An iterator that returns the requested frame numbers
+        """
         if self.config.frame_interval_setting == FrameIntervalSetting('Nf'):
             return frame_number_iterator(self.video.frame_count-1, Nf = self.config.Nf)
         elif self.config.frame_interval_setting == FrameIntervalSetting('dt'):
@@ -1086,10 +1278,26 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         else:
             raise NotImplementedError(self.config.frame_interval_setting)
 
-    # @backend.expose(backend.get_inverse_overlaid_frame)
     @stream
     @api.va.__id__.get_inverse_overlaid_frame.expose()
     def get_inverse_overlaid_frame(self, frame_number: Optional[int] = None) -> np.ndarray:
+        """Get a raw video frame overlaid with the inverse transformed design
+        overlay. Used to evaluate video-design alignment.
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_inverse_overlaid_frame`
+
+        Can be streamed tothe user interface.
+
+        Parameters
+        ----------
+        frame_number: Optional[int]
+            The frame number to get. If ``None``, get the current frame number.
+
+        Returns
+        -------
+        np.ndarray
+            An image (video-space)
+        """
         if self.transform.is_set:
             return cv2.cvtColor(  # todo: loads of unnecessary color conversion here
                 overlay(
@@ -1101,17 +1309,49 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             log.debug('transform not set, showing raw frame')
             return self.read_frame(frame_number)
 
-    # @backend.expose(backend.seek)
     @api.va.__id__.seek.expose()
-    def seek(self, position: float = None) -> float:
+    def seek(self, position: Optional[float] = None) -> float:
+        """Seek the video to a relative position
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.seek`
+
+        Parameters
+        ----------
+        position: float
+            A relative position in the video, with 0 the start and 1 the end.
+
+        Returns
+        -------
+        float
+            The resulting relative position. This may differ from the original
+            requested position due to being resolved to the nearest requested
+            frame number.
+            This improves performance if cached frames can be reused.
+        """
         self.video.seek(position)
         self.push_status()
 
         return self.position
 
-    # @backend.expose(backend.estimate_transform)
     @api.va.__id__.estimate_transform.expose()
-    def estimate_transform(self, roi: dict = None) -> Optional[dict]:
+    def estimate_transform(self, roi: Optional[dict] = None) -> Optional[dict]:
+        """Estimate the video-design transform from a ROI
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.estimate_transform`
+
+        Parameters
+        ----------
+        roi: Optional[dict]
+            A region of interest as a ``dict``. Must be compatible with
+            :class:`shapeflow.maths.coordinates.Roi`. If ``None``, the current
+            :attr:`shapeflow.config.TransformHandlerConfig.roi` will be used.
+
+        Returns
+        -------
+        Optional[dict]
+            The region of interest that was provided, or the current region of
+            interest if ``None``.
+        """
         if roi is None:
             roi_config = self.transform.config.roi
         else:
@@ -1127,43 +1367,81 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         else:
             return None
 
-    # @backend.expose(backend.clear_roi)
     @api.va.__id__.clear_roi.expose()
     def clear_roi(self) -> None:
+        """Clear the current region of interest and video-design transform
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.clear_roi`
+        """
         self.transform.clear()
         self.state_transition()
 
-    # @backend.expose(backend.turn_cw)
     @api.va.__id__.turn_cw.expose()
     def turn_cw(self) -> None:
+        """Add a clockwise 90° turn to this analyzer's
+        :attr:`shapeflow.config.TransformHandlerConfig.turn`
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.turn_cw`
+        """
         self.set_config(
             {'transform': {'turn': self.config.transform.turn + 1}}
         )
 
-    # @backend.expose(backend.turn_ccw)
     @api.va.__id__.turn_ccw.expose()
     def turn_ccw(self) -> None:
+        """Add a counter-clockwise 90° turn to this analyzer's
+        :attr:`shapeflow.config.TransformHandlerConfig.turn`
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.turn_ccw`
+        """
         self.set_config(
             {'transform': {'turn': self.config.transform.turn - 1}}
         )
 
-    # @backend.expose(backend.flip_h)
     @api.va.__id__.flip_h.expose()
     def flip_h(self) -> None:
+        """Toggle this analyzer's
+        :attr:`shapeflow.config.TransformHandlerConfig.flip`'s
+        :attr:`~shapeflow.config.FlipConfig.horizontal`
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.flip_h`
+        """
         self.set_config(
             {'transform': {'flip': {'horizontal': not self.config.transform.flip.horizontal}}}
         )
 
-    # @backend.expose(backend.flip_v)
     @api.va.__id__.flip_v.expose()
     def flip_v(self) -> None:
+        """Toggle this analyzer's
+        :attr:`shapeflow.config.TransformHandlerConfig.flip`'s
+        :attr:`~shapeflow.config.FlipConfig.vertical`
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.flip_v`
+        """
         self.set_config(
             {'transform': {'flip': {'vertical': not self.config.transform.flip.vertical}}}
         )
 
-    # @backend.expose(backend.undo_config)
     @api.va.__id__.undo_config.expose()
-    def undo_config(self, context: str = None) -> dict:  # todo: implement undo/redo context (e.g. transform, masks)
+    def undo_config(self, context: Optional[str] = None) -> dict:  # todo: implement undo/redo context (e.g. transform, masks)
+        """Undo this analyzer's last configuration change
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.undo_config`
+
+        Parameters
+        ----------
+        context: str
+            The context in which to undo. If ``context`` is ``None``, the
+            previous configuration will be applied. If ``context`` is e.g.
+            ``"transform"``, the latest configuration with a
+            :attr:`~shapeflow.config.VideoAnalyzerConfig.transform`
+            different from the current one will be applied.
+
+        Returns
+        -------
+        dict
+            A configuration ``dict``
+        """
         with self.lock():
             undo, id = self.model.get_undo_config(context)
         if undo is not None and id is not None:
@@ -1171,9 +1449,27 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             self.state_transition()
         return self.set_config(undo, silent=(context is None))
 
-    # @backend.expose(backend.redo_config)
     @api.va.__id__.redo_config.expose()
-    def redo_config(self, context: str = None) -> dict:
+    def redo_config(self, context: Optional[str] = None) -> dict:
+        """Redo this analyzer's last undone configuration change
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.redo_config`
+
+        Parameters
+        ----------
+        context: str
+            The context in which to redo. If ``context`` is ``None``, the
+            previous configuration will be applied. If ``context`` is e.g.
+            ``"transform"``, the latest configuration with a
+            :attr:`~shapeflow.config.VideoAnalyzerConfig.transform`
+            different from the current one will be applied.
+
+        Returns
+        -------
+        dict
+            A configuration ``dict``
+        """
+
         with self.lock():
             redo, id = self.model.get_redo_config(context)
         if redo is not None and id is not None:
@@ -1181,9 +1477,19 @@ class VideoAnalyzer(BaseVideoAnalyzer):
             self.state_transition()
         return self.set_config(redo, silent=(context is None))
 
-    # @backend.expose(backend.set_filter_click)
     @api.va.__id__.set_filter_click.expose()
     def set_filter_click(self, relative_x: float, relative_y: float) -> None:
+        """Configure a filter by clicking an "in"-pixel on the image
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.set_filter_click`
+
+        Parameters
+        ----------
+        relative_x: float
+            The 'x'-position of an "in"-pixel in relative video-space
+        relative_y: float
+            The 'y'-position of an "in"-pixel in relative video-space
+        """
         log.debug(f'set_filter_click @ ({relative_x}, {relative_y})')
 
         click = ShapeCoo(
@@ -1229,9 +1535,12 @@ class VideoAnalyzer(BaseVideoAnalyzer):
                 f"Select a point where masks don't overlap."
             )
 
-    # @backend.expose(backend.clear_filters)
     @api.va.__id__.clear_filters.expose()
     def clear_filters(self) -> bool:
+        """Clear this analyzer's filter configuration
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.clear_filters`
+        """
         log.debug(f"clearing filters")
 
         for mask in self.masks:
@@ -1246,10 +1555,30 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
         return True
 
-    # @backend.expose(backend.get_state_frame)
     @stream
     @api.va.__id__.get_state_frame.expose()
     def get_state_frame(self, frame_number: Optional[int] = None, featureset: Optional[int] = None) -> np.ndarray:
+        """Get a state frame. Used to evaluate filter configuration.
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_state_frame`
+
+        Can be streamed tothe user interface.
+
+        Parameters
+        ----------
+        frame_number: Optional[int]
+            The frame number to get. If ``None``, get the current frame number.
+        featureset: Optional[int]
+            The index of the :class:`~shapeflow.core.backend.FeatureSet`
+            for which to get the state frame. If ``None``, use 0.
+            Feature sets are taken from this analyzer's
+            :attr:`~shapeflow.config.VideoAnalyzerConfig.features`.
+
+        Returns
+        -------
+        np.ndarray
+            An image (design-space)
+        """
         # todo: eliminate duplicate code ~ calculate (calculate should just call get_state_frame, ideally)
 
         if featureset is None:
@@ -1278,19 +1607,37 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         state[np.equal(state, 0)] = 255
         return cv2.cvtColor(state, cv2.COLOR_BGR2HSV)
 
-    # @backend.expose(backend.get_overlay_png)
     @api.va.__id__.get_overlay_png.expose()
     def get_overlay_png(self) -> bytes:
+        """Get this analyzer's design overlay
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_overlay_png`
+
+        Returns
+        -------
+        bytes
+            The design overlay encoded as PNG
+        """
         _, buffer = cv2.imencode('.png', self.design._overlay.copy())
         return buffer.tobytes()
 
-    # @backend.expose(backend.get_mask_rects)
     def get_mask_rects(self) -> Dict[str, np.ndarray]:
         # todo: placeholder -- mask rect info to frontend (in relative coordinates)
         return {mask.name: mask.rect for mask in self.masks}
 
-    def calculate(self, frame_number: int):
-        """Return a state image for each FeatureSet
+    def calculate(self, frame_number: int) -> None:
+        """Calculate this analyzer's
+        :attr:`~shapeflow.config.VideoAnalyzerConfig.features` for a frame.
+
+        Parameters
+        ----------
+        frame_number: int
+            The frame to calculate for
+
+        Returns
+        -------
+        None
+            Results are stored in :attr:`~shapeflow.video.VideoAnalyzer.results`
         """
         log.debug(f"calculating features for frame {frame_number}")
 
@@ -1312,6 +1659,15 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
     @api.va.__id__.analyze.expose()
     def analyze(self) -> bool:
+        """Run the configured analysis
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.analyze`
+
+        Returns
+        -------
+        bool
+            Whether the analysis was successful
+        """
         if not self.can_analyze():
             return False
 
@@ -1353,16 +1709,8 @@ class VideoAnalyzer(BaseVideoAnalyzer):
 
         return True
 
-    # @backend.expose(backend.get_results)  # todo: deprecated ~ History endpoints
-    def get_result(self) -> dict:
-        return {
-            # Convert NaN to None -> JSON serializable
-            str(feature):result.where(pd.notnull(result),None).to_dict(orient='split')
-            for feature,result in self.results.items()
-        }
-
-    def load_config(self):
-        """Load video analysis configuration from history database
+    def load_config(self) -> None:
+        """Load a configuration from the database
         """
         if self._model is not None:
             log.debug('loading config from database...')
@@ -1390,38 +1738,87 @@ class VideoAnalyzer(BaseVideoAnalyzer):
         return self.config.design_path
 
     @api.va.__id__.get_time.expose()
-    def get_time(self, frame_number: int = None) -> float:
+    def get_time(self, frame_number: Optional[int] = None) -> float:
+        """Get the time corresponding to a video frame number
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_time`
+
+        Parameters
+        ----------
+        frame_number: Optional[int]
+            A frame number. If ``None``, use the current frame number.
+
+        Returns
+        -------
+        float
+            A time in seconds
+        """
         return self.video.get_time(frame_number)
 
     @api.va.__id__.get_fps.expose()
     def get_fps(self) -> float:
+        """Get the framerate of the video
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_fps`
+        """
         return self.video.get_fps()
 
     @api.va.__id__.get_total_time.expose()
     def get_total_time(self) -> float:
+        """Get the total time of the video in seconds
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_total_time`
+        """
         return self.video.get_total_time()
 
     @stream
     @api.va.__id__.get_raw_frame.expose()
     def read_frame(self, frame_number: Optional[int] = None) -> np.ndarray:
+        """Get a raw video frame.
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_raw_frame`
+
+        Can be streamed tothe user interface.
+
+        Parameters
+        ----------
+        frame_number: Optional[int]
+            The frame number to get. If ``None``, get the current frame number.
+
+        Returns
+        -------
+        np.ndarray
+            An image (video-space)
+        """
         return self.video.read_frame(frame_number)
 
-    # @backend.expose(backend.get_seek_position)
     @api.va.__id__.get_seek_position.expose()
     def get_seek_position(self) -> float:
+        """Get the current relative seek position in the video
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_seek_posititon`
+        """
         return self.video.get_seek_position()
 
     @api.va.__id__.get_relative_roi.expose()
     def get_relative_roi(self) -> dict:
+        """Get the current region of interest in relative video-space
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_relative_roi`
+        """
         return self.transform.get_relative_roi()
 
-    @api.va.__id__.get_coordinates.expose()
+    @api.va.__id__.get_coordinates.expose()  # todo: difference with get_relative_roi?
     def get_coordinates(self) -> Optional[list]:
+        """Get the current coordinates
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_coordinates`
+        """
         return self.transform.get_coordinates()
 
 
-def init(config: BaseAnalyzerConfig) -> BaseVideoAnalyzer:
-    mapping: Dict[Type[BaseAnalyzerConfig], Type[BaseVideoAnalyzer]] = {
+def init(config: BaseAnalyzerConfig) -> BaseAnalyzer:
+    mapping: Dict[Type[BaseAnalyzerConfig], Type[BaseAnalyzer]] = {
         VideoAnalyzerConfig: VideoAnalyzer
     }
 

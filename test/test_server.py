@@ -61,10 +61,10 @@ def override_settings():
         with settings.cache.override({"dir": CACHE}), \
                 settings.db.override({"path": DB}), \
                 settings.app.override({"state_path": STATE}):
-            save_settings(settings)
+            save_settings()
             yield
     finally:
-        save_settings(settings)
+        save_settings()
 
         if os.path.exists(CACHE):
             shutil.rmtree(CACHE)

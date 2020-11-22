@@ -1,10 +1,11 @@
 # shapeflow
 
 [![travis-ci](https://travis-ci.org/ybnd/shapeflow.svg?branch=master)](https://travis-ci.org/ybnd/shapeflow)
+[![readthedocs](https://readthedocs.org/projects/shapeflow/badge/?version=latest)](https://shapeflow.readthedocs.io/en/latest/?badge=latest)
 [![codecov](https://codecov.io/gh/ybnd/shapeflow/branch/master/graph/badge.svg)](https://codecov.io/gh/ybnd/shapeflow)
 [![DOI](https://zenodo.org/badge/296610947.svg)](https://zenodo.org/badge/latestdoi/296610947)
 
-|| [Installation](#Installation-and-usage) | [Tutorial](docs/tutorial.md) | [Troubleshooting](docs/troubleshooting.md) | [Related literature](#Related-literature) ||
+|| [**Installation & usage**](https://shapeflow.readthedocs.io/en/latest/index.html#installation-usage) | [**Tutorial**](https://shapeflow.readthedocs.io/en/latest/tutorial.html) | [**Troubleshooting**](https://shapeflow.readthedocs.io/en/latest/troubleshooting.html) | [**Developing**](https://shapeflow.readthedocs.io/en/latest/developing.html) | [**Related literature**](#Related-literature) ||
 
 A tool for extracting time-series data from video footage of microfluidic devices with complex channel geometry.
 
@@ -15,25 +16,6 @@ By providing quantitative insight into the flow dynamics of self-powered microfl
 This software is developed in collaboration with the [KULeuven Biosensors lab](https://twitter.com/KULBiosensors).
 
 <div align="center"><img src="https://i.postimg.cc/W3qF15rK/demo-final-30fps-600x400.gif" width="600px"/></div>
-
-### Installation and usage
-
-1. Install [Python 3.8](https://www.python.org/downloads/release/python-386/) and [git](https://git-scm.com/downloads), if you haven’t yet. On Windows, **make sure you select the option ‘Add Python to PATH’!**
-2. Make a new folder in a convenient location
-3. [Download a deployment script](https://github.com/ybnd/shapeflow/releases/download/0.4.1/deploy_shapeflow-0.4.1.py) and save it to that folder
-4. Run the deployment script.
-5. Once the installation is done, you can start the application by running `sf.py`. A new browser window or tab should open with the user interface.
-
-* A tutorial: [docs/tutorial.md](docs/tutorial.md)
-
-* To resolve common issues: [docs/troubleshooting.md](docs/troubleshooting.md)
-
-### Development
-
-* Changelog: [shapeflow/changelog.md](docs/changelog.md)
-* About the Python library: [shapeflow/README.md](shapeflow/README.md)
-* About the user interface: [ui/README.md](ui/README.md)
-* Generating deployment scripts [shapeflow/setup/README.md](shapeflow/setup/README.md)
 
 ### Related literature
 

@@ -1,12 +1,9 @@
 import json
-import pickle
 import os
 import time
-import requests
-import datetime
 import subprocess
-from threading import Thread, Event, Lock
-from typing import Dict, Any, List, Optional
+from threading import Thread, Event
+from typing import Optional
 
 from flask import Flask, send_from_directory, jsonify, request, Response, make_response, abort
 import waitress
@@ -15,7 +12,7 @@ import webbrowser
 import shapeflow
 import shapeflow.config
 import shapeflow.util as util
-from shapeflow.core import SetupError, DispatcherError
+from shapeflow.core import DispatchingError
 import shapeflow.core.streaming as streaming
 from shapeflow.api import ApiDispatcher
 
@@ -26,40 +23,25 @@ UI = os.path.join(
 )
 
 
-def respond(*args) -> str:
-    return jsonify(*args)
-
-
-def open_in_browser(host, port):
-    # time.sleep(0.1)  # Wait a bit for the server to initialize
-    log.info('opening a browser window')
-    webbrowser.open(f"http://{host}:{port}/")
-
-
-def restart_server(host: str, port: int):
-    log.info('restarting server...')
-
-    subprocess.Popen(
-        [
-            'python', 'sf.py', 'serve',
-            '--host', host, '--port', str(port), '--background'
-        ],
-        cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    )
-
-
 class ServerThread(Thread, metaclass=util.Singleton):
+    """A thread running a ``Flask`` app over a ``waitress`` server.
+    """
     _app: Flask
     _host: str
     _port: int
 
-    def __init__(self, app, host, port):
+    def __init__(self, app: Flask, host: str, port: int):
         self._app = app
         self._host = host
         self._port = port
         super().__init__(daemon=True)
 
     def run(self):
+        """Serve until interrupted or stopped.
+
+        If the current address is already in use, the server errors out & stops
+        the current process with :func:`shapeflow.server.ServerThread.stop`.
+        """
         try:
             waitress.serve(
                 self._app,
@@ -68,20 +50,26 @@ class ServerThread(Thread, metaclass=util.Singleton):
                 threads=shapeflow.settings.app.threads,
             )
         except OSError:
-            log.warning('address already in use')
+            log.warning("address already in use")
             self.stop()
 
     def stop(self):
+        """Stop the thread & process with ``exit(0)``
+        """
         os._exit(0)
 
 
-class ShapeflowServer(shapeflow.core.Lockable):
-    __metaclass__ = util.Singleton
+class ShapeflowServer(object):
+    """Wrapper for a ``Flask`` server
+    """
+
+    _host: str
+    _port: int
+
     _app: Flask
     _api: Optional[ApiDispatcher]
     _server: ServerThread
 
-    _lock = Lock()
     _ping = Event()
     _unload = Event()
     _quit = Event()
@@ -91,113 +79,40 @@ class ShapeflowServer(shapeflow.core.Lockable):
     _timeout_unload = 5  # todo: load from settings.yaml
     _timeout_loop = 0.1  # todo: load from settings.yaml
 
-    _raise_call_exceptions = False
-
-    _stop_log: Event
-
     _eventstreamer = streaming.EventStreamer()
-
-    _q_state: int
-    _q_thread: Thread
-    _pause_q: Event
-    _stop_q: Event
-
-    _host: str
-    _port: int
-
 
     def __init__(self):
         self._api = None
-        super().__init__()
-        app = Flask(__name__)
 
+        app = Flask(__name__)
         app.config.from_object(__name__)
         app.config['JSON_SORT_KEYS'] = False
 
         @app.route('/', defaults={'file': 'index.html'}, methods=['GET'])
         @app.route('/<path:file>', methods=['GET'])
-        def get_file(file: str):
-            """Serve frontend files
-
-            Parameters
-            ----------
-            file: str
-                The file to send
-            """
-            self.active()
-
-            path = os.path.join(UI, *file.split("/"))
-            if not os.path.isfile(path):
-                raise FileNotFoundError
-            log.debug(f"serving '{file}'")
-            return send_from_directory(
-                os.path.dirname(path),
-                os.path.basename(path)
-            )
+        def _get_file(file: str):
+            return self.get_file(file)
 
         @app.route('/api/<path:address>', methods=['GET', 'POST', 'PUT'])
-        def call_api(address: str):
-            """Dispatch request to the API
-
-            Parameters
-            ----------
-            address: str
-                The address of the endpoint to dispatch to
-            """
-            self.active()
-
-            if self.api is None:
-                self.load_api()
-
-            kwargs = {}
-            if request.data:
-                try:
-                    kwargs.update(json.loads(request.data))
-                except json.JSONDecodeError as e:
-                    log.error(f"could not decode '{str(request.data)}'")
-                    raise e
-            if request.args.to_dict():
-                try:
-                    kwargs.update({
-                        k: v
-                        for k, v in request.args.to_dict().items()
-                        if v != ''
-                    })
-                except json.JSONDecodeError as e:
-                    log.error(f"could not decode '{request.args.to_dict()}'")
-                    raise e
-
-
-
-            try:
-                assert self.api is not None
-                result = self.api.dispatch(address, **kwargs)
-
-                if result is None:
-                    result = True
-
-                if isinstance(result, bytes):
-                    return make_response(result)
-                elif isinstance(result, streaming.BaseStreamer):
-                    response = Response(
-                        result.stream(),
-                        mimetype=result.mime_type()
-                    )
-                    for k, v in result.headers.items():
-                        response.headers[k] = v
-                    return response
-                else:
-                    return respond(result)
-            except DispatcherError:
-                abort(404)
-            except Exception as e:
-                log.error(f"'{address}' - {e.__class__.__name__}: {str(e)}")
-                raise e
+        def _call_api(address: str):
+            return self.call_api(address)
 
         self._app = app
 
-    def serve(self, host, port, open):
-        """Serve the application
+    def serve(self, host: str, port: int, open: bool) -> None:
+        """Serve the application.
+
+        Starts a new :class:`~shapeflow.server.ServerThread` and opens a new
+        browser window/tab if requested.
+
+        This method keeps serving until either
+
+        * :func:`~shapeflow.main._Main.quit` is called
+
+        * :func:`~shapeflow.main._Main.unload` is called and no incoming traffic
+          is received for 5 seconds.
+
+        * The user interrupts the process with ``Ctrl+C``
 
         Parameters
         ----------
@@ -205,14 +120,13 @@ class ShapeflowServer(shapeflow.core.Lockable):
             Host address
         port: int
             Host port
+        open: bool
+            Whether to open in a browser window/tab after starting the server
         """
         self._host = host
         self._port = port
 
         log.info(f"serving on http://{host}:{port}")
-
-        if open:
-            open_in_browser(host, port)
 
         # Don't show waitress console output (server URL)
         with util.suppress_stdout():
@@ -220,6 +134,11 @@ class ShapeflowServer(shapeflow.core.Lockable):
             self._server.start()
 
             time.sleep(self._timeout_suppress)  # Wait for Waitress to catch up
+
+        if open:
+            time.sleep(0.1)  # Wait a bit for the server to initialize
+            log.info("opening a browser window...")
+            webbrowser.open(f"http://{host}:{port}/")
 
         try:
             while not self._quit.is_set():
@@ -236,31 +155,133 @@ class ShapeflowServer(shapeflow.core.Lockable):
             log.info('interrupted by user')
         self._done.set()
 
-        if self.api is None:
-            self.load_api()
         self.api.dispatch('va/save_state')
         streaming.streams.stop()
 
         log.info('stopped serving.')
 
+    def get_file(self, file: str):
+        """Serve frontend files
+
+        Parameters
+        ----------
+        file: str
+            The file to send
+        """
+        self.active()
+
+        path = os.path.join(UI, *file.split("/"))
+        if not os.path.isfile(path):
+            raise FileNotFoundError
+        log.debug(f"serving '{file}'")
+        return send_from_directory(
+            os.path.dirname(path),
+            os.path.basename(path)
+        )
+
+    def call_api(self, address: str):
+        """Dispatch request to the API.
+
+        Arguments are gathered from ``Flask``'s ``request.data`` or
+        ``request.args``
+
+        Handles multiple types of return data:
+
+        * ``bytes`` data are handled by ``flask.make_response``
+
+        * for :class:`shapeflow.core.streaming.BaseStreamer` instances,
+          custom ``flask.Response`` objects are made from their
+          :func:`shapeflow.core.streaming.BaseStreamer.stream` generator
+
+        * all other data are handled by ``flask.jsonify``
+
+        Parameters
+        ----------
+        address: str
+            The address of the endpoint to dispatch to
+        """
+        self.active()
+
+        kwargs = {}
+        if request.data:
+            try:
+                kwargs.update(json.loads(request.data))
+            except json.JSONDecodeError as e:
+                log.error(f"could not decode '{str(request.data)}'")
+                raise e
+        if request.args.to_dict():
+            try:
+                kwargs.update({
+                    k: v
+                    for k, v in request.args.to_dict().items()
+                    if v != ''
+                })
+            except json.JSONDecodeError as e:
+                log.error(f"could not decode '{request.args.to_dict()}'")
+                raise e
+
+        try:
+            result = self.api.dispatch(address, **kwargs)
+
+            if result is None:
+                result = True
+
+            if isinstance(result, bytes):
+                return make_response(result)
+            elif isinstance(result, streaming.BaseStreamer):
+                response = Response(
+                    result.stream(),
+                    mimetype=result.mime_type()
+                )
+                for k, v in result.headers.items():
+                    response.headers[k] = v
+                return response
+            else:
+                return jsonify(result)
+        except DispatchingError:
+            abort(404)
+        except Exception as e:
+            log.error(f"'{address}' - {e.__class__.__name__}: {str(e)}")
+            raise e
+
     def restart(self):
+        """Restart the server.
+        """
         self._quit.set()
 
         while not self._done.is_set():
             pass
 
-        restart_server(self._host, self._port)
+        log.info("restarting server...")
+        subprocess.Popen(
+            [
+                'python', 'sf.py', 'serve',
+                '--host', self._host, '--port', str(self._port), '--background'
+            ],
+            cwd=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        )
 
-    def active(self):
+    def active(self) -> None:
+        """If the ``_unload`` has been set, cancel it. Should be called for
+        incoming traffic.
+        """
         if self._unload.is_set():
             log.info('incoming traffic - cancelling quit.')
             self._unload.clear()
             self._ping.set()
 
-    def load_api(self):
-        from shapeflow.main import load
-        self._api = load(self)
-
     @property
-    def api(self):
+    def api(self) -> ApiDispatcher:
+        """Get a reference to :data:`shapeflow.api.api` and ensure it has
+        been initialized properly with :mod:`shapeflow.main` and bound to this
+        :class:`~shapeflow.server.ShapeflowServer` instance
+
+        Returns
+        -------
+        ApiDispatcher
+            A reference to :data:`~shapeflow.api.api`
+        """
+        if self._api is None:
+            from shapeflow.main import load
+            self._api = load(self)
         return self._api
