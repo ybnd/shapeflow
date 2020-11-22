@@ -5,7 +5,7 @@
 [![codecov](https://codecov.io/gh/ybnd/shapeflow/branch/master/graph/badge.svg)](https://codecov.io/gh/ybnd/shapeflow)
 [![DOI](https://zenodo.org/badge/296610947.svg)](https://zenodo.org/badge/latestdoi/296610947)
 
-|| [Installation & usage](https://shapeflow.readthedocs.io/en/latest/index.html#installation-usage) | [Tutorial](https://shapeflow.readthedocs.io/en/latest/tutorial.html) | [Troubleshooting](https://shapeflow.readthedocs.io/en/latest/troubleshooting.html) | [Developing](https://shapeflow.readthedocs.io/en/latest/developing.html) | [Related literature](#Related-literature) ||
+|| [**Installation & usage**](https://shapeflow.readthedocs.io/en/latest/index.html#installation-usage) | [**Tutorial**](https://shapeflow.readthedocs.io/en/latest/tutorial.html) | [**Troubleshooting**](https://shapeflow.readthedocs.io/en/latest/troubleshooting.html) | [**Developing**](https://shapeflow.readthedocs.io/en/latest/developing.html) | [**Related literature**](#Related-literature) ||
 
 A tool for extracting time-series data from video footage of microfluidic devices with complex channel geometry.
 
