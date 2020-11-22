@@ -259,6 +259,8 @@ class _VideoAnalyzerManagerDispatcher(Dispatcher):
     
     :class:`~shapeflow.core.Endpoint` instances exposed against this object 
     will be propagated to all analyzers and bound to their respective instances.
+    
+    :meta public:
     """
 
 
