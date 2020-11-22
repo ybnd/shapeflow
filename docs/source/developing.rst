@@ -123,7 +123,7 @@ Deployment scripts are generated with `gitploy`_.
 
 #. Create or update your .ploy file in ``shapeflow``\ ‘s root directory:
 
-   #. Start from `ploy`_
+   #. Start from `shapeflow/setup/ploy <ploy>`_
 
    #. Add the tag of your release
 
