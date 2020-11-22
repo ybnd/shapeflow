@@ -648,9 +648,9 @@ class History(SessionWrapper, RootInstance):
         """Fetch the latest video and design file paths from the
         database.
 
-        Number of paths is limited by ``settings.app.recent_files``
-
         :attr:`shapeflow.api._DatabaseDispatcher.get_recent_paths`
+
+        Number of paths is limited by ``settings.app.recent_files``
         """
         with self.session() as s:
             return {
@@ -813,6 +813,8 @@ class History(SessionWrapper, RootInstance):
     def clean(self) -> None:
         """Clean the database.
 
+        :attr:`shapeflow.api._DatabaseDispatcher.clean`
+
         * remove 'video_file & 'design_file' entries with <null> path
 
            * resolve entries with ``<null>`` hash
@@ -827,7 +829,7 @@ class History(SessionWrapper, RootInstance):
 
            * remove all non-primary 'results' entries
 
-        :attr:`shapeflow.api._DatabaseDispatcher.clean`
+
         """
         log.debug(f"cleaning history")
         threshold = datetime.datetime.now() - datetime.timedelta(

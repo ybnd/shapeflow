@@ -111,7 +111,7 @@ class _VideoAnalyzerDispatcher(Dispatcher):
     """Return the transformed frame at the provided frame number 
     (or the current frame number if ``None``)
     
-    :func:`shapeflow.video.VideoAnalyzer.get_frame`
+    :func:`shapeflow.video.VideoAnalyzer.get_transformed_frame`
     """
     set_filter_click = Endpoint(Callable[[float, float], None])
     """Configure a filter based on a click position 
@@ -138,6 +138,8 @@ class _VideoAnalyzerDispatcher(Dispatcher):
     """
     get_colors = Endpoint(Callable[[], Tuple[str, ...]])
     """Return the color list
+    
+    :func:`shapeflow.video.VideoAnalyzer.get_colors`
     """
     get_db_id = Endpoint(Callable[[], int])
     """Return the database ID associated with this analyzer
@@ -185,7 +187,7 @@ class _VideoAnalyzerDispatcher(Dispatcher):
     """Return the raw frame at the provided frame number 
     (or the current frame number if ``None``)
     
-    :func:`shapeflow.video.VideoAnalyzer.get_raw_frame`
+    :func:`shapeflow.video.VideoAnalyzer.read_frame`
     """
     get_seek_position = Endpoint(Callable[[], float])
     """Return the current seek position (relative, 0-1)
@@ -212,17 +214,17 @@ class _VideoAnalyzerManagerDispatcher(Dispatcher):
     start = Endpoint(Callable[[List[str]], bool])  # todo: these should respond with state?
     """Start analyzing the queue provided as a list of ID strings
     
-    :func:`shapeflow.main._VideoAnalyzerManager.start`
+    :func:`shapeflow.main._VideoAnalyzerManager.q_start`
     """
     stop = Endpoint(Callable[[], None])
     """Stop the queue
     
-    :func:`shapeflow.main._VideoAnalyzerManager.stop`
+    :func:`shapeflow.main._VideoAnalyzerManager.q_stop`
     """
     cancel = Endpoint(Callable[[], None])
     """Cancel the queue
     
-    :func:`shapeflow.main._VideoAnalyzerManager.cancel`
+    :func:`shapeflow.main._VideoAnalyzerManager.q_cancel`
     """
 
     state = Endpoint(Callable[[], dict])
@@ -238,7 +240,7 @@ class _VideoAnalyzerManagerDispatcher(Dispatcher):
     load_state = Endpoint(Callable[[], None])
     """Load the application state from disk
     
-    :func:`shapeflow.main._VideoAnalyzerManager.save_state`
+    :func:`shapeflow.main._VideoAnalyzerManager.load_state`
     """
 
     stream = Endpoint(Callable[[str, str], BaseStreamer])

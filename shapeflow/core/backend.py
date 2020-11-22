@@ -604,6 +604,8 @@ class BaseAnalyzer(Instance, RootInstance):
     @api.va.__id__.commit.expose()
     def commit(self) -> bool:
         """Save video analysis configuration to history database
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.commit`
         """
         if self._model is not None:
             log.debug(f"committing '{self.id}'")
@@ -647,6 +649,8 @@ class BaseAnalyzer(Instance, RootInstance):
     def state_transition(self, push: bool = True) -> int:
         """Handle state transitions.
 
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.state_transition`
+
         Parameters
         ----------
         push : bool
@@ -656,9 +660,6 @@ class BaseAnalyzer(Instance, RootInstance):
         -------
         int
             The resulting state // todo: type as ``AnalyzerState``!
-        """
-        """| Handle state transitions
-           | :attr:`shapeflow.api._VideoAnalyzerDispatcher.state_transition`
         """
 
         if self.state == AnalyzerState.INCOMPLETE and self.can_launch():
@@ -717,6 +718,10 @@ class BaseAnalyzer(Instance, RootInstance):
 
     @api.va.__id__.cancel.expose()
     def cancel(self) -> None:
+        """Cancel a running analysis.
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.cancel`
+        """
         super().cancel()
         self.set_state(AnalyzerState.CANCELED)
 
@@ -767,6 +772,8 @@ class BaseAnalyzer(Instance, RootInstance):
     @api.va.__id__.status.expose()
     def status(self) -> dict:
         """Get the analyzer's status.
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.status`
         """
         status = {
             'state': self.state,
@@ -784,6 +791,8 @@ class BaseAnalyzer(Instance, RootInstance):
     @api.va.__id__.get_config.expose()
     def get_config(self, do_tag=False) -> dict:
         """Get the analyzer's configuration.
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_config`
         """
         self._gather_config()
         config = self.config.to_dict(do_tag)
@@ -800,6 +809,8 @@ class BaseAnalyzer(Instance, RootInstance):
     @api.va.__id__.launch.expose()
     def launch(self) -> bool:
         """Launch the analyzer.
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.launch`
 
         If the analyzer's configuration is sufficiently filled out,
         the analyzer will instantiate any other objects it needs to start
@@ -844,6 +855,8 @@ class BaseAnalyzer(Instance, RootInstance):
     @api.va.__id__.get_db_id.expose()
     def get_db_id(self) -> int:
         """Get the database id of this analyzer.
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.get_db_id`
         """
         return self.model.get_id()
 

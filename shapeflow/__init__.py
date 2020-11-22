@@ -44,7 +44,7 @@ else:
 ROOTDIR = Path(_user_dir, *_subdirs)
 """Root directory of the application.
 
-Linux: ``/home/<user>/.local/.share/shapeflow``
+Linux: ``/home/<user>/.local/share/shapeflow``
 
 Windows: ``C:\\Users\\<user>\\AppData\\Roaming\\shapeflow``
 """

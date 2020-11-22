@@ -985,6 +985,13 @@ class VideoAnalyzer(BaseAnalyzer):
 
     @api.va.__id__.can_analyze.expose()
     def can_analyze(self) -> bool:
+        """:attr:`shapeflow.api._VideoAnalyzerDispatcher.can_analyze`
+
+        Returns
+        -------
+        bool
+            Whether this analyzer can analyze
+        """
         return self.launched and all([mask.ready or mask.skip for mask in self.masks])
 
     def _launch(self):
