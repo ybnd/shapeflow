@@ -303,6 +303,7 @@ def complementary(color: Color) -> Color:
 
 def css_hex(color: Color) -> str:
     """Get the color as a CSS-compatible hex RGB string::
+
        >>> css_hex(RgbColor(r=170,g=187,b=204))
            "#aabbcc"
 

@@ -658,7 +658,11 @@ class _VideoAnalyzerManager(object):
     @api.va.state.expose()
     def state(self) -> dict:
         """Get the queue state and the status of all analyzers.
+
+        :attr:`shapeflow.api._VideoAnalyzerManagerDispatcher.state`
+
         Example::
+
            {
                "q_state": 0,                   # QueueState
                "ids": ["abc123", "def456"],
@@ -685,8 +689,6 @@ class _VideoAnalyzerManager(object):
         With the state ``int`` values according to the ``Enum`` classes
         :class:`~shapeflow.core.backend.QueueState` and
         :class:`~shapeflow.core.backend.AnalyzerState`.
-
-        :attr:`shapeflow.api._VideoAnalyzerManagerDispatcher.state`
 
         Returns
         -------

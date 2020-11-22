@@ -579,6 +579,7 @@ class Mask(Instance):
         """This mask's row slice
 
         To crop an image to this mask::
+
            crop = img[mask.rows, mask.cols]
         """
         return slice(self._rect[0], self._rect[1])
@@ -588,6 +589,7 @@ class Mask(Instance):
         """This mask's column slice
 
         To crop an image to this mask::
+
            crop = img[mask.rows, mask.cols]
         """
         return slice(self._rect[2], self._rect[3])

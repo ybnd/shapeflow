@@ -1,6 +1,7 @@
 """Tiny commands to be called from sf.py
 
 Calling from the commandline::
+
    python sf.py --do <command name> <arguments>
 """
 
