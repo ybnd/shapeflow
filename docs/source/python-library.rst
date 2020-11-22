@@ -198,9 +198,10 @@ api
 
 .. automodule:: shapeflow.api
    :members:
-   :private-members: __id__, _VideoAnalyzerDispatcher, _VideoAnalyzerManagerDispatcher, _DatabaseDispatcher, _FilesystemDispatcher, _CacheDispatcher
-   :special-members: __id__
+   :private-members:
    :show-inheritance:
+
+.. autoattribute:: shapeflow.api._VideoAnalyzerManagerDispatcher.__id__
 
 
 config
