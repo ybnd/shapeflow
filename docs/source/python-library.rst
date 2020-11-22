@@ -129,6 +129,8 @@ images
 plugins
 =======
 
+.. _transforms:
+
 Transforms
 ----------
 
@@ -139,6 +141,8 @@ PerspectiveTransform
    :members:
    :private-members: _Config, _Transform
    :show-inheritance:
+
+.. _filters:
 
 Filters
 -------
@@ -158,6 +162,8 @@ BackgroundFilter
    :members:
    :private-members: _Config, _Filter
    :show-inheritance:
+
+.. _features:
 
 Features
 --------
