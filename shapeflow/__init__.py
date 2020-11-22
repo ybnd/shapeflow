@@ -172,13 +172,13 @@ class FormatSettings(_Settings):
     """Formatting settings
     """
     datetime_format: str = Field(default='%Y/%m/%d %H:%M:%S.%f', title="date/time format")
-    """Base ``datetime`` `format string <dtfs_>`. 
+    """Base ``datetime`` `format string <dtfs_>`_. 
     Defaults to ``'%Y/%m/%d %H:%M:%S.%f'``.
 
     .. _dtfs: https://docs.python.org/3/library/datetime.html#strftime-strptime-behavior
     """
     datetime_format_fs: str = Field(default='%Y-%m-%d_%H-%M-%S', title="file system date/time format")
-    """Filesystem-safe ``datetime`` `format string <dtfs_>`. 
+    """Filesystem-safe ``datetime`` `format string <dtfs_>`_. 
     Used to append date & time to file names.
     Defaults to ``'%Y-%m-%d_%H-%M-%S'``.
 
@@ -369,11 +369,11 @@ class ApplicationSettings(_Settings):
     """
     video_pattern: str = Field(default="*.mp4 *.avi *.mov *.mpv *.mkv", title="video file pattern")
     """Recognized video file extensions. 
-    Defaults to `"*.mp4 *.avi *.mov *.mpv *.mkv"`.
+    Defaults to ``"*.mp4 *.avi *.mov *.mpv *.mkv"``.
     """
     design_pattern: str = Field(default="*.svg", title="design file pattern")
     """Recognized design file extensions. 
-    Defaults to `"*.svg"`.
+    Defaults to ``"*.svg"``.
     """
     save_result_auto: ResultSaveMode = Field(default=ResultSaveMode.next_to_video, title="result save mode (auto)")
     """Where or whether to save results after each run of an analysis

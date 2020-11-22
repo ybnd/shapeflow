@@ -22,7 +22,7 @@ Base = declarative_base()
 
 
 class SessionWrapper(object):
-    """Wrapper object for a SQLAlchemy session factory.
+    """Wrapper object for a ``SQLAlchemy`` session factory.
     """
 
     _session_factory: scoped_session
@@ -35,9 +35,9 @@ class SessionWrapper(object):
     @contextmanager
     def session(self):
         """
-        SQLAlchemy session context manager.
+        ``SQLAlchemy`` session context manager.
 
-        Opens a SQLAlchemy session and commits after the block is done.
+        Opens a ``SQLAlchemy`` session and commits after the block is done.
         Changes are rolled back if an exception is raised. Usage::
 
             with self.session() as s:
@@ -75,9 +75,9 @@ class DbModel(Base, SessionWrapper, Lockable):
 
     @contextmanager
     def session(self, add: bool = True):
-        """SQLAlchemy session context manager.
+        """``SQLAlchemy`` session context manager.
 
-        Opens a SQLAlchemy session and commits after the block is done.
+        Opens a ``SQLAlchemy`` session and commits after the block is done.
         Changes are rolled back if an exception is raised. Usage::
 
             with self.session() as s:
@@ -196,7 +196,7 @@ class FileModel(DbModel):
                     time.sleep(0.01)
 
     def resolve(self) -> 'FileModel':
-        """Resolve the file by its SHA1 hash.  todo: reference to util.hash_file
+        """Resolve the file by its SHA1 hash ~ :func:`~shapeflow.util.hash_file`.
 
         If the computed hash is new, the file is committed to the database.
         Otherwise, the original entry is re-used.

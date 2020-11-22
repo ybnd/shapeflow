@@ -71,6 +71,7 @@ class ShapeCoo(Coo):
     @property
     def cv2(self):  # todo: the whole flip thing is confusing.
         """Get the absolute coordinates for ``OpenCV``.
+
         .. note::
            The order is flipped with respect to
            :func:`~shapeflow.maths.coordinates.ShapeCoo.abs`

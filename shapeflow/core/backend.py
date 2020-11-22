@@ -659,9 +659,9 @@ class BaseAnalyzer(Instance, RootInstance):
         Returns
         -------
         int
-            The resulting state // todo: type as ``AnalyzerState``!
+            The resulting state ~ :class:`~shapeflow.backend.AnalyzerState`
         """
-
+        # todo: actually type as AnalyzerState
         if self.state == AnalyzerState.INCOMPLETE and self.can_launch():
             self.set_state(AnalyzerState.CAN_LAUNCH, push)
         elif self.state == AnalyzerState.LAUNCHED or self.state == AnalyzerState.CAN_FILTER:

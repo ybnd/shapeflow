@@ -202,7 +202,7 @@ class TransformInterface(Configurable, abc.ABC):
         Parameters
         ----------
         transform : np.ndarray
-            The transformation matrix // todo: naming convention fail
+            The transformation matrix
         img : np.ndarray
             The frame to transform
         shape : tuple
@@ -213,6 +213,7 @@ class TransformInterface(Configurable, abc.ABC):
         np.ndarray
             The transformed frame
         """
+        # todo: naming convention fail transform method vs. transform matrix
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -222,7 +223,7 @@ class TransformInterface(Configurable, abc.ABC):
         Parameters
         ----------
         transform : np.ndarray
-            The transformation matrix // todo: naming convention fail
+            The transformation matrix
         coordinate : ShapeCoo
             The coordinate to transform
         shape : tuple
@@ -233,6 +234,7 @@ class TransformInterface(Configurable, abc.ABC):
         ShapeCoo
             The transformed coordinate
         """
+        # todo: naming convention fail transform method vs. transform matrix
         raise NotImplementedError
 
 
