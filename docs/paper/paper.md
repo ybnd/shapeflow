@@ -42,7 +42,7 @@ Given the geometrical complexity of (i)SIMPLE chips, peforming video analyses on
 # Overview
 
 In order to produce our microfluidics with enough repeatability, we make use of computer-aided design (CAD) software to design the channel geometry for each chip.
-The fiinal designs are then used to manufacture chips using CNC and laser cutter equipment (WHICH EQUIPMENT). 
+The final designs are then used to manufacture chips using CNC and laser cutter equipment (WHICH EQUIPMENT). 
 While different fabrication methods will use different computer-aided manufacturing (CAM) techniques (such as lithography or 3D printing), in any case the design of a microfluidic chip represents its ground-truth geometry. 
 Furthermore, in order to fabricate chips correctly, the design must match the actual dimensions of the chip it should produce. 
 
@@ -70,8 +70,8 @@ The resulting values are exported as a time-series spreadsheet for futher proces
 # Application
 
 > * The application is structured as a frontend (user interface) and a backend server which can handle multiple analyses at the same time. 
-> * Backend <with a diagram maybe but not really necessary>
->   * REST API (abridged, reference to in-depth version)
+> * Backend
+>   * REST API (abridged)
 >   * Analyses are associated with an ID which is used by the API
 >     * This ID is volatile
 >   * Video frames are cached, which enables quick re-analysis in case e.g. the user wants to make quick adjustments
@@ -95,17 +95,22 @@ The resulting values are exported as a time-series spreadsheet for futher proces
 
 > add examples from previous Biosensors publications; compare previous manual / ImageJ results to shapeflow
 >
-> * Original SIMPLE paper (or skip it if design files are not available…)
-> * Francesco’s iSIMPLE paper (ask Francesco for the design files)
-> * SIMPLE in Theory (select from examples from own archive)
-> * Some other recent publication? Something flashy/complex would be nice.
+> * [Self-powered Imbibing Microfluidic Pump by Liquid Encapsulation: SIMPLE](https://doi.org/10.1039/C4LC00920G)
+>   * Figure 3
+>   * Ask Tadej whether they can still find some of the design & raw video & data
+> * [Self-powered infusion microfluidic pump for ex vivo drug delivery](https://doi.org/10.1007/s10544-018-0289-1)
+>   * Figure 4
+>   * Ask Francesco for the design files & video footage
+> * [SIMPLE analytical model for smart microfluidic chip design](https://doi.org/10.1016/j.sna.2019.01.005), maybe?
+> * [Innovative Hydrophobic Valve Allows Complex Liquid Manipulations in a Self-Powered Channel-Based Microfluidic Device](https://doi.org/10.1021/acssensors.8b01555)
+>   * Figure 6 and Figure 7 as examples of more complex designs
+>   * Already have video & design for Figure 7, ask for Figure 6 as well
 >
-> <graphs>
+> graphs:
 >
-> 	* original measurements
-> 	* a fill ~ a couple of shapeflow measurements, which should match the thing more or less
+>> 	* original measurements
+>> 	* a shapeflow measurement, which should match the original more or less
 >
-> </graphs>
 
 # Further work
 
