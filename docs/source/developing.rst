@@ -189,7 +189,7 @@ Open `issues`_ for important stuff.
 
 
 Already fixed?
-==============
+^^^^^^^^^^^^^^
 
 * ``get_overlay`` & ``get_overlay_png`` take 5 seconds to run sometimes
 
