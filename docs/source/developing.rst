@@ -132,7 +132,102 @@ Deployment scripts are generated with `gitploy`_.
 #. Run ``python -m gitploy`` in ``shapeflow``\ ‘s root directory.
 
 
+TODO
+----
+
+Some known problems and minor feature ideas. Not everything in this list is 
+worth spending time on, and some ideas are serious feature creep. 
+Open `issues`_ for important stuff. 
+
+* Check performance on slower hardware
+
+* Sidebar nav icon&text should aligned vertically
+
+* Frame & state image can get desynchronized sometimes
+
+* Dragging the seek control doesn't update streams, but clicking/arows do 
+  (sometimes, sometimes it's ok)
+  
+* Alt scrolls through sidebar navs for some reason
+
+* Select previous results of the same analyzer in the results page
+
+* Masks misbehave when increasing DPI, 
+  work fine when decreasing DPI (????)
+  
+* Skipped masks should be grayed out in the state image
+
+* Set a max width/height for graph (depending on number of features?)
+
+* Add ``AnalyzerState`` assertions to test_main.py
+
+* Sometimes roi resize gets applied to current & opposite side, jumpy
+
+* Highlight masks on hover in frontend
+
+* Set default filter/transform configuration when adding a new analysis
+
+* Optimize ``SchemaForm`` rendering speed
+
+* Add an option to export ``.meta`` files
+
+* Add an option to import analyses from ``.meta`` files and ``.xlsx`` files
+
+* Configure sidebar should have a fade on the bottom
+
+* Don't catch events outside of frame boundary (``v-bind`` ``style`` to ``div``?)
+
+* *Really* fix oscillating parameter override categories
+
+* Two of the same feature should yield two separate graphs
+
+* On Windows, ``tkinter`` file dialogs don't open when debugging
+
+* Support Anaconda environments
+
+* When current analyzer page becomes disabled, route away or gray out page
+
+
+Already fixed?
+==============
+
+* ``get_overlay`` & ``get_overlay_png`` take 5 seconds to run sometimes
+
+* Align/Filter page: seek event on page load doesn't always come through, 
+  or the streamed image doesn't get updated
+
+* Frontend can freeze when adding a second/third/... analyzer
+
+* Adding new analyzers with large Nf is slow
+
+* Fix ROI rotation 
+  (probably need to initialize moveable with the aspect ratio of the design)
+  
+* ``ConfigModel`` is made in doubles
+
+* CtrlZ / CtrlShiftZ requests ``undo_config``/``redo_config`` twice
+
+* When switching between analyzers, ROI sometimes gets stuck; 
+  modifying ``moveable`` doesn't cause actual ROI to jump to the wrong one
+  
+* Config events are sometimes missed on ``set_filter_click``
+
+* Issues with page rebuild after switching analyzers multiple (3+ times)
+
+* Shouldn't continue on to ``/api/va/<id>/launch`` if ``/api/va/<id>/set_config`` raises HTTP500
+
+* Reset filters state update should disable 'Analyze' button
+
+
+
+
+
+
+
+
+
 .. _npm: https://www.npmjs.com/get-npm
 .. _vue-hot-reload: https://vue-loader.vuejs.org/guide/hot-reload.html
 .. _gitploy: https://github.com/ybnd/gitploy
 .. _ploy: https://github.com/ybnd/shapeflow/blob/master/shapeflow/setup/ploy
+.. _issues: https://github.com/ybnd/shapeflow/issues
