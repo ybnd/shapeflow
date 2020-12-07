@@ -1817,8 +1817,8 @@ class VideoAnalyzer(BaseAnalyzer):
         return self.transform.get_coordinates()
 
 
-def init(config: BaseAnalyzerConfig) -> BaseAnalyzer:
-    mapping: Dict[Type[BaseAnalyzerConfig], Type[BaseAnalyzer]] = {
+def init(config: BaseConfig) -> BaseAnalyzer:
+    mapping: Dict[Type[BaseConfig], Type[BaseAnalyzer]] = {
         VideoAnalyzerConfig: VideoAnalyzer
     }
 
