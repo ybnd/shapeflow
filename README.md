@@ -1,22 +1,7 @@
+# shapeflow [![travis-ci](https://travis-ci.org/ybnd/shapeflow.svg?branch=master)](https://travis-ci.org/ybnd/shapeflow) [![readthedocs](https://readthedocs.org/projects/shapeflow/badge/?version=latest)](https://shapeflow.readthedocs.io/en/latest/?badge=latest) [![codecov](https://codecov.io/gh/ybnd/shapeflow/branch/master/graph/badge.svg)](https://codecov.io/gh/ybnd/shapeflow) [![DOI](https://zenodo.org/badge/296610947.svg)](https://zenodo.org/badge/latestdoi/296610947)
 
-<div style="float: left; font-size: 2em; font-weight: bold; margin-top: -8px;">
-    shapeflow
-</div>
-<div style="float: right">
-    <img src="https://travis-ci.org/ybnd/shapeflow.svg?branch=master"/>
-    <img src="https://readthedocs.org/projects/shapeflow/badge/?version=latest"/>
-    <img src="https://codecov.io/gh/ybnd/shapeflow/branch/master/graph/badge.svg"/>
-    <img src="https://zenodo.org/badge/296610947.svg"/>
-</div>
 
-<div style="width: 100%; display: block; margin-left: auto; margin-right: auto">
-	<a href="https://shapeflow.readthedocs.io/en/latest/index.html#installation-usage" style="padding: 6px; "><b>Installation &amp; usage</b></a>
-	<a href="https://shapeflow.readthedocs.io/en/latest/tutorial.html" style="padding: 6px; "><b>Tutorial</b></a>
-	<a href="https://shapeflow.readthedocs.io/en/latest/troubleshooting.html" style="padding: 6px; "><b>Troubleshooting</b></a>
-	<a href="https://shapeflow.readthedocs.io/en/latest/developing.html" style="padding: 6px; ;"><b>Developing</b></a>
-	<a href="#Related-literature" style="padding: 6px; "><b>Related literature</b></a>
-</div>
-<hr/>
+|| [**Installation & usage**](https://shapeflow.readthedocs.io/en/latest/index.html#installation-usage) | [**Tutorial**](https://shapeflow.readthedocs.io/en/latest/tutorial.html) | [**Troubleshooting**](https://shapeflow.readthedocs.io/en/latest/troubleshooting.html) | [**Developing**](https://shapeflow.readthedocs.io/en/latest/developing.html) | [**Related literature**](#Related-literature) ||
 
 A tool for extracting time-series data from video footage of microfluidic devices with complex channel geometry.
 
