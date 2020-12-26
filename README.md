@@ -1,9 +1,5 @@
-# shapeflow
+# shapeflow [![travis-ci](https://travis-ci.org/ybnd/shapeflow.svg?branch=master)](https://travis-ci.org/ybnd/shapeflow) [![readthedocs](https://readthedocs.org/projects/shapeflow/badge/?version=latest)](https://shapeflow.readthedocs.io/en/latest/?badge=latest) [![codecov](https://codecov.io/gh/ybnd/shapeflow/branch/master/graph/badge.svg)](https://codecov.io/gh/ybnd/shapeflow) [![DOI](https://zenodo.org/badge/296610947.svg)](https://zenodo.org/badge/latestdoi/296610947)
 
-[![travis-ci](https://travis-ci.org/ybnd/shapeflow.svg?branch=master)](https://travis-ci.org/ybnd/shapeflow)
-[![readthedocs](https://readthedocs.org/projects/shapeflow/badge/?version=latest)](https://shapeflow.readthedocs.io/en/latest/?badge=latest)
-[![codecov](https://codecov.io/gh/ybnd/shapeflow/branch/master/graph/badge.svg)](https://codecov.io/gh/ybnd/shapeflow)
-[![DOI](https://zenodo.org/badge/296610947.svg)](https://zenodo.org/badge/latestdoi/296610947)
 
 || [**Installation & usage**](https://shapeflow.readthedocs.io/en/latest/index.html#installation-usage) | [**Tutorial**](https://shapeflow.readthedocs.io/en/latest/tutorial.html) | [**Troubleshooting**](https://shapeflow.readthedocs.io/en/latest/troubleshooting.html) | [**Developing**](https://shapeflow.readthedocs.io/en/latest/developing.html) | [**Related literature**](#Related-literature) ||
 
