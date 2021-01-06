@@ -2,6 +2,9 @@
 dist: xenial
 os: linux
 language: python
+branches:
+  only:
+    - master
 
 jobs:
   include:
