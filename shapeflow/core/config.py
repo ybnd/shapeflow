@@ -1,17 +1,13 @@
 import abc
 import copy
-import json
+from typing import Optional, Union, Type, Dict, Mapping, List
 
 import numpy as np
-from typing import Optional, Union, Type, Dict, Any, Mapping, List
-from functools import partial
+from pydantic import BaseModel
 
-from shapeflow import get_logger, __version__
-from shapeflow.core import EnforcedStr, Described
-from shapeflow.util import ndarray2str, str2ndarray
-
-from pydantic import BaseModel, Field, root_validator, validator
-
+from shapeflow import __version__
+from shapeflow.core.logging import get_logger
+from shapeflow.util import ndarray2str, Described
 
 log = get_logger(__name__)
 
@@ -28,7 +24,105 @@ __meta_ext__ = '.meta'
 __meta_sheet__ = 'metadata'
 
 
-# todo: move up to shapeflow.core
+class EnforcedStr(str):
+    """A string that is enforced to be one of several options.
+    Works like a dynamic ``Enum`` -- options can be added at runtime.
+    """
+    _options: List[str] = ['']
+    _descriptions: Dict[str, str] = {}
+    _str: str
+
+    _default: Optional[str] = None
+
+    def __init__(self, string: str = None):
+        super().__init__()
+        if string is not None:
+            if string not in self.options:
+                if string:
+                    log.warning(f"Illegal {self.__class__.__name__} '{string}', "
+                                  f"should be one of {self.options}. "
+                                  f"Defaulting to '{self.default}'.")
+                self._str = str(self.default)
+            else:
+                self._str = str(string)
+        else:
+            self._str = str(self.default)
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} '{self._str}'>"
+
+    def __str__(self):
+        return str(self._str)  # Make SURE it's a string :(
+
+    def __eq__(self, other):
+        if hasattr(other, '_str'):
+            return self._str == other._str
+        elif isinstance(other, str):
+            return self._str == other
+        else:
+            return False
+
+    @property
+    def options(self):
+        """The accepted options
+        """
+        return self._options
+
+    @property
+    def descriptions(self):
+        """The descriptions of each option
+        """
+        return self._descriptions
+
+    @property
+    def describe(self):
+        """The description of the currently selected option
+        """
+        return self.descriptions[self._str]
+
+    @property
+    def default(self):
+        """The default option for this :class:`~shapeflow.core.EnforcedStr`
+        """
+        if self._default is not None:
+            return self._default
+        else:
+            return self._options[0]
+
+    @classmethod
+    def set_default(cls, value: 'EnforcedStr') -> None:
+        """Explicitly sets the default.
+
+        Parameters
+        ----------
+        value : EnforcedStr
+            The default value to set
+        """
+        if isinstance(value, cls) and value in cls().options:
+            log.debug(f"setting default of '{cls.__name__}' to '{value}'")
+            cls._default = value
+        else:
+            raise ValueError(
+                f"cannot set default of '{cls.__name__}' to '{value}'"
+            )
+
+    def __hash__(self):  # todo: why?
+        return hash(str(self))
+
+    @classmethod
+    def __modify_schema__(cls, field_schema):
+        """Modify ``pydantic`` schema to include default, descriptions and
+        act as an ``Enum``
+        """
+        # pydantic
+        temp = cls()
+        field_schema.update(
+            enum=temp.options,
+            default=temp.default,
+            descriptions=temp.descriptions
+        )
+
+
 class Factory(EnforcedStr):  # todo: add a _class & issubclass check
     """An enforced string which maps its options to types.
 
@@ -378,7 +472,6 @@ class Configurable(Described):
         """The configuration schema.
         """
         return cls.config_class().schema()
-
 
 class Instance(Configurable):  # todo: why isn't this just in Configurable?
     _config: BaseConfig

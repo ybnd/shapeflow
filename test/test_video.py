@@ -19,7 +19,7 @@ from shapeflow.plugins import *
 
 from shapeflow.video import VideoFileHandler, VideoFileTypeError, \
     CachingInstance, VideoAnalyzer
-from shapeflow import settings
+from shapeflow.settings import settings
 from shapeflow.core.config import *
 
 

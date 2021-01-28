@@ -10,14 +10,16 @@ import time
 import socket
 import json
 import requests
-import re
 import abc
 from pathlib import Path
 import argparse
-import textwrap
-from typing import List, Callable, Optional, Tuple, Union
+from typing import List, Callable, Optional, Tuple
 
-from shapeflow import __version__, get_logger, settings
+from shapeflow import __version__
+from shapeflow.settings import settings
+from shapeflow.core import get_logger
+from shapeflow.core.logging import RootException
+
 log = get_logger(__name__)
 
 # type aliases
@@ -25,7 +27,7 @@ OptArgs = Optional[List[str]]
 Parsing = Callable[[OptArgs], None]
 
 
-class CliError(Exception):
+class CliError(RootException):
     pass
 
 
@@ -37,7 +39,7 @@ class IterCommand(abc.ABCMeta):
     """
     __command__: str
     """Command name. This is how the command is addressed from the commandline.
-    """  # todo: nope, doesn't work'
+    """
 
     def __str__(cls):
         try:
@@ -277,7 +279,7 @@ class Dump(Command):
     )
 
     def command(self):
-        from shapeflow.config import schemas
+        from shapeflow.main import schemas
 
         if not self.args.dir.is_dir():
             log.warning(f"making directory '{self.args.dir}'")

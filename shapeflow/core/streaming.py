@@ -4,13 +4,13 @@
 import abc
 import json
 from threading import Thread
-from typing import Optional, Tuple, Generator, Callable, Dict, Type, Any, Union, List
+from typing import Optional, Generator, Callable, Dict, Type, Any
 from functools import wraps
+from enum import IntEnum
 
-from shapeflow import get_logger
-from shapeflow.core import Lockable, _Streaming
+from shapeflow.core.logging import get_logger
 
-from shapeflow.util import Singleton
+from shapeflow.util import Singleton, Lockable
 from shapeflow.util.meta import unbind
 import queue
 
@@ -24,6 +24,13 @@ import cv2
 # cheated off of https://www.pyimagesearch.com/2019/09/02/opencv-stream-video-to-web-browser-html-page/
 
 log = get_logger(__name__)
+
+
+class Stream(IntEnum):
+    off = 0
+    plain = 1
+    json = 2
+    image = 3
 
 
 class BaseStreamer(abc.ABC):
@@ -261,10 +268,10 @@ class JpegStreamer(FrameStreamer):  # todo: configure quality in settings
             return None
 
 
-_stream_mapping: Dict[_Streaming, Type[BaseStreamer]] = {
-    _Streaming('plain'): PlainFileStreamer,
-    _Streaming('json'): JsonStreamer,
-    _Streaming('image'): JpegStreamer,
+_stream_mapping: Dict[Stream, Type[BaseStreamer]] = {
+    Stream.plain: PlainFileStreamer,
+    Stream.json: JsonStreamer,
+    Stream.image: JpegStreamer,
 }
 """Maps :data:`shapeflow.core._Streaming` 
 to :class:`~shapeflow.core.streaming.BaseStreamer` implementations.

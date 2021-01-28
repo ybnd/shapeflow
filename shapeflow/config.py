@@ -1,15 +1,13 @@
-from typing import Optional, Tuple, Dict, Any, Type, Union
+from typing import Optional, Tuple, Dict, Any
 import json
 
 from pydantic import Field, validator
 
-from shapeflow import __version__, settings
+from shapeflow import __version__
 
 from shapeflow.core.config import extend, ConfigType, \
-    log, VERSION, CLASS, untag, BaseConfig
-from shapeflow.core.backend import BaseAnalyzerConfig, \
-    FeatureType, FeatureConfig, AnalyzerState, QueueState
-from shapeflow.core import EnforcedStr
+    log, VERSION, CLASS, untag, BaseConfig, EnforcedStr
+from shapeflow.core.features import FeatureConfig, FeatureType
 from shapeflow.core.interface import FilterType, TransformType, TransformConfig, \
     FilterConfig, HandlerConfig
 from shapeflow.maths.coordinates import Roi
@@ -128,6 +126,15 @@ class DesignFileHandlerConfig(BaseConfig):
     _limit_smoothing = validator('smoothing', allow_reuse=True, pre=True)(BaseConfig._int_limits)
     _limit_dpi = validator('dpi', allow_reuse=True, pre=True)(BaseConfig._int_limits)
     _limit_alpha = validator('overlay_alpha', allow_reuse=True, pre=True)(BaseConfig._float_limits)
+
+
+class BaseAnalyzerConfig(BaseConfig):
+    """Abstract analyzer configuration.
+    """
+    video_path: Optional[str] = Field(default=None)
+    design_path: Optional[str] = Field(default=None)
+    name: Optional[str] = Field(default=None)
+    description: Optional[str] = Field(default=None)
 
 
 @extend(ConfigType)
@@ -266,24 +273,6 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
 
     _validate_fis = validator('frame_interval_setting')(BaseConfig._resolve_enforcedstr)
 
-
-def schemas() -> Dict[str, dict]:
-    """Get the JSON schemas of
-
-    * :class:`shapeflow.video.VideoAnalyzerConfig`
-
-    * :class:`shapeflow.Settings`
-
-    * :class:`shapeflow.core.backend.AnalyzerState`
-
-    * :class:`shapeflow.core.backend.QueueState`
-    """
-    return {
-        'config': VideoAnalyzerConfig.schema(),
-        'settings': settings.schema(),
-        'analyzer_state': dict(AnalyzerState.__members__),
-        'queue_state': dict(QueueState.__members__),
-    }
 
 def loads(config: str) -> BaseConfig:
     """Load a configuration object from a JSON string.

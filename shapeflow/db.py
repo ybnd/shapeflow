@@ -1,6 +1,6 @@
 import os
 import json
-from typing import Optional, Tuple, List, Dict, Type
+from typing import Optional, Tuple, List, Dict
 from pathlib import Path
 import datetime
 import sqlite3
@@ -11,15 +11,16 @@ from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, 
 import pandas as pd
 
 from shapeflow.api import api
-from shapeflow.core import RootInstance
+from shapeflow.core import get_logger
 from shapeflow.core.db import Base, DbModel, SessionWrapper, FileModel, BaseAnalysisModel
-from shapeflow import settings, get_logger, ResultSaveMode
+from shapeflow.settings import ResultSaveMode
+from shapeflow.settings import settings
 from shapeflow.core.config import __meta_sheet__
 from shapeflow.config import normalize_config, VideoAnalyzerConfig
 from shapeflow.core.streaming import EventStreamer
 
-from shapeflow.core.backend import BaseAnalyzer, BaseAnalyzerConfig
-
+from shapeflow.core.backend import BaseAnalyzer
+from shapeflow.util import Lockable
 
 log = get_logger(__name__)
 
@@ -533,7 +534,7 @@ class AnalysisModel(BaseAnalysisModel):
         else:
             raise ValueError(f"Invalid redo context '{context}'")
 
-class History(SessionWrapper, RootInstance):
+class History(SessionWrapper, Lockable):
     """Interface to the history database
     """
     _eventstreamer: EventStreamer

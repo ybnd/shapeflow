@@ -6,7 +6,9 @@ import re
 from collections import namedtuple
 from typing import Dict, Type, List
 
-from shapeflow.core.config import BaseConfig, Field, validator
+from pydantic import Field, validator
+
+from shapeflow.core.config import BaseConfig
 
 import cv2
 import numpy as np

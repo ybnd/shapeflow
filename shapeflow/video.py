@@ -9,17 +9,17 @@ import numpy as np
 import pandas as pd
 from OnionSVG import OnionSVG, check_svg
 
-from shapeflow import get_logger, settings, ResultSaveMode
+from shapeflow.core.logging import get_logger
+from shapeflow.settings import settings
 from shapeflow.api import api
 from shapeflow.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     FilterHandlerConfig, MaskConfig, \
     DesignFileHandlerConfig, VideoAnalyzerConfig, \
-    FrameIntervalSetting, BaseAnalyzerConfig, FlipConfig
-from shapeflow.core import Lockable
+    FrameIntervalSetting, BaseAnalyzerConfig
 from shapeflow.core.backend import Instance, CachingInstance, \
-    BaseAnalyzer, BackendSetupError, AnalyzerType, Feature, \
-    FeatureSet, \
-    FeatureType, AnalyzerState, PushEvent, FeatureConfig, CacheAccessError
+    BaseAnalyzer, BackendSetupError, AnalyzerType, AnalyzerState, PushEvent, CacheAccessError
+from shapeflow.core.features import FeatureConfig, Feature, FeatureSet, \
+    FeatureType
 from shapeflow.core.config import extend
 from shapeflow.core.interface import TransformInterface, FilterConfig, \
     FilterInterface, FilterType, TransformType, Handler
@@ -28,7 +28,7 @@ from shapeflow.maths.colors import Color, HsvColor, BgrColor, convert, css_hex
 from shapeflow.maths.images import to_mask, crop_mask, ckernel, \
     overlay, rect_contains
 from shapeflow.maths.coordinates import ShapeCoo, Roi
-from shapeflow.util import frame_number_iterator
+from shapeflow.util import frame_number_iterator, Lockable
 
 log = get_logger(__name__)
 

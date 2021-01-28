@@ -1,16 +1,9 @@
 import unittest
 
 import abc
-from typing import Type, Dict, List
 
-import cv2
-import numpy as np
-
-from shapeflow.maths.coordinates import Roi, Coo
-from shapeflow.maths.images import ckernel
-from shapeflow.core.config import Factory
-from shapeflow.config import TransformType, ConfigType, TransformConfig
-from shapeflow.plugins import *
+from shapeflow.maths.coordinates import Coo
+from shapeflow.config import TransformConfig
 from shapeflow.video import *
 
 

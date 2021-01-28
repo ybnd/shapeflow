@@ -22,12 +22,17 @@ from OnionSVG import check_svg
 
 from shapeflow.util import open_path, sizeof_fmt
 from shapeflow.util.filedialog import filedialog
-from shapeflow import get_logger, get_cache, settings, update_settings, ROOTDIR
-from shapeflow.core import stream_off, Endpoint, RootException
+from shapeflow.settings import update_settings, ROOTDIR
+from shapeflow.settings import settings
+from shapeflow.core import get_cache, get_logger
+from shapeflow.core.logging import RootException
+from shapeflow.core.dispatching import Endpoint
 from shapeflow.api import api, _FilesystemDispatcher, _DatabaseDispatcher, _VideoAnalyzerManagerDispatcher, _VideoAnalyzerDispatcher, _CacheDispatcher, ApiDispatcher
-from shapeflow.core.streaming import streams, EventStreamer, PlainFileStreamer, BaseStreamer
+from shapeflow.core.streaming import streams, EventStreamer, PlainFileStreamer, \
+    BaseStreamer, Stream
 from shapeflow.core.backend import QueueState, AnalyzerState, BaseAnalyzer
-from shapeflow.config import schemas, normalize_config, loads, BaseAnalyzerConfig
+from shapeflow.config import normalize_config, loads, BaseAnalyzerConfig, \
+    VideoAnalyzerConfig
 from shapeflow.video import init, VideoAnalyzer
 import shapeflow.plugins
 from shapeflow.server import ShapeflowServer
@@ -36,6 +41,25 @@ from shapeflow.db import History
 
 
 log = get_logger(__name__)
+
+
+def schemas() -> Dict[str, dict]:
+    """Get the JSON schemas of
+
+    * :class:`shapeflow.video.VideoAnalyzerConfig`
+
+    * :class:`shapeflow.Settings`
+
+    * :class:`shapeflow.core.backend.AnalyzerState`
+
+    * :class:`shapeflow.core.backend.QueueState`
+    """
+    return {
+        'config': VideoAnalyzerConfig.schema(),
+        'settings': settings.schema(),
+        'analyzer_state': dict(AnalyzerState.__members__),
+        'queue_state': dict(QueueState.__members__),
+    }
 
 
 class _Main(object):
@@ -815,7 +839,7 @@ class _VideoAnalyzerManager(object):
         self._valid(id)
         if not endpoint in map(lambda e: e.name, api.va[id].endpoints):
             raise AttributeError(f"no such endpoint: '{endpoint}")
-        if self._dispatcher[id][endpoint].streaming == stream_off:
+        if self._dispatcher[id][endpoint].streaming == Stream.off:
             raise ValueError(f"endpoint '{endpoint}' doesn't stream")
 
 
