@@ -97,6 +97,11 @@ class Command(abc.ABC, metaclass=IterCommand):
             args = sys.argv[1:]
         try:
             self.args, self.sub_args = self._parse(args)
+
+            # only the root Command is allowed to pass on sub_args
+            if len(self.sub_args) > 0 and hasattr(self, "__command__"):
+                raise CliError(f"unrecognized argument(s) {self.sub_args}")
+
             self.command()
         except argparse.ArgumentError:
             raise CliError

@@ -39,7 +39,6 @@ class SfTest(unittest.TestCase):
 
     def test_invalid_commands(self):
         self.assertRaises(shapeflow.cli.CliError, shapeflow.cli.Sf, ['sevre'])
-        self.assertRaises(shapeflow.cli.CliError, shapeflow.cli.Sf, [''])
         self.assertRaises(shapeflow.cli.CliError, shapeflow.cli.Sf, ['dmp'])
         self.assertRaises(shapeflow.cli.CliError, shapeflow.cli.Sf, ['nope'])
 
