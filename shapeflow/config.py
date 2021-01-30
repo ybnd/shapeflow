@@ -479,6 +479,13 @@ def normalize_config(d: dict) -> dict:
             # rename parameters -> feature_parameters
             if 'parameters' in d:
                 d['feature_parameters'] = d.pop('parameters')
+        if before_version(d[VERSION], '0.4.4'):
+            normalizing_to('0.4.4')
+            # move video_path & design_path to video.path & design.path
+            if 'video_path' in d:
+                d['video'] = {'path': d.pop('video_path')}
+            if 'design_path' in d:
+                d['design'] = {'path': d.pop('design_path')}
 
     else:
         raise NotImplementedError
