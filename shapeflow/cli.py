@@ -16,9 +16,8 @@ import argparse
 from typing import List, Callable, Optional, Tuple
 
 from shapeflow import __version__
-from shapeflow.settings import settings
-from shapeflow.core import get_logger
-from shapeflow.core.logging import RootException
+from shapeflow.core.settings import settings
+from shapeflow.core.logging import get_logger, RootException
 
 log = get_logger(__name__)
 
@@ -286,7 +285,7 @@ class Dump(Command):
             self.args.dir.mkdir()
 
         self._write('schemas', schemas())
-        self._write('settings', settings.to_dict())
+        self._write('settings', settings.as_dict())
 
     def _write(self, file, d):
         with open(self.args.dir / (file + '.json'), 'w+') as f:

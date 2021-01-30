@@ -22,10 +22,10 @@ from OnionSVG import check_svg
 
 from shapeflow.util import open_path, sizeof_fmt
 from shapeflow.util.filedialog import filedialog
-from shapeflow.settings import update_settings, ROOTDIR
-from shapeflow.settings import settings
-from shapeflow.core import get_cache, get_logger
-from shapeflow.core.logging import RootException
+from shapeflow.core.settings import settings, ApplicationSettings, ROOTDIR
+from shapeflow.db import DatabaseSettings
+from shapeflow.core.caching import get_cache
+from shapeflow.core.logging import RootException, get_logger, LogSettings
 from shapeflow.core.dispatching import Endpoint
 from shapeflow.api import api, _FilesystemDispatcher, _DatabaseDispatcher, _VideoAnalyzerManagerDispatcher, _VideoAnalyzerDispatcher, _CacheDispatcher, ApiDispatcher
 from shapeflow.core.streaming import streams, EventStreamer, PlainFileStreamer, \
@@ -159,10 +159,10 @@ class _Main(object):
         dict
             The application settings as a ``dict``
         """
-        return settings.to_dict()
+        return settings.as_dict()
 
     @api.set_settings.expose()
-    def set_settings(self, settings: dict) -> dict:
+    def set_settings(self, d: dict) -> dict:
         """Set the application settings
 
         :attr:`shapeflow.api.ApiDispatcher.set_settings`
@@ -177,7 +177,7 @@ class _Main(object):
         dict
             The new application settings ``dict``, which may have been modified.
         """
-        new_settings = update_settings(settings)
+        new_settings = settings.update(d)
         self.restart()
         return new_settings
 
@@ -219,7 +219,7 @@ class _Main(object):
             self.stop_log()
 
         log.debug("streaming log file")
-        self._log = PlainFileStreamer(path=str(settings.log.path))
+        self._log = PlainFileStreamer(path=str(settings.get(LogSettings).path))
 
         return self._log
 
@@ -331,7 +331,7 @@ class _Filesystem(object):
         """
         return filedialog.load(
             title='Select a video file...',
-            pattern=settings.app.video_pattern,
+            pattern=settings.get(ApplicationSettings).video_pattern,
             pattern_description='Video files',
         )
 
@@ -348,7 +348,7 @@ class _Filesystem(object):
         """
         return filedialog.load(
             title='Select a design file...',
-            pattern=settings.app.design_pattern,
+            pattern=settings.get(ApplicationSettings).design_pattern,
             pattern_description='Design files',
         )
 
@@ -445,10 +445,10 @@ class _Database(object):
         else:
             timestamp = datetime.datetime.fromtimestamp(
                 time.time()
-            ).strftime(settings.format.datetime_format_fs)
-            backup_path = f"{settings.db.path}_broken_{timestamp}"
+            ).strftime(settings.get(FormatSettings).datetime_format_fs)
+            backup_path = f"{settings.get(DatabaseSettings).path}_broken_{timestamp}"
             log.warning(f"backing up old history database @ {backup_path}")
-            os.rename(settings.db.path, backup_path)
+            os.rename(settings.get(DatabaseSettings).path, backup_path)
 
 
 
@@ -662,7 +662,7 @@ class _VideoAnalyzerManager(object):
         if self._pause_q.is_set():
             self._pause_q.clear()
         self._stop_q.set()
-        if settings.app.cancel_on_q_stop:
+        if settings.get(ApplicationSettings).cancel_on_q_stop:
             self.q_cancel()
         else:
             for analyzer in self.__analyzers__.values():
@@ -732,12 +732,12 @@ class _VideoAnalyzerManager(object):
 
         :attr:`shapeflow.api._VideoAnalyzerManagerDispatcher.save_state`
         """
-        if settings.app.save_state:
+        if settings.get(ApplicationSettings).save_state:
             log.debug(f"saving application state")
 
             self._commit()
 
-            with open(settings.app.state_path, 'wb') as f:
+            with open(settings.get(ApplicationSettings).state_path, 'wb') as f:
                 pickle.dump({
                     id: analyzer.model.get('id')
                     for id, analyzer in self.__analyzers__.items()
@@ -750,11 +750,11 @@ class _VideoAnalyzerManager(object):
 
         :attr:`shapeflow.api._VideoAnalyzerManagerDispatcher.load_state`
         """
-        if settings.app.load_state:
+        if settings.get(ApplicationSettings).load_state:
             log.info(f"loading application state")
 
             try:
-                with open(settings.app.state_path, 'rb') as f:
+                with open(settings.get(ApplicationSettings).state_path, 'rb') as f:
                     S = pickle.load(f)
 
                 for id, model_id in S.items():
@@ -871,7 +871,7 @@ def load(server: ShapeflowServer) -> ApiDispatcher:
 
     api._add_dispatcher('va', _va)
 
-    if settings.app.load_state:
+    if settings.get(ApplicationSettings).load_state:
         api.dispatch('va/load_state')
 
     return api

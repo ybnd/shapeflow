@@ -10,6 +10,7 @@ from shapeflow.core.config import extend, ConfigType, \
 from shapeflow.core.features import FeatureConfig, FeatureType
 from shapeflow.core.interface import FilterType, TransformType, TransformConfig, \
     FilterConfig, HandlerConfig
+from shapeflow.core.settings import Category
 from shapeflow.maths.coordinates import Roi
 from shapeflow.maths.colors import HsvColor
 
@@ -487,3 +488,29 @@ def normalize_config(d: dict) -> dict:
     untag(d)
 
     return d
+
+
+class DefaultConfigSettings(Category):
+    fis: FrameIntervalSetting = Field(default=FrameIntervalSetting('Nf'), title="Frame interval setting")
+
+    dt: float = Field(default=5.0, title="Frame interval in seconds")
+
+    Nf: int = Field(default=100, title="Total number of frames")
+
+    feature: FeatureType = Field(default_factory=FeatureType, title="Feature")
+
+    feature_parameters: FeatureConfig = Field(default_factory=FeatureType.config_class, title="Feature parameter(s)")
+
+    flip: FlipConfig = Field(default_factory=FlipConfig, title="Flip the ROI...")
+
+    turn: int = Field(default=0, title="Turn the ROI ... times (clockwise, 90°)")
+
+    transform: TransformType = Field(default_factory=TransformType, title="Transform")
+
+    transform_config: TransformConfig = Field(default_factory=TransformType.config_class, title="Transform configuration")
+
+    filter: FilterType = Field(default_factory=FilterType, title="Filter")
+
+    filter_config: FilterConfig = Field(default_factory=FilterType.config_class, title="Filter configuration")
+
+    mask_skip: bool = Field(default=False, title="Skip masks")

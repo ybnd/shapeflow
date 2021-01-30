@@ -10,7 +10,8 @@ from typing import Any, List, Optional, Dict, Type, Mapping
 import pandas as pd
 
 from shapeflow.config import BaseAnalyzerConfig
-from shapeflow.core.caching import get_cache
+from shapeflow.core.settings import settings
+from shapeflow.core.caching import get_cache, CacheSettings
 from shapeflow.core.logging import get_logger, RootException
 from shapeflow.api import api
 
@@ -101,6 +102,7 @@ class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB 
 
     def __init__(self, config: BaseConfig = None):
         super(CachingInstance, self).__init__(config)
+        self._cache = None
         self._open_cache()
 
     def __del__(self):
@@ -173,7 +175,7 @@ class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB 
             # Check if the file's already cached
             if key in self._cache:
                 t0 = time.time()
-                while self._is_blocked(key) and time.time() < t0 + settings.cache.block_timeout:
+                while self._is_blocked(key) and time.time() < t0 + settings.get(CacheSettings).block_timeout:
                     # Some other thread is currently reading the same frame
                     # Wait a bit and try to get from cache again
                     log.debug(f'{self.__class__.__qualname__}: '
@@ -203,9 +205,9 @@ class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB 
             return method(*args, **kwargs)
 
     def _open_cache(self, override: bool = False):
-        if settings.cache.do_cache or override:
+        if settings.get(CacheSettings).do_cache or override:
             log.debug(f"{self.__class__.__qualname__}: "
-                      f"opening cache @ {settings.cache.dir}")
+                      f"opening cache @ {settings.get(CacheSettings).dir}")
             self._cache = get_cache()
         else:
             self._cache = None
@@ -213,7 +215,7 @@ class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB 
     def _close_cache(self):
         if self._cache is not None:
             log.debug(f"{self.__class__.__qualname__}: "
-                      f"closing cache @ {settings.cache.dir}")
+                      f"closing cache @ {settings.get(CacheSettings).dir}")
             self._cache.close()
             self._cache = None
 

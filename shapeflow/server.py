@@ -12,8 +12,8 @@ import webbrowser
 import shapeflow
 import shapeflow.config
 import shapeflow.util as util
-from shapeflow.settings import settings
-from shapeflow.core import get_logger
+from shapeflow.core.settings import settings
+from shapeflow.core.logging import get_logger
 import shapeflow.core.streaming as streaming
 from shapeflow.core.dispatching import DispatchingError
 from shapeflow.api import ApiDispatcher

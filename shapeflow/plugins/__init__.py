@@ -1,7 +1,7 @@
 from os.path import basename
 import os
 
-from shapeflow.core import get_logger
+from shapeflow.core.logging import get_logger
 
 log = get_logger(__name__)
 

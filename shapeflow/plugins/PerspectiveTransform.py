@@ -3,7 +3,7 @@ from typing import Optional, Tuple
 import cv2
 import numpy as np
 
-from shapeflow.core import get_logger
+from shapeflow.core.logging import get_logger
 from shapeflow.config import extend, ConfigType
 from shapeflow.core.interface import TransformConfig, TransformInterface, TransformType
 from shapeflow.maths.coordinates import ShapeCoo, Roi
