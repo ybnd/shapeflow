@@ -11,7 +11,7 @@ from typing import Any, List, Optional, Tuple, Dict, Type, Mapping
 import numpy as np
 import pandas as pd
 
-from pydantic import Field
+from pydantic import Field, FilePath
 
 from shapeflow import settings, get_logger, get_cache
 from shapeflow.api import api
@@ -486,13 +486,19 @@ class FeatureType(InterfaceType):
         )
 
 
+class FileConfig(BaseConfig):
+    path: Optional[FilePath] = Field(default=None)
+    hash: Optional[FilePath] = Field(default=None)
+
+
 class BaseAnalyzerConfig(BaseConfig):
     """Abstract analyzer configuration.
     """
-    video_path: Optional[str] = Field(default=None)
-    design_path: Optional[str] = Field(default=None)
     name: Optional[str] = Field(default=None)
     description: Optional[str] = Field(default=None)
+
+    video: FileConfig = Field(default_factory=FileConfig)
+    design: FileConfig = Field(default_factory=FileConfig)
 
 
 class BaseAnalyzer(Instance, RootInstance):
