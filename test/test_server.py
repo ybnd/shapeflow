@@ -8,7 +8,7 @@ import json
 import subprocess
 
 from shapeflow import ROOTDIR
-from shapeflow.settings import settings, save_settings
+from shapeflow.core.settings import settings
 
 raise unittest.SkipTest('takes too long')
 

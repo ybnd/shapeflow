@@ -21,7 +21,7 @@ if os.getcwd() == '/home/travis/build/ybnd/shapeflow':
     __VIDEO__ = 'test/' + __VIDEO__
     __DESIGN__ = 'test/' + __DESIGN__
 
-from shapeflow.settings import ROOTDIR, save_settings
+from shapeflow import ROOTDIR
 
 CACHE = os.path.join(ROOTDIR, 'test_server-cache')
 DB = os.path.join(ROOTDIR, 'test_server-history.db')
@@ -42,7 +42,7 @@ def clear_files():
 
 @contextmanager
 def application(keep: bool = False):
-    from shapeflow.settings import settings
+    from shapeflow.core.settings import settings
 
     if not keep:
         clear_files()
@@ -710,8 +710,7 @@ class ServerAnalyzerTest(unittest.TestCase):
 
 class DbCheckTest(unittest.TestCase):
     def test_db_check(self):
-        from shapeflow.settings import save_settings
-        from shapeflow.settings import settings
+        from shapeflow.core.settings import settings
 
         with settings.db.override({'path': DB}):
             clear_files()

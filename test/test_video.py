@@ -19,7 +19,8 @@ from shapeflow.plugins import *
 
 from shapeflow.video import VideoFileHandler, VideoFileTypeError, \
     CachingInstance, VideoAnalyzer
-from shapeflow.settings import settings
+from shapeflow.core.settings import settings
+from shapeflow.core.caching import CacheSettings
 from shapeflow.core.config import *
 
 
@@ -63,7 +64,7 @@ for frame_number in FRAMES:
     TEST_TRANSFORMED_FRAME_HSV[frame_number] = cv2.warpPerspective(frame_hsv, TRANSFORM, dsize, borderValue=(255,255,255))
 
 # Clear cache
-with settings.cache.override({'do_cache': True}):
+with settings.get(CacheSettings).override({'do_cache': True}):
     vi = VideoFileHandler(__VIDEO__)
     assert vi._cache is not None
     vi._cache.clear()
