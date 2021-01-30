@@ -145,8 +145,7 @@
               :type="features.parameters[feature][parameter].type"
               :value="config.feature_parameters[index][parameter]"
               :options="features.parameters[feature][parameter]"
-              @input="(v) => setParameter(index, parameter, v)"
-              @commit="onChange"
+              @commit="(v) => setParameter(index, parameter, v)"
               :new_row="false"
               :style_="{
                 'max-width': ['number', 'integer', 'float'].includes(
@@ -226,7 +225,7 @@ export default {
           Nf: 100,
           dt: 5,
           features: [],
-          feature_parameters: [], // todo: these don't actually get sent to the backend
+          feature_parameters: [],
         };
       },
     },
@@ -256,7 +255,7 @@ export default {
     },
     setParameter(index, parameter, value) {
       // console.log(
-      //   `BasicConfig.setParameter() feature=${feature} parameter=${parameter}, value=${value}`
+      //   `BasicConfig.setParameter() feature=${index} parameter=${parameter}, value=${value}`
       // );
       this.config.feature_parameters[index][parameter] = value;
       this.onChange();

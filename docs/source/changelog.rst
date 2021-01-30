@@ -1,6 +1,18 @@
 Changelog
 =========
 
+* **0.4.4 -- Documentation & minor improvements**
+
+  * Triumphant return of the readthedocs page
+
+    * Tutorial
+
+    * Major step forward documenting the Python library, along with multiple
+      tiny tweaks to the Python codebase. Mainly cleaned up & removed unused
+      methods.
+
+  * Fix disappearing ``feature_parameters`` in new analysis dialog and on the
+    configure page
 
 * **0.4.3 -- API overhaul**
 

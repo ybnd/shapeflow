@@ -507,8 +507,9 @@ describe('features', () => {
           w.vm.$forceUpdate();
 
           expect(fields[i].value).toBe(undefined);
+          // todo: ideally this should get flagged ~ validation
 
-          await fields[i].vm.$emit('input', PARAMETERS[feature][pars[i]].default);
+          await fields[i].vm.$emit(COMMIT, PARAMETERS[feature][pars[i]].default);
           await flushPromises;
           w.vm.$forceUpdate();
 
