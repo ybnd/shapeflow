@@ -15,9 +15,17 @@ import abc
 from pathlib import Path
 import argparse
 import textwrap
+import shutil
 from typing import List, Callable, Optional, Tuple, Union
 
+from distutils.util import strtobool
+from git import Repo, Head, TagReference
+from requests import get, head
+
 from shapeflow import __version__, get_logger, settings
+from shapeflow.util import before_version
+
+
 log = get_logger(__name__)
 
 # type aliases
@@ -284,3 +292,192 @@ class Dump(Command):
     def _write(self, file, d):
         with open(self.args.dir / (file + '.json'), 'w+') as f:
             f.write(json.dumps(d, indent=2 if self.args.pretty else None))
+
+
+class Git(abc.ABC):
+    """Metaclass for commands interacting with the git repository
+    """
+
+    URL = 'https://www.github.com/ybnd/shapeflow/'
+
+    _repo: Repo = None
+    _latest: str = None
+    _is_at_release: bool = None
+
+    @property
+    def repo(self) -> Repo:
+        if self._repo is None:
+            self._repo = Repo()
+            self._repo.remote().fetch()
+        return self._repo
+
+    @property
+    def latest(self) -> str:
+        if self._latest is None:
+            self._latest = get(self.URL + 'releases/latest').url.split('/')[-1]
+        return self._latest
+
+    @property
+    def is_up_to_date(self) -> bool:
+        return self.repo.head != self.latest
+
+    @property
+    def tag(self):
+        return self.repo.git.describe('--tag')
+    
+    @property
+    def is_at_release(self) -> bool:
+        return head(self.URL + 'releases/tag/' + self.tag).ok
+
+
+    def _get_compiled_ui(self) -> None:
+        if self.is_at_release:
+            from urllib.request import urlopen
+            from tarfile import open
+
+            ui_url = self.URL \
+                     + f'releases/download/{self.tag}/dist-{self.tag}.tar.gz'
+            open(fileobj=urlopen(ui_url), mode='r|gz').extractall(path='ui/')
+        else:
+            print(
+                'No compiled UI can be downloaded because the repository '
+                'is currently not at a release version. Please checkout a '
+                'release or compile the UI yourself (cd ui && npm run build)'
+            )
+
+    def _handle_local_changes(self, force: bool) -> bool:
+        if self.repo.is_dirty():
+            if force or self._prompt_discard_changes():
+                self.repo.head.reset(working_tree=True)
+            else:
+                return False
+        return True
+
+    def _prompt_discard_changes(self) -> bool:
+        changed = [item.a_path for item in self.repo.index.diff] \
+                  + self.repo.untracked_files
+
+        return bool(strtobool(input(
+            f'Local changes to\n\n {changed} \n\n '
+            f'will be overwritten. Continue? (y/n) '
+        )))
+
+
+class Update(Command, Git):
+    """Update the application
+    """
+
+    __command__ = 'update'
+    parser = argparse.ArgumentParser(
+        description=__doc__
+    )
+    parser.add_argument(
+        '--discard-changes',
+        action='store_true',
+        help='discard local changes without prompting'
+    )
+
+    def command(self):
+        if self._handle_local_changes(self.args.force):
+            self._update()
+            print(f'Done.')
+        else:
+            print(f'Canceled.')
+
+    def _update(self) -> None:
+        if self.repo.head.is_detached:
+            # repo is at a tag, get the latest release
+            self.repo.git.checkout(self.latest)
+            self._get_compiled_ui()
+        else:
+            # repo is at a branch, pull the branch
+            self.repo.git.pull()
+            print('Note: the repository is now at a branch. Please compile'
+                  'the UI again (cd ui && npm run build)')
+
+
+class Checkout(Command, Git):
+    """Check out a specific version of the application. Please not you will
+    not have access to this command if you check out a version before 0.4.4
+    """
+
+    __command__ = 'checkout'
+    parser = argparse.ArgumentParser(
+        description=__doc__
+    )
+    parser.add_argument(
+        'ref',
+        nargs=1,
+        type=str,
+        help="the tag or branch to check out"
+    )
+    parser.add_argument(
+        '--no-training-wheels',
+        action='store_true',
+        help='check out tags and branches before 0.4.4 without prompting'
+    )
+
+    def command(self) -> None:
+        if not self._is_a_ref(self.args.ref):
+            raise ValueError(f'Not a valid reference "{self.args.ref}"')
+
+        if self._is_after_0_4_4(self.args.ref) and not self._checkout_anyway():
+            if self._handle_local_changes(self.args.force):
+                self.repo.git.checkout(self.args.ref)
+                self._get_compiled_ui()
+                print('Done.')
+            else:
+                print('Canceled.')
+        print('Canceled.')
+
+    def _is_a_ref(self, ref: str) -> bool:
+        return len(self.repo.git.rev_list('-n', '1', ref)) > 0
+
+    def _is_after_0_4_4(self, ref: str) -> bool:
+        try:
+            return before_version(ref, '0.4.4')
+        except ValueError:
+            # ~ https://stackoverflow.com/a/3006050/12259362
+            branch = Head(self.repo, 'refs/heads/' + ref).commit.hexsha
+            t0_4_4 = TagReference(self.repo, 'refs/heads/0.4.4').commit.hexsha
+
+            return branch == t0_4_4 or len(
+                self.repo.git.rev_list('--boundary', f'{t0_4_4}..{branch}')
+            ) > 0
+
+    def _checkout_anyway(self) -> bool:
+        return bool(strtobool(input(
+            f'After checking out "{self.args.ref}"'
+        )))
+
+
+class GetCompiledUi(Command, Git):
+    """Get the compiled UI for the current version
+    """
+
+    __command__ = 'get-compiled-ui'
+    parser = argparse.ArgumentParser(
+        description=__doc__
+    )
+    parser.add_argument(
+        '--replace-ui',
+        action='store_true',
+        help='replace the current UI without prompting'
+    )
+
+    def command(self) -> None:
+        ui_dir = Path('ui/dist/')
+        exists = ui_dir.exists()
+        empty = any(ui_dir.iterdir())
+
+        if empty:
+            ui_dir.rmdir()
+        if not exists or self.args.force or self._prompt_replace_ui():
+            shutil.rmtree(ui_dir)
+            self._get_compiled_ui()
+            print('Done.')
+        else:
+            print(f'Canceled.')
+
+    def _prompt_replace_ui(self) -> bool:
+        return bool(strtobool(input('Replace the current UI? (y/n) ')))
