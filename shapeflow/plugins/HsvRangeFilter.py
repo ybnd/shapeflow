@@ -100,16 +100,16 @@ class _Filter(FilterInterface):
     def filter(self, filter: _Config, img: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
         if filter.c0.h > filter.c1.h:
             # handle hue wrapping situation with two ranges
-            c0_a = np.float32(filter.c0.list)
-            c1_a = np.float32([WRAP-1] + filter.c1.list[1:])
-            c0_b = np.float32([0] + filter.c0.list[1:])
-            c1_b = np.float32(filter.c1.list)
+            c0_a = np.array(filter.c0.list, dtype=np.float32)
+            c1_a = np.array([WRAP-1] + filter.c1.list[1:], dtype=np.float32)
+            c0_b = np.array([0] + filter.c0.list[1:], dtype=np.float32)
+            c1_b = np.array(filter.c1.list, dtype=np.float32)
 
             binary = cv2.inRange(img, c0_a, c1_a, img) \
                    + cv2.inRange(img, c0_b, c1_b, img)
         else:
-            c0 = np.float32(filter.c0.list)
-            c1 = np.float32(filter.c1.list)
+            c0 = np.array(filter.c0.list, dtype=np.float32)
+            c1 = np.array(filter.c1.list, dtype=np.float32)
 
             binary = cv2.inRange(img, c0, c1, img)
 

@@ -15,7 +15,7 @@ from shapeflow.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     FilterHandlerConfig, MaskConfig, \
     DesignFileHandlerConfig, VideoAnalyzerConfig, \
     FrameIntervalSetting, BaseAnalyzerConfig, FlipConfig
-from shapeflow.core import Lockable
+from shapeflow.core import Lockable, RootException
 from shapeflow.core.backend import Instance, CachingInstance, \
     BaseAnalyzer, BackendSetupError, AnalyzerType, Feature, \
     FeatureSet, \
@@ -154,7 +154,7 @@ class VideoFileHandler(CachingInstance, Lockable):
         self.frame_number = self._capture.get(cv2.CAP_PROP_POS_FRAMES)
         return self.frame_number
 
-    def _read_frame(self, _: str, frame_number: int = None) -> np.ndarray:
+    def _read_frame(self, _: str, frame_number: int = None) -> Optional[np.ndarray]:
         """Read frame from video file, HSV color space
 
         The `_` parameter is a placeholder for the (unused) path of the
@@ -175,6 +175,7 @@ class VideoFileHandler(CachingInstance, Lockable):
                 return frame
             else:
                 log.warning(f"could not read {self.path} frame {self.frame_number}")
+                return None
 
     def get_time(self, frame_number: int = None) -> float:
         if frame_number is None:
@@ -220,6 +221,10 @@ class VideoFileHandler(CachingInstance, Lockable):
         """Get current relative position in the video ~ [0,1]
         """
         return self.frame_number / self.frame_count
+
+
+class NotEstimatedYet(RootException):
+    msg = "Transform has not been estimated yet"
 
 
 class TransformHandler(Instance, Handler):  # todo: clean up config / config.data -> Handler should not care what goes on in config.data!
@@ -380,19 +385,29 @@ class TransformHandler(Instance, Handler):  # todo: clean up config / config.dat
            Writes to the provided variable!
            If caller needs the original value, they should copy explicitly.
         """
-        return self._implementation.transform(self._matrix, img, self._design_shape)
+        if self._matrix is not None:
+            return self._implementation.transform(self._matrix, img, self._design_shape)
+        else:
+            raise NotEstimatedYet()
 
-    def coordinate(self, coordinate: ShapeCoo) -> ShapeCoo:
+    def coordinate(self, coordinate: ShapeCoo) -> Optional[ShapeCoo]:
         """Transform a design coordinate to a video coordinate
         """
-        og_co = coordinate.copy()
-        co = self._implementation.coordinate(self._inverse, coordinate, self._video_shape[::-1])  # todo: ugh
-        return co
+        if self._inverse is not None:
+            co = self._implementation.coordinate(
+                self._inverse, coordinate, self._video_shape[::-1]
+            )
+            return co
+        else:
+            raise NotEstimatedYet()
 
     def inverse(self, img: np.ndarray) -> np.ndarray:
         """Inverse transform an image
         """
-        return self._implementation.transform(self._inverse, img, self._video_shape)
+        if self._inverse is not None:
+            return self._implementation.transform(self._inverse, img, self._video_shape)
+        else:
+            raise NotEstimatedYet()
 
 
 class FilterHandler(Instance, Handler):
@@ -1302,7 +1317,7 @@ class VideoAnalyzer(BaseAnalyzer):
             return cv2.cvtColor(  # todo: loads of unnecessary color conversion here
                 overlay(
                     cv2.cvtColor(self.read_frame(frame_number), cv2.COLOR_HSV2BGR),
-                    self.transform.inverse(self.design._overlay),
+                    self.transform.inverse(self.design._overlay), # type: ignore
                     alpha=self.design.config.overlay_alpha
                 ), cv2.COLOR_BGR2HSV)
         else:
@@ -1492,21 +1507,24 @@ class VideoAnalyzer(BaseAnalyzer):
         """
         log.debug(f'set_filter_click @ ({relative_x}, {relative_y})')
 
-        click = ShapeCoo(
+        design_space_click = ShapeCoo(
             x = relative_x,
             y = relative_y,
             shape = self.design.shape[::-1]
         )
 
-        hits = [mask for mask in self.masks if mask.contains(click)]
+        hits = [mask for mask in self.masks if mask.contains(design_space_click)]
 
         if len(hits) == 1:
             hit = hits[0]
             frame = self.read_frame()
-            click = self.transform.coordinate(click)
+            video_space_click: Optional[ShapeCoo] = self.transform.coordinate(
+                design_space_click
+            )
+            assert video_space_click is not None
 
-            color = HsvColor(*click.value(frame))
-            log.debug(f"color @ {click.idx}: {color}")
+            color = HsvColor(*video_space_click.value(frame))
+            log.debug(f"color @ {video_space_click.idx}: {color}")
 
             hit.set_filter(color)
 
@@ -1528,7 +1546,7 @@ class VideoAnalyzer(BaseAnalyzer):
             streams.update()
             self.commit()
         elif len(hits) == 0:
-            log.debug(f"no hit for {click.idx}")
+            log.debug(f"no hit for {design_space_click.idx}")
         elif len(hits) > 1:
             self.notice(
                 f"Multiple valid options: {[hit.name for hit in hits]}. "
@@ -1589,6 +1607,7 @@ class VideoAnalyzer(BaseAnalyzer):
 
         if hasattr(self, '_featuresets') and len(self._featuresets):
             frame = self.transform(self.read_frame(frame_number))
+            assert frame is not None
 
             k,fs = list(self._featuresets.items())[featureset]
 
@@ -1647,6 +1666,8 @@ class VideoAnalyzer(BaseAnalyzer):
 
             if raw_frame is not None:
                 frame = self.transform(raw_frame)
+                assert frame is not None
+
                 for k,fs in self._featuresets.items():
                     values, _ = fs.calculate(frame, state=None)
                     self.results[k].loc[frame_number] = [t] + values

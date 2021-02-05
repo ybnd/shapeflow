@@ -32,6 +32,8 @@ class Color(BaseConfig):
     strings to ``OpenCV`` conversion method identifiers.
     """
 
+    __dict__: Dict[str, int]
+
     def __init__(self, *args, **kwargs):
         if not args:
             super().__init__(**kwargs)
@@ -47,17 +49,17 @@ class Color(BaseConfig):
         return self.__dict__ == other.__dict__ and type(self) == type(other)
 
     @property
-    def np3d(self) -> np.ndarray:
+    def np3d(self) -> np.uint8:
         """This color as a 3D ``numpy`` array. Used with ``OpenCV``
         conversions and when multiplying with binary images to 'color' them.
         """
-        return np.uint8([[list(self.__dict__.values())]])
+        return np.uint8(np.array([[list(self.__dict__.values())]]))
 
     @property
     def list(self) -> List[int]:
         """This color as a list.
         """
-        return list(np.uint8(list(self.__dict__.values())))
+        return [int(v) for v in self.__dict__.values()]
 
     def convert(self, colorspace: str) -> tuple:
         """Convert this color to another colorspace.

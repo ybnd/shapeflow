@@ -42,10 +42,10 @@ class PluginRegistrationTest(unittest.TestCase):
             def estimate(self, roi: Roi, from_shape: tuple, to_shape: tuple) -> np.ndarray:
                 return np.array([])
 
-            def transform(self, transform: np.ndarray, img: np.ndarray, shape: Tuple[int, int]) -> np.ndarray:
+            def transform(self, matrix: np.ndarray, img: np.ndarray, shape: Tuple[int, int]) -> np.ndarray:
                 return np.array([])
 
-            def coordinate(self, transform: np.ndarray, coordinate: ShapeCoo, shape: Tuple[int, int]) -> ShapeCoo:
+            def coordinate(self, matrix: np.ndarray, coordinate: ShapeCoo, shape: Tuple[int, int]) -> ShapeCoo:
                 return coordinate
 
         TransformType('SomeTransform').get()()

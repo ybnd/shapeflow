@@ -53,10 +53,10 @@ def crop_mask(mask: np.ndarray) -> Tuple[np.ndarray, np.ndarray, Tuple[int, int]
     """
 
     nz = np.nonzero(mask)
-    row_0 = nz[0].min()     # todo: document, it's confusing!
-    row_1 = nz[0].max()+1
-    col_0 = nz[1].min()
-    col_1 = nz[1].max()+1
+    row_0 = int(nz[0].min())     # todo: document, it's confusing!
+    row_1 = int(nz[0].max()+1)
+    col_0 = int(nz[1].min())
+    col_1 = int(nz[1].max()+1)
     cropped_mask = mask[row_0:row_1, col_0:col_1].copy()
 
     return cropped_mask, \
@@ -176,7 +176,7 @@ def to_mask(image: np.ndarray, kernel: np.ndarray = None) -> np.ndarray:
             np.abs(
                 np.subtract(
                     255, np.array(
-                        image, dtype=np.float
+                        image, dtype=np.float32
                     )
                 )
             ), dtype=np.uint8

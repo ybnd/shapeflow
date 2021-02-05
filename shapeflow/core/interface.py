@@ -196,12 +196,12 @@ class TransformInterface(Configurable, abc.ABC):
             return None
 
     @abc.abstractmethod
-    def transform(self, transform: np.ndarray, img: np.ndarray, shape: Tuple[int, int]) -> np.ndarray:
+    def transform(self, matrix: np.ndarray, img: np.ndarray, shape: Tuple[int, int]) -> np.ndarray:
         """Transform a frame from video-space to design-space.
 
         Parameters
         ----------
-        transform : np.ndarray
+        matrix : np.ndarray
             The transformation matrix
         img : np.ndarray
             The frame to transform
@@ -217,12 +217,12 @@ class TransformInterface(Configurable, abc.ABC):
         raise NotImplementedError
 
     @abc.abstractmethod
-    def coordinate(self, transform: np.ndarray, coordinate: ShapeCoo, shape: Tuple[int, int]) -> ShapeCoo:
+    def coordinate(self, matrix: np.ndarray, coordinate: ShapeCoo, shape: Tuple[int, int]) -> ShapeCoo:
         """Transform an (x,y) coordinate from video-space to design-space.
 
         Parameters
         ----------
-        transform : np.ndarray
+        matrix : np.ndarray
             The transformation matrix
         coordinate : ShapeCoo
             The coordinate to transform

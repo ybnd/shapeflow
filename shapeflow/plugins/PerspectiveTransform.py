@@ -32,25 +32,25 @@ class _Transform(TransformInterface):
             return False
 
     def from_coordinates(self, roi: Roi, from_shape: tuple) -> np.ndarray:
-        return np.float32(
+        return np.array(
             [[relative * total
               for relative, total in zip(
                     getattr(roi, corner).list, from_shape
                 )]
-             for corner in ['BL', 'TL', 'TR', 'BR']]
+             for corner in ['BL', 'TL', 'TR', 'BR']],
+            dtype=np.float32
         )
 
     def to_coordinates(self, to_shape: tuple) -> np.ndarray:
-        return np.float32(
-                np.array(  # selection rectangle: bottom left to top right
-                    [
-                        [0, to_shape[1]],          # BL: (x,y)
-                        [0, 0],                 # TL
-                        [to_shape[0], 0],          # TR
-                        [to_shape[0], to_shape[1]],   # BR
-                    ]
-                )
-            )
+        return np.array(  # selection rectangle: bottom left to top right
+            [
+                [0, to_shape[1]],          # BL: (x,y)
+                [0, 0],                 # TL
+                [to_shape[0], 0],          # TR
+                [to_shape[0], to_shape[1]],   # BR
+            ],
+            dtype=np.float32
+        )
 
     def estimate(self, roi: Roi, from_shape: tuple, to_shape: tuple) -> Optional[np.ndarray]:
         log.debug(f'Estimating transform ~ coordinates {roi} & shape {to_shape}')

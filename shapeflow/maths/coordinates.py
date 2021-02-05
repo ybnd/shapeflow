@@ -106,7 +106,7 @@ class ShapeCoo(Coo):
     def transform(self, matrix: np.ndarray, shape: Tuple[int, int]) -> None:
         """Transform this coordinate.
 
-        Parameters
+        Parametersnumpy type
         ----------
         matrix: np.ndarray
             Transformation matrix. Should be a 2D matrix with dimensions
