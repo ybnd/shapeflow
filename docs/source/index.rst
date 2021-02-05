@@ -1,5 +1,5 @@
-shapeflow
-#########
+`shapeflow <shapeflow_>`_
+#########################
 
 A tool for extracting time-series data from video footage of microfluidic
 devices with complex channel geometry.
@@ -50,6 +50,7 @@ Dependencies
    python-library
 
 
+.. _shapeflow: https://www.github.com/ybnd/shapeflow
 
 .. _biosensors: https://www.biw.kuleuven.be/biosyst/mebios/biosensors-group
 .. _python38: https://www.python.org/downloads/release/python-386/
