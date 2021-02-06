@@ -16,11 +16,12 @@ from pathlib import Path
 import argparse
 import textwrap
 import shutil
+from functools import lru_cache, cached_property
 from typing import List, Callable, Optional, Tuple, Union
 
 from distutils.util import strtobool
-from git import Repo, Head, TagReference, GitCommandError
-from requests import get, head, HTTPError
+import git
+import requests
 
 from shapeflow import __version__, get_logger, settings
 from shapeflow.util import before_version, after_version
@@ -108,11 +109,11 @@ class Command(abc.ABC, metaclass=IterCommand):
             self.command()
         except argparse.ArgumentError:
             raise CliError(
-                f'{self.__class__.__command__}: could not parse arguments'
+                f'{self.__class__}: could not parse arguments'
             )
         except TypeError:
             raise CliError(
-                f'{self.__class__.__command__}: type error'
+                f'{self.__class__}: type error'
             )
 
     @abc.abstractmethod
@@ -298,53 +299,47 @@ class Dump(Command):
             f.write(json.dumps(d, indent=2 if self.args.pretty else None))
 
 
-class Git(abc.ABC):
+class GitMixin(abc.ABC):
     """Metaclass for commands interacting with the git repository
     """
 
     URL = 'https://github.com/ybnd/shapeflow/'
 
-    _repo: Repo = None
-    _latest: str = None
-    _is_at_release: bool = None
+    @cached_property
+    def repo(self) -> git.Repo:
+        repo = git.Repo()
+        repo.remote().fetch()
+        return repo
 
-    @property
-    def repo(self) -> Repo:
-        if self._repo is None:
-            self._repo = Repo()
-            self._repo.remote().fetch()
-        return self._repo
-
-    @property
+    @cached_property
     def latest(self) -> str:
-        if self._latest is None:
-            self._latest = get(self.URL + 'releases/latest').url.split('/')[-1]
-        return self._latest
+        response = requests.head(self.URL + 'releases/latest')
+        return response.headers['location'].split('/')[-1]
 
-    @property
-    def is_up_to_date(self) -> bool:
-        if self.is_at_release:
-            return not before_version(self.tag, self.latest)
+    @lru_cache()
+    def is_up_to_date(self, tag) -> bool:
+        if self.is_at_release(tag):
+            return not before_version(tag, self.latest)
         else:
-            return self.repo.head.commit.hexsha != self.repo.remote().repo.head.commit.hexsha
+            return self.repo.head.commit.hexsha == self.repo.remote().repo.head.commit.hexsha  # todo: can also be _after_ though
 
     @property
     def tag(self) -> str:
         try:
             return self.repo.git.describe('--exact-match', '--tag')
-        except GitCommandError:
-            raise CliError(f'Not at a tag')
-    
-    @property
-    def is_at_release(self) -> bool:
-        return head(self.URL + 'releases/tag/' + self.tag).status_code == 200
+        except git.GitCommandError:
+            return ''
+
+    @lru_cache()
+    def is_at_release(self, tag: str) -> tag:
+        return requests.head(self.URL + 'releases/tag/' + tag).status_code == 200
 
     @property
     def ui_url(self) -> str:
         return self.URL + f'releases/download/{self.tag}/dist-{self.tag}.tar.gz'
 
     def _get_compiled_ui(self) -> None:
-        if self.is_at_release:
+        if self.is_at_release(self.tag):
             if after_version(self.tag, '0.3'):
                 try:
                     from urllib.request import urlopen
@@ -356,13 +351,13 @@ class Git(abc.ABC):
                     ).extractall(path='ui/')
                     print('Downloaded compiled UI.')
                 except:
-                    print(
+                    raise CliError(
                         f'No compiled UI for "{self.tag}" at {self.ui_url}.\n'
                         f'This is probably an issue with this release, '
                         f'please inform the maintaner.'
                     )
         else:
-            print(
+            raise CliError(
                 'No compiled UI can be downloaded because the repository '
                 'is currently not at a release version.\n'
                 'Please check out a release or compile the UI yourself with'
@@ -388,7 +383,7 @@ class Git(abc.ABC):
         )))
 
 
-class Update(Command, Git):
+class Update(Command, GitMixin):
     """Update the application
     """
 
@@ -403,14 +398,14 @@ class Update(Command, Git):
     )
 
     def command(self):
-        if not self.is_up_to_date:
+        if not self.is_up_to_date(self.tag):
             if self._handle_local_changes(self.args.discard_changes):
                 self._update()
         else:
             print('Already up to date.')
 
     def _update(self) -> None:
-        if not self.is_up_to_date:
+        if not self.is_up_to_date(self.tag):
             if self.repo.head.is_detached:
                 # repo is at a tag, get the latest release
                 self.repo.git.checkout(self.latest)
@@ -426,7 +421,7 @@ class Update(Command, Git):
         print('Already up to date.')
 
 
-class Checkout(Command, Git):
+class Checkout(Command, GitMixin):
     """Check out a specific version of the application. Please not you will
     not have access to this command if you check out a version before 0.4.4
     """
@@ -459,7 +454,7 @@ class Checkout(Command, Git):
     def _is_a_ref(self, ref: str) -> bool:
         try:
             return len(self.repo.git.rev_list('-n', '1', ref)) > 0
-        except GitCommandError:
+        except git.GitCommandError:
             return False
 
     def _is_after_0_4_4(self, ref: str) -> bool:
@@ -467,8 +462,8 @@ class Checkout(Command, Git):
             return before_version('0.4.4', ref)
         except ValueError:
             # ~ https://stackoverflow.com/a/3006050/12259362
-            branch = Head(self.repo, 'refs/heads/' + ref).commit.hexsha
-            t0_4_4 = TagReference(self.repo, 'refs/heads/0.4.4').commit.hexsha
+            branch = git.Head(self.repo, 'refs/heads/' + ref).commit.hexsha
+            t0_4_4 = git.TagReference(self.repo, 'refs/heads/0.4.4').commit.hexsha
 
             return branch == t0_4_4 or len(
                 self.repo.git.rev_list('--boundary', f'{t0_4_4}..{branch}')
@@ -482,7 +477,7 @@ class Checkout(Command, Git):
         )))
 
 
-class GetCompiledUi(Command, Git):
+class GetCompiledUi(Command, GitMixin):
     """Get the compiled UI for the current version
     """
 
