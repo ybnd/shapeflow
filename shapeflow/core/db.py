@@ -3,7 +3,7 @@ import queue
 import os
 import time
 from contextlib import contextmanager
-from typing import Optional, List, Type, Any, Tuple
+from typing import Optional, List, Any, Tuple
 import datetime
 
 from sqlalchemy.ext.declarative import declarative_base
@@ -13,9 +13,8 @@ from sqlalchemy.sql.schema import Column
 from sqlalchemy.sql.sqltypes import Integer, String, DateTime
 from sqlalchemy.exc import InvalidRequestError
 
-from shapeflow import get_logger
-from shapeflow.core import RootException, RootInstance, Lockable
-from shapeflow.util import hash_file
+from shapeflow.core.logging import get_logger, RootException
+from shapeflow.util import hash_file, Lockable
 
 log = get_logger(__name__)
 Base = declarative_base()

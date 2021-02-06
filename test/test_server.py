@@ -7,7 +7,8 @@ import time
 import json
 import subprocess
 
-from shapeflow import settings, ROOTDIR, save_settings
+from shapeflow import ROOTDIR
+from shapeflow.core.settings import settings
 
 raise unittest.SkipTest('takes too long')
 
@@ -58,9 +59,9 @@ def override_settings():
         os.remove(STATE)
 
     try:
-        with settings.cache.override({"dir": CACHE}), \
-                settings.db.override({"path": DB}), \
-                settings.app.override({"state_path": STATE}):
+        with gs.cache.override({"dir": CACHE}), \
+             gs.db.override({"path": DB}), \
+             gs.app.override({"state_path": STATE}):
             save_settings()
             yield
     finally:

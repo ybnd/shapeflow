@@ -2,7 +2,8 @@ import numpy as np
 
 from shapeflow.config import extend
 from shapeflow.maths.images import area_pixelsum
-from shapeflow.video import MaskFunction, FeatureType
+from shapeflow.video import MaskFunction
+from shapeflow.core.features import FeatureType
 
 
 @extend(FeatureType, __name__.split('.')[-1])

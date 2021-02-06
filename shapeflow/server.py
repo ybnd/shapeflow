@@ -12,11 +12,14 @@ import webbrowser
 import shapeflow
 import shapeflow.config
 import shapeflow.util as util
-from shapeflow.core import DispatchingError
+from shapeflow.core.settings import settings
+from shapeflow.core.logging import get_logger
 import shapeflow.core.streaming as streaming
+from shapeflow.core.dispatching import DispatchingError
 from shapeflow.api import ApiDispatcher
 
-log = shapeflow.get_logger(__name__)
+
+log = get_logger(__name__)
 UI = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     , 'ui', 'dist'
@@ -47,7 +50,7 @@ class ServerThread(Thread, metaclass=util.Singleton):
                 self._app,
                 host=self._host,
                 port=self._port,
-                threads=shapeflow.settings.app.threads,
+                threads=settings.app.threads,
             )
         except OSError:
             log.warning("address already in use")

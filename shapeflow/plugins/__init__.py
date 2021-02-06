@@ -1,8 +1,7 @@
-from os.path import dirname, basename, isfile, join
+from os.path import basename
 import os
-import glob
 
-from shapeflow import get_logger
+from shapeflow.core.logging import get_logger
 
 log = get_logger(__name__)
 
@@ -16,8 +15,7 @@ log.info(f"loading plugins: {', '.join(__all__)}")
 # import plugins
 from . import *
 from shapeflow.core.interface import TransformType, FilterType
-from shapeflow.core.backend import FeatureType
-
+from ..core.features import FeatureType
 
 TransformType.set_default(TransformType('PerspectiveTransform'))
 FilterType.set_default(FilterType('HsvRangeFilter'))

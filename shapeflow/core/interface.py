@@ -1,10 +1,9 @@
 import abc
-from typing import Type, Tuple, Optional, Dict, Mapping
+from typing import Type, Tuple, Optional, Mapping, Callable
 
 import numpy as np
 
-from shapeflow import get_logger
-from shapeflow.core import Described
+from shapeflow.core.logging import get_logger
 from shapeflow.core.config import BaseConfig, Configurable, Factory
 from shapeflow.maths.colors import Color
 from shapeflow.maths.coordinates import ShapeCoo, Roi
@@ -27,6 +26,9 @@ class InterfaceType(Factory):
         interface = super().get()
         assert issubclass(interface, Configurable)
         return interface
+
+    def config_class(self):
+        return self.get().config_class()
 
     def config_schema(self) -> dict:
         """Get the config schema for this interface type.

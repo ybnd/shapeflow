@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 
-from shapeflow import get_logger
+from shapeflow.core.logging import get_logger
 from shapeflow.config import extend, ConfigType, Field, validator, BaseConfig
 
 from shapeflow.core.interface import FilterConfig, FilterInterface, FilterType

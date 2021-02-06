@@ -1,18 +1,16 @@
 from typing import Dict, Optional, List, Callable, Tuple, Type, Any
 import numpy as np
-import shortuuid
 
-from shapeflow.core import Dispatcher, Endpoint, stream_image, stream_json, stream_plain
-from shapeflow.util.meta import bind
-from shapeflow.maths.colors import HsvColor
-from shapeflow.core.streaming import BaseStreamer, EventStreamer, PlainFileStreamer
+from shapeflow.core.dispatching import Endpoint, Dispatcher
+from shapeflow.core.streaming import BaseStreamer, EventStreamer, \
+    PlainFileStreamer, Stream
 
 
 # todo: also specify http methods maybe?
 class _VideoAnalyzerDispatcher(Dispatcher):
     """Dispatches ``/api/va/<id>/<endpoint>``
     """
-    status = Endpoint(Callable[[], dict], stream_json)
+    status = Endpoint(Callable[[], dict], Stream.json)
     """Get the analyzer's status
     
     :func:`shapeflow.core.backend.BaseAnalyzer.status`
@@ -52,7 +50,7 @@ class _VideoAnalyzerDispatcher(Dispatcher):
         
     :func:`shapeflow.core.backend.BaseAnalyzer.cancel`
     """
-    get_config = Endpoint(Callable[[], dict], stream_json)
+    get_config = Endpoint(Callable[[], dict], Stream.json)
     """Return the analyzer's configuration
     
     :func:`shapeflow.core.backend.BaseAnalyzer.get_config`
@@ -107,7 +105,7 @@ class _VideoAnalyzerDispatcher(Dispatcher):
     
     :func:`shapeflow.video.VideoAnalyzer.get_overlay_png`
     """
-    get_frame = Endpoint(Callable[[Optional[int]], np.ndarray], stream_image)
+    get_frame = Endpoint(Callable[[Optional[int]], np.ndarray], Stream.image)
     """Return the transformed frame at the provided frame number 
     (or the current frame number if ``None``)
     
@@ -119,18 +117,18 @@ class _VideoAnalyzerDispatcher(Dispatcher):
     
     :func:`shapeflow.video.VideoAnalyzer.set_filter_click`
     """
-    get_inverse_transformed_overlay = Endpoint(Callable[[], np.ndarray], stream_image)
+    get_inverse_transformed_overlay = Endpoint(Callable[[], np.ndarray], Stream.image)
     """Return the inverse transformed overlay image
     
     :func:`shapeflow.video.VideoAnalyzer.get_inverse_transformed_overlay`
     """
-    get_inverse_overlaid_frame = Endpoint(Callable[[Optional[int]], np.ndarray], stream_image)
+    get_inverse_overlaid_frame = Endpoint(Callable[[Optional[int]], np.ndarray], Stream.image)
     """Return the inverse overlaid frame at the provided frame number 
     (or the current frame number if ``None``)
     
     :func:`shapeflow.video.VideoAnalyzer.get_inverse_overlaid_frame`
     """
-    get_state_frame = Endpoint(Callable[[Optional[int], Optional[int]], np.ndarray], stream_image)
+    get_state_frame = Endpoint(Callable[[Optional[int], Optional[int]], np.ndarray], Stream.image)
     """Return the state frame at the provided frame number 
     (or the current frame number if ``None``)
     
@@ -183,7 +181,7 @@ class _VideoAnalyzerDispatcher(Dispatcher):
     
     :func:`shapeflow.video.VideoAnalyzer.get_fps`
     """
-    get_raw_frame = Endpoint(Callable[[Optional[int]], np.ndarray], stream_image)
+    get_raw_frame = Endpoint(Callable[[Optional[int]], np.ndarray], Stream.image)
     """Return the raw frame at the provided frame number 
     (or the current frame number if ``None``)
     
@@ -381,7 +379,7 @@ class ApiDispatcher(Dispatcher):
     
     :func:`shapeflow.main._Main.set_settings`
     """
-    events = Endpoint(Callable[[], EventStreamer], stream_json)
+    events = Endpoint(Callable[[], EventStreamer], Stream.json)
     """Open an event stream
     
     :func:`shapeflow.main._Main.events`
@@ -391,7 +389,7 @@ class ApiDispatcher(Dispatcher):
     
     :func:`shapeflow.main._Main.stop_events`
     """
-    log = Endpoint(Callable[[], PlainFileStreamer], stream_plain)
+    log = Endpoint(Callable[[], PlainFileStreamer], Stream.plain)
     """Open a log stream
     
     :func:`shapeflow.main._Main.log`

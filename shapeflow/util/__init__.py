@@ -19,6 +19,11 @@ from contextlib import contextmanager
 
 import numpy as np
 
+# from shapeflow.core.logging import get_logger
+# from shapeflow.settings import settings
+#
+# log = get_logger(__name__, settings)
+
 
 def ndarray2str(array: np.ndarray) -> str:
     return str(json.dumps(array.tolist()))
@@ -304,3 +309,114 @@ def ensure_path(path: Union[str, Path]):
         raise
     finally:
         sys.path.remove(path_str)
+
+
+class Described(object):
+    """A class with a description.
+
+    This description is taken from the first line of the docstring if there is
+    one or set to the name of the class if there isn't.
+    """
+    @classmethod
+    def _description(cls):
+        if cls.__doc__ is not None:
+            return cls.__doc__.split('\n')[0]
+        else:
+            return cls.__name__
+
+
+class Lockable(object):
+    """Wrapper around :class:`threading.Lock` & :class:`threading.Event`
+
+    Defines a :class:`~shapeflow.core.Lockable.lock` context to handle locking
+    and unlocking along with a ``_cancel`` and ``_error`` events to communicate
+    with :class:`~shapeflow.core.Lockable` objects from other threads.
+
+    Doesn't need to initialize; lock & events are created when they're needed.
+    """
+    _lock: threading.Lock
+    _cancel: threading.Event
+    _error: threading.Event
+
+    @property
+    def _ensure_lock(self) -> threading.Lock:
+        try:
+            return self._lock
+        except AttributeError:
+            self._lock = threading.Lock()
+            return self._lock
+
+    @property
+    def _ensure_cancel(self) -> threading.Event:
+        try:
+            return self._cancel
+        except AttributeError:
+            self._cancel = threading.Event()
+            return self._cancel
+
+    @property
+    def _ensure_error(self) -> threading.Event:
+        try:
+            return self._error
+        except AttributeError:
+            self._error = threading.Event()
+            return self._error
+
+    @contextmanager
+    def lock(self):
+        """Locking context.
+
+        If ``_lock`` event doesn't exist yet it is instantiated first.
+        Upon exiting the context, the :class:`threading.Lock` object
+        is compared to the original to ensure that no shenanigans took place.
+        """
+        # log.vdebug(f"Acquiring lock {self}...")
+        locked = self._ensure_lock.acquire()
+        original_lock = self._lock
+        # log.vdebug(f"Acquired lock {self}")
+        try:
+            # log.vdebug(f"Locking {self}")
+            yield locked
+        finally:
+            # log.vdebug(f"Unlocking {self}")
+            # Make 'sure' nothing weird happened to self._lock
+            assert self._lock == original_lock
+            self._lock.release()
+
+    def cancel(self):
+        """Sets the ``_cancel`` event.
+        If ``_cancel`` event doesn't exist yet it is instantiated first.
+        """
+        self._ensure_cancel.set()
+
+    def error(self):
+        """Sets the ``_error`` event.
+        If ``_error`` event doesn't exist yet it is instantiated first.
+        """
+        self._ensure_error.set()
+
+    @property
+    def canceled(self) -> bool:
+        """Returns ``True`` if the ``_cancel`` event is set.
+        If ``_cancel`` event doesn't exist yet it is instantiated first.
+        """
+        return self._ensure_cancel.is_set()
+
+    @property
+    def errored(self) -> bool:
+        """Returns ``True`` if the ``_error`` event is set.
+        If ``_error`` event doesn't exist yet it is instantiated first.
+        """
+        return self._ensure_error.is_set()
+
+    def clear_cancel(self):
+        """Clears the ``_cancel`` event.
+        If ``_cancel`` event doesn't exist yet it is instantiated first.
+        """
+        return self._ensure_cancel.clear()
+
+    def clear_error(self):
+        """Clears the ``_error`` event.
+        If ``_error`` event doesn't exist yet it is instantiated first.
+        """
+        return self._ensure_error.clear()

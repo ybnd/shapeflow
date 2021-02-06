@@ -1,17 +1,16 @@
-from typing import Optional, Tuple, Dict, Any, Type, Union
+from typing import Optional, Tuple, Dict, Any
 import json
 
 from pydantic import Field, validator
 
-from shapeflow import __version__, settings
+from shapeflow import __version__
 
 from shapeflow.core.config import extend, ConfigType, \
-    log, VERSION, CLASS, untag, BaseConfig
-from shapeflow.core.backend import BaseAnalyzerConfig, \
-    FeatureType, FeatureConfig, AnalyzerState, QueueState
-from shapeflow.core import EnforcedStr
+    log, VERSION, CLASS, untag, BaseConfig, EnforcedStr
+from shapeflow.core.features import FeatureConfig, FeatureType
 from shapeflow.core.interface import FilterType, TransformType, TransformConfig, \
     FilterConfig, HandlerConfig
+from shapeflow.core.settings import Category
 from shapeflow.maths.coordinates import Roi
 from shapeflow.maths.colors import HsvColor
 
@@ -128,6 +127,15 @@ class DesignFileHandlerConfig(BaseConfig):
     _limit_smoothing = validator('smoothing', allow_reuse=True, pre=True)(BaseConfig._int_limits)
     _limit_dpi = validator('dpi', allow_reuse=True, pre=True)(BaseConfig._int_limits)
     _limit_alpha = validator('overlay_alpha', allow_reuse=True, pre=True)(BaseConfig._float_limits)
+
+
+class BaseAnalyzerConfig(BaseConfig):
+    """Abstract analyzer configuration.
+    """
+    video_path: Optional[str] = Field(default=None)
+    design_path: Optional[str] = Field(default=None)
+    name: Optional[str] = Field(default=None)
+    description: Optional[str] = Field(default=None)
 
 
 @extend(ConfigType)
@@ -266,24 +274,6 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
 
     _validate_fis = validator('frame_interval_setting')(BaseConfig._resolve_enforcedstr)
 
-
-def schemas() -> Dict[str, dict]:
-    """Get the JSON schemas of
-
-    * :class:`shapeflow.video.VideoAnalyzerConfig`
-
-    * :class:`shapeflow.Settings`
-
-    * :class:`shapeflow.core.backend.AnalyzerState`
-
-    * :class:`shapeflow.core.backend.QueueState`
-    """
-    return {
-        'config': VideoAnalyzerConfig.schema(),
-        'settings': settings.schema(),
-        'analyzer_state': dict(AnalyzerState.__members__),
-        'queue_state': dict(QueueState.__members__),
-    }
 
 def loads(config: str) -> BaseConfig:
     """Load a configuration object from a JSON string.
@@ -498,3 +488,29 @@ def normalize_config(d: dict) -> dict:
     untag(d)
 
     return d
+
+
+class DefaultConfigSettings(Category):
+    fis: FrameIntervalSetting = Field(default=FrameIntervalSetting('Nf'), title="Frame interval setting")
+
+    dt: float = Field(default=5.0, title="Frame interval in seconds")
+
+    Nf: int = Field(default=100, title="Total number of frames")
+
+    feature: FeatureType = Field(default_factory=FeatureType, title="Feature")
+
+    feature_parameters: FeatureConfig = Field(default_factory=FeatureType.config_class, title="Feature parameter(s)")
+
+    flip: FlipConfig = Field(default_factory=FlipConfig, title="Flip the ROI...")
+
+    turn: int = Field(default=0, title="Turn the ROI ... times (clockwise, 90°)")
+
+    transform: TransformType = Field(default_factory=TransformType, title="Transform")
+
+    transform_config: TransformConfig = Field(default_factory=TransformType.config_class, title="Transform configuration")
+
+    filter: FilterType = Field(default_factory=FilterType, title="Filter")
+
+    filter_config: FilterConfig = Field(default_factory=FilterType.config_class, title="Filter configuration")
+
+    mask_skip: bool = Field(default=False, title="Skip masks")

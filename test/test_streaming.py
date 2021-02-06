@@ -4,12 +4,11 @@ from typing import Generator, Type, Callable
 from threading import Thread
 import time
 
-import cv2
 import numpy as np
 
-from shapeflow.core import Endpoint, Dispatcher, stream_image
-from shapeflow.core.config import Instance, BaseConfig
-from shapeflow.core.streaming import BaseStreamer, JpegStreamer, JsonStreamer, streams, stream
+from shapeflow.core.dispatching import Endpoint, Dispatcher
+from shapeflow.core.streaming import BaseStreamer, JpegStreamer, JsonStreamer, \
+    streams, stream, Stream
 
 
 class StreamerThread(Thread):
@@ -112,8 +111,8 @@ class JsonStreamerTest(BaseStreamerTest):
 class StreamHandlerTest(unittest.TestCase):
     def test_normal_operation(self):
         class TestDispatcher(Dispatcher):
-            method1 = Endpoint(Callable[[], np.ndarray], stream_image)
-            method2 = Endpoint(Callable[[], np.ndarray], stream_image)
+            method1 = Endpoint(Callable[[], np.ndarray], Stream.image)
+            method2 = Endpoint(Callable[[], np.ndarray], Stream.image)
 
         class StreamableClass(object):
             @stream

@@ -10,14 +10,15 @@ import time
 import socket
 import json
 import requests
-import re
 import abc
 from pathlib import Path
 import argparse
-import textwrap
-from typing import List, Callable, Optional, Tuple, Union
+from typing import List, Callable, Optional, Tuple
 
-from shapeflow import __version__, get_logger, settings
+from shapeflow import __version__
+from shapeflow.core.settings import settings
+from shapeflow.core.logging import get_logger, RootException
+
 log = get_logger(__name__)
 
 # type aliases
@@ -25,7 +26,7 @@ OptArgs = Optional[List[str]]
 Parsing = Callable[[OptArgs], None]
 
 
-class CliError(Exception):
+class CliError(RootException):
     pass
 
 
@@ -37,7 +38,7 @@ class IterCommand(abc.ABCMeta):
     """
     __command__: str
     """Command name. This is how the command is addressed from the commandline.
-    """  # todo: nope, doesn't work'
+    """
 
     def __str__(cls):
         try:
@@ -97,6 +98,11 @@ class Command(abc.ABC, metaclass=IterCommand):
             args = sys.argv[1:]
         try:
             self.args, self.sub_args = self._parse(args)
+
+            # only the root Command is allowed to pass on sub_args
+            if len(self.sub_args) > 0 and hasattr(self, "__command__"):
+                raise CliError(f"unrecognized argument(s) {self.sub_args}")
+
             self.command()
         except argparse.ArgumentError:
             raise CliError
@@ -272,14 +278,14 @@ class Dump(Command):
     )
 
     def command(self):
-        from shapeflow.config import schemas
+        from shapeflow.main import schemas
 
         if not self.args.dir.is_dir():
             log.warning(f"making directory '{self.args.dir}'")
             self.args.dir.mkdir()
 
         self._write('schemas', schemas())
-        self._write('settings', settings.to_dict())
+        self._write('settings', settings.as_dict())
 
     def _write(self, file, d):
         with open(self.args.dir / (file + '.json'), 'w+') as f:

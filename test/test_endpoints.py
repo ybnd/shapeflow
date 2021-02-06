@@ -2,7 +2,7 @@ import unittest
 
 from typing import Callable
 
-from shapeflow.core import Endpoint, Dispatcher
+from shapeflow.core.dispatching import Endpoint, Dispatcher
 from shapeflow.util.meta import bind, unbind
 from shapeflow.api import _CacheDispatcher, _DatabaseDispatcher, \
     _VideoAnalyzerManagerDispatcher, _FilesystemDispatcher, \

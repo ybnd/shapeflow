@@ -1,25 +1,29 @@
 import os
 import json
-from typing import Optional, Tuple, List, Dict, Type
+from typing import Optional, Tuple, List, Dict
 from pathlib import Path
 import datetime
 import sqlite3
 
+from pydantic import FilePath, Field, validator
 from sqlalchemy.orm import sessionmaker, scoped_session
 from sqlalchemy import create_engine, Column, Integer, Float, String, DateTime, ForeignKey
 
 import pandas as pd
 
+from shapeflow import ROOTDIR
 from shapeflow.api import api
-from shapeflow.core import RootInstance
-from shapeflow.core.db import Base, DbModel, SessionWrapper, FileModel, BaseAnalysisModel
-from shapeflow import settings, get_logger, ResultSaveMode
+from shapeflow.core.logging import get_logger
+from shapeflow.core.db import Base, DbModel, SessionWrapper, FileModel, \
+    BaseAnalysisModel
+from shapeflow.core.settings import settings, FormatSettings, Category, \
+    ResultSaveMode, ApplicationSettings
 from shapeflow.core.config import __meta_sheet__
 from shapeflow.config import normalize_config, VideoAnalyzerConfig
 from shapeflow.core.streaming import EventStreamer
 
-from shapeflow.core.backend import BaseAnalyzer, BaseAnalyzerConfig
-
+from shapeflow.core.backend import BaseAnalyzer
+from shapeflow.util import Lockable
 
 log = get_logger(__name__)
 
@@ -305,29 +309,29 @@ class AnalysisModel(BaseAnalysisModel):
             base_f = None
 
             if manual:
-                if settings.app.save_result_manual == ResultSaveMode.next_to_video:
+                if settings.get(ApplicationSettings).save_result_manual == ResultSaveMode.next_to_video:
                     base_f = str(os.path.splitext(config['video_path'])[0])
-                elif settings.app.save_result_manual == ResultSaveMode.next_to_design:
+                elif settings.get(ApplicationSettings).save_result_manual == ResultSaveMode.next_to_design:
                     base_f = str(os.path.splitext(config['design_path'])[0])
-                elif settings.app.save_result_manual == ResultSaveMode.directory:
+                elif settings.get(ApplicationSettings).save_result_manual == ResultSaveMode.directory:
                     base_f = os.path.join(
                         str(settings.app.result_dir),
                         f"{self.name} run {run}"
                     )
             else:
-                if settings.app.save_result_auto == ResultSaveMode.next_to_video:
+                if settings.get(ApplicationSettings).save_result_auto == ResultSaveMode.next_to_video:
                     base_f = str(os.path.splitext(config['video_path'])[0])
-                elif settings.app.save_result_auto == ResultSaveMode.next_to_design:
+                elif settings.get(ApplicationSettings).save_result_auto == ResultSaveMode.next_to_design:
                     base_f = str(os.path.splitext(config['design_path'])[0])
-                elif settings.app.save_result_auto == ResultSaveMode.directory:
+                elif settings.get(ApplicationSettings).save_result_auto == ResultSaveMode.directory:
                     base_f = os.path.join(
-                        str(settings.app.result_dir),
+                        str(settings.get(ApplicationSettings).result_dir),
                         f"{self.name} run {run}"
                     )
 
             if base_f is not None:
                 f = base_f + ' ' + datetime.datetime.now().strftime(
-                    settings.format.datetime_format_fs
+                    settings.get(FormatSettings).datetime_format_fs
                 ) + '.xlsx'
 
                 w = pd.ExcelWriter(f)
@@ -533,7 +537,7 @@ class AnalysisModel(BaseAnalysisModel):
         else:
             raise ValueError(f"Invalid redo context '{context}'")
 
-class History(SessionWrapper, RootInstance):
+class History(SessionWrapper, Lockable):
     """Interface to the history database
     """
     _eventstreamer: EventStreamer
@@ -542,7 +546,7 @@ class History(SessionWrapper, RootInstance):
         super().__init__()
 
         if path is None:
-            path = settings.db.path
+            path = settings.get(DatabaseSettings).path
 
         self._engine = create_engine(f'sqlite:///{str(path)}')
         try:
@@ -656,10 +660,10 @@ class History(SessionWrapper, RootInstance):
             return {
                 'video_path': [r[0] for r in s.query(VideoFileModel.path).\
                     order_by(VideoFileModel.used.desc()).\
-                    limit(settings.app.recent_files).all()],
+                    limit(settings.get(ApplicationSettings).recent_files).all()],
                 'design_path': [r[0] for r in s.query(DesignFileModel.path). \
                     order_by(DesignFileModel.used.desc()). \
-                    limit(settings.app.recent_files).all()]
+                    limit(settings.get(ApplicationSettings).recent_files).all()]
             }
 
     # @history.expose(history.get_result_list)
@@ -833,7 +837,7 @@ class History(SessionWrapper, RootInstance):
         """
         log.debug(f"cleaning history")
         threshold = datetime.datetime.now() - datetime.timedelta(
-            days=settings.db.cleanup_interval
+            days=settings.get(DatabaseSettings).cleanup_interval
         )
 
         with self.session() as s:
@@ -885,4 +889,16 @@ class History(SessionWrapper, RootInstance):
                 s.query(model).delete()
 
 
+class DatabaseSettings(Category):
+    """Database settings.
+    """
+    path: FilePath = Field(default=str(ROOTDIR / 'history.db'), title="database file")
+    """The path to the database file
+    """
+    cleanup_interval: int = Field(default=7, title='clean-up interval (days)')
+    """The database can get cluttered after a while, and will be cleaned at 
+    this interval
+    """
 
+    _validate_path = validator('path', allow_reuse=True, pre=True)(
+        Category._validate_filepath)

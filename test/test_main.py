@@ -23,7 +23,6 @@ if os.getcwd() == '/home/travis/build/ybnd/shapeflow':
 
 from shapeflow import ROOTDIR
 
-
 CACHE = os.path.join(ROOTDIR, 'test_server-cache')
 DB = os.path.join(ROOTDIR, 'test_server-history.db')
 STATE = os.path.join(ROOTDIR, 'test_server-state')
@@ -43,7 +42,7 @@ def clear_files():
 
 @contextmanager
 def application(keep: bool = False):
-    from shapeflow import settings, save_settings
+    from shapeflow.core.settings import settings
 
     if not keep:
         clear_files()
@@ -711,7 +710,7 @@ class ServerAnalyzerTest(unittest.TestCase):
 
 class DbCheckTest(unittest.TestCase):
     def test_db_check(self):
-        from shapeflow import settings, save_settings
+        from shapeflow.core.settings import settings
 
         with settings.db.override({'path': DB}):
             clear_files()

@@ -7,19 +7,21 @@ from typing import Callable, Any, Dict, Generator, Optional, List, Tuple, Type
 import cv2
 import numpy as np
 import pandas as pd
+from pydantic import validator, Field, DirectoryPath
 from OnionSVG import OnionSVG, check_svg
 
-from shapeflow import get_logger, settings, ResultSaveMode
+from shapeflow.core.logging import get_logger
+from shapeflow.core.caching import CacheSettings
+from shapeflow.core.settings import settings, Category, ROOTDIR
 from shapeflow.api import api
 from shapeflow.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     FilterHandlerConfig, MaskConfig, \
     DesignFileHandlerConfig, VideoAnalyzerConfig, \
-    FrameIntervalSetting, BaseAnalyzerConfig, FlipConfig
-from shapeflow.core import Lockable
+    FrameIntervalSetting, BaseAnalyzerConfig
 from shapeflow.core.backend import Instance, CachingInstance, \
-    BaseAnalyzer, BackendSetupError, AnalyzerType, Feature, \
-    FeatureSet, \
-    FeatureType, AnalyzerState, PushEvent, FeatureConfig, CacheAccessError
+    BaseAnalyzer, BackendSetupError, AnalyzerType, AnalyzerState, PushEvent, CacheAccessError
+from shapeflow.core.features import FeatureConfig, Feature, FeatureSet, \
+    FeatureType
 from shapeflow.core.config import extend
 from shapeflow.core.interface import TransformInterface, FilterConfig, \
     FilterInterface, FilterType, TransformType, Handler
@@ -28,7 +30,7 @@ from shapeflow.maths.colors import Color, HsvColor, BgrColor, convert, css_hex
 from shapeflow.maths.images import to_mask, crop_mask, ckernel, \
     overlay, rect_contains
 from shapeflow.maths.coordinates import ShapeCoo, Roi
-from shapeflow.util import frame_number_iterator
+from shapeflow.util import frame_number_iterator, Lockable
 
 log = get_logger(__name__)
 
@@ -194,7 +196,7 @@ class VideoFileHandler(CachingInstance, Lockable):
         if frame_number is None:
             frame_number = self.frame_number
 
-        if settings.cache.resolve_frame_number:
+        if settings.get(CacheSettings).resolve_frame_number:
             frame_number = self._resolve_frame(frame_number)
 
         return self.cached_call(self._read_frame, self.path, frame_number)
@@ -206,7 +208,7 @@ class VideoFileHandler(CachingInstance, Lockable):
         #       (otherwise streams.update() can get deadocked @ VideoFileHandler if not reading frames from cache)
         if position is not None:
             frame_number = int(position * self.frame_count)
-            if settings.cache.resolve_frame_number:
+            if settings.get(CacheSettings).resolve_frame_number:
                 self.frame_number = self._resolve_frame(frame_number)
             else:
                 self.frame_number = frame_number
@@ -615,6 +617,24 @@ class Mask(Instance):
         return self.config.skip
 
 
+class RenderSettings(Category):
+    """Rendering settings
+    """
+    dir: DirectoryPath = Field(default=str(ROOTDIR / 'render'),
+                               title="render directory")
+    """The directory where SVG files should be rendered to
+    """
+    keep: bool = Field(default=False, title="keep files after rendering")
+    """Keep rendered images after they've been used. 
+
+    Disabled by default, you may want to enable this if you want to inspect the
+    renders.
+    """
+
+    _validate_dir = validator('dir', allow_reuse=True, pre=True)(
+        Category._validate_directorypath)
+
+
 class DesignFileHandler(CachingInstance):
     """Handles design files
     """
@@ -653,31 +673,31 @@ class DesignFileHandler(CachingInstance):
         return self._config
 
     def _clear_renders(self):
-        log.debug(f'Clearing render directory {settings.render.dir}')
-        renders = [f for f in os.listdir(settings.render.dir)]
+        log.debug(f'Clearing render directory {settings.get(RenderSettings).dir}')
+        renders = [f for f in os.listdir(settings.get(RenderSettings).dir)]
         for f in renders:
-            os.remove(os.path.join(settings.render.dir, f))
+            os.remove(os.path.join(settings.get(RenderSettings).dir, f))
 
     def _peel_design(self, design_path, dpi) -> np.ndarray:
-        if not os.path.isdir(settings.render.dir):
-            os.mkdir(settings.render.dir)
+        if not os.path.isdir(settings.get(RenderSettings).dir):
+            os.mkdir(settings.get(RenderSettings).dir)
         else:
             self._clear_renders()
 
         check_svg(design_path)
         OnionSVG(design_path, dpi=dpi).peel(
-            'all', to=settings.render.dir  # todo: should maybe prepend file name to avoid overwriting previous renders?
+            'all', to=settings.get(RenderSettings).dir  # todo: should maybe prepend file name to avoid overwriting previous renders?
         )
         print("\n")
 
         overlay = cv2.imread(
-            os.path.join(settings.render.dir, 'overlay.png')
+            os.path.join(settings.get(RenderSettings).dir, 'overlay.png')
         )
 
         return overlay
 
     def _read_masks(self, _, __) -> Tuple[List[np.ndarray], List[str]]:
-        files = os.listdir(settings.render.dir)
+        files = os.listdir(settings.get(RenderSettings).dir)
         files.remove('overlay.png')
 
         # Catch file names of numbered layers
@@ -689,7 +709,7 @@ class DesignFileHandler(CachingInstance):
 
         for path in files:
             match = pattern.search(os.path.splitext(path)[0])
-            path = os.path.join(settings.render.dir, path)
+            path = os.path.join(settings.get(RenderSettings).dir, path)
 
             if match:
                 matched.update(  # numbered layer
@@ -720,7 +740,7 @@ class DesignFileHandler(CachingInstance):
             else:
                 names.append(path)
 
-        if not settings.render.keep:
+        if not settings.get(RenderSettings).keep:
             self._clear_renders()
 
         return masks, names
