@@ -9,15 +9,12 @@ import sys
 import time
 import socket
 import json
-import requests
-import re
 import abc
 from pathlib import Path
 import argparse
-import textwrap
 import shutil
-from functools import lru_cache, cached_property
-from typing import List, Callable, Optional, Tuple, Union
+from functools import lru_cache
+from typing import List, Callable, Optional, Tuple
 
 from distutils.util import strtobool
 import git
@@ -305,16 +302,22 @@ class GitMixin(abc.ABC):
 
     URL = 'https://github.com/ybnd/shapeflow/'
 
-    @cached_property
-    def repo(self) -> git.Repo:
-        repo = git.Repo()
-        repo.remote().fetch()
-        return repo
+    _repo = None
+    _latest = None
 
-    @cached_property
+    @property
+    def repo(self) -> git.Repo:
+        if self._repo is None:
+            self._repo = git.Repo()
+            self._repo.remote().fetch()
+        return self._repo
+
+    @property
     def latest(self) -> str:
-        response = requests.head(self.URL + 'releases/latest')
-        return response.headers['location'].split('/')[-1]
+        if self._latest is None:
+            response = requests.head(self.URL + 'releases/latest')
+            self._latest = response.headers['location'].split('/')[-1]
+        return self._latest
 
     @lru_cache()
     def is_up_to_date(self, tag) -> bool:
@@ -331,7 +334,7 @@ class GitMixin(abc.ABC):
             return ''
 
     @lru_cache()
-    def is_at_release(self, tag: str) -> tag:
+    def is_at_release(self, tag: str) -> bool:
         return requests.head(self.URL + 'releases/tag/' + tag).status_code == 200
 
     @property

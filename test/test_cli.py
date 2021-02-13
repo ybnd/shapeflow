@@ -282,14 +282,14 @@ class GitMixinTest(unittest.TestCase):
 
 
     def test_checks_if_up_to_date_at_tag_and_it_is(self):
-        self.gc.latest = '1.2.3'
+        self.gc._latest = '1.2.3'
         self.gc.is_at_release = Mock('is_at_release', return_value=True)
 
         ok = self.gc.is_up_to_date('1.2.3')
         self.assertTrue(ok)
 
     def test_checks_if_up_to_date_at_tag_and_it_isnt(self):
-        self.gc.latest = '1.2.3'
+        self.gc._latest = '1.2.3'
         self.gc.is_at_release = Mock('is_at_release', return_value=True)
 
         ok = self.gc.is_up_to_date('0.1.2')
