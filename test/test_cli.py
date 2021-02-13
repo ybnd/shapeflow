@@ -1,4 +1,6 @@
 import abc
+import sys
+import io
 import shutil
 import unittest
 from typing import List, Type, Callable, Any
@@ -19,23 +21,18 @@ def noop(*_, **__):
     pass
 
 
-@patch('shapeflow.server.ShapeflowServer.serve', noop)
+@patch('shapeflow.server.ShapeflowServer.serve', Mock('serve'))
 @patch('argparse.ArgumentParser.exit', noop)
 class SfTest(unittest.TestCase):
     def test_no_arguments(self):
         shapeflow.cli.Sf()
 
-        # todo: assert things
-
-    def test_help(self):
-        shapeflow.cli.Sf(['--help'])
-
-        # todo: assert things
+        self.assertEqual(1, shapeflow.server.ShapeflowServer.serve.call_count)
 
     def test_version(self):
-        shapeflow.cli.Sf(['--version'])
-
-        # todo: assert things
+        with patch('sys.stdout', io.StringIO()) as stdout:
+            shapeflow.cli.Sf(['--version'])
+            self.assertIn(shapeflow.__version__, stdout.getvalue())
 
     def test_valid_commands(self):
         for command in shapeflow.cli.Command:
@@ -47,9 +44,30 @@ class SfTest(unittest.TestCase):
         self.assertRaises(shapeflow.cli.CliError, shapeflow.cli.Sf, ['dmp'])
         self.assertRaises(shapeflow.cli.CliError, shapeflow.cli.Sf, ['nope'])
 
+    def test_help_global(self):
+        with patch('sys.stdout', io.StringIO()) as stdout:
+            shapeflow.cli.Sf(['--help'])
+            out = stdout.getvalue()
+
+            self.assertIn(shapeflow.cli.Sf.parser.description.strip(), out)
+            self.assertIn(shapeflow.cli.Sf.__help__().strip(), out)
+            for c in shapeflow.cli.Command:
+                self.assertIn(str(c).strip(), out)
+                self.assertIn(c.__usage__().strip(), out)
+
+    def test_all_commands_help_command(self):
+        for c in shapeflow.cli.Command:
+            with patch('sys.stdout', io.StringIO()) as stdout:
+                shapeflow.cli.Sf(['--help', str(c)])
+                out = stdout.getvalue()
+
+                self.assertIn(str(c).strip(), out)
+                self.assertIn(c.__usage__().strip(), out)
+
 
 class CommandTest(abc.ABC, unittest.TestCase):
     command: Type[shapeflow.cli.Command]
+    instance: shapeflow.cli.Command
     mocks: List[Mock] = []
 
     def tearDown(self) -> None:
@@ -58,12 +76,6 @@ class CommandTest(abc.ABC, unittest.TestCase):
 
     def test_valid_command(self):
         self.assertTrue(self.command in shapeflow.cli.Command)
-
-    def test_no_arguments(self):
-        self.command()
-
-    def test_help(self):
-        self.command(['--help'])
 
 
 class MockServerInstance():
@@ -91,7 +103,6 @@ class MockRequests():
 @patch('shapeflow.server.ShapeflowServer', MockServer)
 @patch('socket.socket', MockSock)
 @patch('requests.post', MockRequests.post)
-@patch('argparse.ArgumentParser.exit', noop)
 class ServeTest(CommandTest):
     command = shapeflow.cli.Serve
     mocks = [
@@ -105,7 +116,7 @@ class ServeTest(CommandTest):
         MockSockInstance.connect_ex.side_effect = [0, 0, 1]  # explicitly :(
 
     def test_no_arguments(self):
-        super().test_no_arguments()
+        self.instance = self.command()
 
         self.assertEqual(3, MockSockInstance.connect_ex.call_count)
         self.assertEqual(1, MockRequests.post.call_count)
@@ -129,23 +140,25 @@ class ServeTest(CommandTest):
         )
 
 
-@patch('argparse.ArgumentParser.exit', noop)
 class DumpTest(CommandTest):
     command = shapeflow.cli.Dump
 
     def test_no_arguments(self):
-        super().test_no_arguments()
+        self.instance = self.command()
 
-        # assertions go here
+        self.assertTrue(Path('schemas.json').is_file())
+        self.assertTrue(Path('settings.json').is_file())
 
         Path('schemas.json').unlink()
         Path('settings.json').unlink()
 
     def test_dir(self):
-        self.command(['stuff'])
-        shutil.rmtree('stuff')
+        self.command(['--dir', 'stuff'])
 
-        # assertions go here
+        self.assertTrue(Path('stuff').is_dir())
+        self.assertTrue(Path('stuff/schemas.json').is_file())
+        self.assertTrue(Path('stuff/settings.json').is_file())
+        shutil.rmtree('stuff')
 
 
 class GeneralMock(object):
@@ -177,22 +190,228 @@ class GeneralMock(object):
         else:
             return GeneralMock()
 
+    def reset_mock(self) -> None:
+        self.call_count = 0
+        self.return_value = None
+        for key in self.__dict__.keys():
+            if not key in self.__annotations__:
+                self.__dict__.pop(key)
 
-class MockGit(object):
-    URL = 'test_url/'
 
-    repo: GeneralMock
-    latest: str
-    is_up_to_date: bool
-    tag: str
-    is_at_release: bool
-    ui_url: str
-    _get_compiled_ui = Mock('_get_compiled_ui')
-    _handle_local_changes: Callable[[bool], bool]
-    _prompt_discard_changes: Callable[[None], bool]
+mock_repo = GeneralMock()
 
-    def repo(self) -> GeneralMock:
-        return GeneralMock()
+
+@patch('git.Repo', mock_repo)
+class UpdateTest(CommandTest):
+    command = shapeflow.cli.Update
+    instance: shapeflow.cli.Update
+
+    def test_no_arguments(self):
+        self.command.is_up_to_date = Mock('is_up_to_date', return_value=False)
+        self.command._handle_local_changes = Mock('_handle_local_changes', return_value=False)
+
+        with patch('shapeflow.cli.Update._update', Mock('_update', noop)):
+            self.instance = self.command()
+            self.assertEqual(0, self.instance._update.call_count)
+
+    def test_no_arguments_confirm_prompt(self):
+        self.command.is_up_to_date = Mock('is_up_to_date', return_value=False)
+        self.command._handle_local_changes = Mock('_handle_local_changes', return_value=True)
+
+        with patch('shapeflow.cli.Update._update', Mock('_update', noop)):
+            self.instance = self.command()
+            self.assertEqual(1, self.instance._update.call_count)
+
+    def test_no_arguments_up_to_date(self):
+        self.command.is_up_to_date = Mock('is_up_to_date', return_value=True)
+
+        with patch('shapeflow.cli.Update._update', Mock('_update', noop)):
+            self.instance = self.command()
+
+            self.assertEqual(0, self.instance._update.call_count)
+
+    def test_force(self):
+        self.command.is_up_to_date = Mock('is_up_to_date', return_value=False)
+
+        with patch('shapeflow.cli.Update._update', Mock('_update', noop)):
+            self.instance = self.command(['--discard-changes'])
+            self.assertEqual(1, self.instance._update.call_count)
+
+    def test_up_to_date_force(self):
+        self.command.is_up_to_date = Mock('is_up_to_date', return_value=True)
+
+        with patch('shapeflow.cli.Update._update', Mock('_update', noop)):
+            self.instance = self.command(['--discard-changes'])
+            self.assertEqual(0, self.instance._update.call_count)
+
+    def _silent_init(self):
+        self.command.is_up_to_date = Mock('is_up_to_date', return_value=True)
+        self.instance = self.command()
+
+    def test_update_at_tag(self):
+        self._silent_init()
+
+        self.instance.repo.head.is_detached = True
+        self.instance._latest = '0.0.0'
+        self.instance.repo.git.checkout = Mock('checkout', noop)
+        self.instance._get_compiled_ui = Mock('_get_compiled_ui', noop)
+        self.instance._update()
+
+        self.assertEqual(1, self.instance.repo.git.checkout.call_count)
+        self.assertEqual(
+            call(self.instance.latest),
+            self.instance.repo.git.checkout.call_args
+        )
+        self.assertEqual(1, self.instance._get_compiled_ui.call_count)
+
+
+    def test_update_at_branch(self):
+        self._silent_init()
+
+        self.instance.repo.head.is_detached = False
+        self.instance.repo.git.pull = Mock('checkout', noop)
+        self.instance._update()
+
+        self.assertEqual(1, self.instance.repo.git.pull.call_count)
+
+
+@patch('git.Repo', mock_repo)
+class CheckoutTest(CommandTest):
+    command = shapeflow.cli.Checkout
+    instance: shapeflow.cli.Checkout
+
+    def test_raise_on_invalid_ref(self):
+        self.assertRaises(shapeflow.cli.CliError, self.command, ['not-a-ref'])
+
+    def test_after_0_4_4(self):
+        self.command._is_a_ref = Mock('_is_a_ref', return_value=True)
+        self.command._handle_local_changes = Mock(
+            '_handle_local_changes', return_value=True
+        )
+        self.command._get_compiled_ui = Mock('_get_compiled_ui', noop)
+
+        self.instance = self.command(['0.4.5'])
+
+        self.assertEqual(1, self.command._handle_local_changes.call_count)
+        self.assertEqual(1, self.command._get_compiled_ui.call_count)
+        self.assertEqual(1, self.instance.repo.git.checkout.call_count)
+
+    def test_before_0_4_4(self):
+        self.command._is_a_ref = Mock('_is_a_ref', return_value=True)
+        self.command._checkout_anyway = Mock(
+            '_checkout_anyway', return_value=False
+        )
+        self.command._handle_local_changes = Mock(
+            '_handle_local_changes', return_value=True
+        )
+        self.command._get_compiled_ui = Mock('_get_compiled_ui', noop)
+
+        self.instance = self.command(['0.4.2'])
+
+        self.assertEqual(0, self.command._handle_local_changes.call_count)
+        self.assertEqual(0, self.command._get_compiled_ui.call_count)
+        self.assertEqual(0, self.instance.repo.git.checkout.call_count)
+
+    def test_before_0_4_4_checkout_anyway(self):
+        self.command._is_a_ref = Mock('_is_a_ref', return_value=True)
+        self.command._checkout_anyway = Mock(
+            '_checkout_anyway', return_value=True
+        )
+        self.command._handle_local_changes = Mock(
+            '_handle_local_changes', return_value=True
+        )
+        self.command._get_compiled_ui = Mock('_get_compiled_ui', noop)
+
+        self.instance = self.command(['0.4.2'])
+
+        self.assertEqual(1, self.command._handle_local_changes.call_count)
+        self.assertEqual(1, self.command._get_compiled_ui.call_count)
+        self.assertEqual(1, self.instance.repo.git.checkout.call_count)
+
+
+class GetCompiledUiTest(CommandTest):
+    command = shapeflow.cli.GetCompiledUi
+    instance: shapeflow.cli.GetCompiledUi
+
+    def _clear(self):
+        for path in [Path('ui/dist/somefile'), Path('ui/dist'), Path('ui')]:
+            if path.exists():
+                if path.is_dir():
+                    path.rmdir()
+                elif path.is_file():
+                    path.unlink()
+
+    def setUp(self) -> None:
+        self._clear()
+
+    def tearDown(self) -> None:
+        self._clear()
+
+    def test_no_ui_dir(self):
+        self.command._prompt_replace_ui = Mock(
+            '_prompt_replace_ui', return_value=False
+        )
+        self.command._get_compiled_ui = Mock('_get_compiled_ui', noop)
+        self.instance = self.command()
+
+        self.assertEqual(0, self.command._prompt_replace_ui.call_count)
+        self.assertEqual(1, self.command._get_compiled_ui.call_count)
+
+    def test_empty_ui_dir(self):
+        Path('ui').mkdir()
+        Path('ui/dist').mkdir()
+
+        self.command._prompt_replace_ui = Mock(
+            '_prompt_replace_ui', return_value=False
+        )
+        self.command._get_compiled_ui = Mock('_get_compiled_ui', noop)
+        self.instance = self.command()
+
+        self.assertEqual(0, self.command._prompt_replace_ui.call_count)
+        self.assertEqual(1, self.command._get_compiled_ui.call_count)
+
+    def test_nonempty_ui_dir_prompt_no(self):
+        Path('ui').mkdir()
+        Path('ui/dist').mkdir()
+        Path('ui/dist/somefile').touch()
+
+        self.command._prompt_replace_ui = Mock(
+            '_prompt_replace_ui', return_value=False
+        )
+        self.command._get_compiled_ui = Mock('_get_compiled_ui', noop)
+        self.instance = self.command()
+
+        self.assertEqual(1, self.command._prompt_replace_ui.call_count)
+        self.assertEqual(0, self.command._get_compiled_ui.call_count)
+
+    def test_nonempty_ui_dir_prompt_yes(self):
+        Path('ui').mkdir()
+        Path('ui/dist').mkdir()
+        Path('ui/dist/somefile').touch()
+
+        self.command._prompt_replace_ui = Mock(
+            '_prompt_replace_ui', return_value=True
+        )
+        self.command._get_compiled_ui = Mock('_get_compiled_ui', noop)
+        self.instance = self.command()
+
+        self.assertEqual(1, self.command._prompt_replace_ui.call_count)
+        self.assertEqual(1, self.command._get_compiled_ui.call_count)
+
+    def test_nonempty_ui_dir_replace(self):
+        Path('ui').mkdir()
+        Path('ui/dist').mkdir()
+        Path('ui/dist/somefile').touch()
+
+        self.command._prompt_replace_ui = Mock(
+            '_prompt_replace_ui', return_value=True
+        )
+        self.command._get_compiled_ui = Mock('_get_compiled_ui', noop)
+        self.instance = self.command(['--replace'])
+
+        self.assertEqual(0, self.command._prompt_replace_ui.call_count)
+        self.assertEqual(1, self.command._get_compiled_ui.call_count)
+
 
 class MockResponse(object):
     headers: dict

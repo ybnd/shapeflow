@@ -104,11 +104,11 @@ class Command(abc.ABC, metaclass=IterCommand):
         try:
             self.args, self.sub_args = self._parse(args)
             self.command()
-        except argparse.ArgumentError:
+        except argparse.ArgumentError as e:
             raise CliError(
                 f'{self.__class__}: could not parse arguments'
             )
-        except TypeError:
+        except TypeError as e:
             raise CliError(
                 f'{self.__class__}: type error'
             )
@@ -152,18 +152,21 @@ class Sf(Command):
     """
     parser = argparse.ArgumentParser(
         description=f"""https://github.com/ybnd/shapeflow v{__version__}""",
-        add_help=False
+        add_help=False  # we're defining a custom --help that should override
+                        #  the built-in one
     )
     parser.add_argument(
         '-h', '--help',
         action='store_true',
-        help="show this help message"
+        help="show this help message; "
+             "for help with a specific command, call --help [command]"
     )
     parser.add_argument(
         '--version',
         action='store_true',
         help="show the version"
     )
+
     def __init__(self, args: OptArgs = None):
         # note: if the command argument is added as a class attribute,
         #       Command subclasses will be left out of the choices if they
@@ -274,8 +277,7 @@ class Dump(Command):
         help='indent JSON'
     )
     parser.add_argument(
-        'dir',
-        nargs='?',
+        '--dir',
         type=Path,
         default=Path.cwd(),
         help='directory to dump to'
@@ -340,6 +342,24 @@ class GitMixin(abc.ABC):
     @property
     def ui_url(self) -> str:
         return self.URL + f'releases/download/{self.tag}/dist-{self.tag}.tar.gz'
+
+    def _is_a_ref(self, ref: str) -> bool:
+        try:
+            return len(self.repo.git.rev_list('-n', '1', ref)) > 0
+        except git.GitCommandError:
+            return False
+
+    def _is_after_0_4_4(self, ref: str) -> bool:
+        try:
+            return before_version('0.4.4', ref)
+        except ValueError:
+            # ~ https://stackoverflow.com/a/3006050/12259362
+            branch = git.Head(self.repo, 'refs/heads/' + ref).commit.hexsha
+            t0_4_4 = git.TagReference(self.repo, 'refs/heads/0.4.4').commit.hexsha
+
+            return branch == t0_4_4 or len(
+                self.repo.git.rev_list('--boundary', f'{t0_4_4}..{branch}')
+            ) > 0
 
     def _get_compiled_ui(self) -> None:
         if self.is_at_release(self.tag):
@@ -408,20 +428,18 @@ class Update(Command, GitMixin):
             print('Already up to date.')
 
     def _update(self) -> None:
-        if not self.is_up_to_date(self.tag):
-            if self.repo.head.is_detached:
-                # repo is at a tag, get the latest release
-                self.repo.git.checkout(self.latest)
-                self._get_compiled_ui()
-            else:
-                # repo is at a branch, pull the branch if there are new commits
-                result = self.repo.git.pull()
-                print(result)
-                print(
-                    'Note: the repository is at a branch. Please recompile the UI '
-                    '\n\n\t cd ui && npm run build \n\n'
-                )
-        print('Already up to date.')
+        if self.repo.head.is_detached:
+            # repo is at a tag, get the latest release
+            self.repo.git.checkout(self.latest)
+            self._get_compiled_ui()
+        else:
+            # repo is at a branch, pull the branch if there are new commits
+            result = self.repo.git.pull()
+            print(result)
+            print(
+                'Note: the repository is at a branch. Please recompile the UI '
+                '\n\n\t cd ui && npm run build \n\n'
+            )
 
 
 class Checkout(Command, GitMixin):
@@ -439,9 +457,9 @@ class Checkout(Command, GitMixin):
         help="the tag or branch to check out"
     )
     parser.add_argument(
-        '--no-training-wheels',
+        '--discard-changes',
         action='store_true',
-        help='check out tags and branches before 0.4.4 without prompting'
+        help='discard local changes without prompting'
     )
 
     def command(self) -> None:
@@ -449,28 +467,10 @@ class Checkout(Command, GitMixin):
             raise CliError(f'Not a valid reference: "{self.args.ref}"')
 
         if self._is_after_0_4_4(self.args.ref) or self._checkout_anyway():
-            if self._handle_local_changes(self.args.no_training_wheels):
+            if self._handle_local_changes(self.args.discard_changes):
                 self.repo.git.checkout(self.args.ref)
                 print(f'Checked out "{self.args.ref}"')
                 self._get_compiled_ui()
-
-    def _is_a_ref(self, ref: str) -> bool:
-        try:
-            return len(self.repo.git.rev_list('-n', '1', ref)) > 0
-        except git.GitCommandError:
-            return False
-
-    def _is_after_0_4_4(self, ref: str) -> bool:
-        try:
-            return before_version('0.4.4', ref)
-        except ValueError:
-            # ~ https://stackoverflow.com/a/3006050/12259362
-            branch = git.Head(self.repo, 'refs/heads/' + ref).commit.hexsha
-            t0_4_4 = git.TagReference(self.repo, 'refs/heads/0.4.4').commit.hexsha
-
-            return branch == t0_4_4 or len(
-                self.repo.git.rev_list('--boundary', f'{t0_4_4}..{branch}')
-            ) > 0
 
     def _checkout_anyway(self) -> bool:
         return bool(strtobool(input(
@@ -489,7 +489,7 @@ class GetCompiledUi(Command, GitMixin):
         description=__doc__
     )
     parser.add_argument(
-        '--replace-ui',
+        '--replace',
         action='store_true',
         help='replace the current UI without prompting'
     )
@@ -501,7 +501,7 @@ class GetCompiledUi(Command, GitMixin):
         if exists:
             if not any(ui_dir.iterdir()):
                 ui_dir.rmdir()
-            elif self.args.replace_ui or self._prompt_replace_ui():
+            elif self.args.replace or self._prompt_replace_ui():
                 shutil.rmtree(ui_dir)
             else:
                 return None
