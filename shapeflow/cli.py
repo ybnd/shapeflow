@@ -529,7 +529,7 @@ class SetupCairo(Command):
     URL = 'https://github.com/preshing/cairo-windows/releases/download/with-tee/cairo-windows-1.17.2.zip'
 
     def command(self) -> None:
-        if os.name == 'nt':
+        if self._on_windows():
             self._cleanup()
             self._setup()
         else:
@@ -551,38 +551,49 @@ class SetupCairo(Command):
         """
 
         if not self._cairo_works():
-            self._get_cairo_dll()
+            self._get_cairo_dlls()
 
-            # try with x64 cairo.dll
-            for file in Path().glob('cairo*/lib/x64/cairo'):
-                file.replace(self.env / file.name)
+            try:
+                # try with x64 cairo.dll
+                for file in Path().glob('cairo*/lib/x64/cairo.*'):
+                    file.replace(self.env / file.name)
 
-            if self._cairo_works():
-                print('Installed x64 cairo DLL')
-                return None
+                if self._cairo_works():
+                    print('Installed x64 cairo DLL')
+                    return None
 
-            # try with x86 cairo.dll
-            for file in Path().glob('cairo*/lib/x86/cairo'):
-                file.replace(self.env / file.name)
+                # try with x86 cairo.dll
+                for file in Path().glob('cairo*/lib/x86/cairo.*'):
+                    file.replace(self.env / file.name)
 
-            if self._cairo_works():
-                print('Installed x86 cairo DLL')
-                return None
-            else:
-                raise EnvironmentError('Could not install cairo DLL')
+                if self._cairo_works():
+                    print('Installed x86 cairo DLL')
+                    return None
+                else:
+                    raise EnvironmentError('Could not install cairo DLL')
+            finally:
+                for f in Path().glob('cairo*'):
+                    shutil.rmtree(f)
 
         else:
             print('It seems that cairo is already working properly.')
 
-    def _get_cairo_dll(self) -> None:
-        urlretrieve(self.URL, 'cairo.zip')
+    @classmethod
+    def _get_cairo_dlls(cls) -> None:
+        urlretrieve(cls.URL, 'cairo.zip')
         with ZipFile('cairo.zip', 'r') as z:
             z.extractall()
+
+        Path('cairo.zip').unlink()
 
     @staticmethod
     def _cairo_works() -> bool:
         process = Popen([sys.executable, '-c', '"import cairosvg"'], PIPE)
         return process.poll() == 0
+
+    @staticmethod
+    def _on_windows() -> bool:
+        return os.path == 'nt'
 
     @property
     def env(self) -> Path:

@@ -1,4 +1,5 @@
 import abc
+import os
 import sys
 import io
 import shutil
@@ -648,6 +649,106 @@ class GithubUrlTest(unittest.TestCase):
 
         response = requests.head(URL)
         self.assertEqual(404, response.status_code)
+
+
+class SetupCairoTest(CommandTest):
+    command = shapeflow.cli.SetupCairo
+    instance: shapeflow.cli.SetupCairo
+
+    def setUp(self) -> None:
+        self.temp_get_cairo_dlls = self.command._get_cairo_dlls
+
+    def tearDown(self) -> None:
+        self.command._get_cairo_dlls = self.temp_get_cairo_dlls
+
+    def test_gets_cairo_dlls(self):
+        self.command._get_cairo_dlls()
+
+        self.assertTrue(next(Path().glob('cairo*')).is_dir())
+        self.assertTrue(next(Path().glob('cairo*/lib/x64')).is_dir())
+        self.assertTrue(next(Path().glob('cairo*/lib/x86')).is_dir())
+        self.assertTrue(len(list(Path().glob('cairo*/lib/x64/cairo.*'))) > 0)
+        self.assertTrue(len(list(Path().glob('cairo*/lib/x86/cairo.*'))) > 0)
+
+        for f in Path().glob('cairo*'):
+            shutil.rmtree(f)
+
+    def test_cairo_works_already(self):
+        self.command._on_windows = Mock('_on_windows', return_value=True)
+        self.command._cairo_works = Mock('_cairo_works', return_value=True)
+        self.command._get_cairo_dlls = Mock('_get_cairo_dlls', noop)
+
+        self.command()
+
+        self.assertEqual(1, self.command._cairo_works.call_count)
+        self.assertEqual(0, self.command._get_cairo_dlls.call_count)
+
+    def test_cairo_works_after_first_guess(self):
+        self.command._on_windows = Mock('_on_windows', return_value=True)
+        self.command._cairo_works = Mock(
+            '_cairo_works', side_effect=[False, True]
+        )
+        self.command._get_cairo_dlls = Mock('_get_cairo_dlls', noop)
+
+        self.command()
+
+        self.assertEqual(2, self.command._cairo_works.call_count)
+        self.assertEqual(1, self.command._get_cairo_dlls.call_count)
+
+    def test_cairo_works_after_second_guess(self):
+        self.command._on_windows = Mock('_on_windows', return_value=True)
+        self.command._cairo_works = Mock(
+            '_cairo_works', side_effect=[False, False, True]
+        )
+        self.command._get_cairo_dlls = Mock('_get_cairo_dlls', noop)
+
+        self.command()
+
+        self.assertEqual(3, self.command._cairo_works.call_count)
+        self.assertEqual(1, self.command._get_cairo_dlls.call_count)
+
+    def test_cant_get_cairo_to_work(self):
+        self.command._on_windows = Mock('_on_windows', return_value=True)
+        self.command._cairo_works = Mock(
+            '_cairo_works', side_effect=[False, False, False]
+        )
+        self.command._get_cairo_dlls = Mock('_get_cairo_dlls', noop)
+
+        self.assertRaises(EnvironmentError, self.command)
+
+        self.assertEqual(3, self.command._cairo_works.call_count)
+        self.assertEqual(1, self.command._get_cairo_dlls.call_count)
+
+    def test_not_on_windows(self):
+        self.command._on_windows = Mock('_on_windows', return_value=False)
+        self.command._cairo_works = Mock('_cairo_works', return_value=True)
+        self.command._get_cairo_dlls = Mock('_get_cairo_dlls', noop)
+
+        self.command()
+
+        self.assertEqual(0, self.command._cairo_works.call_count)
+        self.assertEqual(0, self.command._get_cairo_dlls.call_count)
+
+
+class DeclutterTest(CommandTest):
+    command = shapeflow.cli.Declutter
+    instance: shapeflow.cli.Declutter
+
+    def test_declutters(self):
+        self.command._declutter = Mock('_declutter', noop)
+        self.command._reclutter = Mock('_reclutter', noop)
+
+        self.command()
+        self.assertEqual(1, self.command._declutter.call_count)
+        self.assertEqual(0, self.command._reclutter.call_count)
+
+    def test_reclutters(self):
+        self.command._declutter = Mock('_declutter', noop)
+        self.command._reclutter = Mock('_reclutter', noop)
+
+        self.command(['--undo'])
+        self.assertEqual(0, self.command._declutter.call_count)
+        self.assertEqual(1, self.command._reclutter.call_count)
 
 
 del CommandTest
