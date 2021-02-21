@@ -5,8 +5,10 @@ Calling from the commandline::
    python sf.py --do <command name> <arguments>
 """
 
+import os
 import sys
 import time
+import glob
 import socket
 import json
 import abc
@@ -15,6 +17,9 @@ import argparse
 import shutil
 from functools import lru_cache
 from typing import List, Callable, Optional, Tuple
+from subprocess import Popen, PIPE
+from urllib.request import urlretrieve
+from zipfile import ZipFile
 
 from distutils.util import strtobool
 import git
@@ -510,3 +515,125 @@ class GetCompiledUi(Command, GitMixin):
 
     def _prompt_replace_ui(self) -> bool:
         return bool(strtobool(input('Replace the current UI? (y/n) ')))
+
+
+class SetupCairo(Command):
+    """Set up cairo DLLs (Windows) ~ https://github.com/preshing/cairo-windows/
+    """
+
+    __command__ = 'setup-cairo'
+    parser = argparse.ArgumentParser(
+        description=__doc__
+    )
+
+    URL = 'https://github.com/preshing/cairo-windows/releases/download/with-tee/cairo-windows-1.17.2.zip'
+
+    def command(self) -> None:
+        if os.name == 'nt':
+            self._cleanup()
+            self._setup()
+        else:
+            print(f'Not on Windows.')
+            return None
+
+    def _cleanup(self) -> None:
+        """Remove cairo files from the current Python environment.
+        """
+        for file in self.env.glob('cairo'):
+            file.unlink()
+
+    def _setup(self) -> None:
+        """Install cairo into the current Python environment.
+
+        This DLL has been known to behave weirdly with regards to
+        Windows/Python combinations of different 'bitness', so the strategy
+        here is to try both versions and keep whichever works.
+        """
+
+        if not self._cairo_works():
+            self._get_cairo_dll()
+
+            # try with x64 cairo.dll
+            for file in Path().glob('cairo*/lib/x64/cairo'):
+                file.replace(self.env / file.name)
+
+            if self._cairo_works():
+                print('Installed x64 cairo DLL')
+                return None
+
+            # try with x86 cairo.dll
+            for file in Path().glob('cairo*/lib/x86/cairo'):
+                file.replace(self.env / file.name)
+
+            if self._cairo_works():
+                print('Installed x86 cairo DLL')
+                return None
+            else:
+                raise EnvironmentError('Could not install cairo DLL')
+
+        else:
+            print('It seems that cairo is already working properly.')
+
+    def _get_cairo_dll(self) -> None:
+        urlretrieve(self.URL, 'cairo.zip')
+        with ZipFile('cairo.zip', 'r') as z:
+            z.extractall()
+
+    @staticmethod
+    def _cairo_works() -> bool:
+        process = Popen([sys.executable, '-c', '"import cairosvg"'], PIPE)
+        return process.poll() == 0
+
+    @property
+    def env(self) -> Path:
+        return Path(sys.executable).parent
+
+
+class Declutter(Command):
+    """Hide clutter files from the repository
+    """
+
+    CLUTTER = ['mypy.ini', 'tox.ini', '__pycache__']
+
+    __command__ = 'declutter'
+    parser = argparse.ArgumentParser(
+        description=__doc__
+    )
+    parser.add_argument(
+        '--undo',
+        action='store_true',
+        help='unhide clutter'
+    )
+
+    def command(self) -> None:
+        if not self.args.undo:
+            self._declutter()
+        else:
+            self._reclutter()
+
+    def _declutter(self) -> None:
+        if os.name == 'nt':
+            # Pre-emptively create __pycache__ so we can hide it now.
+            if not os.path.isdir('__pycache__'):
+                os.mkdir('__pycache__')
+
+            for file in self.CLUTTER + glob.glob('.*'):
+                if Path(file).exists():
+                    os.system("attrib +h " + file)
+        elif os.name == 'darwin':
+            pass  # todo: .hidden doesn't work
+        else:
+            with open('.hidden', 'w+') as f:
+                f.write('\n'.join(self.CLUTTER))
+
+    def _reclutter(self) -> None:
+        if os.name == 'nt':
+            for file in self.CLUTTER + glob.glob('.*'):
+                if Path(file).exists():
+                    os.system("attrib -h " + file)
+        elif os.name == 'darwin':
+            pass  # todo: .hidden doesn't work
+        else:
+            Path('.hidden').unlink()
+
+
