@@ -17,7 +17,6 @@ import argparse
 import shutil
 from functools import lru_cache
 from typing import List, Callable, Optional, Tuple
-from subprocess import Popen, PIPE
 from urllib.request import urlretrieve
 from zipfile import ZipFile
 
@@ -26,7 +25,7 @@ import git
 import requests
 
 from shapeflow import __version__, get_logger, settings
-from shapeflow.util import before_version, after_version
+from shapeflow.util import before_version, after_version, suppress_stdout
 
 
 log = get_logger(__name__)
@@ -525,12 +524,18 @@ class SetupCairo(Command):
     parser = argparse.ArgumentParser(
         description=__doc__
     )
+    parser.add_argument(
+        '--cleanup',
+        action='store_true',
+        help='remove cairo from virtual environment first'
+    )
 
     URL = 'https://github.com/preshing/cairo-windows/releases/download/with-tee/cairo-windows-1.17.2.zip'
 
     def command(self) -> None:
         if self._on_windows():
-            self._cleanup()
+            if self.args.cleanup:
+                self._cleanup()
             self._setup()
         else:
             print(f'Not on Windows.')
@@ -539,7 +544,7 @@ class SetupCairo(Command):
     def _cleanup(self) -> None:
         """Remove cairo files from the current Python environment.
         """
-        for file in self.env.glob('cairo'):
+        for file in self.env.glob('cairo.*'):
             file.unlink()
 
     def _setup(self) -> None:
@@ -555,6 +560,7 @@ class SetupCairo(Command):
 
             try:
                 # try with x64 cairo.dll
+                self._cleanup()
                 for file in Path().glob('cairo*/lib/x64/cairo.*'):
                     file.replace(self.env / file.name)
 
@@ -563,6 +569,7 @@ class SetupCairo(Command):
                     return None
 
                 # try with x86 cairo.dll
+                self._cleanup()
                 for file in Path().glob('cairo*/lib/x86/cairo.*'):
                     file.replace(self.env / file.name)
 
@@ -588,12 +595,16 @@ class SetupCairo(Command):
 
     @staticmethod
     def _cairo_works() -> bool:
-        process = Popen([sys.executable, '-c', '"import cairosvg"'], PIPE)
-        return process.poll() == 0
+        try:
+            with suppress_stdout():
+                import cairosvg
+                return True
+        except OSError:
+            return False
 
     @staticmethod
     def _on_windows() -> bool:
-        return os.path == 'nt'
+        return os.name == 'nt'
 
     @property
     def env(self) -> Path:
