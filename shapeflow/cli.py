@@ -630,9 +630,11 @@ class Declutter(Command):
 
             for file in self.CLUTTER + glob.glob('.*'):
                 if Path(file).exists():
-                    os.system("attrib +h " + file)
+                    os.system(f'attrib +h "{file}"')
         elif os.name == 'darwin':
-            pass  # todo: .hidden doesn't work
+            for file in self.CLUTTER:
+                if Path(file).exists():
+                    os.system(f'chflags hidden "{file}"')
         else:
             with open('.hidden', 'w+') as f:
                 f.write('\n'.join(self.CLUTTER))
@@ -641,10 +643,10 @@ class Declutter(Command):
         if os.name == 'nt':
             for file in self.CLUTTER + glob.glob('.*'):
                 if Path(file).exists():
-                    os.system("attrib -h " + file)
+                    os.system(f'attrib -h "{file}"')
         elif os.name == 'darwin':
-            pass  # todo: .hidden doesn't work
+            for file in self.CLUTTER:
+                if Path(file).exists():
+                    os.system(f'chflags nohidden "{file}"')
         else:
             Path('.hidden').unlink()
-
-
