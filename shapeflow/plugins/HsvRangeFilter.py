@@ -15,7 +15,7 @@ log = get_logger(__name__)
 class _Config(FilterConfig):
     """Configuration for :class:`shapeflow.plugins.HsvRangeFilter._Filter`
     """
-    color: HsvColor = Field(default=HsvColor())
+    color: HsvColor = Field(default_factory=HsvColor)
     """The center color.
     """
     range: HsvColor = Field(default=HsvColor(h=10, s=75, v=75))
