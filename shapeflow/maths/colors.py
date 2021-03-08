@@ -46,7 +46,7 @@ class Color(BaseConfig):
         super().__call__(**{kw:int(arg) for kw, arg in kwargs.items()})
 
     def __eq__(self, other: object) -> bool:
-        return self.__dict__ == other.__dict__ and type(self) == type(other)
+        return type(self) == type(other) and self.__dict__ == other.__dict__
 
     @property
     def np3d(self) -> np.uint8:
