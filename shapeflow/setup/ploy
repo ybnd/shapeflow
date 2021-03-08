@@ -1,10 +1,7 @@
 # version: <tag to deploy goes here>
-
+version: 0.4.4
 url: https://github.com/ybnd/shapeflow
 name: shapeflow
 environment: .venv
-check: shapeflow/setup/templates/check
 setup:
-    - shapeflow/setup/templates/setup_windows
-    - shapeflow/setup/templates/fetch_ui
-    - shapeflow/setup/declutter.py
+    - shapeflow/setup/setup.py
