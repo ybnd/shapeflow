@@ -74,7 +74,7 @@ class _Settings(BaseModel):
             Application settings as a dict
 
         """
-        d: dict = {}
+        d: Dict[str, Any] = {}
         for k,v in self.__dict__.items():
             if isinstance(v, _Settings):
                 d.update({
