@@ -28,17 +28,15 @@ def check_svg(path) -> None:
 
 
 def peel(path, dpi, dir) -> None:
-    SvgPeeler(path, dir, dpi=dpi).peel(
-        'all'
+    SvgPeeler(path).peel(
+        'all', dpi, dir
     )
     print("\n")
 
 
 class SvgPeeler:
-    def __init__(self, path: str, to: str, dpi: int = 200):
+    def __init__(self, path: str):
         self.path = path
-        self.dpi = dpi
-        self.to = to
 
         name, ext = os.path.splitext(path)
         if ext != 'svg':
@@ -61,22 +59,14 @@ class SvgPeeler:
         self.layers = []
         self.get_layers()
 
-    def peel(self, select, dpi = None, to = None):
+    def peel(self, select, dpi, to):
         print(f"\n Peeling... ({dpi} dpi)\n")
 
-        if to is None:
-            self.to = self.path.split('.')[0] + "_layers"
+        if os.path.exists(to):
+            for file in os.listdir(to):
+                os.remove(os.path.join(to, file))
         else:
-            self.to = to
-
-        if dpi is None:
-            dpi = self.dpi
-
-        if os.path.exists(self.to):
-            for file in os.listdir(self.to):
-                os.remove(os.path.join(self.to, file))
-        else:
-            os.mkdir(self.to)
+            os.mkdir(to)
 
         if select == 'all':
             for layer in self.layers:
@@ -85,7 +75,7 @@ class SvgPeeler:
                         hidden.hide()
 
                     layer.show()
-                    self.save(_subdir(self.to, layer.label + '.png'), dpi)
+                    self.save(_subdir(to, layer.label + '.png'), dpi)
         else:
             pattern = re.compile(select)
 
@@ -96,7 +86,7 @@ class SvgPeeler:
                             hidden.hide()
                         layer.show()
 
-                        self.save(_subdir(self.to, layer.label + '.png'), dpi)
+                        self.save(_subdir(to, layer.label + '.png'), dpi)
 
         print("\n Done.")
 
