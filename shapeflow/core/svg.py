@@ -5,11 +5,15 @@ Adapted from https://github.com/ybnd/OnionSVG
 
 from typing import List, Union
 from pathlib import Path
+from warnings import catch_warnings, simplefilter
 
 from lxml import etree
 from lxml.etree import _Element, fromstring
-from wand.color import Color
-from wand.image import Image
+
+with catch_warnings():
+    simplefilter("ignore", category=BytesWarning, append=True)
+    from wand.color import Color
+    from wand.image import Image
 
 from shapeflow import get_logger
 from shapeflow.core import RootException
