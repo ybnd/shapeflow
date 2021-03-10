@@ -62,6 +62,13 @@ streaming
    :members:
    :show-inheritance:
 
+svg
+---
+
+.. automodule:: shapeflow.core.svg
+   :members:
+   :show-inheritance:
+
 db
 --
 

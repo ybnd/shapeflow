@@ -1,4 +1,6 @@
-"""Adapted from https://github.com/ybnd/OnionSVG
+"""SVG funtionality
+
+Adapted from https://github.com/ybnd/OnionSVG
 """
 
 from typing import List, Union
