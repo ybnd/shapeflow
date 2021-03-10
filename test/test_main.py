@@ -112,7 +112,7 @@ class ServerTest(unittest.TestCase):
 
             # Check wrong real files
             self.assertEqual(
-                True,  # OnionSVG.check_svg() checks if directory contains <file>.svg if extension doesn't match
+                False,
                 json.loads(
                     client.put(
                         '/api/fs/check_design',

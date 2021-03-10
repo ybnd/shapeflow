@@ -19,7 +19,7 @@ import shortuuid
 import diskcache
 import cv2
 
-from shapeflow.util import open_path, sizeof_fm
+from shapeflow.util import open_path, sizeof_fmt
 from shapeflow.util.filedialog import filedialog
 from shapeflow import get_logger, get_cache, settings, update_settings, ROOTDIR
 from shapeflow.core import stream_off, Endpoint, RootException

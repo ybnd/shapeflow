@@ -9,7 +9,7 @@ import cv2
 from threading import Thread
 import shutil
 
-from shapeflow.util.svg import peel
+from shapeflow.core.svg import peel
 
 from shapeflow.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     DesignFileHandlerConfig, VideoAnalyzerConfig, TransformType
