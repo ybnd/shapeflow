@@ -9,7 +9,7 @@ import cv2
 from threading import Thread
 import shutil
 
-from OnionSVG import OnionSVG
+from shapeflow.util.svg import peel
 
 from shapeflow.config import VideoFileHandlerConfig, TransformHandlerConfig, \
     DesignFileHandlerConfig, VideoAnalyzerConfig, TransformType
@@ -33,7 +33,7 @@ if os.getcwd() == '/home/travis/build/ybnd/shapeflow':
     __VIDEO__ = 'test/' + __VIDEO__
     __DESIGN__ = 'test/' + __DESIGN__
 
-OnionSVG(__DESIGN__, dpi=__DPI__).peel('all', to = '.render')
+peel(__DESIGN__, __DPI__, '.render')
 overlay = cv2.imread('.render/overlay.png')
 shutil.rmtree('.render')
 

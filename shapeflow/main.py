@@ -18,9 +18,9 @@ import datetime
 import shortuuid
 import diskcache
 import cv2
-from OnionSVG import check_svg
 
 from shapeflow.util import open_path, sizeof_fmt
+from shapeflow.util.svg import check_svg
 from shapeflow.util.filedialog import filedialog
 from shapeflow import get_logger, get_cache, settings, update_settings, ROOTDIR
 from shapeflow.core import stream_off, Endpoint, RootException
