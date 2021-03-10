@@ -48,30 +48,7 @@ Application won’t run
   * Your system’s configuration may have changed since the installation;
     follow the steps above
 
-* The script exits immediately and mentions **cairo**
-
-  * `cairo`_ is the library we use to
-     render the overlay and masks out of our design files. It’s a bit annoying
-     to set up on Windows. Normally, the deployment scripts should install it
-     in the virtual environment.
-
-  * Go to ``.venv/Scripts/`` in your install directory (it may be hidden) and
-    check whether it contains the files ``cairo.dll`` and ``cairo.lib``. If it
-    doesn't, something may have gone wrong with your install.
-
-  * To add these files manually, download the .zip of the latest release from
-    `preshing/cairo-windows <preshing_>`_,
-    extract it, open the ``lib`` folder and copy the .dll and .lib files for
-    your computer’s architecture (probably ``x64``\ ) into ``.venv/Scripts/``.
-
-  * If this doesn't solve anything and your Python installation is 32-bit,
-    try using the ``x86`` .dll and .lib files instead.
-
-  * Finally, you can also try moving the .dll and .lib files
-    to ``C:\Windows\System32\``.
-
 * The script exits immediately and complains that it can’t import something
-  (other than cairo)
 
   * Most often this is due to a problem with the virtual environment.
     If your installation went correctly, it should be in the ``.venv/``
@@ -136,5 +113,3 @@ Application runs, but something’s gone wrong
 
 .. _shapeflow-releases: https://github.com/ybnd/shapeflow/releases
 .. _add-path-win10: https://www.architectryan.com/2018/03/17/add-to-the-path-on-windows-10/
-.. _cairo: https://www.cairographics.org/manual
-.. _preshing: https://github.com/preshing/cairo-windows/releases
