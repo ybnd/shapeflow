@@ -5,7 +5,8 @@ import os
 import re
 
 from lxml import etree
-import cairosvg as csvg
+import wand.color
+import wand.image
 
 
 def check_svg(path) -> None:
@@ -111,8 +112,14 @@ class SvgPeeler:
             print(f"{layer.label}")
 
     def save(self, path, dpi):
-        csvg.svg2png(self.as_svg(), write_to=path,
-                     scale=self.dpi2scale(dpi), unsafe=True)
+        with open(path, "wb") as f:
+            with wand.image.Image() as image:
+                image.read(
+                    blob=self.as_svg(),
+                    background=wand.color.Color('transparent'),
+                    resolution=dpi,
+                )
+                f.write(image.make_blob("png32"))
 
         print(f"{os.path.relpath(path, self.path)}")
 

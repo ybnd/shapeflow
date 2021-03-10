@@ -3,7 +3,6 @@ CairoSVG
 cffi
 diskcache
 numpy
-OnionSVG
 opencv-python==4.2.0.32
 pandas
 openpyxl
@@ -17,3 +16,4 @@ pydantic
 SQLAlchemy
 requests
 shortuuid
+Wand
