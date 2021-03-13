@@ -9,11 +9,8 @@ from warnings import catch_warnings, simplefilter
 
 from lxml import etree
 from lxml.etree import _Element, fromstring
-
-with catch_warnings():
-    simplefilter("ignore", category=BytesWarning, append=True)
-    from wand.color import Color
-    from wand.image import Image
+from wand.color import Color
+from wand.image import Image
 
 from shapeflow import get_logger
 from shapeflow.core import RootException
