@@ -208,5 +208,21 @@ if '_renderer' not in locals():
 
 
 def save_svg(svg: bytes, dpi: int, to: Path) -> None:
+    """Save SVG to a PNG image using the renderer selected for this system.
+
+    Parameters
+    ----------
+    svg: bytes
+        An SVG image as XML bytes
+    dpi: int
+        The DPI (dots per inch) to render the SVG at
+    to: Path
+        Where to save the PNG image
+
+    Raises
+    ------
+    RendererError
+        if none of the available renderers work on this system
+    """
     _renderer.save(svg, dpi, to)
 

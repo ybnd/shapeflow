@@ -1,7 +1,7 @@
 Changelog
 =========
 
-* **0.4.4 -- Documentation & minor improvements**
+* **0.4.4 -- Documentation & major improvements**
 
   * Triumphant return of the readthedocs page
 
@@ -13,6 +13,17 @@ Changelog
 
   * Fix disappearing ``feature_parameters`` in new analysis dialog and on the
     configure page
+
+  * Make |cairo|_ an optional dependency
+
+    * No longer depend on |OnionSVG|_; design file rendering is now handled by
+      :class:`shapeflow.design.onions.Peeler` and
+      :class:`shapeflow.design.render.Renderer`.
+    * SVG layer operations (|lxml|_) are decoupled from rendering
+    * Renderers are selected based on the system configuration: |cairo|_ is
+      still the go-to option, but we can now fall back on
+      |Wand|_ (`ImageMagick`_)
+      and the commandline interface of a Windows installation of `Inkscape`_.
 
 * **0.4.3 -- API overhaul**
 
@@ -178,3 +189,17 @@ Changelog
 
 .. _rm1: https://github.com/ybnd/isimple/commit/b65a0fe914a44bff6b2bba4ed155a9cd24d54e10
 .. _rm2: https://github.com/ybnd/isimple/commit/af1b251b90efcd670d220de8f25975ff7bc8321d
+
+
+.. |cairo| replace:: ``cairo``
+.. |cairosvg| replace:: ``cairosvg``
+.. |lxml| replace:: ``lxml``
+.. |Wand| replace:: ``Wand``
+.. |OnionSVG| replace:: ``OnionSVG``
+.. _cairosvg: https://cairosvg.org/
+.. _cairo: https://www.cairographics.org/
+.. _lxml: https://lxml.de/
+.. _Wand: https://docs.wand-py.org/en/0.6.6/
+.. _ImageMagick: https://imagemagick.org/index.php
+.. _Inkscape: https://inkscape.org/
+.. _OnionSVG: https://github.com/ybnd/OnionSVG

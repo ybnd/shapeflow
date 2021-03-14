@@ -62,13 +62,6 @@ streaming
    :members:
    :show-inheritance:
 
-svg
----
-
-.. automodule:: shapeflow.core.svg
-   :members:
-   :show-inheritance:
-
 db
 --
 
@@ -128,6 +121,29 @@ images
 ------
 
 .. automodule:: shapeflow.maths.images
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+design
+======
+
+.. automodule:: shapeflow.design
+   :members:
+   :show-inheritance:
+
+onions
+------
+
+.. automodule:: shapeflow.design.onions
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+render
+------
+
+.. automodule:: shapeflow.design.render
    :members:
    :undoc-members:
    :show-inheritance:
