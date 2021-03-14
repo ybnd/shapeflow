@@ -23,7 +23,7 @@ from shapeflow.core.config import extend
 from shapeflow.core.interface import TransformInterface, FilterConfig, \
     FilterInterface, FilterType, TransformType, Handler
 from shapeflow.core.streaming import stream, streams
-from shapeflow.core.svg import peel
+from shapeflow.design import peel
 from shapeflow.maths.colors import Color, HsvColor, BgrColor, convert, css_hex
 from shapeflow.maths.images import to_mask, crop_mask, ckernel, \
     overlay, rect_contains

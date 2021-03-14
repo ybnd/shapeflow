@@ -1,69 +1,18 @@
-"""SVG funtionality
-
-Adapted from https://github.com/ybnd/OnionSVG
-"""
-
-from typing import List, Union
 from pathlib import Path
-from warnings import catch_warnings, simplefilter
+from typing import List
 
 from lxml import etree
 from lxml.etree import _Element, fromstring
-from wand.color import Color
-from wand.image import Image
 
-from shapeflow import get_logger
-from shapeflow.core import RootException
+from shapeflow.core import RootException, get_logger
+from shapeflow.design.render import save_svg
 
 
 log = get_logger(__name__)
 
 
-class SvgError(RootException):
+class DesignFileError(RootException):
     pass
-
-
-def check_svg(file: Union[Path, str]) -> None:
-    """Check whether file is a valid SVG file.
-
-    Parameters
-    ----------
-    file: Path
-        Any file
-
-    Raises
-    ------
-    SvgError
-        If the file can't be read or parsed
-    """
-    try:
-        with open(file, 'r') as f:
-            fromstring(
-                bytes(f.read(), encoding='UTF-8')
-            )
-    except Exception as e:
-        raise SvgError(f"Invalid SVG file: {file} ({e})")
-
-
-def peel(file: Union[Path, str], dpi: int, dir: Union[Path, str]) -> None:
-    """Render an SVG file layer per layer
-
-    Parameters
-    ----------
-    file
-    dpi
-    dir
-
-    Returns
-    -------
-
-    """
-    if isinstance(file, str):
-        file = Path(file)
-    if isinstance(dir, str):
-        dir = Path(dir)
-
-    Peeler(file).peel(dpi, dir)
 
 
 class Layer:
@@ -97,13 +46,6 @@ class Peeler:
     file: Path
     """Path to the SVG file
     """
-    background: Color = Color('white')
-    """The background color to use for each render (white).
-    The background color of the original SVG file is ignored. Moreover, it's no
-    longer required to include a "hardcoded" background layer.
-    Layers labelled with `_*` are ignored for backwards compatibility with 
-    legacy design files.
-    """
 
     G = "{http://www.w3.org/2000/svg}g"
     LABEL = "{http://www.inkscape.org/namespaces/inkscape}label"
@@ -124,7 +66,7 @@ class Peeler:
                 )
                 self._root = fromstring(svg)
         except Exception as e:
-            raise SvgError(f"Invalid SVG file: {file} ({e})")
+            raise DesignFileError(f"Invalid SVG file: {file} ({e})")
 
         self._get_layers()
 
@@ -159,13 +101,4 @@ class Peeler:
         return self._header + etree.tostring(self._root)
 
     def _save(self, to: Path, dpi: int):
-        with open(to, "wb") as f:
-            with Image() as image:
-                image.read(
-                    blob=self._as_svg(),
-                    background=self.background,
-                    resolution=dpi,
-                )
-                f.write(image.make_blob("png32"))
-
-        log.debug(f"Rendered {to}")
+        save_svg(self._as_svg(), dpi, to)

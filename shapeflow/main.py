@@ -25,7 +25,7 @@ from shapeflow import get_logger, get_cache, settings, update_settings, ROOTDIR
 from shapeflow.core import stream_off, Endpoint, RootException
 from shapeflow.api import api, _FilesystemDispatcher, _DatabaseDispatcher, _VideoAnalyzerManagerDispatcher, _VideoAnalyzerDispatcher, _CacheDispatcher, ApiDispatcher
 from shapeflow.core.streaming import streams, EventStreamer, PlainFileStreamer, BaseStreamer
-from shapeflow.core.svg import check_svg
+from shapeflow.design import check_design
 from shapeflow.core.backend import QueueState, AnalyzerState, BaseAnalyzer
 from shapeflow.config import schemas, normalize_config, loads, BaseAnalyzerConfig
 from shapeflow.video import init, VideoAnalyzer
@@ -385,7 +385,7 @@ class _Filesystem(object):
         log.debug(f"checking design file '{path}'")
         if os.path.isfile(path):
             try:
-                check_svg(path)
+                check_design(path)
                 self._history.add_design_file(path)  # todo: overhead?
                 return True
             except:
