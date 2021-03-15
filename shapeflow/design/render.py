@@ -1,11 +1,12 @@
 import abc
 import os
-from pathlib import Path, WindowsPath
+from pathlib import Path
 from subprocess import check_call, CalledProcessError
 from tempfile import NamedTemporaryFile
 from typing import Union, Any, List, Type, Optional
 
 from shapeflow.core import RootException, get_logger
+from shapeflow.util import suppress_stdout
 
 
 log = get_logger(__name__)
@@ -31,7 +32,7 @@ class Renderer(abc.ABC):
     legacy design files.
     """
 
-    _works: bool
+    _works: bool = False
     """Renderer implementations should import their dependencies on __init__.
     If the import is successful, they should set ``_works = True`` to mark that
     this renderer can function properly.
@@ -139,6 +140,7 @@ class WandRenderer(Renderer):
             self._confirm(True)
         except Exception as e:
             self._confirm(False, e)
+
     def _save(self, svg: bytes, dpi: int, to: Path) -> None:
         with open(to, "wb") as f:
             with self.Image() as image:
@@ -157,11 +159,10 @@ class WindowsInkscapeRenderer(Renderer):
     """
 
     INKSCAPE_DIR_CANDIDATES: List[Path] = [
-        Path("C:\\Program Files (x86)\\Inkscape"),
-        Path("C:\\Program Files\\Inkscape"),
+        Path("C:\\Program Files (x86)\\Inkscape\\bin"),
+        Path("C:\\Program Files\\Inkscape\\bin"),
     ]
     inkscape_dir: Path
-
 
     def __init__(self):
         if os.name != 'nt':
@@ -172,22 +173,23 @@ class WindowsInkscapeRenderer(Renderer):
                 try:
                     check_call([
                         "cd", str(candidate), "&&", "inkscape", "--version"
-                    ])
+                    ], shell=True)
                     self.inkscape_dir = candidate
                     self._confirm(True)
                 except CalledProcessError as e:
                     self._confirm(False, e)
 
     def _save(self, svg: bytes, dpi: int, to: Path) -> None:
-        with NamedTemporaryFile("w") as temp:
-            temp.write(str(svg))
-            check_call([
-                "cd", str(self.inkscape_dir), "&&", "inkscape",
-                "--export-type=png",
-                f"--export-filename={to}",
-                f"--export-dpi={dpi}",
-                temp.name
-            ])
+        with NamedTemporaryFile(suffix=".svg") as temp:
+            temp.write(svg)
+            with suppress_stdout():
+                check_call([
+                    "cd", str(self.inkscape_dir), "&&", "inkscape",
+                    "--export-type=png",
+                    f"--export-filename={to}",
+                    f"--export-dpi={dpi}",
+                    temp.name,
+                ], shell=True)
 
 
 _renderer: Renderer
