@@ -1,8 +1,10 @@
+import os
 import abc
 from typing import List, Optional
 import subprocess as sp
 import tkinter
 import tkinter.filedialog
+from win32gui import GetOpenFileNameW, GetSaveFileNameW
 
 
 class _FileDialog(abc.ABC):
@@ -118,16 +120,42 @@ class _Zenity(_FileDialog):
             return None
 
 
-# try using zenity by default
-filedialog: _FileDialog = _Zenity()
-"""Cross-platform file dialog.
+class _Windows(_FileDialog):
+    def __init__(self):
+        self.ok = os.name == 'nt'
 
-Tries to use `zenity <https://help.gnome.org/users/zenity/stable/>`_
-if available, because ``tkinter`` looks fugly in GNOME don't @ me.
+    def _resolve(self, method: str, kwargs: dict) -> dict:
+        kwargs = super()._resolve(method, kwargs)
+        kwargs["Title"] = kwargs.pop("title")
+        kwargs["Filter"] = f"{kwargs.pop('pattern_description')}\0" \
+                           f"{kwargs.pop('pattern').replace(' ', ';')}\0"
 
-Defaults to ``tkinter`` to support basically any platform.
-"""
-# if zenity doesn't work (e.g. it's not installed or we're on Windows),
-# default to tkinter.
-if not filedialog.ok:
-    filedialog = _Tkinter()
+        return kwargs
+
+    def _load(self, **kwargs) -> Optional[str]:
+        file, _, _ = GetOpenFileNameW(**kwargs)
+        return file
+
+    def _save(self, **kwargs) -> Optional[str]:
+        file, _, _ = GetSaveFileNameW(**kwargs)
+        return file
+
+
+filedialog: _FileDialog
+
+if os.name != "nt":
+    # try using zenity by default
+    filedialog = _Zenity()
+    """Cross-platform file dialog.
+    
+    Tries to use `zenity <https://help.gnome.org/users/zenity/stable/>`_
+    if available, because ``tkinter`` looks fugly in GNOME don't @ me.
+    
+    Defaults to ``tkinter`` to support basically any platform.
+    """
+    # if zenity doesn't work (e.g. it's not installed),
+    # default to tkinter.
+    if not filedialog.ok:
+        filedialog = _Tkinter()
+else:
+    filedialog = _Windows()
