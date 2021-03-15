@@ -18,4 +18,4 @@ SQLAlchemy
 requests
 shortuuid
 Wand
-pywin32
+pywin32; platform_system=="Windows"
