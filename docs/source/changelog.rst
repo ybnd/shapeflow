@@ -25,6 +25,17 @@ Changelog
       |Wand|_ (`ImageMagick`_)
       and the commandline interface of a Windows installation of `Inkscape`_.
 
+  * Fix ``tkinter`` dialog windows not appearing on Windows
+
+    * ``tkinter`` can't handle not being in the main thread, which was the case
+      in the "updated" version of :module:``shapeflow.util.filedialog``.
+
+    * Should not have deprecated subprocess-based filedialog script; it was
+      added in the first place to solve this issue.
+
+    * Made subprocess-based file dialogs complain on cancel / error; this bug
+      stayed unnoticed because they used to be silent about it.
+
 * **0.4.3 -- API overhaul**
 
   * Add frontend tests
