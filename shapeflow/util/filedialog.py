@@ -2,8 +2,6 @@ import os
 import abc
 from typing import List, Optional, Any
 import subprocess as sp
-import tkinter
-import tkinter.filedialog
 
 
 class _FileDialog(abc.ABC):
@@ -30,7 +28,6 @@ class _FileDialog(abc.ABC):
         """ Show a save dialog """
         return self._save(**self._resolve('save', kwargs))
 
-    @classmethod
     def _resolve(self, method: str, kwargs: dict) -> dict:
         """ Resolve empty arguments to defaults """
         return {
@@ -48,30 +45,34 @@ class _FileDialog(abc.ABC):
         raise NotImplementedError
 
 
-class _Tkinter(_FileDialog):
+class _SubprocessTkinter(_FileDialog):
     ok = True
 
-    _map = {
-        'title': 'title',
-        'pattern': 'filetypes',
-        'pattern_description': 'filedesc',
-    }
-
-    def __init__(self):
-        try:
-            root = tkinter.Tk()
-            root.withdraw()
-        except Exception as e:
-            print("Can't initialize tkinter!") # todo: clean this up
-
     def _load(self, **kwargs) -> Optional[str]:
-        return tkinter.filedialog.askopenfilename(**self._translate(kwargs))
+        return self._call('--load', self._to_args(kwargs))
 
     def _save(self, **kwargs) -> Optional[str]:
-        return tkinter.filedialog.asksaveasfilename(**self._translate(kwargs))
+        return self._call('--save', self._to_args(kwargs))
 
-    def _translate(self, kwargs: dict) -> dict:
-        return { self._map[k]:v for k,v in kwargs.items() }
+    def _call(self, command: str, args: list) -> Optional[str]:
+        p = sp.Popen(
+            [
+                'python', 'shapeflow/util/tk-filedialog.py', command, *args
+            ], stdout=sp.PIPE, stderr=sp.PIPE
+        )
+        out, _ = p.communicate()
+        if out != b'':
+            return out.strip().decode('utf-8')
+        else:
+            raise ValueError(f"No file selected")
+
+    def _to_args(self, kwargs: dict) -> list:
+        args = []
+        for kw, arg in kwargs.items():
+            args.append("--" + kw)
+            args.append(arg)
+        return args
+
 
 
 def _has_zenity():
@@ -87,7 +88,7 @@ class _Zenity(_FileDialog):
         'pattern': '--file-filter',
     }
     def __init__(self):
-        self.ok = _has_zenity()
+        self.ok = False
 
     def _load(self, **kwargs) -> Optional[str]:
         return self._call(self._compose(False, kwargs))
@@ -113,10 +114,9 @@ class _Zenity(_FileDialog):
             out, err = p.communicate()
             if out:
                 return out.rstrip().decode('utf-8')
-            else:
-                return None
         except sp.CalledProcessError:
-            return None
+            pass
+        raise ValueError(f"No file selected")
 
 
 class _Windows(_FileDialog):
@@ -160,6 +160,6 @@ if os.name != "nt":
     # if zenity doesn't work (e.g. it's not installed),
     # default to tkinter.
     if not filedialog.ok:
-        filedialog = _Tkinter()
+        filedialog = _SubprocessTkinter()
 else:
     filedialog = _Windows()

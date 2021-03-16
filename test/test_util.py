@@ -8,10 +8,8 @@ import tkinter.filedialog
 import subprocess
 
 
-from shapeflow.util.filedialog import _Tkinter, _Zenity
+from shapeflow.util.filedialog import _SubprocessTkinter, _Zenity
 from shapeflow.util.from_venv import _VenvCall, _WindowsVenvCall, from_venv
-
-from shapeflow.util.filedialog import _Tkinter, _Zenity
 
 
 class FileDialogTest(unittest.TestCase):
@@ -22,47 +20,83 @@ class FileDialogTest(unittest.TestCase):
     ]
     kwargs = {k:k for k in kw}
 
-    @patch('tkinter.filedialog.askopenfilename')
-    def test_tkinter_load(self, askopenfilename):
-        _Tkinter().load(**self.kwargs)
+    @patch('subprocess.Popen')
+    def test_tkinter_load(self, Popen):
+        Popen.return_value.communicate.return_value = (b'...', 0)
+        _SubprocessTkinter().load(**self.kwargs)
 
-        self.assertEqual(
-            {v:k for k,v in _Tkinter._map.items()},
-            askopenfilename.call_args[1]
-        )
-
-    @patch('tkinter.filedialog.asksaveasfilename')
-    def test_tkinter_save(self, asksaveasfilename):
-        _Tkinter().save(**self.kwargs)
-
-        self.assertEqual(
-            {v:k for k,v in _Tkinter._map.items()},
-            asksaveasfilename.call_args[1]
+        self.assertCountEqual(
+            [
+                'python', 'shapeflow/util/tk-filedialog.py', '--load',
+                '--title', 'title', '--pattern', 'pattern',
+                '--pattern_description', 'pattern_description'
+            ],
+            Popen.call_args[0][0]
         )
 
     @patch('subprocess.Popen')
+    def test_tkinter_save(self, Popen):
+        Popen.return_value.communicate.return_value = (b'...', 0)
+        _SubprocessTkinter().save(**self.kwargs)
+
+        self.assertCountEqual(
+            [
+                'python', 'shapeflow/util/tk-filedialog.py', '--save',
+                '--title', 'title', '--pattern', 'pattern',
+                '--pattern_description', 'pattern_description'
+            ],
+            Popen.call_args[0][0]
+        )
+
+
+    @patch('subprocess.Popen')
     def test_zenity_load(self, Popen):
-        Popen.return_value.communicate.return_value = (b'', 0)
+        Popen.return_value.communicate.return_value = (b'...', 0)
         _Zenity().load(**self.kwargs)
 
         c = 'zenity --file-selection --title title --file-filter pattern'
 
-        self.assertEqual(
-            sorted(c.split(' ')),
-            sorted(Popen.call_args[0][0])
+        self.assertCountEqual(
+            c.split(' '),
+            Popen.call_args[0][0]
         )
 
     @patch('subprocess.Popen')
     def test_zenity_save(self, Popen):
-        Popen.return_value.communicate.return_value = (b'', 0)
+        Popen.return_value.communicate.return_value = (b'...', 0)
         _Zenity().save(**self.kwargs)
 
         c = 'zenity --file-selection --save --title title --file-filter pattern'
 
-        self.assertEqual(
-            sorted(c.split(' ')),
-            sorted(Popen.call_args[0][0])
+        self.assertCountEqual(
+            c.split(' '),
+            Popen.call_args[0][0]
         )
+
+    @patch('subprocess.Popen')
+    def test_tkinter_load_cancel(self, Popen):
+        Popen.return_value.communicate.return_value = (b'', 0)
+        with self.assertRaises(ValueError):
+            _SubprocessTkinter().load(**self.kwargs)
+
+    @patch('subprocess.Popen')
+    def test_tkinter_save_cancel(self, Popen):
+        Popen.return_value.communicate.return_value = (b'', 0)
+        with self.assertRaises(ValueError):
+            _SubprocessTkinter().save(**self.kwargs)
+
+
+    @patch('subprocess.Popen')
+    def test_zenity_load_cancel(self, Popen):
+        Popen.return_value.communicate.return_value = (b'', 0)
+        with self.assertRaises(ValueError):
+            _Zenity().load(**self.kwargs)
+
+    @patch('subprocess.Popen')
+    def test_zenity_save_cancel(self, Popen):
+        Popen.return_value.communicate.return_value = (b'', 0)
+        with self.assertRaises(ValueError):
+            _Zenity().save(**self.kwargs)
 
 
 ENV = '.venv-name'
@@ -204,55 +238,4 @@ class VenvCallTest(unittest.TestCase):
 
         self.assertRaises(
             EnvironmentError, _WindowsVenvCall(ENV, PYTHON).resolve
-        )
-
-
-class FileDialogTest(unittest.TestCase):
-    kw = [
-        'title',
-        'pattern',
-        'pattern_description',
-    ]
-    kwargs = {k:k for k in kw}
-
-    @patch('tkinter.filedialog.askopenfilename')
-    def test_tkinter_load(self, askopenfilename):
-        _Tkinter().load(**self.kwargs)
-
-        self.assertEqual(
-            {v:k for k,v in _Tkinter._map.items()},
-            askopenfilename.call_args[1]
-        )
-
-    @patch('tkinter.filedialog.asksaveasfilename')
-    def test_tkinter_save(self, asksaveasfilename):
-        _Tkinter().save(**self.kwargs)
-
-        self.assertEqual(
-            {v:k for k,v in _Tkinter._map.items()},
-            asksaveasfilename.call_args[1]
-        )
-
-    @patch('subprocess.Popen')
-    def test_zenity_load(self, Popen):
-        Popen.return_value.communicate.return_value = (b'', 0)
-        _Zenity().load(**self.kwargs)
-
-        c = 'zenity --file-selection --title title --file-filter pattern'
-
-        self.assertEqual(
-            sorted(c.split(' ')),
-            sorted(Popen.call_args[0][0])
-        )
-
-    @patch('subprocess.Popen')
-    def test_zenity_save(self, Popen):
-        Popen.return_value.communicate.return_value = (b'', 0)
-        _Zenity().save(**self.kwargs)
-
-        c = 'zenity --file-selection --save --title title --file-filter pattern'
-
-        self.assertEqual(
-            sorted(c.split(' ')),
-            sorted(Popen.call_args[0][0])
         )
