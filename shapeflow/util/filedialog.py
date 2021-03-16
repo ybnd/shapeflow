@@ -1,10 +1,9 @@
 import os
 import abc
-from typing import List, Optional
+from typing import List, Optional, Any
 import subprocess as sp
 import tkinter
 import tkinter.filedialog
-from win32gui import GetOpenFileNameW, GetSaveFileNameW
 
 
 class _FileDialog(abc.ABC):
@@ -121,8 +120,13 @@ class _Zenity(_FileDialog):
 
 
 class _Windows(_FileDialog):
+    GetOpenFileNameW: Any
+    GetSaveFileNameW: Any
+
     def __init__(self):
-        self.ok = os.name == 'nt'
+        from win32gui import GetOpenFileNameW, GetSaveFileNameW
+        self.GetOpenfileNameW = GetOpenFileNameW
+        self.GetSaveFileNameW = GetSaveFileNameW
 
     def _resolve(self, method: str, kwargs: dict) -> dict:
         kwargs = super()._resolve(method, kwargs)
@@ -133,11 +137,11 @@ class _Windows(_FileDialog):
         return kwargs
 
     def _load(self, **kwargs) -> Optional[str]:
-        file, _, _ = GetOpenFileNameW(**kwargs)
+        file, _, _ = self.GetOpenFileNameW(**kwargs)
         return file
 
     def _save(self, **kwargs) -> Optional[str]:
-        file, _, _ = GetSaveFileNameW(**kwargs)
+        file, _, _ = self.GetSaveFileNameW(**kwargs)
         return file
 
 
