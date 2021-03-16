@@ -4,4 +4,4 @@ url: https://github.com/ybnd/shapeflow
 name: shapeflow
 environment: .venv
 setup:
-    - shapeflow/setup/setup.py
+    - shapeflow/setup/post-deploy.py
