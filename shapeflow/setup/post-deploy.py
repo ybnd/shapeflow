@@ -3,10 +3,13 @@ from subprocess import check_call, CalledProcessError
 
 
 def sf(*args):
-    check_call([executable, "sf.py", *args])
+    try:
+        check_call([executable, "sf.py", *args])
+    except CalledProcessError as e:
+        print(e.cmd)
 
 
-try:
+if __name__ == '__main__':
     print("\nRunning setup/post-deploy.py ...\n")
 
     sf("setup-cairo", "--cleanup")
@@ -14,6 +17,3 @@ try:
     sf("declutter")
 
     print("\n\nDone.")
-except CalledProcessError as e:
-    print(f"Command failed: {e.cmd}")
-    exit(1)
