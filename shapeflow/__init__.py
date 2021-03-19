@@ -30,7 +30,7 @@ from pydantic import BaseModel, Field, FilePath, DirectoryPath, validator
 import diskcache
 
 
-__version__: str = '0.4.3'
+__version__: str = '0.4.4'
 """Library version
 """
 
@@ -74,7 +74,7 @@ class _Settings(BaseModel):
             Application settings as a dict
 
         """
-        d: dict = {}
+        d: Dict[str, Any] = {}
         for k,v in self.__dict__.items():
             if isinstance(v, _Settings):
                 d.update({

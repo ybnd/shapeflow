@@ -224,7 +224,8 @@ class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB 
             self._cache.close()
             self._cache = None
 
-class FeatureConfig(BaseConfig, abc.ABC):
+
+class FeatureConfig(BaseConfig):
     """Abstract :class:`~shapeflow.core.backend.Feature` parameters"""
     pass
 

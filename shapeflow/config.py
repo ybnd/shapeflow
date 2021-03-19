@@ -91,7 +91,8 @@ class MaskConfig(BaseConfig):
     """Filter configuration for this mask.
     """
 
-    parameters: Tuple[Optional[dict],...] = Field(default=())
+    # Note: pydantic won't allow Optional[dict]
+    parameters: Tuple[Any,...] = Field(default=())
     """Feature parameter overrides for this mask.
     
     If ``None``, the global feature parameters are used 
@@ -104,7 +105,7 @@ class MaskConfig(BaseConfig):
         """
         return self.filter.ready
 
-    @validator('parameters')
+    @validator('parameters', allow_reuse=True)
     def _validate_parameters(cls, value, values):
         return value
 
