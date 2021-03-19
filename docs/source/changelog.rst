@@ -1,7 +1,7 @@
 Changelog
 =========
 
-* **0.4.4 -- Documentation & minor improvements**
+* **0.4.4 -- Documentation & major improvements**
 
   * Triumphant return of the readthedocs page
 
@@ -13,6 +13,28 @@ Changelog
 
   * Fix disappearing ``feature_parameters`` in new analysis dialog and on the
     configure page
+
+  * Add CLI commands to interact with the git repository
+
+    * For end users that may not want to deal with git
+
+    * Throwback to the "mandatory update system" of the olden days:
+
+      update to new release versions if any are available, but when you
+
+      *actually want to*.
+
+  * Setup ~ CLI commands
+
+    * Deployment scripts execute ``shapeflow/setup/post-deploy.py``
+
+      as a setup step
+
+    * :class:`shapeflow.cli.GetCompiledUi`
+
+    * :class:`shapeflow.cli.SetupCairo`
+
+    * :class:`shapeflow.cli.Declutter`
 
 * **0.4.3 -- API overhaul**
 
