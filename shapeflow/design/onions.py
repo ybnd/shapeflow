@@ -49,6 +49,9 @@ class Peeler:
 
     G = "{http://www.w3.org/2000/svg}g"
     LABEL = "{http://www.inkscape.org/namespaces/inkscape}label"
+    NAMEDVIEW = "{http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd}namedview"
+    BG_COLOR = "pagecolor"
+    BG_OPACITY = "{http://www.inkscape.org/namespaces/inkscape}pageopacity"
 
     _header: bytes
     _root: _Element
@@ -65,6 +68,7 @@ class Peeler:
                     encoding='UTF-8'
                 )
                 self._root = fromstring(svg)
+                self._set_background_to_white()
         except Exception as e:
             raise DesignFileError(f"Invalid SVG file: {file} ({e})")
 
@@ -88,6 +92,11 @@ class Peeler:
             self._save(to_dir / f"{layer.label}.png", dpi)
 
         log.info(f"Done.")
+
+    def _set_background_to_white(self):
+        namedview = self._root.find(self.NAMEDVIEW)
+        namedview.set(self.BG_COLOR, '#ffffff')
+        namedview.set(self.BG_OPACITY, '1.0')
 
     def _get_layers(self):
         self._layers = []

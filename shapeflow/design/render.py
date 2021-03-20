@@ -55,6 +55,7 @@ class Renderer(abc.ABC):
             The file to save to
         """
         self._ensure()
+        log.debug(f"{self.__class__.__name__}: rendering to {to}")
         self._save(svg, dpi, to)
 
     def _ensure(self) -> None:
@@ -152,7 +153,45 @@ class WandRenderer(Renderer):
                 f.write(image.make_blob("png32"))
 
 
-class WindowsInkscapeRenderer(Renderer):
+class InkscapeRenderer(Renderer):
+    """Fallback renderer: it works, but is hacky and bad.
+
+    Requires Inkscape to be installed.
+    """
+
+    shell: bool = False
+
+    def __init__(self):
+        self._check()
+
+    def _check(self) -> None:
+        try:
+            with suppress_stdout():
+                check_call([
+                    *self._prefix, "inkscape", "--version"
+                ], shell=self.shell)
+            self._confirm(True)
+        except CalledProcessError as e:
+            self._confirm(False, e)
+
+    def _save(self, svg: bytes, dpi: int, to: Path) -> None:
+        with NamedTemporaryFile(suffix=".svg") as temp:
+            temp.write(svg)
+            with suppress_stdout():
+                check_call([
+                    *self._prefix, "inkscape",
+                    "--export-type=png",
+                    f"--export-filename={to}",
+                    f"--export-dpi={dpi}",
+                    temp.name,
+                ], shell=self.shell)
+
+    @property
+    def _prefix(self) -> List[str]:
+        return []
+
+
+class WindowsInkscapeRenderer(InkscapeRenderer):
     """Fallback renderer for Windows: it works, but is hacky and bad.
 
     Requires Inkscape to be installed.
@@ -163,39 +202,29 @@ class WindowsInkscapeRenderer(Renderer):
         Path("C:\\Program Files\\Inkscape\\bin"),
     ]
     inkscape_dir: Path
+    shell = False
 
-    def __init__(self):
+    def _check(self):
         if os.name != 'nt':
             self._works = False
             return
         for candidate in self.INKSCAPE_DIR_CANDIDATES:
             if candidate.is_dir():
-                try:
-                    check_call([
-                        "cd", str(candidate), "&&", "inkscape", "--version"
-                    ], shell=True)
-                    self.inkscape_dir = candidate
-                    self._confirm(True)
-                except CalledProcessError as e:
-                    self._confirm(False, e)
+                self.inkscape_dir = candidate
+                super()._check()
+                if self.works:
+                    break
 
-    def _save(self, svg: bytes, dpi: int, to: Path) -> None:
-        with NamedTemporaryFile(suffix=".svg") as temp:
-            temp.write(svg)
-            with suppress_stdout():
-                check_call([
-                    "cd", str(self.inkscape_dir), "&&", "inkscape",
-                    "--export-type=png",
-                    f"--export-filename={to}",
-                    f"--export-dpi={dpi}",
-                    temp.name,
-                ], shell=True)
+    @property
+    def _prefix(self) -> List[str]:
+        return ["cd", self.inkscape_dir, "&&"]
 
 
 _renderer: Renderer
 __choices__: List[Type[Renderer]] = [
     CairoRenderer,
     WandRenderer,
+    InkscapeRenderer,
     WindowsInkscapeRenderer,
 ]
 
@@ -203,10 +232,13 @@ for _renderer_type in __choices__:
     _candidate = _renderer_type()
     if _candidate.works:
         _renderer = _candidate
+        log.debug(f"using {_renderer.__class__.__name__}")
         break
+    else:
+        log.debug(f"{_candidate.__class__.__name__} won't work")
 
 if '_renderer' not in locals():
-    raise RendererError(f"None of the defined renderers seem to work...")
+    raise RendererError(f"None of the renderers seem to work")
 
 
 def save_svg(svg: bytes, dpi: int, to: Path) -> None:
