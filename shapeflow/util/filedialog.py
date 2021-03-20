@@ -88,7 +88,7 @@ class _Zenity(_FileDialog):
         'pattern': '--file-filter',
     }
     def __init__(self):
-        self.ok = False
+        self.ok = _has_zenity()
 
     def _load(self, **kwargs) -> Optional[str]:
         return self._call(self._compose(False, kwargs))
