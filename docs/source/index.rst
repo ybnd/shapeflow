@@ -10,16 +10,36 @@ Written by Yury Bondarenko with moral and QA support of the
 Installation & usage
 ====================
 
-1. Install `Python 3.8 <python38_>`_ and `git`_, if you haven’t yet.
-   On Windows, **make sure you select the option ‘Add Python to PATH’!**
+#. Make sure the following software is installed on your system
 
-2. Make a new folder in a convenient location
+  - `Python 3.8 <python38_>`_
 
-3. `Download a deployment script <deploy_>`_ and save it to that folder
+    On Windows, **make sure you select the option ‘Add Python to PATH’!**
 
-4. Run the deployment script.
+  - `git`_
 
-5. Once the installation is done, you can start the application
+  - Three options are available for SVG rendering, from fastest to slowest:
+
+    - `cairo <https://www.cairographics.org/>`_
+
+      On Windows, run ``sf.py setup-cairo`` after installing shapeflow.
+
+    - `ImageMagick <https://imagemagick.org/>`_
+
+      To install on 64-bit Windows you can use `this ìnstaller <https://download.imagemagick.org/ImageMagick/download/binaries/ImageMagick-7.0.11-3-Q8-x64-dll.exe>`_
+
+    - `Inkscape<https://inkscape.org/>`_ (Windows only)
+
+      This is the slowest option, but can serve as a convenient fallback.
+
+
+#. Make a new folder in a convenient location
+
+#. `Download a deployment script <deploy_>`_ and save it to that folder
+
+#. Run the deployment script.
+
+#. Once the installation is done, you can start the application
    by running ``sf.py``.
    A new browser window or tab should open with the user interface.
 
@@ -29,8 +49,6 @@ Dependencies
 ============
 
 * Backend
-
-  - SVG layer splitting & rendering ~ `OnionSVG <https://github.com/ybnd/OnionSVG>`_
 
   - Image & data processing ~ `OpenCV <https://opencv.org/>`_, `numpy <https://numpy.org/>`_, `pandas <https://pandas.pydata.org/>`_
 

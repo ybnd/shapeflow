@@ -1,3 +1,4 @@
+cairosvg  # Used if cairo is installed (1st choice)
 diskcache
 Flask
 GitPython
@@ -15,4 +16,4 @@ shortuuid
 SQLAlchemy
 unidecode
 waitress
-Wand
+Wand  # Used if ImageMagick is installed (2nd choice)
