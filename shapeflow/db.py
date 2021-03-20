@@ -542,7 +542,7 @@ class History(SessionWrapper, RootInstance):
         super().__init__()
 
         if path is None:
-            path = settings.db.path
+            path = Path(str(settings.db.path))
 
         self._engine = create_engine(f'sqlite:///{str(path)}')
         try:

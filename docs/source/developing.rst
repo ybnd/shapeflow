@@ -58,7 +58,7 @@ Setup
 
 
 #.
-   Install `npm`_
+   Install Install `NodeJS & npm <npm>`_
 
 #.
    Navigate to this directory and install the dependencies
@@ -226,7 +226,7 @@ Already fixed?
 
 
 
-.. _npm: https://www.npmjs.com/get-npm
+.. _npm: https://nodejs.org/en/
 .. _vue-hot-reload: https://vue-loader.vuejs.org/guide/hot-reload.html
 .. _gitploy: https://github.com/ybnd/gitploy
 .. _ploy: https://github.com/ybnd/shapeflow/blob/master/shapeflow/setup/ploy

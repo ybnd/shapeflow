@@ -53,7 +53,7 @@ class _VenvCall(object):
 
     @property
     def path(self) -> str:
-        return os.path.join(self.env, self.subpath)
+        return os.path.abspath(os.path.join(self.env, self.subpath))
 
     def _executable(self, python: str) -> str:
         return os.path.join(self.path, python)
@@ -74,6 +74,10 @@ class _VenvCall(object):
 class _WindowsVenvCall(_VenvCall):
     subpath = 'Scripts'
     doshell = True
+
+    @property
+    def prepend(self) -> List[str]:
+        return [f'PATH={self.path};%PATH%', '&&']
 
 
 def _resolve(environment: str, python: str) -> Tuple[List[str], bool]:

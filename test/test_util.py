@@ -202,9 +202,14 @@ class VenvCallTest(unittest.TestCase):
 
         command, shell = _WindowsVenvCall(ENV, PYTHON).resolve()
 
+        self.assertIn('PATH', command[0])
         self.assertIn(ENV, command[0])
-        self.assertIn(PYTHON, command[0])
-        self.assertIn(_WindowsVenvCall.subpath, command[0])
+
+        self.assertEqual('&&', command[1])
+
+        self.assertIn(ENV, command[2])
+        self.assertIn(PYTHON, command[2])
+        self.assertIn(_WindowsVenvCall.subpath, command[2])
         self.assertEqual(True, shell)
 
     def test_windows_venv_call_third_try(self, isdir, isfile):
@@ -215,9 +220,15 @@ class VenvCallTest(unittest.TestCase):
 
         command, shell = _WindowsVenvCall(ENV, PYTHON).resolve()
 
+
+        self.assertIn('PATH', command[0])
         self.assertIn(ENV, command[0])
-        self.assertIn(_WindowsVenvCall.pythons[1], command[0])
-        self.assertIn(_WindowsVenvCall.subpath, command[0])
+
+        self.assertEqual('&&', command[1])
+
+        self.assertIn(ENV, command[2])
+        self.assertIn(_WindowsVenvCall.pythons[1], command[2])
+        self.assertIn(_WindowsVenvCall.subpath, command[2])
         self.assertEqual(True, shell)
 
     def test_windows_venv_call_directory_fail(self, isdir, isfile):
