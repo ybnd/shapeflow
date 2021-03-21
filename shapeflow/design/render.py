@@ -217,7 +217,7 @@ class WindowsInkscapeRenderer(InkscapeRenderer):
 
     @property
     def _prefix(self) -> List[str]:
-        return ["cd", self.inkscape_dir, "&&"]
+        return ["cd", str(self.inkscape_dir), "&&"]
 
 
 _renderer: Renderer
