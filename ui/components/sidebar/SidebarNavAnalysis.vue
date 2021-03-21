@@ -9,11 +9,11 @@
       @click="handleDropdownClick"
       :id="ref"
     >
-      <template v-if="name !== undefined">
+      <Waiting v-if="[undefined, ast.UNKNOWN, ast.INCOMPLETE, ast.CAN_LAUNCH].includes(status.state)" />
+      <template v-else >
         <div class="analysis-name">{{ name }}</div>
         <div class="analysis-name-fade" />
       </template>
-      <Waiting v-else />
     </div>
     <b-progress
       height="2px"
