@@ -24,6 +24,8 @@ from distutils.util import strtobool
 import git
 import requests
 
+from pydantic import DirectoryPath
+
 from shapeflow import __version__, get_logger, settings
 from shapeflow.util import before_version, after_version, suppress_stdout
 
@@ -215,6 +217,7 @@ class Serve(Command):
 
     __command__ = 'serve'
     parser = argparse.ArgumentParser(
+        prog=__command__,
         description=__doc__
     )
 
@@ -273,6 +276,7 @@ class Dump(Command):
 
     __command__ = 'dump'
     parser = argparse.ArgumentParser(
+        prog=__command__,
         description=__doc__
     )
     parser.add_argument(
@@ -282,13 +286,13 @@ class Dump(Command):
     )
     parser.add_argument(
         '--dir',
-        type=Path,
+        type=DirectoryPath,
         default=Path.cwd(),
         help='directory to dump to'
     )
 
     def command(self):
-        from shapeflow.config import schemas
+        from main import schemas
 
         if not self.args.dir.is_dir():
             log.warning(f"making directory '{self.args.dir}'")
@@ -416,6 +420,7 @@ class Update(Command, GitMixin):
 
     __command__ = 'update'
     parser = argparse.ArgumentParser(
+        prog=__command__,
         description=__doc__
     )
     parser.add_argument(
@@ -453,6 +458,7 @@ class Checkout(Command, GitMixin):
 
     __command__ = 'checkout'
     parser = argparse.ArgumentParser(
+        prog=__command__,
         description=__doc__
     )
     parser.add_argument(
@@ -490,6 +496,7 @@ class GetCompiledUi(Command, GitMixin):
 
     __command__ = 'get-compiled-ui'
     parser = argparse.ArgumentParser(
+        prog=__command__,
         description=__doc__
     )
     parser.add_argument(
@@ -522,6 +529,7 @@ class SetupCairo(Command):
 
     __command__ = 'setup-cairo'
     parser = argparse.ArgumentParser(
+        prog=__command__,
         description=__doc__
     )
     parser.add_argument(
@@ -619,6 +627,7 @@ class Declutter(Command):
 
     __command__ = 'declutter'
     parser = argparse.ArgumentParser(
+        prog=__command__,
         description=__doc__
     )
     parser.add_argument(

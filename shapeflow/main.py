@@ -20,22 +20,49 @@ import diskcache
 import cv2
 from OnionSVG import check_svg
 
+from config import VideoAnalyzerConfig
+from core.backend import AnalyzerState, QueueState
+
 from shapeflow.util import open_path, sizeof_fmt
 from shapeflow.util.filedialog import filedialog
+from shapeflow.util.schema import argparse2schema, args2call
 from shapeflow import get_logger, get_cache, settings, update_settings, ROOTDIR
 from shapeflow.core import stream_off, Endpoint, RootException
 from shapeflow.api import api, _FilesystemDispatcher, _DatabaseDispatcher, _VideoAnalyzerManagerDispatcher, _VideoAnalyzerDispatcher, _CacheDispatcher, ApiDispatcher
 from shapeflow.core.streaming import streams, EventStreamer, PlainFileStreamer, BaseStreamer
 from shapeflow.core.backend import QueueState, AnalyzerState, BaseAnalyzer
-from shapeflow.config import schemas, normalize_config, loads, BaseAnalyzerConfig
+from shapeflow.config import normalize_config, loads, BaseAnalyzerConfig
 from shapeflow.video import init, VideoAnalyzer
 import shapeflow.plugins
 from shapeflow.server import ShapeflowServer
+from shapeflow.cli import Command
 
 from shapeflow.db import History
 
 
 log = get_logger(__name__)
+
+
+def schemas() -> Dict[str, dict]:
+    """Get the JSON schemas of
+
+    * :class:`shapeflow.video.VideoAnalyzerConfig`
+
+    * :class:`shapeflow.Settings`
+
+    * All :class:`shapeflow.cli.Command` subclasses
+
+    * :class:`shapeflow.core.backend.AnalyzerState`
+
+    * :class:`shapeflow.core.backend.QueueState`
+    """
+    return {
+        'config': VideoAnalyzerConfig.schema(),
+        'settings': settings.schema(),
+        'commands': [argparse2schema(c.parser) for c in Command],
+        'analyzer_state': dict(AnalyzerState.__members__),
+        'queue_state': dict(QueueState.__members__),
+    }
 
 
 class _Main(object):
@@ -208,6 +235,14 @@ class _Main(object):
         log.debug("stopping log file stream")
         if self._log is not None:
             self._log.stop()
+
+    @api.command.expose()
+    def command(self, cmd: str, args: dict) -> None:
+        """Execute a ``shapeflow.cli.Command``
+
+        :attr:`shapeflow.api.ApiDispatcher.command`
+        """
+
 
     @api.unload.expose()
     def unload(self) -> bool:
