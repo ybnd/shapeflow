@@ -20,8 +20,6 @@ import diskcache
 import cv2
 from OnionSVG import check_svg
 
-from config import VideoAnalyzerConfig
-from core.backend import AnalyzerState, QueueState
 
 from shapeflow.util import open_path, sizeof_fmt
 from shapeflow.util.filedialog import filedialog
@@ -31,7 +29,7 @@ from shapeflow.core import stream_off, Endpoint, RootException
 from shapeflow.api import api, _FilesystemDispatcher, _DatabaseDispatcher, _VideoAnalyzerManagerDispatcher, _VideoAnalyzerDispatcher, _CacheDispatcher, ApiDispatcher
 from shapeflow.core.streaming import streams, EventStreamer, PlainFileStreamer, BaseStreamer
 from shapeflow.core.backend import QueueState, AnalyzerState, BaseAnalyzer
-from shapeflow.config import normalize_config, loads, BaseAnalyzerConfig
+from shapeflow.config import normalize_config, loads, BaseAnalyzerConfig, VideoAnalyzerConfig
 from shapeflow.video import init, VideoAnalyzer
 import shapeflow.plugins
 from shapeflow.server import ShapeflowServer
@@ -59,9 +57,10 @@ def schemas() -> Dict[str, dict]:
     return {
         'config': VideoAnalyzerConfig.schema(),
         'settings': settings.schema(),
-        'commands': [
-            argparse2schema(c.parser) for c in Command if c is not Serve
-        ],
+        'commands': {
+            c.__command__: argparse2schema(c.parser)
+            for c in Command if c is not Serve
+        },
         'analyzer_state': dict(AnalyzerState.__members__),
         'queue_state': dict(QueueState.__members__),
     }

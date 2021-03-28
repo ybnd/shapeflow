@@ -37,10 +37,8 @@ def _pytype2schematype(type_) -> Optional[str]:
         return "number"
     elif type_ is str:
         return "string"
-    elif type_ is DirectoryPath:
-        return "directory-path"
-    elif type_ is FilePath:
-        return "file-path"
+    elif type_ is Path:
+        return "path"
     else:
         raise ValueError(f"Unexpected argument type '{type_}'")
 

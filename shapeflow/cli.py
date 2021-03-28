@@ -287,13 +287,13 @@ class Dump(Command):
     )
     parser.add_argument(
         '--dir',
-        type=DirectoryPath,
+        type=Path,
         default=Path.cwd(),
         help='directory to dump to'
     )
 
     def command(self):
-        from main import schemas
+        from shapeflow.main import schemas
 
         if not self.args.dir.is_dir():
             log.warning(f"making directory '{self.args.dir}'")
