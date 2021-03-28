@@ -883,8 +883,6 @@ def load(server: ShapeflowServerInterface) -> ApiDispatcher:
 
     api._add_dispatcher('va', _va)
 
-
-
     if settings.app.load_state:
         api.dispatch_async('va/load_state')
 

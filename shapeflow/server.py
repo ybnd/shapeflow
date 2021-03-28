@@ -2,7 +2,7 @@ import json
 import os
 import time
 import subprocess
-from threading import Thread, Event
+from threading import Thread, Event, Lock
 from typing import Optional
 
 from flask import Flask, send_from_directory, jsonify, request, Response, make_response, abort
@@ -68,9 +68,10 @@ class ShapeflowServer(ShapeflowServerInterface):
     _port: int
 
     _app: Flask
-    _api: ApiDispatcher
+    _api: Optional[ApiDispatcher]
     _server: ServerThread
 
+    _api_lazy_load = Lock()
     _ping = Event()
     _unload = Event()
     _quit = Event()
@@ -97,7 +98,7 @@ class ShapeflowServer(ShapeflowServerInterface):
             return self.call_api(address)
 
         self._app = app
-        self._api = load(self)
+        self._api = None
 
     def serve(self, host: str, port: int, open: bool) -> None:
         """Serve the application.
@@ -280,13 +281,27 @@ class ShapeflowServer(ShapeflowServerInterface):
     def api(self) -> ApiDispatcher:
         """Get a reference to :data:`shapeflow.api.api` and ensure it has
         been initialized properly with :mod:`shapeflow.main` and bound to this
-        :class:`~shapeflow.server.ShapeflowServer` instance
+        :class:`~shapeflow.server.ShapeflowServer` instance.
+
+        This property is used to lazy-load :data:`shapeflow.api.api` on the
+        first request. As this takes some time, requests received during
+        loading will be locked out until initialization completes. Subsequent
+        requests bypass this lock.
 
         Returns
         -------
         ApiDispatcher
             A reference to :data:`~shapeflow.api.api`
         """
+        if self._api is None:
+            if self._api_lazy_load.locked():
+                self._api_lazy_load.acquire()
+                self._api_lazy_load.release()
+                return self.api
+            else:
+                with self._api_lazy_load:
+                    self._api = load(self)
+
         return self._api
 
     @property
