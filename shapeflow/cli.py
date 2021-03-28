@@ -32,9 +32,8 @@ from shapeflow.util import before_version, after_version, suppress_stdout
 
 log = get_logger(__name__)
 
-# type aliases
+
 OptArgs = Optional[List[str]]
-Parsing = Callable[[OptArgs], None]
 
 
 class CliError(Exception):
@@ -51,6 +50,7 @@ class IterCommand(abc.ABCMeta):
     """Command name. This is how the command is addressed from the commandline.
     """
 
+    parser: argparse.ArgumentParser
 
     def __str__(cls):
         try:

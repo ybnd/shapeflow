@@ -244,6 +244,10 @@ class _Main(object):
 
         :attr:`shapeflow.api.ApiDispatcher.command`
         """
+        if cmd not in [c.__command__ for c in Command]:
+            raise ValueError(f"Unrecognized command '{cmd}'")
+
+        Command[cmd](args2call(Command[cmd].parser, args))
 
 
     @api.unload.expose()
