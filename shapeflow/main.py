@@ -35,7 +35,7 @@ from shapeflow.config import normalize_config, loads, BaseAnalyzerConfig
 from shapeflow.video import init, VideoAnalyzer
 import shapeflow.plugins
 from shapeflow.server import ShapeflowServer
-from shapeflow.cli import Command
+from shapeflow.cli import Command, Serve
 
 from shapeflow.db import History
 
@@ -59,7 +59,9 @@ def schemas() -> Dict[str, dict]:
     return {
         'config': VideoAnalyzerConfig.schema(),
         'settings': settings.schema(),
-        'commands': [argparse2schema(c.parser) for c in Command],
+        'commands': [
+            argparse2schema(c.parser) for c in Command if c is not Serve
+        ],
         'analyzer_state': dict(AnalyzerState.__members__),
         'queue_state': dict(QueueState.__members__),
     }

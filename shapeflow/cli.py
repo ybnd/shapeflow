@@ -49,7 +49,8 @@ class IterCommand(abc.ABCMeta):
     """
     __command__: str
     """Command name. This is how the command is addressed from the commandline.
-    """  # todo: nope, doesn't work'
+    """
+
 
     def __str__(cls):
         try:
@@ -452,7 +453,7 @@ class Update(Command, GitMixin):
 
 
 class Checkout(Command, GitMixin):
-    """Check out a specific version of the application. Please not you will
+    """Check out a specific version of the application. Please note you will
     not have access to this command if you check out a version before 0.4.4
     """
 
