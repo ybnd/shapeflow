@@ -238,16 +238,18 @@ class _Main(object):
             self._log.stop()
 
     @api.command.expose()
-    def command(self, cmd: str, args: dict) -> None:
+    def command(self, cmd: str, args: dict = None) -> None:
         """Execute a ``shapeflow.cli.Command``
 
         :attr:`shapeflow.api.ApiDispatcher.command`
         """
         if cmd not in [c.__command__ for c in Command]:
             raise ValueError(f"Unrecognized command '{cmd}'")
+        if cmd == Serve.__command__:
+            raise ValueError(f"Can't execute 'serve'. To restart the server, "
+                             f"use /api/restart instead")
 
         Command[cmd](args2call(Command[cmd].parser, args))
-
 
     @api.unload.expose()
     def unload(self) -> bool:

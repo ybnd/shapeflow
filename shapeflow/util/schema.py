@@ -84,7 +84,7 @@ def argparse2schema(parser: ArgumentParser) -> dict:
     }
 
 
-def args2call(parser: ArgumentParser, args: dict) -> List[str]:
+def args2call(parser: ArgumentParser, args: dict = None) -> List[str]:
     """Formats a dict into a list of call arguments for a specific parser.
 
     Parameters
@@ -104,17 +104,27 @@ def args2call(parser: ArgumentParser, args: dict) -> List[str]:
     List[str]
         The arguments in ``args`` as a list of strings
     """
+    required = [a.dest for a in parser._actions if a.required]
+
+    if args is None:
+        if len(required) == 0:
+            return []
+        else:
+            raise ValueError(f"Parser '{parser.prog}': "
+                             f"no arguments provided; the following arguments"
+                             f"are required: {required}")
+    else:
+        for key in required:
+            if key not in args:
+                raise ValueError(f"Parser '{parser.prog}': "
+                                 f"missing required argument '{key}'")
+
     call_positionals: List[str] = []
     call_optionals: List[str] = []
 
     actions = {a.dest: a for a in parser._actions}
     positionals = [a.dest for a in parser._positionals._group_actions]
     optionals = {a.dest: a for a in parser._optionals._group_actions}
-
-    for key in [a.dest for a in parser._actions if a.required]:
-        if key not in args:
-            raise ValueError(f"Parser '{parser.prog}': "
-                             f"missing required argument '{key}'")
 
     for key, value in args.items():
         if key not in actions.keys():
