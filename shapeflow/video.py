@@ -19,7 +19,8 @@ from shapeflow.core import Lockable, RootException
 from shapeflow.core.backend import Instance, CachingInstance, \
     BaseAnalyzer, BackendSetupError, AnalyzerType, Feature, \
     FeatureSet, \
-    FeatureType, AnalyzerState, PushEvent, FeatureConfig, CacheAccessError
+    FeatureType, AnalyzerState, FeatureConfig, CacheAccessError
+from core.streaming import EventCategory
 from shapeflow.core.config import extend
 from shapeflow.core.interface import TransformInterface, FilterConfig, \
     FilterInterface, FilterType, TransformType, Handler
@@ -1218,7 +1219,7 @@ class VideoAnalyzer(BaseAnalyzer):
                 config = self.get_config()
 
                 # Push config event
-                self.event(PushEvent.CONFIG, config)
+                self.event(EventCategory.CONFIG, config)
 
                 # Push streams
                 streams.update()
@@ -1375,7 +1376,7 @@ class VideoAnalyzer(BaseAnalyzer):
         self.transform.estimate(roi_config)
 
         self.state_transition()
-        self.event(PushEvent.CONFIG, self.get_config())
+        self.event(EventCategory.CONFIG, self.get_config())
 
         if roi_config is not None:
             return roi_config.dict()
@@ -1540,7 +1541,7 @@ class VideoAnalyzer(BaseAnalyzer):
             self.get_colors()
 
             self.state_transition()
-            self.event(PushEvent.CONFIG, self.get_config())
+            self.event(EventCategory.CONFIG, self.get_config())
             self.commit()
 
             streams.update()
@@ -1566,7 +1567,7 @@ class VideoAnalyzer(BaseAnalyzer):
 
         self.set_state(AnalyzerState.CAN_FILTER)
         self.state_transition()
-        self.event(PushEvent.CONFIG, self.get_config())
+        self.event(EventCategory.CONFIG, self.get_config())
         self.commit()
 
         streams.update()

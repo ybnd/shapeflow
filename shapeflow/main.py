@@ -27,7 +27,7 @@ from shapeflow.util.schema import argparse2schema, args2call
 from shapeflow import get_logger, get_cache, settings, update_settings, ROOTDIR
 from shapeflow.core import stream_off, Endpoint, RootException
 from shapeflow.api import api, _FilesystemDispatcher, _DatabaseDispatcher, _VideoAnalyzerManagerDispatcher, _VideoAnalyzerDispatcher, _CacheDispatcher, ApiDispatcher
-from shapeflow.core.streaming import streams, EventStreamer, PlainFileStreamer, BaseStreamer
+from shapeflow.core.streaming import streams, EventStreamer, PlainFileStreamer, BaseStreamer, EventCategory
 from shapeflow.core.backend import QueueState, AnalyzerState, BaseAnalyzer
 from shapeflow.config import normalize_config, loads, BaseAnalyzerConfig, VideoAnalyzerConfig
 from shapeflow.video import init, VideoAnalyzer
@@ -73,12 +73,14 @@ class _Main(object):
     _server: ShapeflowServer
 
     _log: Optional[PlainFileStreamer]
+    _prompts: List[Prompt]
 
     def __init__(self, server: ShapeflowServer):
         self._server = server
 
         self._lock = Lock()
         self._log = None
+        self._prompts = []
 
     @api.ping.expose()
     def ping(self) -> bool:
@@ -249,7 +251,19 @@ class _Main(object):
             raise ValueError(f"Can't execute 'serve'. To restart the server, "
                              f"use /api/restart instead")
 
-        Command[cmd](args2call(Command[cmd].parser, args))
+        prompt = EventResponsePrompt()
+        self._prompts.append(prompt)
+
+        Command[cmd](args2call(Command[cmd].parser, args), prompt)
+
+    @api.resolve_prompt.expose()
+    def resolve_prompt(self, id: str, data: Any) -> None:
+        """Respond to a prompt
+
+        :attr:`shapeflow.api.ApiDispatcher.response`
+        """
+        for prompt in self._prompts:
+            prompt.resolve(id, data)
 
     @api.unload.expose()
     def unload(self) -> bool:
@@ -558,7 +572,8 @@ class _VideoAnalyzerManager(object):
             The message to push
         """
         self._server._eventstreamer.event(
-            'notice', id='', data={'message': message, 'persist': persist}
+            EventCategory.NOTICE, id='',
+            data={'message': message, 'persist': persist}
         )
 
     @api.va.init.expose()

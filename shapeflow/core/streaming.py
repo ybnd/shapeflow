@@ -3,6 +3,7 @@
 
 import abc
 import json
+from enum import Enum
 from threading import Thread
 from typing import Optional, Tuple, Generator, Callable, Dict, Type, Any, Union, List
 from functools import wraps
@@ -192,10 +193,21 @@ class JsonStreamer(BaseStreamer):
             return None
 
 
+class EventCategory(Enum):
+    """Categories of server-pushed events.
+    """
+    STATUS = 'status'
+    CONFIG = 'config'
+    NOTICE = 'notice'
+    PROMPT = 'prompt'
+
+
 class EventStreamer(JsonStreamer):
     """Streams server-sent events with JSON data.
     """
-    def event(self, category: str, id: str, data: Any):
+    CLOSE = 'close'
+
+    def event(self, category: EventCategory, id: str, data: Any):
         """Push a JSON event
 
         :param category: event category
@@ -207,7 +219,7 @@ class EventStreamer(JsonStreamer):
         self.push({'category': category, 'id': id, 'data': data})
 
     def stop(self):
-        self.push({'categroy': 'close', 'data': ''})
+        self.push({'category': self.CLOSE, 'data': ''})
         super().stop()
 
 

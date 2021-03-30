@@ -15,18 +15,20 @@ import abc
 from pathlib import Path
 import argparse
 import shutil
+from enum import Enum
+from threading import Queue
 from functools import lru_cache
-from typing import List, Callable, Optional, Tuple
+from typing import List, Optional, Tuple
 from urllib.request import urlretrieve
 from zipfile import ZipFile
 
 from distutils.util import strtobool
 import git
 import requests
-
-from pydantic import DirectoryPath
+import shortuuid
 
 from shapeflow import __version__, get_logger, settings
+from shapeflow.core.streaming import EventStreamer, EventCategory
 from shapeflow.util import before_version, after_version, suppress_stdout
 
 
@@ -38,6 +40,50 @@ OptArgs = Optional[List[str]]
 
 class CliError(Exception):
     pass
+
+
+class PromptType(Enum):
+    BOOLEAN = 'boolean'
+
+
+class Prompt(abc.ABC):
+    def yn(self, prompt: str) -> bool:
+        raise NotImplementedError
+
+
+class ConsolePrompt(Prompt):
+    def yn(self, prompt: str) -> bool:
+        return strtobool(input(f"{prompt} (y/n) "))
+
+
+class EventResponsePrompt(Prompt):
+    _eventstreamer: EventStreamer
+    _id: str
+    _queue: Queue
+
+    def __init__(self, eventstreamer: EventStreamer):
+        self._eventstreamer = eventstreamer
+
+    def _new_id(self) -> str:
+        id = shortuuid.uuid()
+        self._id = id
+        return id
+
+    def yn(self, prompt: str) -> bool:
+        self._queue = Queue()
+
+        id = self._new_id()
+        self._eventstreamer.event(EventCategory.PROMPT, id, data={
+            "prompt": prompt, "type": PromptType.BOOLEAN,
+        })
+
+        response = self._queue.get()
+        assert isinstance(response, bool)
+        return response
+
+    def resolve(self, id: str, data: Any) -> None:
+        if self._id == id:
+            self._queue.put(data)
 
 
 class IterCommand(abc.ABCMeta):
@@ -104,7 +150,14 @@ class Command(abc.ABC, metaclass=IterCommand):
     args: argparse.Namespace
     sub_args: List[str]
 
-    def __init__(self, args: OptArgs = None):
+    _prompt: Prompt
+
+    def __init__(self, args: OptArgs = None, prompt: Prompt = None):
+        if prompt is None:
+            self._prompt = ConsolePrompt()
+        else:
+            self._prompt = prompt
+
         if args is None:
             # gather commandline arguments
             args = sys.argv[1:]
@@ -150,6 +203,10 @@ class Command(abc.ABC, metaclass=IterCommand):
             return text.replace(cls.parser.prog, call)
         else:
             return text
+
+    @property
+    def prompt(self):
+        return self._prompt
 
 
 class Sf(Command):
@@ -316,6 +373,8 @@ class GitMixin(abc.ABC):
     _repo = None
     _latest = None
 
+    prompt: Prompt
+
     @property
     def repo(self) -> git.Repo:
         if self._repo is None:
@@ -409,10 +468,10 @@ class GitMixin(abc.ABC):
             [item.a_path for item in self.repo.index.diff(None)] \
                 + self.repo.untracked_files
         )
-        return bool(strtobool(input(
+        return self.prompt.yn(
             f'Local changes to\n\n {changed} \n\n'
-            f'will be overwritten. Continue? (y/n) '
-        )))
+            f'will be overwritten. Continue?'
+        )
 
 
 class Update(Command, GitMixin):
@@ -484,11 +543,11 @@ class Checkout(Command, GitMixin):
                 self._get_compiled_ui()
 
     def _checkout_anyway(self) -> bool:
-        return bool(strtobool(input(
+        return self.prompt.yn(
             f'After checking out "{self.args.ref}" you won\'t be able to use '
             f'the "update" or "checkout" commands (they were added later, '
-            f'in v0.4.4) Continue? (y/n) '
-        )))
+            f'in v0.4.4) Continue?'
+        )
 
 
 class GetCompiledUi(Command, GitMixin):
@@ -521,7 +580,7 @@ class GetCompiledUi(Command, GitMixin):
         self._get_compiled_ui()
 
     def _prompt_replace_ui(self) -> bool:
-        return bool(strtobool(input('Replace the current UI? (y/n) ')))
+        return self.prompt.yn('Replace the current UI?')
 
 
 class SetupCairo(Command):

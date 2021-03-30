@@ -406,6 +406,11 @@ class ApiDispatcher(Dispatcher):
     
     :func:`shapeflow.main._Main.command`
     """
+    resolve_prompt = Endpoint(Callable[[str, Any], None])
+    """Respond to a prompt
+
+    :func:`shapeflow.main._Main.prompt`
+    """
     unload = Endpoint(Callable[[], bool])
     """Unload the application. In order to support page reloading, the backend 
     will wait for some time and quit if no further requests come in.
