@@ -15,28 +15,75 @@ import abc
 from pathlib import Path
 import argparse
 import shutil
+from enum import Enum
+from threading import Queue
 from functools import lru_cache
-from typing import List, Callable, Optional, Tuple
+from typing import List, Optional, Tuple
 from urllib.request import urlretrieve
 from zipfile import ZipFile
 
 from distutils.util import strtobool
 import git
 import requests
+import shortuuid
 
 from shapeflow import __version__, get_logger, settings
+from shapeflow.core.streaming import EventStreamer, EventCategory
 from shapeflow.util import before_version, after_version, suppress_stdout
 
 
 log = get_logger(__name__)
 
-# type aliases
+
 OptArgs = Optional[List[str]]
-Parsing = Callable[[OptArgs], None]
 
 
 class CliError(Exception):
     pass
+
+
+class PromptType(Enum):
+    BOOLEAN = 'boolean'
+
+
+class Prompt(abc.ABC):
+    def yn(self, prompt: str) -> bool:
+        raise NotImplementedError
+
+
+class ConsolePrompt(Prompt):
+    def yn(self, prompt: str) -> bool:
+        return strtobool(input(f"{prompt} (y/n) "))
+
+
+class EventResponsePrompt(Prompt):
+    _eventstreamer: EventStreamer
+    _id: str
+    _queue: Queue
+
+    def __init__(self, eventstreamer: EventStreamer):
+        self._eventstreamer = eventstreamer
+
+    def _new_id(self) -> str:
+        id = shortuuid.uuid()
+        self._id = id
+        return id
+
+    def yn(self, prompt: str) -> bool:
+        self._queue = Queue()
+
+        id = self._new_id()
+        self._eventstreamer.event(EventCategory.PROMPT, id, data={
+            "prompt": prompt, "type": PromptType.BOOLEAN,
+        })
+
+        response = self._queue.get()
+        assert isinstance(response, bool)
+        return response
+
+    def resolve(self, id: str, data: Any) -> None:
+        if self._id == id:
+            self._queue.put(data)
 
 
 class IterCommand(abc.ABCMeta):
@@ -47,7 +94,9 @@ class IterCommand(abc.ABCMeta):
     """
     __command__: str
     """Command name. This is how the command is addressed from the commandline.
-    """  # todo: nope, doesn't work'
+    """
+
+    parser: argparse.ArgumentParser
 
     def __str__(cls):
         try:
@@ -101,7 +150,14 @@ class Command(abc.ABC, metaclass=IterCommand):
     args: argparse.Namespace
     sub_args: List[str]
 
-    def __init__(self, args: OptArgs = None):
+    _prompt: Prompt
+
+    def __init__(self, args: OptArgs = None, prompt: Prompt = None):
+        if prompt is None:
+            self._prompt = ConsolePrompt()
+        else:
+            self._prompt = prompt
+
         if args is None:
             # gather commandline arguments
             args = sys.argv[1:]
@@ -147,6 +203,10 @@ class Command(abc.ABC, metaclass=IterCommand):
             return text.replace(cls.parser.prog, call)
         else:
             return text
+
+    @property
+    def prompt(self):
+        return self._prompt
 
 
 class Sf(Command):
@@ -215,6 +275,7 @@ class Serve(Command):
 
     __command__ = 'serve'
     parser = argparse.ArgumentParser(
+        prog=__command__,
         description=__doc__
     )
 
@@ -273,6 +334,7 @@ class Dump(Command):
 
     __command__ = 'dump'
     parser = argparse.ArgumentParser(
+        prog=__command__,
         description=__doc__
     )
     parser.add_argument(
@@ -288,7 +350,7 @@ class Dump(Command):
     )
 
     def command(self):
-        from shapeflow.config import schemas
+        from shapeflow.main import schemas
 
         if not self.args.dir.is_dir():
             log.warning(f"making directory '{self.args.dir}'")
@@ -310,6 +372,8 @@ class GitMixin(abc.ABC):
 
     _repo = None
     _latest = None
+
+    prompt: Prompt
 
     @property
     def repo(self) -> git.Repo:
@@ -404,10 +468,10 @@ class GitMixin(abc.ABC):
             [item.a_path for item in self.repo.index.diff(None)] \
                 + self.repo.untracked_files
         )
-        return bool(strtobool(input(
+        return self.prompt.yn(
             f'Local changes to\n\n {changed} \n\n'
-            f'will be overwritten. Continue? (y/n) '
-        )))
+            f'will be overwritten. Continue?'
+        )
 
 
 class Update(Command, GitMixin):
@@ -416,6 +480,7 @@ class Update(Command, GitMixin):
 
     __command__ = 'update'
     parser = argparse.ArgumentParser(
+        prog=__command__,
         description=__doc__
     )
     parser.add_argument(
@@ -447,12 +512,13 @@ class Update(Command, GitMixin):
 
 
 class Checkout(Command, GitMixin):
-    """Check out a specific version of the application. Please not you will
+    """Check out a specific version of the application. Please note you will
     not have access to this command if you check out a version before 0.4.4
     """
 
     __command__ = 'checkout'
     parser = argparse.ArgumentParser(
+        prog=__command__,
         description=__doc__
     )
     parser.add_argument(
@@ -477,11 +543,11 @@ class Checkout(Command, GitMixin):
                 self._get_compiled_ui()
 
     def _checkout_anyway(self) -> bool:
-        return bool(strtobool(input(
+        return self.prompt.yn(
             f'After checking out "{self.args.ref}" you won\'t be able to use '
             f'the "update" or "checkout" commands (they were added later, '
-            f'in v0.4.4) Continue? (y/n) '
-        )))
+            f'in v0.4.4) Continue?'
+        )
 
 
 class GetCompiledUi(Command, GitMixin):
@@ -490,6 +556,7 @@ class GetCompiledUi(Command, GitMixin):
 
     __command__ = 'get-compiled-ui'
     parser = argparse.ArgumentParser(
+        prog=__command__,
         description=__doc__
     )
     parser.add_argument(
@@ -513,7 +580,7 @@ class GetCompiledUi(Command, GitMixin):
         self._get_compiled_ui()
 
     def _prompt_replace_ui(self) -> bool:
-        return bool(strtobool(input('Replace the current UI? (y/n) ')))
+        return self.prompt.yn('Replace the current UI?')
 
 
 class SetupCairo(Command):
@@ -522,6 +589,7 @@ class SetupCairo(Command):
 
     __command__ = 'setup-cairo'
     parser = argparse.ArgumentParser(
+        prog=__command__,
         description=__doc__
     )
     parser.add_argument(
@@ -619,6 +687,7 @@ class Declutter(Command):
 
     __command__ = 'declutter'
     parser = argparse.ArgumentParser(
+        prog=__command__,
         description=__doc__
     )
     parser.add_argument(

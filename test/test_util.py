@@ -6,12 +6,14 @@ import json
 import tkinter
 import tkinter.filedialog
 import subprocess
+import argparse
 
 
 from shapeflow.util.filedialog import _Tkinter, _Zenity
 from shapeflow.util.from_venv import _VenvCall, _WindowsVenvCall, from_venv
 
 from shapeflow.util.filedialog import _Tkinter, _Zenity
+from shapeflow.util.schema import argparse2schema, args2call
 
 
 class FileDialogTest(unittest.TestCase):
@@ -218,52 +220,120 @@ class VenvCallTest(unittest.TestCase):
         )
 
 
-class FileDialogTest(unittest.TestCase):
-    kw = [
-        'title',
-        'pattern',
-        'pattern_description',
-    ]
-    kwargs = {k:k for k in kw}
+class ArgparseSchemaTest(unittest.TestCase):
+    parser = argparse.ArgumentParser(
+        prog="some-command",
+        description="some description"
+    )
+    parser.add_argument(
+        "argument1",
+        type=str,
+        default="default",
+        help="help for argument 1",
+    )
+    parser.add_argument(
+        "--argument2",
+        type=int,
+        required=True,
+        default=17,
+        help="help for argument 2",
+    )
+    parser.add_argument(
+        "--flag",
+        action="store_true",
+        help="help for flag",
+    )
 
-    @patch('tkinter.filedialog.askopenfilename')
-    def test_tkinter_load(self, askopenfilename):
-        _Tkinter().load(**self.kwargs)
+    def test_argparse2schema(self):
+        schema = argparse2schema(self.parser)
 
+        self.assertEqual("some-command", schema["title"])
+        self.assertEqual("some description", schema["description"])
+        self.assertEqual(3, len(schema["properties"]))
+        self.assertTrue("argument1" in schema["properties"].keys())
+        self.assertTrue("argument2" in schema["properties"].keys())
+        self.assertTrue("flag" in schema["properties"].keys())
+
+        argument1 = schema["properties"]["argument1"]
+        argument2 = schema["properties"]["argument2"]
+        flag = schema["properties"]["flag"]
+
+        self.assertEqual("help for argument 1", argument1["description"])
+        self.assertEqual("help for argument 2", argument2["description"])
+        self.assertEqual("help for flag", flag["description"])
+
+        self.assertEqual("string", argument1["type"])
+        self.assertEqual("integer", argument2["type"])
+        self.assertEqual("boolean", flag["type"])
+
+        self.assertEqual("default", argument1["default"])
+        self.assertEqual(17, argument2["default"])
+
+    def test_args2call_valid(self):
         self.assertEqual(
-            {v:k for k,v in _Tkinter._map.items()},
-            askopenfilename.call_args[1]
+            ["something", "--argument2", "123456789", "--flag"],
+            args2call(self.parser, {
+                "argument1": "something",
+                "argument2": 123456789,
+                "flag": True,
+            })
         )
 
-    @patch('tkinter.filedialog.asksaveasfilename')
-    def test_tkinter_save(self, asksaveasfilename):
-        _Tkinter().save(**self.kwargs)
-
+        # won't add flags if passed as False arguments
         self.assertEqual(
-            {v:k for k,v in _Tkinter._map.items()},
-            asksaveasfilename.call_args[1]
+            ["something", "--argument2", "123456789"],
+            args2call(self.parser, {
+                "argument1": "something",
+                "argument2": 123456789,
+                "flag": False,
+            })
         )
 
-    @patch('subprocess.Popen')
-    def test_zenity_load(self, Popen):
-        Popen.return_value.communicate.return_value = (b'', 0)
-        _Zenity().load(**self.kwargs)
-
-        c = 'zenity --file-selection --title title --file-filter pattern'
-
+        # it's ok to omit optional arguments / flags
         self.assertEqual(
-            sorted(c.split(' ')),
-            sorted(Popen.call_args[0][0])
+            ["something", "--argument2", "123456789"],
+            args2call(self.parser, {
+                "argument1": "something",
+                "argument2": 123456789,
+            })
         )
 
-    @patch('subprocess.Popen')
-    def test_zenity_save(self, Popen):
-        Popen.return_value.communicate.return_value = (b'', 0)
-        _Zenity().save(**self.kwargs)
+    def test_args2call_invalid(self):
+        # missing positional arguments
+        with self.assertRaises(ValueError):
+            args2call(self.parser, {
+                "argument2": 123456789,
+                "flag": True,
+            })
 
-        c = 'zenity --file-selection --save --title title --file-filter pattern'
+        # missing required "optional" arguments
+        with self.assertRaises(ValueError):
+            args2call(self.parser, {
+                "argument1": "something",
+                "flag": True,
+            })
 
-        self.assertEqual(
-            sorted(c.split(' ')),
-            sorted(Popen.call_args[0][0])
-        )
+        # wrong type for argument
+        with self.assertRaises(ValueError):
+            args2call(self.parser, {
+                "argument1": 123456789,
+                "argument2": 123456789,
+                "flag": True,
+            })
+
+        # non-boolean value for flag "argument"
+        with self.assertRaises(ValueError):
+            args2call(self.parser, {
+                "argument1": "something",
+                "argument2": 123456789,
+                "flag": "True",
+            })
+
+        # unrecognized argument
+        with self.assertRaises(ValueError):
+            args2call(self.parser, {
+                "argument1": "something",
+                "argument2": 123456789,
+                "flag": True,
+                "and-something-else": True,
+            })

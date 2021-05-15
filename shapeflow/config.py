@@ -1,14 +1,14 @@
-from typing import Optional, Tuple, Dict, Any, Type, Union
+from typing import Optional, Tuple, Dict, Any
 import json
 
 from pydantic import Field, validator
 
-from shapeflow import __version__, settings
+from shapeflow import __version__
 
 from shapeflow.core.config import extend, ConfigType, \
     log, VERSION, CLASS, untag, BaseConfig
 from shapeflow.core.backend import BaseAnalyzerConfig, \
-    FeatureType, FeatureConfig, AnalyzerState, QueueState
+    FeatureType, FeatureConfig
 from shapeflow.core import EnforcedStr
 from shapeflow.core.interface import FilterType, TransformType, TransformConfig, \
     FilterConfig, HandlerConfig
@@ -265,26 +265,8 @@ class VideoAnalyzerConfig(BaseAnalyzerConfig):
 
         return tuple(parameters)
 
-    _validate_fis = validator('frame_interval_setting')(BaseConfig._resolve_enforcedstr)
+    _validate_fis = validator('frame_interval_setting', allow_reuse=True)(BaseConfig._resolve_enforcedstr)
 
-
-def schemas() -> Dict[str, dict]:
-    """Get the JSON schemas of
-
-    * :class:`shapeflow.video.VideoAnalyzerConfig`
-
-    * :class:`shapeflow.Settings`
-
-    * :class:`shapeflow.core.backend.AnalyzerState`
-
-    * :class:`shapeflow.core.backend.QueueState`
-    """
-    return {
-        'config': VideoAnalyzerConfig.schema(),
-        'settings': settings.schema(),
-        'analyzer_state': dict(AnalyzerState.__members__),
-        'queue_state': dict(QueueState.__members__),
-    }
 
 def loads(config: str) -> BaseConfig:
     """Load a configuration object from a JSON string.

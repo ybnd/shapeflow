@@ -52,7 +52,7 @@ class _VideoAnalyzerDispatcher(Dispatcher):
         
     :func:`shapeflow.core.backend.BaseAnalyzer.cancel`
     """
-    get_config = Endpoint(Callable[[], dict], stream_json)
+    get_config = Endpoint(Callable[[], dict], stream_json)  # todo: GET/POST on single endpoint
     """Return the analyzer's configuration
     
     :func:`shapeflow.core.backend.BaseAnalyzer.get_config`
@@ -243,7 +243,7 @@ class _VideoAnalyzerManagerDispatcher(Dispatcher):
     :func:`shapeflow.main._VideoAnalyzerManager.load_state`
     """
 
-    stream = Endpoint(Callable[[str, str], BaseStreamer])
+    stream = Endpoint(Callable[[str, str], BaseStreamer])  # todo: GET/POST on single endpoint
     """Open a new stream for a given analyzer ID and endpoint
     
     :func:`shapeflow.main._VideoAnalyzerManager.stream`
@@ -371,7 +371,7 @@ class ApiDispatcher(Dispatcher):
     
     :func:`shapeflow.main._Main.normalize_config`
     """
-    get_settings = Endpoint(Callable[[], dict])
+    get_settings = Endpoint(Callable[[], dict])  # todo: GET/POST on single endpoint
     """Get the application settings
     
     :func:`shapeflow.main._Main.get_settings`
@@ -381,7 +381,7 @@ class ApiDispatcher(Dispatcher):
     
     :func:`shapeflow.main._Main.set_settings`
     """
-    events = Endpoint(Callable[[], EventStreamer], stream_json)
+    events = Endpoint(Callable[[], EventStreamer], stream_json)  # todo: GET/POST on single endpoint
     """Open an event stream
     
     :func:`shapeflow.main._Main.events`
@@ -391,7 +391,7 @@ class ApiDispatcher(Dispatcher):
     
     :func:`shapeflow.main._Main.stop_events`
     """
-    log = Endpoint(Callable[[], PlainFileStreamer], stream_plain)
+    log = Endpoint(Callable[[], PlainFileStreamer], stream_plain)  # todo: GET/POST on single endpoint
     """Open a log stream
     
     :func:`shapeflow.main._Main.log`
@@ -400,6 +400,16 @@ class ApiDispatcher(Dispatcher):
     """Stop the log stream
     
     :func:`shapeflow.main._Main.stop_log`
+    """
+    command = Endpoint(Callable[[str, dict], None])
+    """Execute a ``shapeflow.cli.Command``
+    
+    :func:`shapeflow.main._Main.command`
+    """
+    resolve_prompt = Endpoint(Callable[[str, Any], None])
+    """Respond to a prompt
+
+    :func:`shapeflow.main._Main.prompt`
     """
     unload = Endpoint(Callable[[], bool])
     """Unload the application. In order to support page reloading, the backend 

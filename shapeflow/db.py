@@ -16,7 +16,7 @@ from shapeflow.core.db import Base, DbModel, SessionWrapper, FileModel, BaseAnal
 from shapeflow import settings, get_logger, ResultSaveMode
 from shapeflow.core.config import __meta_sheet__
 from shapeflow.config import normalize_config, VideoAnalyzerConfig
-from shapeflow.core.streaming import EventStreamer
+from shapeflow.core.streaming import EventStreamer, EventCategory
 
 from shapeflow.core.backend import BaseAnalyzer, BaseAnalyzerConfig
 
@@ -559,7 +559,8 @@ class History(SessionWrapper, RootInstance):
 
     def notice(self, message: str, persist: bool = False):
         self._eventstreamer.event(
-            'notice', id='', data={'message': message, 'persist': persist}
+            EventCategory.NOTICE, id='',
+            data={'message': message, 'persist': persist}
         )
 
     def add_video_file(self, path: str) -> VideoFileModel:

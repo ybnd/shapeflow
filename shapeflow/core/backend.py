@@ -1,7 +1,6 @@
-from enum import IntEnum, Enum
+from enum import IntEnum
 
 import diskcache
-import sys
 import abc
 import time
 import threading
@@ -22,7 +21,7 @@ from shapeflow.util.meta import describe_function
 from shapeflow.util import Timer, Timing
 from shapeflow.core.db import BaseAnalysisModel
 from shapeflow.core.config import Factory, BaseConfig, Instance, Configurable
-from shapeflow.core.streaming import EventStreamer
+from shapeflow.core.streaming import EventStreamer, EventCategory
 
 from shapeflow.core.interface import InterfaceType
 
@@ -43,14 +42,6 @@ class CacheAccessError(RootException):
 
 
 _BLOCKED = 'BLOCKED'
-
-
-class PushEvent(Enum):
-    """Categories of server-pushed events.
-    """
-    STATUS = 'status'
-    CONFIG = 'config'
-    NOTICE = 'notice'
 
 
 class AnalyzerState(IntEnum):
@@ -572,18 +563,18 @@ class BaseAnalyzer(Instance, RootInstance):
         """
         self._eventstreamer = eventstreamer
 
-    def event(self, category: PushEvent, data: dict) -> None:
+    def event(self, category: EventCategory, data: dict) -> None:
         """Push an event.
 
         Parameters
         ----------
-        category : PushEvent
+        category : EventCategory
             The category of event to push
         data : dict
             The data to push
         """
         if self.eventstreamer is not None:
-            self.eventstreamer.event(category.value, self.id, data)
+            self.eventstreamer.event(category, self.id, data)
 
     def notice(self, message: str, persist: bool = False) -> None:
         """Push a notice.
@@ -597,7 +588,7 @@ class BaseAnalyzer(Instance, RootInstance):
             interface until dismissed manually)
         """
         self.event(
-            PushEvent.NOTICE,
+            EventCategory.NOTICE,
             data={'message': message, 'persist': persist}
         )
         log.warning(f"'{self.id}': {message}")
@@ -787,7 +778,7 @@ class BaseAnalyzer(Instance, RootInstance):
         return status
 
     def push_status(self):
-        self.event(PushEvent.STATUS, self.status())
+        self.event(EventCategory.STATUS, self.status())
 
     @api.va.__id__.get_config.expose()
     def get_config(self, do_tag=False) -> dict:
@@ -837,7 +828,7 @@ class BaseAnalyzer(Instance, RootInstance):
 
                 # Push events
                 self.set_state(AnalyzerState.LAUNCHED)
-                self.event(PushEvent.CONFIG, self.get_config())
+                self.event(EventCategory.CONFIG, self.get_config())
 
                 # State transition (may change from LAUNCHED ~ config)
                 self.state_transition()
