@@ -165,7 +165,8 @@ class _Settings(BaseModel):
                     _inject(field.type_, definitions[field.type_.__name__], definitions)
             return schema
 
-        return _inject(cls, schema, schema['definitions'])
+        if 'definitions' in schema:
+            return _inject(cls, schema, schema['definitions'])
 
 
 class FormatSettings(_Settings):
