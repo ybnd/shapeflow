@@ -103,7 +103,6 @@ colors
 
 .. automodule:: shapeflow.maths.colors
    :members:
-   :private-members: _colorspace, _conversion_map
    :undoc-members:
    :show-inheritance:
 
