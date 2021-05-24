@@ -43,6 +43,7 @@ extensions = [
     'sphinx.ext.todo',
     'sphinx.ext.githubpages',
     'sphinx_rtd_theme',
+    'sphinx-pydantic',
 ]
 
 # Complain about broken links
@@ -67,12 +68,12 @@ import pydantic
 
 
 def edit_signature(app, what, name, obj, options, signature, return_annotation):
-    if inspect.isclass(obj):
-        # Don't render pydantic model signature, it's too biiiig
-        is_pydanticBaseModel = issubclass(obj, pydantic.BaseModel)
-
-        if is_pydanticBaseModel:
-            signature = ""
+    # if inspect.isclass(obj):
+    #     # Don't render pydantic model signature, it's too biiiig
+    #     is_pydanticBaseModel = issubclass(obj, pydantic.BaseModel)
+    #
+    #     if is_pydanticBaseModel:
+    #         signature = ""
 
     return signature, return_annotation
 

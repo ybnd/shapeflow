@@ -1,3 +1,4 @@
-sphinx-rtd-theme
 alabaster
+sphinx-pydantic
+sphinx-rtd-theme
 pydantic
