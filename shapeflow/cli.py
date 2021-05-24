@@ -524,18 +524,11 @@ class SetupCairo(Command):
     parser = argparse.ArgumentParser(
         description=__doc__
     )
-    parser.add_argument(
-        '--cleanup',
-        action='store_true',
-        help='remove cairo from virtual environment first'
-    )
 
     URL = 'https://github.com/preshing/cairo-windows/releases/download/with-tee/cairo-windows-1.17.2.zip'
 
     def command(self) -> None:
         if self._on_windows():
-            if self.args.cleanup:
-                self._cleanup()
             self._setup()
         else:
             print(f'Not on Windows.')
