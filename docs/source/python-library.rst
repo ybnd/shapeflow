@@ -10,19 +10,9 @@ shapeflow
 
 .. automodule:: shapeflow
    :members:
-   :exclude-members: settings, save_settings, update_settings, Logger, get_logger, get_cache, FormatSettings, LoggingLevel, LogSettings, CacheSettings, RenderSettings, DatabaseSettings, ResultSaveMode, ApplicationSettings, Settings
+   :exclude-members: settings, save_settings, update_settings, Logger, get_logger, get_cache
+   :private-members: _Settings
    :show-inheritance:
-
-.. autoclass:: shapeflow._Settings
-.. pydantic:: shapeflow.Settings
-.. pydantic:: shapeflow.FormatSettings
-.. autoclass:: shapeflow.LoggingLevel
-.. pydantic:: shapeflow.LogSettings
-.. pydantic:: shapeflow.CacheSettings
-.. pydantic:: shapeflow.RenderSettings
-.. pydantic:: shapeflow.DatabaseSettings
-.. autoclass:: shapeflow.ResultSaveMode
-.. pydantic:: shapeflow.ApplicationSettings
 
 .. autodata:: shapeflow.settings
    :annotation: = shapeflow.Settings()

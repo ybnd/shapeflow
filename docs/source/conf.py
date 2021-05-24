@@ -42,8 +42,9 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.todo',
     'sphinx.ext.githubpages',
+    'sphinx.ext.autosummary',
+    'sphinxcontrib.autodoc_pydantic',
     'sphinx_rtd_theme',
-    'sphinx-pydantic',
 ]
 
 # Complain about broken links
@@ -59,6 +60,9 @@ exclude_patterns = []  #type: ignore
 
 autodoc_member_order = 'bysource'
 autosummary_generate = True
+
+autodoc_pydantic_model_show_json = True
+autodoc_pydantic_model_show_config_summary = True
 
 
 # -- autodoc configuration ---------------------------------------------------
