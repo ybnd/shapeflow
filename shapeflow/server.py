@@ -2,7 +2,7 @@ import json
 import os
 import time
 import subprocess
-from threading import Thread, Event
+from threading import Thread, Event, Lock
 from typing import Optional
 
 from flask import Flask, send_from_directory, jsonify, request, Response, make_response, abort
@@ -15,6 +15,7 @@ import shapeflow.util as util
 from shapeflow.core import DispatchingError
 import shapeflow.core.streaming as streaming
 from shapeflow.api import ApiDispatcher
+from shapeflow.main import load, ShapeflowServerInterface
 
 log = shapeflow.get_logger(__name__)
 UI = os.path.join(
@@ -59,7 +60,7 @@ class ServerThread(Thread, metaclass=util.Singleton):
         os._exit(0)
 
 
-class ShapeflowServer(object):
+class ShapeflowServer(ShapeflowServerInterface):
     """Wrapper for a ``Flask`` server
     """
 
@@ -70,6 +71,7 @@ class ShapeflowServer(object):
     _api: Optional[ApiDispatcher]
     _server: ServerThread
 
+    _api_lazy_load = Lock()
     _ping = Event()
     _unload = Event()
     _quit = Event()
@@ -82,8 +84,6 @@ class ShapeflowServer(object):
     _eventstreamer = streaming.EventStreamer()
 
     def __init__(self):
-        self._api = None
-
         app = Flask(__name__)
         app.config.from_object(__name__)
         app.config['JSON_SORT_KEYS'] = False
@@ -98,6 +98,7 @@ class ShapeflowServer(object):
             return self.call_api(address)
 
         self._app = app
+        self._api = None
 
     def serve(self, host: str, port: int, open: bool) -> None:
         """Serve the application.
@@ -179,7 +180,7 @@ class ShapeflowServer(object):
             os.path.basename(path)
         )
 
-    def call_api(self, address: str):
+    def call_api(self, address: str) -> Response:
         """Dispatch request to the API.
 
         Arguments are gathered from ``Flask``'s ``request.data`` or
@@ -244,10 +245,16 @@ class ShapeflowServer(object):
             log.error(f"'{address}' - {e.__class__.__name__}: {str(e)}")
             raise e
 
-    def restart(self):
+    def unload(self) -> None:
+        self._unload.set()
+
+    def quit(self) -> None:
+        self._quit.set()
+
+    def restart(self) -> None:
         """Restart the server.
         """
-        self._quit.set()
+        self.quit()
 
         while not self._done.is_set():
             pass
@@ -274,7 +281,12 @@ class ShapeflowServer(object):
     def api(self) -> ApiDispatcher:
         """Get a reference to :data:`shapeflow.api.api` and ensure it has
         been initialized properly with :mod:`shapeflow.main` and bound to this
-        :class:`~shapeflow.server.ShapeflowServer` instance
+        :class:`~shapeflow.server.ShapeflowServer` instance.
+
+        This property is used to lazy-load :data:`shapeflow.api.api` on the
+        first request. As this takes some time, requests received during
+        loading will be locked out until initialization completes. Subsequent
+        requests bypass this lock.
 
         Returns
         -------
@@ -282,6 +294,16 @@ class ShapeflowServer(object):
             A reference to :data:`~shapeflow.api.api`
         """
         if self._api is None:
-            from shapeflow.main import load
-            self._api = load(self)
+            if self._api_lazy_load.locked():
+                self._api_lazy_load.acquire()
+                self._api_lazy_load.release()
+                return self.api
+            else:
+                with self._api_lazy_load:
+                    self._api = load(self)
+
         return self._api
+
+    @property
+    def eventstreamer(self) -> streaming.EventStreamer:
+        return self._eventstreamer

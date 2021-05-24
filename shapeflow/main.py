@@ -9,16 +9,17 @@ very intuitive.
 """
 
 import os
+import abc
 import time
 import pickle
 from typing import Dict, List, Optional
 from threading import Event, Lock, Thread
 import datetime
 
+from flask import Response
 import shortuuid
 import diskcache
 import cv2
-from OnionSVG import check_svg
 
 from shapeflow.util import open_path, sizeof_fmt
 from shapeflow.util.filedialog import filedialog
@@ -26,11 +27,11 @@ from shapeflow import get_logger, get_cache, settings, update_settings, ROOTDIR
 from shapeflow.core import stream_off, Endpoint, RootException
 from shapeflow.api import api, _FilesystemDispatcher, _DatabaseDispatcher, _VideoAnalyzerManagerDispatcher, _VideoAnalyzerDispatcher, _CacheDispatcher, ApiDispatcher
 from shapeflow.core.streaming import streams, EventStreamer, PlainFileStreamer, BaseStreamer
+from shapeflow.design import check_design
 from shapeflow.core.backend import QueueState, AnalyzerState, BaseAnalyzer
 from shapeflow.config import schemas, normalize_config, loads, BaseAnalyzerConfig
 from shapeflow.video import init, VideoAnalyzer
 import shapeflow.plugins
-from shapeflow.server import ShapeflowServer
 
 from shapeflow.db import History
 
@@ -38,15 +39,50 @@ from shapeflow.db import History
 log = get_logger(__name__)
 
 
+class ShapeflowServerInterface(abc.ABC):
+    @abc.abstractmethod
+    def serve(self, host: str, port: int, open: bool) -> None:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def call_api(self, address: str) -> Response:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def unload(self) -> None:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def quit(self) -> None:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def restart(self) -> None:
+        raise NotImplementedError
+
+    @abc.abstractmethod
+    def active(self) -> None:
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def api(self) -> ApiDispatcher:
+        raise NotImplementedError
+
+    @property
+    @abc.abstractmethod
+    def eventstreamer(self) -> EventStreamer:
+        raise NotImplementedError
+
 class _Main(object):
     """Implements root-level :data:`~shapeflow.api.api` endpoints.
     """
     _lock: Lock
-    _server: ShapeflowServer
+    _server: ShapeflowServerInterface
 
     _log: Optional[PlainFileStreamer]
 
-    def __init__(self, server: ShapeflowServer):
+    def __init__(self, server: ShapeflowServerInterface):
         self._server = server
 
         self._lock = Lock()
@@ -169,7 +205,7 @@ class _Main(object):
             A :class:`~shapeflow.core.streaming.BaseStreamer` object, to be
             streamed by ``Flask``
         """
-        return self._server._eventstreamer
+        return self._server.eventstreamer
 
     @api.stop_events.expose()
     def stop_events(self) -> None:
@@ -177,7 +213,7 @@ class _Main(object):
 
         :attr:`shapeflow.api.ApiDispatcher.stop_events`
         """
-        self._server._eventstreamer.stop()
+        self._server.eventstreamer.stop()
 
     @api.log.expose()
     def log(self) -> PlainFileStreamer:
@@ -216,7 +252,7 @@ class _Main(object):
 
         :attr:`shapeflow.api.ApiDispatcher.unload`
         """
-        self._server._unload.set()
+        self._server.unload()
         return True
 
     @api.quit.expose()
@@ -225,7 +261,7 @@ class _Main(object):
 
         :attr:`shapeflow.api.ApiDispatcher.quit`
         """
-        self._server._quit.set()
+        self._server.quit()
         return True
 
     @api.restart.expose()
@@ -385,7 +421,7 @@ class _Filesystem(object):
         log.debug(f"checking design file '{path}'")
         if os.path.isfile(path):
             try:
-                check_svg(path)
+                check_design(path)
                 self._history.add_design_file(path)  # todo: overhead?
                 return True
             except:
@@ -407,13 +443,13 @@ class _Filesystem(object):
 
 
 class _Database(object):
-    _server: ShapeflowServer
+    _server: ShapeflowServerInterface
     _history: History
 
-    def __init__(self, server: ShapeflowServer):
+    def __init__(self, server: ShapeflowServerInterface):
         self._server = server
         self._history = History()
-        self._history.set_eventstreamer(server._eventstreamer)
+        self._history.set_eventstreamer(server.eventstreamer)
 
     def check_history(self):  # todo: move to shapeflow.db
         if self._history.check():
@@ -442,7 +478,7 @@ class _VideoAnalyzerManager(object):
     * Handles analyzer-specific streams
     """
 
-    _server: ShapeflowServer
+    _server: ShapeflowServerInterface
     _history: History
 
     _lock: Lock
@@ -460,10 +496,10 @@ class _VideoAnalyzerManager(object):
     """Length of ``id`` strings. Kept relatively short for readable URLs.
     """
 
-    def __init__(self, server: ShapeflowServer):
+    def __init__(self, server: ShapeflowServerInterface):
         self._server = server
         self._history = History()
-        self._history.set_eventstreamer(server._eventstreamer)
+        self._history.set_eventstreamer(server.eventstreamer)
 
         self._lock = Lock()
         self._stop_q = Event()
@@ -515,7 +551,7 @@ class _VideoAnalyzerManager(object):
         message: str
             The message to push
         """
-        self._server._eventstreamer.event(
+        self._server.eventstreamer.event(
             'notice', id='', data={'message': message, 'persist': persist}
         )
 
@@ -536,7 +572,7 @@ class _VideoAnalyzerManager(object):
         """
         with self._lock:
             analyzer = VideoAnalyzer()
-            analyzer.set_eventstreamer(self._server._eventstreamer)
+            analyzer.set_eventstreamer(self._server.eventstreamer)
             self._history.add_analysis(analyzer)
             self._add(analyzer)
 
@@ -751,7 +787,7 @@ class _VideoAnalyzerManager(object):
 
                         analyzer = init(config)
                         analyzer._set_id(id)
-                        analyzer.set_eventstreamer(self._server._eventstreamer)
+                        analyzer.set_eventstreamer(self._server.eventstreamer)
 
                         analyzer.launch()
 
@@ -819,7 +855,7 @@ class _VideoAnalyzerManager(object):
             raise ValueError(f"endpoint '{endpoint}' doesn't stream")
 
 
-def load(server: ShapeflowServer) -> ApiDispatcher:
+def load(server: ShapeflowServerInterface) -> ApiDispatcher:
     """Initialize :data:`~shapeflow.api.api` and return a reference to it.
 
     Parameters
@@ -835,7 +871,7 @@ def load(server: ShapeflowServer) -> ApiDispatcher:
     api._set_instance(_Main(server))
 
     history = History()
-    history.set_eventstreamer(server._eventstreamer)
+    history.set_eventstreamer(server.eventstreamer)
 
     api._add_dispatcher('db', _DatabaseDispatcher(history))
     api._add_dispatcher('fs', _FilesystemDispatcher(_Filesystem()))
@@ -848,6 +884,6 @@ def load(server: ShapeflowServer) -> ApiDispatcher:
     api._add_dispatcher('va', _va)
 
     if settings.app.load_state:
-        api.dispatch('va/load_state')
+        api.dispatch_async('va/load_state')
 
     return api

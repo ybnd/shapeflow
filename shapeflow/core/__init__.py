@@ -408,6 +408,12 @@ class Dispatcher(object):  # todo: these should also register specific instances
                 f"'{self.name}' can't dispatch address '{address}'."
             )
 
+    def dispatch_async(self, address: str, *args, **kwargs) -> None:
+        def _dispatch():
+            self.dispatch(address, *args, **kwargs)
+
+        threading.Thread(target=_dispatch).start()
+
     def __getitem__(self, item):
         return getattr(self, item)
 

@@ -36,6 +36,28 @@ Changelog
 
     * :class:`shapeflow.cli.Declutter`
 
+  * Make |cairo|_ an optional dependency
+
+    * No longer depend on |OnionSVG|_; design file rendering is now handled by
+      :class:`shapeflow.design.onions.Peeler` and
+      :class:`shapeflow.design.render.Renderer`.
+    * SVG layer operations (|lxml|_) are decoupled from rendering
+    * Renderers are selected based on the system configuration: |cairo|_ is
+      still the go-to option, but we can now fall back on
+      |Wand|_ (`ImageMagick`_)
+      and the commandline interface of a Windows installation of `Inkscape`_.
+
+  * Fix ``tkinter`` dialog windows not appearing on Windows
+
+    * ``tkinter`` can't handle not being in the main thread, which was the case
+      in the "updated" version of :module:``shapeflow.util.filedialog``.
+
+    * Should not have deprecated subprocess-based filedialog script; it was
+      added in the first place to solve this issue.
+
+    * Made subprocess-based file dialogs complain on cancel / error; this bug
+      stayed unnoticed because they used to be silent about it.
+
 * **0.4.3 -- API overhaul**
 
   * Add frontend tests
@@ -200,3 +222,17 @@ Changelog
 
 .. _rm1: https://github.com/ybnd/isimple/commit/b65a0fe914a44bff6b2bba4ed155a9cd24d54e10
 .. _rm2: https://github.com/ybnd/isimple/commit/af1b251b90efcd670d220de8f25975ff7bc8321d
+
+
+.. |cairo| replace:: ``cairo``
+.. |cairosvg| replace:: ``cairosvg``
+.. |lxml| replace:: ``lxml``
+.. |Wand| replace:: ``Wand``
+.. |OnionSVG| replace:: ``OnionSVG``
+.. _cairosvg: https://cairosvg.org/
+.. _cairo: https://www.cairographics.org/
+.. _lxml: https://lxml.de/
+.. _Wand: https://docs.wand-py.org/en/0.6.6/
+.. _ImageMagick: https://imagemagick.org/index.php
+.. _Inkscape: https://inkscape.org/
+.. _OnionSVG: https://github.com/ybnd/OnionSVG

@@ -3,11 +3,13 @@ import shutil
 import unittest
 from unittest.mock import MagicMock
 from contextlib import contextmanager
+import warnings
 
 import time
 import copy
 import json
 from threading import Thread
+from sqlalchemy.orm.exc import ObjectDeletedError
 
 
 HOST = "127.0.0.1"
@@ -77,7 +79,10 @@ def application(keep: bool = False):
         # Explicitly remove any leftover analyzers
         app_state = json.loads(client.get('/api/va/state').data)
         for id in app_state['ids']:
-            client.post(f'/api/va/close?id={id}')
+            try:
+                client.post(f'/api/va/close?id={id}')
+            except ObjectDeletedError as e:
+                warnings.warn(str(e))
 
         del server
         del settings
@@ -112,7 +117,7 @@ class ServerTest(unittest.TestCase):
 
             # Check wrong real files
             self.assertEqual(
-                True,  # OnionSVG.check_svg() checks if directory contains <file>.svg if extension doesn't match
+                False,
                 json.loads(
                     client.put(
                         '/api/fs/check_design',

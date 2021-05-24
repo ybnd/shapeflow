@@ -7,7 +7,6 @@ from typing import Callable, Any, Dict, Generator, Optional, List, Tuple, Type
 import cv2
 import numpy as np
 import pandas as pd
-from OnionSVG import OnionSVG, check_svg
 
 from shapeflow import get_logger, settings, ResultSaveMode
 from shapeflow.api import api
@@ -24,6 +23,7 @@ from shapeflow.core.config import extend
 from shapeflow.core.interface import TransformInterface, FilterConfig, \
     FilterInterface, FilterType, TransformType, Handler
 from shapeflow.core.streaming import stream, streams
+from shapeflow.design import peel
 from shapeflow.maths.colors import Color, HsvColor, BgrColor, convert, css_hex
 from shapeflow.maths.images import to_mask, crop_mask, ckernel, \
     overlay, rect_contains
@@ -679,11 +679,7 @@ class DesignFileHandler(CachingInstance):
         else:
             self._clear_renders()
 
-        check_svg(design_path)
-        OnionSVG(design_path, dpi=dpi).peel(
-            'all', to=settings.render.dir  # todo: should maybe prepend file name to avoid overwriting previous renders?
-        )
-        print("\n")
+        peel(design_path, dpi, settings.render.dir)
 
         overlay = cv2.imread(
             os.path.join(settings.render.dir, 'overlay.png')

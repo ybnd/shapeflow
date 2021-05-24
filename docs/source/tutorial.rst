@@ -328,36 +328,3 @@ The design file should be an **.svg file** containing:
 
   If you want to ensure a specific order for these layers to go in, you can
   format the layer names as ``1 - …``\ , ``2 - …``\ , etc.
-
-* 
-  A solid white background (named ``_background``\ ).
-
-  This layer is included to make sure that there is no transparency when
-  rendering the overlay and masks, as this can mess things up. Adding this
-  background layer explicitly makes us less likely to make mistakes with the
-  ‘global’ background settings, as those can be easily missed.
-
-  In order for the masks to be positioned precisely relative to the overlay,
-  this background layer should *cover the entire image*. To make sure it is
-  sized correctly, it’s best to draw it with respect to the page instead of
-  the design itself. In Inkscape:
-
-
-  #. 
-     Select the overlay
-
-  #.
-     Open ``File > Document > Properties``
-
-  #. 
-     Set ``Resize page to content... > Resize page to drawing or selection``
-
-  #. 
-     Turn on ``Show page border``
-
-  #. 
-     Enable ``Snap to page border`` in the snap controls bar
-
-  #.
-    In the background layer, draw a rectangle over the page border
-    (solid white fill, no stroke, no transparency).

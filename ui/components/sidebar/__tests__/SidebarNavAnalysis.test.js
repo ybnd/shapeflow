@@ -72,9 +72,8 @@ test('mount', () => {
 
   const w = factory();
 
-  expect(w.find('.analysis-name').exists()).toBeTruthy();
-  expect(w.find('.analysis-name').text()).toBe(NAME);
-  expect(w.findComponent(Waiting).exists()).toBeFalsy();
+  expect(w.find('.analysis-name').exists()).toBeFalsy();  // waiting until AnalyzerState.LAUNCHED
+  expect(w.findComponent(Waiting).exists()).toBeTruthy();
 });
 
 test('undefined name', () => {

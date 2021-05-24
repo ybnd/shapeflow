@@ -12,7 +12,6 @@ def sf(*args):
 if __name__ == '__main__':
     print("\nRunning setup/post-deploy.py ...\n")
 
-    sf("setup-cairo", "--cleanup")
     sf("get-compiled-ui", "--replace")
     sf("declutter")
 

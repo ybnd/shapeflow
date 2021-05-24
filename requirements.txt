@@ -1,18 +1,19 @@
-CairoSVG
-cffi
+cairosvg  # Used if cairo is installed (1st choice)
 diskcache
 Flask
 GitPython
+lxml
 numpy
-OnionSVG
 opencv-python==4.2.0.32
 openpyxl
 pandas
 pydantic
+pywin32; platform_system=="Windows"
 pyyaml
 requests
 scipy
 shortuuid
 SQLAlchemy
-Unidecode
+unidecode
 waitress
+Wand  # Used if ImageMagick is installed (2nd choice)
