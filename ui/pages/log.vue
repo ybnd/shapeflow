@@ -222,7 +222,7 @@ export default {
 .log-table {
   flex: 1 1 auto;
   overflow: auto;
-  font-family: monospace;
+  font-family: Hack, monospace;
   font-size: 11px;
   table-layout: fixed;
 }

@@ -1,5 +1,5 @@
-const BundleAnalyzerPlugin = require("webpack-bundle-analyzer")
-  .BundleAnalyzerPlugin;
+// const BundleAnalyzerPlugin = require("webpack-bundle-analyzer")
+//   .BundleAnalyzerPlugin;
 
 const changeLoaderOptions = (loaders) => {
   if (loaders) {
@@ -29,7 +29,7 @@ module.exports = {
         content: "",
       },
     ],
-    link: [{ rel: "icon", type: "image/x-icon", href: "/favicon.ico" }],
+    link: [{ rel: "icon", type: "image/x-icon", href: "shapeflow.ico" }],
   },
 
   router: {

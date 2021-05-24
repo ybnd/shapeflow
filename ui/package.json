@@ -33,7 +33,6 @@
     "json-pointer": "^0.6.0",
     "lodash": "^4.17.20",
     "mathjs": "^7.2.0",
-    "node-sass": "^4.14.1",
     "nodemon": "^1.11.0",
     "nuxt": "^2.14.4",
     "optimize-css-assets-webpack-plugin": "^5.0.4",
@@ -70,6 +69,7 @@
     "jest-serializer-vue": "^2.0.2",
     "jsonschema": "^1.2.10",
     "lodash-webpack-plugin": "^0.11.5",
+    "node-sass": "^6.0.0",
     "vue-jest": "^3.0.7",
     "vue-test-actions": "^1.0.6",
     "webpack": "^4.44.1"
