@@ -1,0 +1,86 @@
+name: build
+on: [push]
+jobs:
+  tox:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    strategy:
+      matrix:
+        include:
+          - python-version: 3.7
+            tox: "py37-type"
+          - python-version: 3.7
+            tox: "py37-test"
+          - python-version: 3.8
+            tox: "py38-type"
+          - python-version: 3.8
+            tox: "py38-cover"
+
+    env:
+      TOX_ENV: ${{ matrix.tox }}
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install tox
+        run: pip install tox
+
+      - name: Install codecov
+        if: ${{ endsWith(matrix.tox, 'cover') }}
+        run: pip install codecov
+
+      - name: Run tox --notest
+        run: tox -c test/tox.ini -e $TOX_ENV $SITE_PACKAGES --notest
+
+      - name: Run tox
+        run: tox -c test/tox.ini -e $TOX_ENV $SITE_PACKAGES
+
+      - name: Send coverage report
+        if: ${{ endsWith(matrix.tox, 'cover') }}
+        run: cd test && codecov -F backend
+
+  node:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    strategy:
+      matrix:
+        include:
+          - node_version: 14
+            coverage: true
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Set up backend dependencies
+        run: pip install -r requirements.txt
+
+      - name: Set up node
+        uses: actions/setup-node@v2
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Install npm dependencies
+        run: cd ui && npm install
+
+      - name: Run tests
+        run: cd ui && npm run test
+
+      - name: Send coverage report
+        if: ${{ matrix.coverage }}
+        run: bash <(curl -s https://codecov.io/bash) -cF frontend
+
+
