@@ -5,7 +5,7 @@
     </a>
   </div>
   <div>
-    <a href="https://travis-ci.com/ybnd/shapeflow"><img src="https://travis-ci.com/ybnd/shapeflow.svg?branch=main" alt="travis"></a>
+    <a href="https://github.com/ybnd/shapeflow/actions/workflows/build.yml"><img src="https://github.com/ybnd/shapeflow/actions/workflows/build.yml/badge.svg" alt="build"></a>
     <a href="https://shapeflow.readthedocs.io/en/latest/?"><img src="https://readthedocs.org/projects/shapeflow/badge/?version=latest" alt="docs"></a>
     <a href="https://codecov.io/gh/ybnd/shapeflow"><img src="https://codecov.io/gh/ybnd/shapeflow/branch/master/graph/badge.svg" alt="coverage"></a>
     <a href="https://doi.org/10.5281/zenodo.4048741"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.4048741.svg" alt=""></a>
