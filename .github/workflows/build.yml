@@ -55,10 +55,6 @@ jobs:
       - name: Install tox
         run: pip install tox
 
-      - name: Install codecov
-        if: ${{ endsWith(matrix.tox, 'cover') }}
-        run: pip install codecov
-
       - name: Run tox --notest
         run: tox -c test/tox.ini -e $TOX_ENV $SITE_PACKAGES --notest
 
@@ -67,7 +63,7 @@ jobs:
 
       - name: Send coverage report
         if: ${{ endsWith(matrix.tox, 'cover') }}
-        run: cd test && codecov -F backend
+        run: cd test && bash <(curl -s https://codecov.io/bash) -cF backend
 
   node:
     runs-on: ubuntu-latest
