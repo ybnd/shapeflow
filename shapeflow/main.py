@@ -39,40 +39,101 @@ from shapeflow.db import History
 log = get_logger(__name__)
 
 
-class ShapeflowServerInterface(abc.ABC):
+class ShapeflowServerInterface(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def serve(self, host: str, port: int, open: bool) -> None:
-        raise NotImplementedError
+        """Serve the application.
+
+        Starts a new :class:`~shapeflow.server.ServerThread` and opens a new
+        browser window/tab if requested.
+
+        This method keeps serving until either
+
+        * :func:`~shapeflow.main._Main.quit` is called
+
+        * :func:`~shapeflow.main._Main.unload` is called and no incoming traffic
+          is received for 5 seconds.
+
+        * The user interrupts the process with ``Ctrl+C``
+
+        Parameters
+        ----------
+        host: str
+            Host address
+        port: int
+            Host port
+        open: bool
+            Whether to open in a browser window/tab after starting the server
+        """
 
     @abc.abstractmethod
     def call_api(self, address: str) -> Response:
-        raise NotImplementedError
+        """Dispatch request to the API.
+
+        Arguments are gathered from ``Flask``'s ``request.data`` or
+        ``request.args``
+
+        Handles multiple types of return data:
+
+        * ``bytes`` data are handled by ``flask.make_response``
+
+        * for :class:`shapeflow.core.streaming.BaseStreamer` instances,
+          custom ``flask.Response`` objects are made from their
+          :func:`shapeflow.core.streaming.BaseStreamer.stream` generator
+
+        * all other data are handled by ``flask.jsonify``
+
+        Parameters
+        ----------
+        address: str
+            The address of the endpoint to dispatch to
+        """
 
     @abc.abstractmethod
     def unload(self) -> None:
-        raise NotImplementedError
+        """Mark for unload.
+        """
 
     @abc.abstractmethod
     def quit(self) -> None:
-        raise NotImplementedError
+        """Mark for quit.
+        """
 
     @abc.abstractmethod
     def restart(self) -> None:
-        raise NotImplementedError
+        """Restart the server.
+        """
 
     @abc.abstractmethod
     def active(self) -> None:
-        raise NotImplementedError
+        """If the ``_unload`` has been set, cancel it. Should be called for
+        incoming traffic.
+        """
 
     @property
     @abc.abstractmethod
     def api(self) -> ApiDispatcher:
-        raise NotImplementedError
+        """Get a reference to :data:`shapeflow.api.api` and ensure it has
+        been initialized properly with :mod:`shapeflow.main` and bound to this
+        :class:`~shapeflow.server.ShapeflowServer` instance.
+
+        This property is used to lazy-load :data:`shapeflow.api.api` on the
+        first request. As this takes some time, requests received during
+        loading will be locked out until initialization completes. Subsequent
+        requests bypass this lock.
+
+        Returns
+        -------
+        ApiDispatcher
+            A reference to :data:`~shapeflow.api.api`
+        """
 
     @property
     @abc.abstractmethod
     def eventstreamer(self) -> EventStreamer:
-        raise NotImplementedError
+        """A reference to the server's
+        :class:`shapeflow.core.streaming.EventStreamer` instance
+        """
 
 class _Main(object):
     """Implements root-level :data:`~shapeflow.api.api` endpoints.

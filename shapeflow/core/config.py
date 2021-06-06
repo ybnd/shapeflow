@@ -29,7 +29,7 @@ __meta_sheet__ = 'metadata'
 
 
 # todo: move up to shapeflow.core
-class Factory(EnforcedStr):  # todo: add a _class & issubclass check
+class Factory(EnforcedStr, metaclass=abc.ABCMeta):  # todo: add a _class & issubclass check
     """An enforced string which maps its options to types.
 
     Included types should be subclasses of :class:`~shapeflow.core.Described`
@@ -103,7 +103,6 @@ class Factory(EnforcedStr):  # todo: add a _class & issubclass check
         """The ``pydantic`` configuration schema for
         the members of this factory
         """
-        raise NotImplementedError
 
 
 class extend(object):  # todo: can this be a function instead? look at the @dataclass decorator, something weird is going on there with * and /

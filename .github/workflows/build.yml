@@ -47,9 +47,9 @@ jobs:
         uses: actions/cache@v2
         with:
           path: test/.tox
-          key: ${{ runner.os }}-tox-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
+          key: ${{ runner.os }}-tox-${{ matrix.tox }}-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
-            ${{ runner.os }}-tox-${{ matrix.python-version }}-
+            ${{ runner.os }}-tox-${{ matrix.tox }}-
             ${{ runner.os }}-tox-
 
       - name: Install tox
