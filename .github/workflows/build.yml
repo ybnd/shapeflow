@@ -1,5 +1,10 @@
 name: build
-on: [push]
+on:
+  push:
+    branches:
+      - main
+      - dev/*
+
 jobs:
   tox:
     runs-on: ubuntu-latest
@@ -28,6 +33,22 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Cache tox
+        uses: actions/cache@v2
+        with:
+          path: test/.tox
+          key: ${{ runner.os }}-tox-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-tox-
 
       - name: Install tox
         run: pip install tox
@@ -73,6 +94,14 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
+      - name: Cache npm
+        uses: actions/cache@v2
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-npm-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
+
       - name: Install npm dependencies
         run: cd ui && npm install
 
@@ -82,5 +111,3 @@ jobs:
       - name: Send coverage report
         if: ${{ matrix.coverage }}
         run: bash <(curl -s https://codecov.io/bash) -cF frontend
-
-

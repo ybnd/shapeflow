@@ -1,0 +1,134 @@
+name: release
+on:
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+env:
+  ARTIFACTS: artifacts
+  ARTIFACTS_CACHE: artifacts-${{ github.sha }}
+
+jobs:
+  check-version:
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Get tag name
+        run: |
+          TAG=${GITHUB_REF#refs/*/}
+          echo $TAG
+          echo "TAG=$TAG" >> $GITHUB_ENV
+
+      - name: Should match __version__ in shapeflow/__init__.py
+        run: |
+          cat shapeflow/__init__.py | grep "__version__ = "
+          cat shapeflow/__init__.py | grep "__version__ = \"$TAG\""
+
+      - name: Should match version in shapeflow/setup/ploy
+        run: |
+          cat shapeflow/setup/ploy | grep "version: "
+          cat shapeflow/setup/ploy | grep "version: $TAG"
+
+      - name: Should match version in ui/package.json
+        run: |
+          cat ui/package.json | grep "\"version\": "
+          cat ui/package.json | grep "\"version\": \"$TAG\""
+
+      - name: Should have a changelog entry
+        run: |
+          cat docs/source/changelog.rst | grep -P "^$TAG$"
+
+
+  artifacts:
+    runs-on: ubuntu-latest
+    needs: [check-version]
+
+    outputs:
+      tag: ${{ steps.gitploy.outputs.tag }}
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Set up node
+        uses: actions/setup-node@v2
+        with:
+          node-version: 14
+
+      - name: Cache artifacts
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.ARTIFACTS }}
+          key: ${{ env.ARTIFACTS_CACHE }}
+
+      - name: Initialize artifacts directory
+        run: mkdir "$ARTIFACTS"
+
+      - name: Install npm dependencies
+        working-directory: ui
+        run: npm install
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+
+      - name: Install gitploy
+        run: |
+          git clone https://github.com/ybnd/gitploy ~/gitploy
+          cd ~/gitploy
+          python setup.py install
+
+      - name: Generate deployment script
+        id: gitploy
+        run: |
+          cp shapeflow/setup/ploy .ploy
+          echo "::set-output name=tag::$( cat .ploy | sed -n -e 's/^.*version: //p')"
+          python -m gitploy .
+          mv deploy*.py "$ARTIFACTS"
+
+      - name: Compile ui
+        working-directory: ui
+        run: npm run build
+
+      - name: Tarball ui
+        run: |
+          cd ui && tar -czvf "../$ARTIFACTS/dist-${{ steps.gitploy.outputs.tag }}.tar.gz" dist
+
+
+  draft:
+    runs-on: ubuntu-latest
+    needs: [artifacts]
+
+    env:
+      TAG: ${{ needs.artifacts.outputs.tag }}
+
+    steps:
+      - name: Cache artifacts
+        uses: actions/cache@v2
+        with:
+          path: ${{ env.ARTIFACTS }}
+          key: ${{ env.ARTIFACTS_CACHE }}
+
+      - name: Check whether artifacts were retrieved from cache
+        run: ls "$ARTIFACTS"
+
+      - name: Create draft release
+        uses: softprops/action-gh-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          prerelease: true
+          draft: true
+          tag_name: ${{ needs.artifacts.outputs.tag }}
+          files: |
+            ${{ env.ARTIFACTS }}/deploy_shapeflow-${{ needs.artifacts.outputs.tag }}.py
+            ${{ env.ARTIFACTS }}/dist-${{ needs.artifacts.outputs.tag }}.tar.gz
+
+
+
+

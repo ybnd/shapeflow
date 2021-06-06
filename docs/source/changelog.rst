@@ -1,215 +1,221 @@
 Changelog
 =========
 
-* **0.4.4 -- Documentation & major improvements**
+0.4.4
+-----
 
-  * Triumphant return of the readthedocs page
+* Triumphant return of the readthedocs page
 
-    * Tutorial
+  * Tutorial
 
-    * Major step forward documenting the Python library, along with multiple
-      tiny tweaks to the Python codebase. Mainly cleaned up & removed unused
-      methods.
+  * Major step forward documenting the Python library, along with multiple
+    tiny tweaks to the Python codebase. Mainly cleaned up & removed unused
+    methods.
 
-  * Fix disappearing ``feature_parameters`` in new analysis dialog and on the
-    configure page
+* Fix disappearing ``feature_parameters`` in new analysis dialog and on the
+  configure page
 
-  * Add CLI commands to interact with the git repository
+* Add CLI commands to interact with the git repository
 
-    * For end users that may not want to deal with git
+  * For end users that may not want to deal with git
 
-    * Throwback to the "mandatory update system" of the olden days:
+  * Throwback to the "mandatory update system" of the olden days:
 
-      update to new release versions if any are available, but when you
+    update to new release versions if any are available, but when you
 
-      *actually want to*.
+    *actually want to*.
 
-  * Setup ~ CLI commands
+* Setup ~ CLI commands
 
-    * Deployment scripts execute ``shapeflow/setup/post-deploy.py``
+  * Deployment scripts execute ``shapeflow/setup/post-deploy.py``
 
-      as a setup step
+    as a setup step
 
-    * :class:`shapeflow.cli.GetCompiledUi`
+  * :class:`shapeflow.cli.GetCompiledUi`
 
-    * :class:`shapeflow.cli.SetupCairo`
+  * :class:`shapeflow.cli.SetupCairo`
 
-    * :class:`shapeflow.cli.Declutter`
+  * :class:`shapeflow.cli.Declutter`
 
-  * Make |cairo|_ an optional dependency
+* Make |cairo|_ an optional dependency
 
-    * No longer depend on |OnionSVG|_; design file rendering is now handled by
-      :class:`shapeflow.design.onions.Peeler` and
-      :class:`shapeflow.design.render.Renderer`.
-    * SVG layer operations (|lxml|_) are decoupled from rendering
-    * Renderers are selected based on the system configuration: |cairo|_ is
-      still the go-to option, but we can now fall back on
-      |Wand|_ (`ImageMagick`_)
-      and the commandline interface of a Windows installation of `Inkscape`_.
+  * No longer depend on |OnionSVG|_; design file rendering is now handled by
+    :class:`shapeflow.design.onions.Peeler` and
+    :class:`shapeflow.design.render.Renderer`.
+  * SVG layer operations (|lxml|_) are decoupled from rendering
+  * Renderers are selected based on the system configuration: |cairo|_ is
+    still the go-to option, but we can now fall back on
+    |Wand|_ (`ImageMagick`_)
+    and the commandline interface of a Windows installation of `Inkscape`_.
 
-  * Fix ``tkinter`` dialog windows not appearing on Windows
+* Fix ``tkinter`` dialog windows not appearing on Windows
 
-    * ``tkinter`` can't handle not being in the main thread, which was the case
-      in the "updated" version of :module:``shapeflow.util.filedialog``.
+  * ``tkinter`` can't handle not being in the main thread, which was the case
+    in the "updated" version of :module:``shapeflow.util.filedialog``.
 
-    * Should not have deprecated subprocess-based filedialog script; it was
-      added in the first place to solve this issue.
+  * Should not have deprecated subprocess-based filedialog script; it was
+    added in the first place to solve this issue.
 
-    * Made subprocess-based file dialogs complain on cancel / error; this bug
-      stayed unnoticed because they used to be silent about it.
+  * Made subprocess-based file dialogs complain on cancel / error; this bug
+    stayed unnoticed because they used to be silent about it.
 
-* **0.4.3 -- API overhaul**
+0.4.3
+-----
 
-  * Add frontend tests
-  
-    * And also some general clean-up and fixes in the process
+* Add frontend tests
 
-  * Deprecate caching contexts and related functionality
-  
-    * We’re assuming that caching will never be performed *in advance*
-      of an analysis. Instead, we rely on caching during an analysis to
-      speed up any subsequent analyses.
+  * And also some general clean-up and fixes in the process
 
-  * Separate internal routing from general ``Flask`` routing
-  
-    * API routes are organised based on :class:`shapeflow.core.Dispatcher`
-    
-    * :class:`~shapeflow.core.Dispatcher` instances map addresses to
-      :class:`~shapeflow.core.Endpoint` instances
-      
-    * Nested :class:`~shapeflow.core.Dispatcher`s include the addresses
-      of any child :class:`~shapeflow.core.Dispatcher` instances in their
-      own address space
-      
-    * The top-level :class:`~shapeflow.core.Dispatcher` has a flat
-      address space of all endpoints, which it uses to resolve requests
-      
-    * The Flask server delegates requests to this top-level
-      :class:`~shapeflow.core.Dispatcher` for addresses
-      starting with ``"/api/"``
+* Deprecate caching contexts and related functionality
 
-  * Expose :class:`~shapeflow.core.Endpoint` instances with own
-    :func:`~shapeflow.core.Endpoint.expose` method instead of global function
+  * We’re assuming that caching will never be performed *in advance*
+    of an analysis. Instead, we rely on caching during an analysis to
+    speed up any subsequent analyses.
 
-  * Deprecate ``RootInstance`` / ``BackendInstance``
-  
-    * Implementation should not care about routing
+* Separate internal routing from general ``Flask`` routing
 
-    .. note::
-        This means that methods of ``BackendInstance`` subclass instances
-        nested in :class:`~shapeflow.video.VideoAnalyzer` can no longer be
-        exposed at :class:`~shapeflow.core.Endpoint` instances. Only methods
-        of objects *directly* associated with
-        :class:`~shapeflow.core.Dispatcher` instances can be exposed.
+  * API routes are organised based on :class:`shapeflow.core.Dispatcher`
 
-  * More sensible API structure
-  
-    * Global top-level API at :data:`shapeflow.api.api`
-    
-    * Group related functionality
-    
-      * ``api``: general stuff
-      
-      * ``api.fs``: dealing with files and directories
-      
-      * ``api.cache``: dealing with the cache
-      
-      * ``api.db``: dealing with the database
-      
-      * ``api.va``: dealing with analyzers
-      
-      * ``api.va.<id>``: dealing with a specific analyzer
+  * :class:`~shapeflow.core.Dispatcher` instances map addresses to
+    :class:`~shapeflow.core.Endpoint` instances
 
-  * Open analyzers are handled by new
-    :class:`~shapeflow.core.Dispatcher` instances
+  * Nested :class:`~shapeflow.core.Dispatcher`s include the addresses
+    of any child :class:`~shapeflow.core.Dispatcher` instances in their
+    own address space
 
-    * Analyzer methods should be exposed with the placeholder
-      :class:`~shapeflow.core.Dispatcher` at ``api.va.__id__``
+  * The top-level :class:`~shapeflow.core.Dispatcher` has a flat
+    address space of all endpoints, which it uses to resolve requests
 
-      * By themselves, methods exposed in this way can’t be
-        invoked since they don’t have an instance yet
+  * The Flask server delegates requests to this top-level
+    :class:`~shapeflow.core.Dispatcher` for addresses
+    starting with ``"/api/"``
 
-    * New analyzers are opened from
-      :class:`~shapeflow.main._VideoAnalyzerManager` and given an ``id``
-      
-      * Use shorter ``id`` strings for URL readability
-      
-      * Associate newly instantiated
-        :class:`~shapeflow.video.VideoAnalyzer` with a new
-        :class:`~shapeflow.core.Dispatcher` instance at ``api.va.<id>``
-        
-      * This :class:`~shapeflow.core.Dispatcher`, binds methods exposed in
-        ``api.va.__id__`` to the :class:`~shapeflow.video.VideoAnalyzer`
-        instance
+* Expose :class:`~shapeflow.core.Endpoint` instances with own
+  :func:`~shapeflow.core.Endpoint.expose` method instead of global function
 
-      * *Now* these methods can be invoked
-        when requested by ``/api/va/<id>/<endpoint>``
+* Deprecate ``RootInstance`` / ``BackendInstance``
 
-    * Included in top-level address space at launch
-      to reduce address resolution overhead
+  * Implementation should not care about routing
 
-  * Mirror API structure in frontend ``api.js``
+  .. note::
+      This means that methods of ``BackendInstance`` subclass instances
+      nested in :class:`~shapeflow.video.VideoAnalyzer` can no longer be
+      exposed at :class:`~shapeflow.core.Endpoint` instances. Only methods
+      of objects *directly* associated with
+      :class:`~shapeflow.core.Dispatcher` instances can be exposed.
 
-* **0.4.2 -- CLI overhaul**
+* More sensible API structure
 
-  * Subcommands to divide up the functionality of the library. 
+  * Global top-level API at :data:`shapeflow.api.api`
 
-    * Implemented to make accessing backend schemas easier when testing the
-      frontend; instead of starting the whole server,
-      run ``sf.py dump <path>``. The server is now a subcommand, ``serve``.
+  * Group related functionality
 
-    * Potentially useful commands to add in the future
-    
-      * ``analyze`` could run a single analysis as specified in a .json file
-      
-      * ``checkout`` could set the repository to a specific version
-      
-      * ``setup`` could replace in-repo setup scripts
+    * ``api``: general stuff
 
-    * It may also be interesting to make these commands accessible
-      from the frontend
+    * ``api.fs``: dealing with files and directories
 
-  * Some major naming changes
-  
-    * Entry point script ``shapeflow.py`` becomes ``sf.py``
-    
-    * Server-related stuff renamed from ``main`` to ``server``
+    * ``api.cache``: dealing with the cache
 
-* **0.4.1 -- Usability improvements and tutorial**
+    * ``api.db``: dealing with the database
+
+    * ``api.va``: dealing with analyzers
+
+    * ``api.va.<id>``: dealing with a specific analyzer
+
+* Open analyzers are handled by new
+  :class:`~shapeflow.core.Dispatcher` instances
+
+  * Analyzer methods should be exposed with the placeholder
+    :class:`~shapeflow.core.Dispatcher` at ``api.va.__id__``
+
+    * By themselves, methods exposed in this way can’t be
+      invoked since they don’t have an instance yet
+
+  * New analyzers are opened from
+    :class:`~shapeflow.main._VideoAnalyzerManager` and given an ``id``
+
+    * Use shorter ``id`` strings for URL readability
+
+    * Associate newly instantiated
+      :class:`~shapeflow.video.VideoAnalyzer` with a new
+      :class:`~shapeflow.core.Dispatcher` instance at ``api.va.<id>``
+
+    * This :class:`~shapeflow.core.Dispatcher`, binds methods exposed in
+      ``api.va.__id__`` to the :class:`~shapeflow.video.VideoAnalyzer`
+      instance
+
+    * *Now* these methods can be invoked
+      when requested by ``/api/va/<id>/<endpoint>``
+
+  * Included in top-level address space at launch
+    to reduce address resolution overhead
+
+* Mirror API structure in frontend ``api.js``
+
+0.4.2
+-----
+
+* Subcommands to divide up the functionality of the library.
+
+  * Implemented to make accessing backend schemas easier when testing the
+    frontend; instead of starting the whole server,
+    run ``sf.py dump <path>``. The server is now a subcommand, ``serve``.
+
+  * Potentially useful commands to add in the future
+
+    * ``analyze`` could run a single analysis as specified in a .json file
+
+    * ``checkout`` could set the repository to a specific version
+
+    * ``setup`` could replace in-repo setup scripts
+
+  * It may also be interesting to make these commands accessible
+    from the frontend
+
+* Some major naming changes
+
+  * Entry point script ``shapeflow.py`` becomes ``sf.py``
+
+  * Server-related stuff renamed from ``main`` to ``server``
+
+0.4.1
+-----
 
   * Tutorials and high-level documentation
 
-* **0.4.0 -- Rebranding**
+0.4.0
+-----
 
-* **Clean-up git history**
+Clean-up git history
+--------------------
 
-  * The first year of development was at `isimple`_, named after the
-    technology/the team that used it for some reason.
+* The first year of development was at `isimple`_, named after the
+  technology/the team that used it for some reason.
 
-    Because the original repository was a bit too large, its git history was
-    rewritten after moving to `shapeflow`_. The old repository is still up to
-    preserve this history and to support legacy deployment scripts.
+  Because the original repository was a bit too large, its git history was
+  rewritten after moving to `shapeflow`_. The old repository is still up to
+  preserve this history and to support legacy deployment scripts.
 
-      * `gitsizer`_ and `bfg`_ are nifty tools.
+    * `gitsizer`_ and `bfg`_ are nifty tools.
 
-  * Removed...
+* Removed...
 
-      * Compiled JavaScript from ``ui/dist/``
+    * Compiled JavaScript from ``ui/dist/``
 
-      * `An accidentally huge screenshot, mysteriously named datetime <rm1_>`_
+    * `An accidentally huge screenshot, mysteriously named datetime <rm1_>`_
 
-      * `An accidentally huge BMP file <rm2_>`_
+    * `An accidentally huge BMP file <rm2_>`_
 
-  * All in all, the repo went from almost 30MB to about 6MB.
+* All in all, the repo went from almost 30MB to about 6MB.
 
-  .. code-block:: bash
+.. code-block:: bash
 
-     bfg --delete-folders dist .
-     bfg --delete-files datetime .
-     bfg --delete-files img.bmp .
+   bfg --delete-folders dist .
+   bfg --delete-files datetime .
+   bfg --delete-files img.bmp .
 
-     git reflow expire --expire=now --all
-     git --prune=now --aggressive
+   git reflow expire --expire=now --all
+   git --prune=now --aggressive
 
 .. note::
     A short summary of the major changes in the older versions
