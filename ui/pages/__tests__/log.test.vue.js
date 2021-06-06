@@ -100,22 +100,21 @@ describe('scrolling', () => {
     w = factory();
 
     // simulate element geometry
-    w.vm.$refs.view = fake(w.vm.$refs.view, 'clientHeight', 300);
-    w.vm.$refs.log = fake(w.vm.$refs.log, 'clientHeight', 1000);
+    w.vm.$refs.log.$el = fake(w.vm.$refs.log.$el, 'scrollTopMax', 1000);
   });
 
   test('scrolled up/left (resting position)', async () => {
     w.vm.$refs.log.$el = fake(w.vm.$refs.log.$el, 'scrollTop', 0);
     w.vm.$refs.log.$el = fake(w.vm.$refs.log.$el, 'scrollLeft', 0);
 
-    expect(w.vm.scroll.isScrolled).toBe(false);
+    expect(w.vm.isAtLimit()).toBe(false);
   });
 
   test('scrolled down/left (follow position)', async () => {
-    w.vm.$refs.log.$el = fake(w.vm.$refs.log.$el, 'scrollTop', 730);  // within tolerance
+    w.vm.$refs.log.$el = fake(w.vm.$refs.log.$el, 'scrollTop', 980);  // within tolerance
     w.vm.$refs.log.$el = fake(w.vm.$refs.log.$el, 'scrollLeft', 20);  // within tolerance
 
-    expect(w.vm.scroll.isScrolled).toBe(true);
+    expect(w.vm.isAtLimit()).toBe(true);
   });
 
   test('scroll down', async () => {
@@ -123,12 +122,12 @@ describe('scrolling', () => {
     w.vm.$refs.log.$el = fake(w.vm.$refs.log.$el, 'scrollTop', 400);
     w.vm.$refs.log.$el = fake(w.vm.$refs.log.$el, 'scrollLeft', 90);
 
-    expect(w.vm.scroll.isScrolled).toBe(false);
+    expect(w.vm.isAtLimit()).toBe(false);
 
     await w.vm.scrollNow();
 
     // should be scrolled down now
-    expect(w.vm.scroll.isScrolled).toBe(false);
+    expect(w.vm.isAtLimit()).toBe(true);
   });
 
   test('no follow', async () => {
