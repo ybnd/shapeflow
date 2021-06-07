@@ -12,6 +12,7 @@ env:
 jobs:
   check-version:
     runs-on: ubuntu-latest
+    continue-on-error: true
 
     steps:
       - name: Check out code
@@ -193,9 +194,3 @@ jobs:
         run: pyton sf.py setup-cairo
       - name: Should successfully import cairocffi
         run: .venv\Scripts\python -c "import cairocffi"
-
-
-
-
-
-
