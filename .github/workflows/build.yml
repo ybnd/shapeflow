@@ -50,7 +50,6 @@ jobs:
           key: ${{ runner.os }}-tox-${{ matrix.tox }}-${{ hashFiles('**/requirements.txt') }}
           restore-keys: |
             ${{ runner.os }}-tox-${{ matrix.tox }}-
-            ${{ runner.os }}-tox-
 
       - name: Install tox
         run: pip install tox
