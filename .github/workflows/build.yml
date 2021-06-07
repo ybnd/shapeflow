@@ -72,8 +72,8 @@ jobs:
 
       - name: Run tox
         run: |
-          tox -c test/tox.ini -e $TOX_ENV $SITE_PACKAGES --notest
-          tox -c test/tox.ini -e $TOX_ENV $SITE_PACKAGES
+          tox -c test/tox.ini -e $TOX_ENV --notest
+          tox -c test/tox.ini -e $TOX_ENV
 
       - name: Send coverage report
         if: ${{ endsWith(matrix.tox, 'cover') }}
