@@ -10,8 +10,7 @@ env:
 jobs:
   check-version:
     runs-on: ubuntu-latest
-    continue-on-error: true
-
+    
     outputs:
       this-tag: ${{ steps.this-tag.outputs.tag }}
 
@@ -112,7 +111,9 @@ jobs:
   test-deploy:
     needs: [artifacts]
     if: ${{ needs.artifacts.outputs.tag }}
-    continue-on-error: true  # todo: temporary
+
+    env:
+      TAG: ${{ needs.artifacts.outputs.tag }}
 
     strategy:
       matrix:
