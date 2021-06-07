@@ -154,10 +154,6 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Set up wget
-        if: ${{ startsWith(matrix.os, 'windows') }}
-        run: choco install wget --no-progress
-
       - name: Cache dev directory
         if: ${{ startsWith(matrix.os, 'windows') }}
         uses: actions/cache@v2
@@ -166,7 +162,7 @@ jobs:
           key: ${{ env.WINDOWS_DEPLOY_CACHE }}
 
       - name: Download deployment script
-        run: wget https://github.com/ybnd/shapeflow/releases/download/$TAG/deploy_shapeflow-$TAG.py
+        run: curl -O https://github.com/ybnd/shapeflow/releases/download/$TAG/deploy_shapeflow-$TAG.py
 
       - name: Run deployment script
         run: python deploy_shapeflow-$TAG.py  # todo: will fail because of y/n prompt
