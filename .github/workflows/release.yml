@@ -12,14 +12,19 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
 
+    outputs:
+      this-tag: ${{ steps.this-tag.outputs.tag }}
+
     steps:
       - name: Check out code
         uses: actions/checkout@v2
 
       - name: Get tag name
+        id: this-tag
         run: |
           TAG=${GITHUB_REF#refs/*/}
-          echo $TAG
+          echo "$TAG"
+          echo "::set-output name=tag::$TAG"
           echo "TAG=$TAG" >> $GITHUB_ENV
 
       - name: Should match __version__ in shapeflow/__init__.py
@@ -84,7 +89,7 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ steps.gitploy.outputs.tag }}
+          tag: ${{ needs.check-version.outputs.this-tag }}
           file: deploy_shapeflow-${{ steps.gitploy.outputs.tag }}.py
           prerelease: true
 
@@ -100,7 +105,7 @@ jobs:
         uses: svenstaro/upload-release-action@v2
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
-          tag: ${{ steps.gitploy.outputs.tag }}
+          tag: ${{ needs.check-version.outputs.this-tag }}
           file: dist-${{ steps.gitploy.outputs.tag }}.tar.gz
           prerelease: true
 
@@ -120,9 +125,6 @@ jobs:
             python-version: 3.8
 
     runs-on: ${{ matrix.os }}
-
-    env:
-      TAG: ${{ needs.artifacts.outputs.tag }}
 
     steps:
       - name: Set up Python
