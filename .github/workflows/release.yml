@@ -145,7 +145,7 @@ jobs:
         run: curl -LO "https://github.com/ybnd/shapeflow/releases/download/${{ env.TAG }}/deploy_shapeflow-${{ env.TAG }}.py"
 
       - name: Run deployment script
-        run: python "deploy_shapeflow-${{ env.TAG }}.py"  # todo: will fail because of y/n prompt
+        run: python "deploy_shapeflow-${{ env.TAG }}.py" -y
 
       - name: Should set up development environment
         run: tree .
