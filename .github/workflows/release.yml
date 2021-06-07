@@ -154,6 +154,10 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Set up wget
+        if: ${{ startsWith(matrix.os, 'windows') }}
+        run: choco install wget --no-progress
+
       - name: Cache dev directory
         if: ${{ startsWith(matrix.os, 'windows') }}
         uses: actions/cache@v2
@@ -176,21 +180,9 @@ jobs:
           python sf.py --background &disown
           sleep 10
 
-
-  test-cairo-setup:
-    runs-on: windows-latest
-    needs: test-deploy
-
-    steps:
-      - name: Cache dev directory
+      - name: On Windows, setup-cairo should work
         if: ${{ startsWith(matrix.os, 'windows') }}
-        uses: actions/cache@v2
-        with:
-          path: .
-          key: ${{ env.WINDOWS_DEPLOY_CACHE }}
-      - name: Should fail to import cairocffi
-        run: .venv\Scripts\python -c "import cairocffi" || true
-      - name: Setup cairo
-        run: pyton sf.py setup-cairo
-      - name: Should successfully import cairocffi
-        run: .venv\Scripts\python -c "import cairocffi"
+        run: |
+          .venv\Scripts\python -c "import cairocffi" && false || true
+          python sf.py setup-cairo
+          .venv\Scripts\python -c "import cairocffi"
