@@ -145,7 +145,13 @@ jobs:
         run: curl -LO "https://github.com/ybnd/shapeflow/releases/download/${{ env.TAG }}/deploy_shapeflow-${{ env.TAG }}.py"
 
       - name: Run deployment script
-        run: python "deploy_shapeflow-${{ env.TAG }}.py" -y
+        run: |
+          python "deploy_shapeflow-${{ env.TAG }}.py" -y
+          cat .success.log
+
+      - name: Show failure.log
+        if: ${{ failure() }}
+        run: cat failure.log
 
       - name: Should set up development environment
         run: tree .
@@ -153,8 +159,7 @@ jobs:
       - name: Should run sf.py
         run: |
           python sf.py --version
-          python sf.py --background &disown
-          sleep 10
+          python sf.py --background
 
       - name: On Windows, setup-cairo should work
         if: ${{ startsWith(matrix.os, 'windows') }}
