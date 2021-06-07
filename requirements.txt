@@ -4,7 +4,7 @@ Flask
 GitPython
 lxml
 numpy
-opencv-python==4.2.0.32
+opencv-python
 openpyxl
 pandas
 pydantic
