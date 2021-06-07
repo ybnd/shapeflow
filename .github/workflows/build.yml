@@ -7,36 +7,20 @@ on:
 
 jobs:
   tox:
+    runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
         include:
           - python-version: 3.7
             tox: "py37-type"
-            os: ubuntu-latest
           - python-version: 3.7
             tox: "py37-test"
-            os: ubuntu-latest
           - python-version: 3.8
             tox: "py38-type"
-            os: ubuntu-latest
           - python-version: 3.8
             tox: "py38-cover"
-            os: ubuntu-latest
-          - python-version: 3.7
-            tox: "py37-type"
-            os: windows-latest
-          - python-version: 3.7
-            tox: "py37-test"
-            os: windows-latest
-          - python-version: 3.8
-            tox: "py38-type"
-            os: windows-latest
-          - python-version: 3.8
-            tox: "py38-cover"
-            os: windows-latest
-
-    runs-on: ${{ matrix.os }}
 
     env:
       TOX_ENV: ${{ matrix.tox }}
@@ -82,18 +66,14 @@ jobs:
           flags: backend,${{ runner.os }}
 
   node:
+    runs-on: ubuntu-latest
+
     strategy:
       fail-fast: false
       matrix:
         include:
           - node_version: 14
             coverage: true
-            os: ubuntu-latest
-          - node_version: 14
-            coverage: false
-            os: windows-latest
-
-    runs-on: ${{ matrix.os }}
 
     steps:
       - name: Check out code
