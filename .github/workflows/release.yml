@@ -131,6 +131,7 @@ jobs:
 
   test-deploy:
     needs: [artifacts, draft]
+    if: ${{ needs.artifacts.outputs.tag }}
     continue-on-error: true  # todo: temporary
 
     strategy:
@@ -162,10 +163,10 @@ jobs:
           key: ${{ env.WINDOWS_DEPLOY_CACHE }}
 
       - name: Download deployment script
-        run: curl -O https://github.com/ybnd/shapeflow/releases/download/$TAG/deploy_shapeflow-$TAG.py
+        run: curl -O "https://github.com/ybnd/shapeflow/releases/download/$TAG/deploy_shapeflow-$TAG.py"
 
       - name: Run deployment script
-        run: python deploy_shapeflow-$TAG.py  # todo: will fail because of y/n prompt
+        run: python "deploy_shapeflow-$TAG.py"  # todo: will fail because of y/n prompt
 
       - name: Should set up development environment
         run: tree .
