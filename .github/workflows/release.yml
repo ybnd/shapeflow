@@ -4,9 +4,6 @@ on:
     tags:
       - '[0-9]+.[0-9]+.[0-9]+'
 
-env:
-  WINDOWS_DEPLOY_CACHE: windows-deploy-${{ github.sha }}
-
 jobs:
   check-version:
     runs-on: ubuntu-latest
@@ -116,6 +113,7 @@ jobs:
       TAG: ${{ needs.artifacts.outputs.tag }}
 
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: ubuntu-latest
@@ -133,37 +131,25 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
-      - name: Cache dev directory
-        if: ${{ startsWith(matrix.os, 'windows') }}
+      - name: Cache pip
         uses: actions/cache@v2
         with:
-          path: .
-          key: ${{ env.WINDOWS_DEPLOY_CACHE }}
-
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+            ${{ runner.os }}-pip-
 
       - name: Download deployment script
         run: curl -LO "https://github.com/ybnd/shapeflow/releases/download/${{ env.TAG }}/deploy_shapeflow-${{ env.TAG }}.py"
 
       - name: Run deployment script
-        run: |
-          python "deploy_shapeflow-${{ env.TAG }}.py" -y
-          cat .success.log
+        run: python "deploy_shapeflow-${{ env.TAG }}.py" -y
 
-      - name: Show failure.log
-        if: ${{ failure() }}
-        run: cat failure.log
-
-      - name: Should set up development environment
-        run: tree .
-
-      - name: Should run sf.py
+      - name: Should be able to run sf.py
         run: |
           python sf.py --version
-          python sf.py --background
 
-      - name: On Windows, setup-cairo should work
-        if: ${{ startsWith(matrix.os, 'windows') }}
+      - name: Should have a ui/dist/ directory
         run: |
-          .venv\Scripts\python -c "import cairocffi" && false || true
-          python sf.py setup-cairo
-          .venv\Scripts\python -c "import cairocffi"
+          tree ui/dist/
