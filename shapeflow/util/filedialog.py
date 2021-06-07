@@ -4,7 +4,7 @@ from typing import List, Optional, Any
 import subprocess as sp
 
 
-class _FileDialog(abc.ABC):
+class _FileDialog(metaclass=abc.ABCMeta):
     ok: bool = False
 
     _defaults: dict = {
@@ -38,11 +38,11 @@ class _FileDialog(abc.ABC):
 
     @abc.abstractmethod
     def _load(self, **kwargs) -> Optional[str]:
-        raise NotImplementedError
+        """ Loading functionality to be implemented by child classes """
 
     @abc.abstractmethod
     def _save(self, **kwargs) -> Optional[str]:
-        raise NotImplementedError
+        """ Saving functionality to be implemented by child classes """
 
 
 class _SubprocessTkinter(_FileDialog):

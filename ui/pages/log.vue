@@ -76,6 +76,7 @@ export default {
       case_sensitive: false,
       filtered_lines: "",
       matches: {},
+      followTimeout: undefined,
     };
   },
   mounted() {
@@ -84,7 +85,7 @@ export default {
       this.log = e.target.responseText;
     });
     setTimeout(() => {
-      setInterval(() => {
+      this.followInterval = setInterval(() => {
         if (this.follow && !this.release) {
           this.scrollNow();
         }
@@ -93,25 +94,46 @@ export default {
   },
   beforeDestroy() {
     api.stop_log();
+    clearInterval(this.followInterval);
   },
   methods: {
     handleLogText() {
       this.filterLog();
-      if ( !this.release && (this.follow || this.isScrolled) ) {
+      if (!this.release && (this.follow || this.isAtLimit()) ) {
         this.scrollNow();
       }
     },
+    isAtLimit() {
+      try {
+        const top = this.$refs.log.$el.scrollTop;
+        const left = this.$refs.log.$el.scrollLeft;
+        const topMax = this.$refs.log.$el.scrollTopMax;
+
+        console.log(`top=${top} topMax=${topMax} left=${left} -> ${Math.abs(top - topMax) < SCROLL_TOLERANCE_V && left < SCROLL_TOLERANCE_H}`)
+
+        return Math.abs(top - topMax) < SCROLL_TOLERANCE_V && left < SCROLL_TOLERANCE_H;
+      } catch(e) {
+        console.warn(e);
+      }
+      return false;
+    },
     scrollNow() {
-      if (this.scroll.isScrolled) {
-        this.scroll = {
-          Top: this.scroll.TopMax + 50,
-          Left: 0
-        };
+      try {
+        if (!this.isAtLimit()) {
+          console.log(`log.scrollNow() scrolling: ${this.$refs.log.$el.scrollTop} -> ${this.$refs.log.$el.scrollTopMax + 50}`)
+
+          this.$refs.log.$el.scrollTop = this.$refs.log.$el.scrollTopMax + 50;
+          this.$refs.log.$el.scrollLeft = 0;
+        }
+      } catch(e) {
+        console.warn(e);
       }
     },
     handleFollow() {
       this.follow = !this.follow;
-      this.scrollNow();
+      if (this.follow) {
+        this.scrollNow();
+      }
     },
     handleScroll() {
       this.release = true;
@@ -172,34 +194,6 @@ export default {
       }
     },
   },
-  computed: {
-    scroll: {
-      get() {
-        try {
-          var scroll = {
-            Top: this.$refs.log.$el.scrollTop,
-            Left: this.$refs.log.$el.scrollLeft,
-            TopMax: this.$refs.log.clientHeight - this.$refs.view.clientHeight,
-          }
-          return {
-            ...scroll,
-            isScrolled: Math.abs(scroll.Top - scroll.TopMax) < SCROLL_TOLERANCE_V
-              && scroll.Left < SCROLL_TOLERANCE_H
-          }
-        } catch(err) {
-          return undefined;
-        }
-      },
-      set({Top, Left}) {
-        try {
-          this.$refs.log.$el.scrollTop = Top;
-          this.$refs.log.$el.scrollLeft = Left;
-        } catch(err) {
-          console.warn(err);
-        }
-      },
-    },
-  },
   watch: {
     log() {
       this.handleLogText();
@@ -222,7 +216,7 @@ export default {
 .log-table {
   flex: 1 1 auto;
   overflow: auto;
-  font-family: monospace;
+  font-family: Hack, monospace;
   font-size: 11px;
   table-layout: fixed;
 }

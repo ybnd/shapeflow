@@ -101,29 +101,6 @@ class ShapeflowServer(ShapeflowServerInterface):
         self._api = None
 
     def serve(self, host: str, port: int, open: bool) -> None:
-        """Serve the application.
-
-        Starts a new :class:`~shapeflow.server.ServerThread` and opens a new
-        browser window/tab if requested.
-
-        This method keeps serving until either
-
-        * :func:`~shapeflow.main._Main.quit` is called
-
-        * :func:`~shapeflow.main._Main.unload` is called and no incoming traffic
-          is received for 5 seconds.
-
-        * The user interrupts the process with ``Ctrl+C``
-
-        Parameters
-        ----------
-        host: str
-            Host address
-        port: int
-            Host port
-        open: bool
-            Whether to open in a browser window/tab after starting the server
-        """
         self._host = host
         self._port = port
 
@@ -181,26 +158,6 @@ class ShapeflowServer(ShapeflowServerInterface):
         )
 
     def call_api(self, address: str) -> Response:
-        """Dispatch request to the API.
-
-        Arguments are gathered from ``Flask``'s ``request.data`` or
-        ``request.args``
-
-        Handles multiple types of return data:
-
-        * ``bytes`` data are handled by ``flask.make_response``
-
-        * for :class:`shapeflow.core.streaming.BaseStreamer` instances,
-          custom ``flask.Response`` objects are made from their
-          :func:`shapeflow.core.streaming.BaseStreamer.stream` generator
-
-        * all other data are handled by ``flask.jsonify``
-
-        Parameters
-        ----------
-        address: str
-            The address of the endpoint to dispatch to
-        """
         self.active()
 
         kwargs = {}
@@ -252,8 +209,7 @@ class ShapeflowServer(ShapeflowServerInterface):
         self._quit.set()
 
     def restart(self) -> None:
-        """Restart the server.
-        """
+
         self.quit()
 
         while not self._done.is_set():
@@ -269,9 +225,6 @@ class ShapeflowServer(ShapeflowServerInterface):
         )
 
     def active(self) -> None:
-        """If the ``_unload`` has been set, cancel it. Should be called for
-        incoming traffic.
-        """
         if self._unload.is_set():
             log.info('incoming traffic - cancelling quit.')
             self._unload.clear()
@@ -279,20 +232,6 @@ class ShapeflowServer(ShapeflowServerInterface):
 
     @property
     def api(self) -> ApiDispatcher:
-        """Get a reference to :data:`shapeflow.api.api` and ensure it has
-        been initialized properly with :mod:`shapeflow.main` and bound to this
-        :class:`~shapeflow.server.ShapeflowServer` instance.
-
-        This property is used to lazy-load :data:`shapeflow.api.api` on the
-        first request. As this takes some time, requests received during
-        loading will be locked out until initialization completes. Subsequent
-        requests bypass this lock.
-
-        Returns
-        -------
-        ApiDispatcher
-            A reference to :data:`~shapeflow.api.api`
-        """
         if self._api is None:
             if self._api_lazy_load.locked():
                 self._api_lazy_load.acquire()

@@ -230,7 +230,7 @@ class FeatureConfig(BaseConfig):
     pass
 
 
-class Feature(abc.ABC, Configurable):  # todo: should probably use Config for parameters after all :)
+class Feature(Configurable, metaclass=abc.ABCMeta):  # todo: should probably use Config for parameters after all :)
     """A feature implements interactions between BackendElements to
         produce a certain value
     """
@@ -302,16 +302,16 @@ class Feature(abc.ABC, Configurable):  # todo: should probably use Config for pa
         return cls._unit
 
     @property
+    @abc.abstractmethod
     def skip(self) -> bool:
         """Whether this feature should be skipped
         """
-        raise NotImplementedError
 
     @property
+    @abc.abstractmethod
     def ready(self) -> bool:
         """Whether this feature is ready to be calculated
         """
-        raise NotImplementedError
 
     def set_color(self, color: Color):
         self._color = color
@@ -333,19 +333,16 @@ class Feature(abc.ABC, Configurable):  # todo: should probably use Config for pa
         """Returns the 'guideline color' of a feature, which is used to resolve
         to the final color within a feature set.
         """
-        raise NotImplementedError
 
     @abc.abstractmethod  # todo: we're dealing with frames explicitly, so maybe this should be an shapeflow.video thing...
     def state(self, frame: np.ndarray, state: np.ndarray) -> np.ndarray:
         """Return the feature's state image for a given frame
         """
-        raise NotImplementedError
 
     @abc.abstractmethod
     def value(self, frame: np.ndarray) -> Any:
         """Compute the value of the feature for a given frame
         """
-        raise NotImplementedError
 
     @property
     def config(self):
@@ -496,7 +493,7 @@ class BaseAnalyzerConfig(BaseConfig):
     description: Optional[str] = Field(default=None)
 
 
-class BaseAnalyzer(Instance, RootInstance):
+class BaseAnalyzer(Instance, RootInstance, metaclass=abc.ABCMeta):
     """Abstract analyzer.
     """
     _config: BaseAnalyzerConfig
@@ -617,15 +614,30 @@ class BaseAnalyzer(Instance, RootInstance):
 
     @abc.abstractmethod
     def can_launch(self) -> bool:
-        raise NotImplementedError
+        """
+        Returns
+        -------
+        bool
+            Whether this analyzer can launch
+        """
 
     @abc.abstractmethod
     def can_filter(self) -> bool:
-        raise NotImplementedError
+        """
+        Returns
+        -------
+        bool
+            Whether this analyzer can filter
+        """
 
     @abc.abstractmethod
     def can_analyze(self) -> bool:
-        raise NotImplementedError
+        """
+        Returns
+        -------
+        bool
+            Whether this analyzer can analyze
+        """
 
     @property
     def launched(self):
@@ -741,7 +753,8 @@ class BaseAnalyzer(Instance, RootInstance):
 
     @abc.abstractmethod
     def _launch(self):
-         raise NotImplementedError
+        """Initializes nested objects
+        """
 
     @property
     def config(self) -> BaseAnalyzerConfig:
@@ -749,26 +762,31 @@ class BaseAnalyzer(Instance, RootInstance):
 
     @abc.abstractmethod
     def _new_results(self):
-        raise NotImplementedError
+        """
+        """
 
     @abc.abstractmethod
     def analyze(self) -> bool:
-        raise NotImplementedError
+        """
+        """
 
     @property
     @abc.abstractmethod
     def position(self) -> float:
-        raise NotImplementedError
+        """
+        """
 
     @property
     @abc.abstractmethod
     def cached(self) -> bool:
-        raise NotImplementedError
+        """
+        """
 
     @property
     @abc.abstractmethod
     def has_results(self) -> bool:
-        raise NotImplementedError
+        """
+        """
 
     @api.va.__id__.status.expose()
     def status(self) -> dict:
@@ -801,11 +819,28 @@ class BaseAnalyzer(Instance, RootInstance):
 
     @abc.abstractmethod
     def set_config(self, config: dict, silent: bool = False) -> dict:
-        raise NotImplementedError
+        """Set the analyzer's configuration
+
+        :attr:`shapeflow.api._VideoAnalyzerDispatcher.set_config`
+
+        Parameters
+        ----------
+        config: dict
+            A configuration ``dict``
+        silent: bool
+            If ``True``, don't push server-sent events. ``False`` by default.
+
+        Returns
+        -------
+        dict
+            The updated configuration ``dict``. Some fields may have been
+            changed due to incompatibility.
+        """
 
     @abc.abstractmethod
     def _gather_config(self):
-        raise NotImplementedError
+        """
+        """
 
     @api.va.__id__.launch.expose()
     def launch(self) -> bool:

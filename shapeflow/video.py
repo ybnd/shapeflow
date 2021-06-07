@@ -1,5 +1,6 @@
 import os
 import re
+import abc
 import threading
 import copy
 from typing import Callable, Any, Dict, Generator, Optional, List, Tuple, Type
@@ -782,7 +783,7 @@ class DesignFileHandler(CachingInstance):
         return self._masks
 
 
-class MaskFunction(Feature):
+class MaskFunction(Feature, metaclass=abc.ABCMeta):
     """An abstract feature based on a :class:`~shapeflow.video.Mask`
     """
     mask: Mask
@@ -896,8 +897,10 @@ class MaskFunction(Feature):
               # todo: overwrites rect with white
         return state
 
+    @abc.abstractmethod
     def _function(self, frame: np.ndarray) -> Any:
-        raise NotImplementedError
+        """The function to apply to each masked and filtered frame
+        """
 
 
 @extend(AnalyzerType)
@@ -972,13 +975,6 @@ class VideoAnalyzer(BaseAnalyzer):
 
     @api.va.__id__.can_launch.expose()
     def can_launch(self) -> bool:
-        """:attr:`shapeflow.api._VideoAnalyzerDispatcher.can_launch`
-
-        Returns
-        -------
-        bool
-            Whether this analyzer can launch
-        """
         video_ok = False
         design_ok = False
 
@@ -998,18 +994,9 @@ class VideoAnalyzer(BaseAnalyzer):
 
     @api.va.__id__.can_analyze.expose()
     def can_analyze(self) -> bool:
-        """:attr:`shapeflow.api._VideoAnalyzerDispatcher.can_analyze`
-
-        Returns
-        -------
-        bool
-            Whether this analyzer can analyze
-        """
         return self.launched and all([mask.ready or mask.skip for mask in self.masks])
 
     def _launch(self):
-        """Initializes nested objects
-        """
         self.load_config()
 
         log.debug(f'{self.__class__.__name__}: launch nested instances.')
@@ -1092,23 +1079,6 @@ class VideoAnalyzer(BaseAnalyzer):
 
     @api.va.__id__.set_config.expose()
     def set_config(self, config: dict, silent: bool = False) -> dict:
-        """Set the analyzer's configuration
-
-        :attr:`shapeflow.api._VideoAnalyzerDispatcher.set_config`
-
-        Parameters
-        ----------
-        config: dict
-            A configuration ``dict``
-        silent: bool
-            If ``True``, don't push server-sent events. ``False`` by default.
-
-        Returns
-        -------
-        dict
-            The updated configuration ``dict``. Some fields may have been
-            changed due to incompatibility.
-        """
         with self.lock():
             if True:  # todo: sanity check
                 do_commit = False

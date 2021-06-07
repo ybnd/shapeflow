@@ -82,12 +82,10 @@ class IterCommand(abc.ABCMeta):
     @abc.abstractmethod
     def __usage__(cls) -> str:
         """Usage string"""
-        raise NotImplementedError
 
     @abc.abstractmethod
     def __help__(cls) -> str:
         """Help string"""
-        raise NotImplementedError
 
 
 class Command(abc.ABC, metaclass=IterCommand):
@@ -119,7 +117,8 @@ class Command(abc.ABC, metaclass=IterCommand):
 
     @abc.abstractmethod
     def command(self) -> None:
-        raise NotImplementedError
+        """Implement the command here
+        """
 
     @classmethod
     def __help__(cls) -> str:

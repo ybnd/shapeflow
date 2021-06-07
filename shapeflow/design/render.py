@@ -19,7 +19,7 @@ class RendererError(RootException):
     pass
 
 
-class Renderer(abc.ABC):
+class Renderer(metaclass=abc.ABCMeta):
     """Renders SVG (as an XML string) to a PNG image.
     Multiple implementations are provided as a fallback for Windows systems
     where cairo may be unavailable.
@@ -78,7 +78,8 @@ class Renderer(abc.ABC):
 
     @abc.abstractmethod
     def _save(self, svg: bytes, dpi: int, to: Path) -> None:
-        raise NotImplementedError
+        """Save a PNG render
+        """
 
     @property
     def works(self) -> bool:
