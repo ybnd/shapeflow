@@ -1,17 +1,13 @@
 import abc
 import copy
-import json
+from typing import Optional, Union, Type, Dict, Mapping, List
 
 import numpy as np
-from typing import Optional, Union, Type, Dict, Any, Mapping, List
-from functools import partial
+from pydantic import BaseModel
 
 from shapeflow import get_logger, __version__
 from shapeflow.core import EnforcedStr, Described
-from shapeflow.util import ndarray2str, str2ndarray
-
-from pydantic import BaseModel, Field, root_validator, validator
-
+from shapeflow.util import ndarray2str
 
 log = get_logger(__name__)
 

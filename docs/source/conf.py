@@ -62,29 +62,17 @@ autodoc_member_order = 'bysource'
 autosummary_generate = True
 
 autodoc_pydantic_model_show_json = True
-autodoc_pydantic_model_show_config_summary = True
+autodoc_pydantic_model_show_config_summary = False
+autodoc_pydantic_model_show_config_member = False
+autodoc_pydantic_model_show_validator_summary = False
+autodoc_pydantic_model_show_field_summary = False
+autodoc_pydantic_model_undoc_members = False
+autodoc_pydantic_model_signature_prefix = "class"
+autodoc_pydantic_validator_list_fields = True
+autodoc_pydantic_config_signature_prefix = "class"
 
 
 # -- autodoc configuration ---------------------------------------------------
-
-import inspect
-import pydantic
-
-
-def edit_signature(app, what, name, obj, options, signature, return_annotation):
-    # if inspect.isclass(obj):
-    #     # Don't render pydantic model signature, it's too biiiig
-    #     is_pydanticBaseModel = issubclass(obj, pydantic.BaseModel)
-    #
-    #     if is_pydanticBaseModel:
-    #         signature = ""
-
-    return signature, return_annotation
-
-
-def setup(app):
-    app.connect("autodoc-process-signature", edit_signature)
-
 
 
 # -- Options for HTML output -------------------------------------------------
