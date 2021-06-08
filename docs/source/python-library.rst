@@ -7,11 +7,12 @@ shapeflow
 .. automodule:: shapeflow
    :members:
    :exclude-members: settings, save_settings, update_settings, Logger, get_logger, get_cache
+   :private-members: _Settings
    :show-inheritance:
 
 
 .. autodata:: shapeflow.settings
-   :annotation: = shapeflow.Settings()
+   :annotation:  = shapeflow.Settings()
 
 .. autofunction:: shapeflow.save_settings
 

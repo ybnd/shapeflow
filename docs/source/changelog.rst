@@ -19,9 +19,7 @@ Changelog
     * For end users that may not want to deal with git
 
     * Throwback to the "mandatory update system" of the olden days:
-
       update to new release versions if any are available, but when you
-
       *actually want to*.
 
   * Setup ~ CLI commands
