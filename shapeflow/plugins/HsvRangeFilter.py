@@ -1,8 +1,9 @@
 import numpy as np
 import cv2
+from pydantic import Field, validator
 
 from shapeflow import get_logger
-from shapeflow.config import extend, ConfigType, Field, validator, BaseConfig
+from shapeflow.config import extend, ConfigType, BaseConfig
 
 from shapeflow.core.interface import FilterConfig, FilterInterface, FilterType
 from shapeflow.maths.images import ckernel
@@ -11,7 +12,7 @@ from shapeflow.maths.colors import Color, HsvColor, convert, WRAP
 log = get_logger(__name__)
 
 
-@extend(ConfigType, __name__.split('.')[-1])
+@extend(ConfigType, True)
 class _Config(FilterConfig):
     """Configuration for :class:`shapeflow.plugins.HsvRangeFilter._Filter`
     """
@@ -78,7 +79,7 @@ class _Config(FilterConfig):
     _open_limits = validator('open', pre=True, allow_reuse=True)(BaseConfig._int_limits)
 
 
-@extend(FilterType, __name__.split('.')[-1])
+@extend(FilterType, True)
 class _Filter(FilterInterface):
     """Filters out colors outside of a :class:`~shapeflow.maths.colors.HsvColor`
     radius around a center color.
