@@ -4,23 +4,23 @@ on:
     tags:
       - '[0-9]+.[0-9]+.[0-9]+'
 
-env:
-  ARTIFACTS: artifacts
-  ARTIFACTS_CACHE: artifacts-${{ github.sha }}
-
 jobs:
   check-version:
     runs-on: ubuntu-latest
-    continue-on-error: true
+    
+    outputs:
+      this-tag: ${{ steps.this-tag.outputs.tag }}
 
     steps:
       - name: Check out code
         uses: actions/checkout@v2
 
       - name: Get tag name
+        id: this-tag
         run: |
           TAG=${GITHUB_REF#refs/*/}
-          echo $TAG
+          echo "$TAG"
+          echo "::set-output name=tag::$TAG"
           echo "TAG=$TAG" >> $GITHUB_ENV
 
       - name: Should match __version__ in shapeflow/__init__.py
@@ -59,15 +59,6 @@ jobs:
         with:
           node-version: 14
 
-      - name: Cache artifacts
-        uses: actions/cache@v2
-        with:
-          path: ${{ env.ARTIFACTS }}
-          key: ${{ env.ARTIFACTS_CACHE }}
-
-      - name: Initialize artifacts directory
-        run: mkdir "$ARTIFACTS"
-
       - name: Install npm dependencies
         working-directory: ui
         run: npm install
@@ -89,7 +80,14 @@ jobs:
           cp shapeflow/setup/ploy .ploy
           echo "::set-output name=tag::$( cat .ploy | sed -n -e 's/^.*version: //p')"
           python -m gitploy .
-          mv deploy*.py "$ARTIFACTS"
+
+      - name: Upload
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ needs.check-version.outputs.this-tag }}
+          file: deploy_shapeflow-${{ steps.gitploy.outputs.tag }}.py
+          prerelease: true
 
       - name: Compile ui
         working-directory: ui
@@ -97,38 +95,61 @@ jobs:
 
       - name: Tarball ui
         run: |
-          cd ui && tar -czvf "../$ARTIFACTS/dist-${{ steps.gitploy.outputs.tag }}.tar.gz" dist
+          cd ui && tar -czvf "../dist-${{ steps.gitploy.outputs.tag }}.tar.gz" dist
 
+      - name: Upload
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag: ${{ needs.check-version.outputs.this-tag }}
+          file: dist-${{ steps.gitploy.outputs.tag }}.tar.gz
+          prerelease: true
 
-  draft:
-    runs-on: ubuntu-latest
+  test-deploy:
     needs: [artifacts]
+    if: ${{ needs.artifacts.outputs.tag }}
 
     env:
       TAG: ${{ needs.artifacts.outputs.tag }}
 
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            python-version: 3.7
+          - os: ubuntu-latest
+            python-version: 3.8
+          - os: windows-latest
+            python-version: 3.8
+
+    runs-on: ${{ matrix.os }}
+
     steps:
-      - name: Cache artifacts
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Cache pip
         uses: actions/cache@v2
         with:
-          path: ${{ env.ARTIFACTS }}
-          key: ${{ env.ARTIFACTS_CACHE }}
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+            ${{ runner.os }}-pip-
 
-      - name: Check whether artifacts were retrieved from cache
-        run: ls "$ARTIFACTS"
+      - name: Download deployment script
+        run: curl -LO "https://github.com/ybnd/shapeflow/releases/download/${{ env.TAG }}/deploy_shapeflow-${{ env.TAG }}.py"
 
-      - name: Create draft release
-        uses: softprops/action-gh-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          prerelease: true
-          draft: true
-          tag_name: ${{ needs.artifacts.outputs.tag }}
-          files: |
-            ${{ env.ARTIFACTS }}/deploy_shapeflow-${{ needs.artifacts.outputs.tag }}.py
-            ${{ env.ARTIFACTS }}/dist-${{ needs.artifacts.outputs.tag }}.tar.gz
+      - name: Run deployment script
+        run: python "deploy_shapeflow-${{ env.TAG }}.py" -y
 
+      - name: Should be able to run sf.py
+        run: |
+          python sf.py --version
 
-
-
+      - name: Should have a ui/dist/ directory
+        run: |
+          tree ui/dist/
