@@ -31,8 +31,7 @@ import diskcache
 
 
 __version__: str = '0.4.4'
-"""Library version
-"""
+
 
 # Get root directory
 _user_dir = pathlib.Path.home()
@@ -167,6 +166,8 @@ class _Settings(BaseModel):
 
         if 'definitions' in schema:
             return _inject(cls, schema, schema['definitions'])
+        else:
+            return schema
 
 
 class FormatSettings(_Settings):

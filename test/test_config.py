@@ -1,10 +1,11 @@
 import unittest
 
 import yaml
+from pydantic import Field, validator
 
 from shapeflow.plugins.HsvRangeFilter import _Filter
 from shapeflow.video import *
-from shapeflow.core.config import Factory, Field, BaseConfig, validator, VERSION, CLASS
+from shapeflow.core.config import Factory, BaseConfig, VERSION, CLASS
 from shapeflow.core import EnforcedStr
 from shapeflow.core.interface import FilterType
 
