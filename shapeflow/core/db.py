@@ -243,45 +243,39 @@ class BaseAnalysisModel(DbModel):
 
     @abc.abstractmethod
     def get_name(self) -> str:
-        raise NotImplementedError
+        """Get the name of the analysis"""
 
     @abc.abstractmethod
     def get_config_json(self) -> Optional[str]:
         """Get the current configuration in JSON"""
-        raise NotImplementedError
 
     @abc.abstractmethod
     def load_config(self, video_path: str, design_path: str = None, include: List[str] = None) -> Optional[dict]:
         """Load configuration from the database"""
-        raise NotImplementedError
 
     @abc.abstractmethod
     def get_undo_config(self, context: str = None) -> Tuple[Optional[dict], Optional[int]]:
         """Undo configuration. If a ``context`` is supplied, ensure that the
         ``context`` field changes, but the other fields remain the same"""
-        raise NotImplementedError
 
     @abc.abstractmethod
     def get_redo_config(self, context: str = None) -> Tuple[Optional[dict], Optional[int]]:
         """Redo configuration. If a ``context`` is supplied, ensure that the
         ``context`` field changes, but the other fields remain the same"""
-        raise NotImplementedError
 
     @abc.abstractmethod
     def store(self) -> None:
         """Store analysis information from wrapped ``BaseVideoAnalyzer``
         to the database"""
-        raise NotImplementedError
 
     @abc.abstractmethod
     def export_result(self, run: int = None) -> None:
         """Export a result from the database"""
-        raise NotImplementedError
 
     @abc.abstractmethod
     def get_runs(self) -> int:
-        raise NotImplementedError
+        """Get th number of runs of this analysis"""
 
     @abc.abstractmethod
     def get_id(self) -> int:
-        raise NotImplementedError
+        """Get the id of this analysis"""

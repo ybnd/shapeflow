@@ -100,7 +100,7 @@ class TransformConfig(BaseConfig):
     """
 
 
-class TransformInterface(Configurable, abc.ABC):
+class TransformInterface(Configurable, metaclass=abc.ABCMeta):
     """Transform interface.
     Handles transforming frames based on ROI coordinates.
 
@@ -116,7 +116,6 @@ class TransformInterface(Configurable, abc.ABC):
         matrix : Optional[np.ndarray]
             A transformation matrix or ``None`` if not set yet.
         """
-        raise NotImplementedError
 
     @abc.abstractmethod
     def from_coordinates(self, roi: Roi, from_shape: tuple) -> np.ndarray:
@@ -135,7 +134,6 @@ class TransformInterface(Configurable, abc.ABC):
         np.ndarray
             An array of absolute video-space coordinates
         """
-        raise NotImplementedError
 
     @abc.abstractmethod
     def to_coordinates(self, to_shape: tuple) -> np.ndarray:
@@ -151,7 +149,6 @@ class TransformInterface(Configurable, abc.ABC):
         np.ndarray
             An array of absolute design-space coordinates
         """
-        raise NotImplementedError
 
     @abc.abstractmethod
     def estimate(self, roi: Roi, from_shape: tuple, to_shape: tuple) -> Optional[np.ndarray]:
@@ -174,7 +171,6 @@ class TransformInterface(Configurable, abc.ABC):
             The estimated transformation matrix. Returns ``None`` if one of the
             arguments is invalid or if some other exception occurs.
         """
-        raise NotImplementedError
 
     def invert(self, matrix: Optional[np.ndarray]) -> Optional[np.ndarray]:
         """Invert a transformation matrix
@@ -214,7 +210,6 @@ class TransformInterface(Configurable, abc.ABC):
             The transformed frame
         """
         # todo: naming convention fail transform method vs. transform matrix
-        raise NotImplementedError
 
     @abc.abstractmethod
     def coordinate(self, matrix: np.ndarray, coordinate: ShapeCoo, shape: Tuple[int, int]) -> ShapeCoo:
@@ -235,10 +230,9 @@ class TransformInterface(Configurable, abc.ABC):
             The transformed coordinate
         """
         # todo: naming convention fail transform method vs. transform matrix
-        raise NotImplementedError
 
 
-class FilterConfig(BaseConfig):
+class FilterConfig(BaseConfig, metaclass=abc.ABCMeta):
     """Abstract filter configuration"""
 
     @property
@@ -246,10 +240,10 @@ class FilterConfig(BaseConfig):
         """Return true if filter can be applied ~ this configuration.
             Override for specific filter implementations
         """
-        raise NotImplementedError
+        return False
 
 
-class FilterInterface(Configurable, abc.ABC):
+class FilterInterface(Configurable, metaclass=abc.ABCMeta):
     """Filter interface.
     Handles filtering color images to binary.
 
@@ -273,7 +267,6 @@ class FilterInterface(Configurable, abc.ABC):
         FilterConfig
             The updated filter configuration
         """
-        raise NotImplementedError
 
     @abc.abstractmethod
     def mean_color(self, filter) -> Color:
@@ -289,7 +282,6 @@ class FilterInterface(Configurable, abc.ABC):
         Color
             The configuration's mean color
         """
-        raise NotImplementedError
 
     @abc.abstractmethod
     def filter(self, filter, image: np.ndarray, mask: np.ndarray = None) -> np.ndarray:
@@ -309,7 +301,6 @@ class FilterInterface(Configurable, abc.ABC):
         np.ndarray
             The filtered frame
         """
-        raise NotImplementedError
 
 
 class FilterType(InterfaceType):

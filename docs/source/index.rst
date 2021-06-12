@@ -28,7 +28,7 @@ Installation & usage
 
       To install on 64-bit Windows you can use `this ìnstaller <https://download.imagemagick.org/ImageMagick/download/binaries/ImageMagick-7.0.11-3-Q8-x64-dll.exe>`_
 
-    - `Inkscape<https://inkscape.org/>`_
+    - `Inkscape <https://inkscape.org/>`_
 
       This is the slowest option, but can serve as a convenient fallback.
 

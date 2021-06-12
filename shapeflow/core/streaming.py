@@ -117,15 +117,18 @@ class BaseStreamer(abc.ABC):
 
     @abc.abstractmethod
     def _validate(self, value: Any) -> bool:
-        raise NotImplementedError
+        """Validate a value before it is to be streamed.
+        """
 
     @abc.abstractmethod
     def _encode(self, value: Any) -> Optional[bytes]:
-        raise NotImplementedError
+        """Encode a value for streaming.
+        """
 
     @abc.abstractmethod
     def _decorate(self, value: Optional[bytes]) -> Optional[bytes]:
-        raise NotImplementedError
+        """Decorate a value for streaming
+        """
 
 
 class PlainFileStreamer(BaseStreamer):

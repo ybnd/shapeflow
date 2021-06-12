@@ -2,7 +2,7 @@
   <header class="sidebar-header">
     <ul class="sidebar-header-items">
       <li class="nav-link home" @click="handleClick">
-        shapeflow
+        <img id="icon" src="shapeflow-white.svg">&nbsp;shapeflow
       </li>
     </ul>
   </header>
@@ -27,6 +27,7 @@ export default {
 $header-button-height: 28px;
 $header-button-vpadding: 4px;
 $header-button-hpadding: 5px;
+$header-icon-width: 26px;
 
 .sidebar-header {
   height: $header-height;
@@ -35,6 +36,13 @@ $header-button-hpadding: 5px;
   padding-left: $header-button-hpadding;
   padding-right: $header-button-hpadding;
   margin: 0;
+
+  .home > #icon {
+    width: $header-icon-width;
+    height: calc(0.787 * #{$header-icon-width});
+    margin-top: calc(-0.5 * #{$header-button-vpadding});
+    margin-right: calc(-1 * #{$header-button-hpadding});
+  }
 }
 .sidebar-header-items {
   margin: 0;
@@ -52,8 +60,8 @@ $header-button-hpadding: 5px;
 
   color: theme-color("gray-200");
   background: theme-color("gray-700");
-  font-family: Console, monospace;
-  font-size: 14px;
-  font-weight: bold;
+  font-family: Hack, monospace;
+  font-size: 13px;
+  font-weight: bolder;
 }
 </style>

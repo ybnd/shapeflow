@@ -1,7 +1,23 @@
-# shapeflow [![travis-ci](https://travis-ci.com/ybnd/shapeflow.svg?branch=main)](https://travis-ci.com/ybnd/shapeflow) [![readthedocs](https://readthedocs.org/projects/shapeflow/badge/?version=latest)](https://shapeflow.readthedocs.io/en/latest/?badge=latest) [![codecov](https://codecov.io/gh/ybnd/shapeflow/branch/master/graph/badge.svg)](https://codecov.io/gh/ybnd/shapeflow) [![](https://zenodo.org/badge/DOI/10.5281/zenodo.4589284.svg)](https://doi.org/10.5281/zenodo.4589284)
-
-
-|| [**Installation & usage**](https://shapeflow.readthedocs.io/en/latest/index.html#installation-usage) | [**Tutorial**](https://shapeflow.readthedocs.io/en/latest/tutorial.html) | [**Troubleshooting**](https://shapeflow.readthedocs.io/en/latest/troubleshooting.html) | [**Developing**](https://shapeflow.readthedocs.io/en/latest/developing.html) | [**Related literature**](#Related-literature) ||
+<div id="header" align="center">
+  <div>
+    <a href="https://github.com/ybnd/shapeflow">
+      <img src="docs/source/assets/shapeflow-blue-text.svg" alt="shapeflow" height="160">
+    </a>
+  </div>
+  <div>
+    <a href="https://github.com/ybnd/shapeflow/actions/workflows/build.yml"><img src="https://github.com/ybnd/shapeflow/actions/workflows/build.yml/badge.svg" alt="build"></a>
+    <a href="https://codecov.io/gh/ybnd/shapeflow"><img src="https://codecov.io/gh/ybnd/shapeflow/branch/main/graph/badge.svg" alt="coverage"></a>
+    <a href="https://doi.org/10.5281/zenodo.4048741"><img src="https://zenodo.org/badge/DOI/10.5281/zenodo.4048741.svg" alt=""></a>
+  </div>
+  <div>
+    <a href="https://shapeflow.readthedocs.io/en/latest/index.html#installation-usage"><b>Installation & usage</b></a>&nbsp;
+    <a href="https://shapeflow.readthedocs.io/en/latest/tutorial.html"><b>Tutorial</b></a>&nbsp;
+    <a href="https://shapeflow.readthedocs.io/en/latest/troubleshooting.html"><b>Troubleshooting</b></a>&nbsp;
+    <a href="https://shapeflow.readthedocs.io/en/latest/developing.html"><b>Developing</b></a>&nbsp;
+    <a href="#Related-literature"><b>Related literature</b></a>
+  </div>
+  <hr/>
+</div>
 
 A tool for extracting time-series data from video footage of microfluidic devices with complex channel geometry.
 

@@ -172,7 +172,7 @@ $clear-popover-arrow-nudge: 2px; // align arrow with center of button
 .queue-info {
   padding: 5px;
   margin-left: 4px;
-  font-family: monospace;
+  font-family: Hack, monospace;
 }
 
 .queue-popover {

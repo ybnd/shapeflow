@@ -2,6 +2,21 @@
 @import "_core-variables";
 @import "node_modules/bootstrap/scss/functions";
 
+/* Fonts */
+@font-face {
+  font-family: 'Hack';
+  src: url('vendors/fonts/hack-regular-subset.woff?sha=3114f1256') format('woff');
+  font-weight: 400;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Hack';
+  src: url('vendors/fonts/hack-bold-subset.woff?sha=3114f1256') format('woff');
+  font-weight: 700;
+  font-style: normal;
+}
+
 /* Overrides */
 
 .fixed-page {

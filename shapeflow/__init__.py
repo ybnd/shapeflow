@@ -30,8 +30,9 @@ from pydantic import BaseModel, Field, FilePath, DirectoryPath, validator
 import diskcache
 
 
-__version__: str = '0.4.4'
-
+__version__ = "0.4.4"
+"""Library version
+"""
 
 # Get root directory
 _user_dir = pathlib.Path.home()

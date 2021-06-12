@@ -65,7 +65,7 @@
             <b-form-select
               class="fis-selector shapeflow-form-field-auto"
               ref="frame_interval_setting"
-              :v-model="config.frame_interval_setting"
+              v-model="config.frame_interval_setting"
               @change="selectFrameIntervalSetting"
               :plain="false"
               :options="frame_interval_settings.options"
@@ -405,13 +405,6 @@ export default {
             )
           );
         }
-      }
-    },
-    frame_interval_settings() {
-      try {
-        this.selectFrameIntervalSetting(this.config.frame_interval_setting);
-      } catch (err) {
-        console.warn(err);
       }
     },
   },
