@@ -1,3 +1,4 @@
-sphinx-rtd-theme
+autodoc_pydantic
 alabaster
+sphinx-rtd-theme
 pydantic

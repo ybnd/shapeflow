@@ -1,17 +1,13 @@
 import abc
 import copy
-import json
+from typing import Optional, Union, Type, Dict, Mapping, List
 
 import numpy as np
-from typing import Optional, Union, Type, Dict, Any, Mapping, List
-from functools import partial
+from pydantic import BaseModel
 
 from shapeflow import get_logger, __version__
 from shapeflow.core import EnforcedStr, Described
-from shapeflow.util import ndarray2str, str2ndarray
-
-from pydantic import BaseModel, Field, root_validator, validator
-
+from shapeflow.util import ndarray2str
 
 log = get_logger(__name__)
 
@@ -115,16 +111,19 @@ class extend(object):  # todo: can this be a function instead? look at the @data
             pass
     """
     _factory: Type[Factory]
-    _key: Optional[str]
+    module_as_key: bool
 
-    def __init__(self, factory: Type[Factory], key: Optional[str] = None):
+    def __init__(self, factory: Type[Factory], module_as_key: bool = False):
         self._factory = factory
-        self._key = key
+        self.module_as_key = module_as_key
 
     def __call__(self, cls):
-        if self._key is None:
-            self._key = cls.__name__
-        self._factory.extend(self._key, cls)
+        key: str
+        if self.module_as_key:
+            key = cls.__module__.split('.')[-1]
+        else:
+            key = cls.__name__
+        self._factory.extend(key, cls)
         return cls
 
 

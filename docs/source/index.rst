@@ -63,8 +63,8 @@ Dependencies
 
    tutorial
    troubleshooting
-   developing
    changelog
+   developing
    python-library
 
 

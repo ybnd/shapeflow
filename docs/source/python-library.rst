@@ -1,10 +1,6 @@
 Python library
 ##############
 
-
-.. autodata:: shapeflow.__version__
-
-
 shapeflow
 =========
 
@@ -14,8 +10,9 @@ shapeflow
    :private-members: _Settings
    :show-inheritance:
 
+
 .. autodata:: shapeflow.settings
-   :annotation: = shapeflow.Settings()
+   :annotation:  = shapeflow.Settings()
 
 .. autofunction:: shapeflow.save_settings
 
@@ -103,7 +100,6 @@ colors
 
 .. automodule:: shapeflow.maths.colors
    :members:
-   :private-members: _colorspace, _conversion_map
    :undoc-members:
    :show-inheritance:
 

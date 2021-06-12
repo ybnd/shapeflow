@@ -1,0 +1,4 @@
+/* Fix side-by-side properties */
+dl.py.property {
+  width: 100%;
+}

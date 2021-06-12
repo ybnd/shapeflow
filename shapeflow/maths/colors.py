@@ -3,13 +3,13 @@
 For now, only 8-bit integer colors are handled.
 """
 import re
-from collections import namedtuple
 from typing import Dict, Type, List
-
-from shapeflow.core.config import BaseConfig, Field, validator
 
 import cv2
 import numpy as np
+from pydantic import Field, validator
+
+from shapeflow.core.config import BaseConfig
 
 # colorspaces
 _HSV = 'hsv'
