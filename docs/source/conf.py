@@ -70,6 +70,7 @@ autodoc_pydantic_model_undoc_members = True
 autodoc_pydantic_model_signature_prefix = "class"
 autodoc_pydantic_validator_list_fields = True
 autodoc_pydantic_config_signature_prefix = "class"
+autodoc_pydantic_model_member_order = "bysource"
 
 
 # -- autodoc configuration ---------------------------------------------------
