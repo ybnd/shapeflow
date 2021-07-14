@@ -1,4 +1,4 @@
-autodoc_pydantic
+git+git://github.com/mansenfranzen/autodoc_pydantic.git@v1.3.1-a.1 
 alabaster
 sphinx-rtd-theme
 pydantic
