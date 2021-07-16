@@ -137,10 +137,12 @@
             :key="parameter"
             class="parameter-group"
           >
-            <b-input-group-text class="parameter-label basic-config-label shapeflow-form-label">
+            <b-input-group-text v-if="features.parameters[feature][parameter] !== undefined"
+                                class="parameter-label basic-config-label shapeflow-form-label">
               {{ features.parameters[feature][parameter].description }}
             </b-input-group-text>
             <SchemaField
+              v-if="features.parameters[feature][parameter] !== undefined"
               :class_="'parameter-field'"
               :type="features.parameters[feature][parameter].type"
               :value="config.feature_parameters[index][parameter]"

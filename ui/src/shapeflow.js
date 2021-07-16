@@ -1,4 +1,4 @@
-import {execSync, spawn} from "child_process";
+import {execSync, spawn, kill} from "child_process";
 
 export function waitSync(ms) {
   const end = Date.now() + ms;
@@ -10,8 +10,8 @@ export function startServer() {
     'python3', ['sf.py', '--background'],
     {cwd: '..', shell: false, detached: false}
   );
+  SERVER.unref();
   waitSync(2000);
-  return SERVER;
 }
 
 export function checkIfListening() {

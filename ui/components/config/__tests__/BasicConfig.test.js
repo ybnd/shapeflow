@@ -446,7 +446,7 @@ describe('features', () => {
       w.destroy();
     }
 
-    for (let i = 0; i < OPTIONS.length; i++) {
+    for (let i = 0; i < OPTIONS.length-1; i++) {
       await _test(i);
     }
   });
@@ -559,7 +559,7 @@ describe('output', () => {
       console.log(input.classes());
 
       // mock a value change & emit focusout
-      input.setProps({ value: undefined });
+      input.vm.$props.value = undefined;
       input.vm.$parent.$data.valueOut = undefined;  // pass this.valueOut !== this.value check in SchemaField
       await input.vm.$emit('focusout');
 
@@ -574,7 +574,7 @@ describe('output', () => {
       console.log(input.classes());
 
       // mock a value change & emit keyup Enter
-      input.setProps({ value: undefined });
+      input.vm.$props.value = undefined;
       input.vm.$parent.$data.valueOut = undefined;  // pass this.valueOut !== this.value check in SchemaField
       await input.trigger('keyup.enter');
 
@@ -589,7 +589,7 @@ describe('output', () => {
       console.log(field.classes());
 
       // mock a value change & emit keyup Enter
-      field.setProps({ value: undefined });
+      field.vm.$props.value = undefined;
       field.vm.$parent.$data.valueOut = undefined;  // pass this.valueOut !== this.value check in SchemaField
       await field.trigger('change');
 

@@ -5,8 +5,13 @@ import {
 import {startServer, killServer, checkIfListening} from "../shapeflow";
 import {test, describe, beforeEach, afterEach} from "@jest/globals";
 
-beforeEach(startServer)
-afterEach(killServer)
+beforeEach(() => {
+  startServer();
+});
+
+afterEach(() => {
+  killServer();
+});
 
 function run(test) {
   expect(checkIfListening()).toBe(true);

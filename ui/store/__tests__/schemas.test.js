@@ -3,7 +3,6 @@ import { api } from '../../src/api'
 
 import {startServer, killServer} from "../../src/shapeflow";
 
-import {exec, execSync, spawn, spawnSync} from 'child_process';
 import {test, describe, beforeEach, afterEach, beforeAll, afterAll} from "@jest/globals";
 
 import {createLocalVue} from "@vue/test-utils";
@@ -14,11 +13,12 @@ var SCHEMAS = undefined;
 
 beforeAll(async () => {
   startServer();
-
   SCHEMAS = await retryOnce(api.schemas);
 });
-afterAll(killServer);
 
+afterAll(() => {
+  killServer();
+});
 
 test('state', () => {
   state()

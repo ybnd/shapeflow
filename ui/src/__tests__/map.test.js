@@ -15,10 +15,9 @@ var MAP = undefined;
 
 beforeAll(async () => {
   startServer();
-
   MAP = await retryOnce(api.map);
   killServer();
-})
+});
 
 test('validate map', () => {
   for (const rule in MAP) {
