@@ -48,6 +48,13 @@ Application won’t run
   * Your system’s configuration may have changed since the installation;
     follow the steps above
 
+* The script exits immediately and mentions **cairo**
+
+  * `cairo <cairo_>`_ is one of the libraries we use to render the overlay and masks out of our design files. It’s a bit annoying to set up on Windows. Normally, the deployment scripts should install it in the virtual environment.
+
+  * To make sure this library can be accessed, download the **.zip of the latest release** from `preshing/cairo-windows <cairo-windows_>`_, extract it, and **copy the .dll** for your computer’s architecture (probably 64-bit) into ``C:\\Windows\\System32``.
+
+
 * The script exits immediately and complains that it can’t import something
 
   * Most often this is due to a problem with the virtual environment.
@@ -113,3 +120,5 @@ Application runs, but something’s gone wrong
 
 .. _shapeflow-releases: https://github.com/ybnd/shapeflow/releases
 .. _add-path-win10: https://www.architectryan.com/2018/03/17/add-to-the-path-on-windows-10/
+.. _cairo: https://www.cairographics.org/manual/
+.. _cairo-windows: https://github.com/preshing/cairo-windows
