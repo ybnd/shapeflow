@@ -22,9 +22,9 @@ if __name__ == '__main__':
     path = None
 
     if args.load or (not args.load and not args.save):
-        out = tkinter.filedialog.askopenfilename(**d)
+        path = tkinter.filedialog.askopenfilename(**d)
     elif args.save:
-        out = tkinter.filedialog.asksaveasfilename(**d)
+        path = tkinter.filedialog.asksaveasfilename(**d)
 
     if isinstance(path, str):
         print(path)  # can be read with `out, err = p.communicate()`
