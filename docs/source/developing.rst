@@ -58,14 +58,14 @@ Setup
 
 
 #.
-   Install Install `NodeJS & npm <npm>`_
+   Install Install `NodeJS & yarn <yarn>`_
 
 #.
    Navigate to this directory and install the dependencies
 
    .. code-block:: bash
 
-      cd ui/ && npm install
+      cd ui/ && yarn install
 
 Compiling the frontend
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -79,7 +79,7 @@ Compiling the frontend
 
    .. code-block:: bash
 
-      cd ui/ && npm run generate
+      cd ui/ && yarn build
 
    The compiled files are stored in ``ui/dist/``.
 
@@ -102,7 +102,7 @@ Running the frontend in development mode
 
    .. code-block:: bash
 
-      cd ui/ && npm run dev
+      cd ui/ && yarn dev
 
    The development server `hot-reloads <vue-hot-reload>`_ content from the
    source code in ``ui/`` and proxies API calls to the backend server.
@@ -226,7 +226,7 @@ Already fixed?
 
 
 
-.. _npm: https://nodejs.org/en/
+.. _yarn: https://yarnpkg.com/
 .. _vue-hot-reload: https://vue-loader.vuejs.org/guide/hot-reload.html
 .. _gitploy: https://github.com/ybnd/gitploy
 .. _ploy: https://github.com/ybnd/shapeflow/blob/master/shapeflow/setup/ploy

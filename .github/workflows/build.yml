@@ -92,20 +92,23 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Cache npm
+      - name: Cache yarn
         uses: actions/cache@v2
         with:
-          path: ~/.npm
-          key: ${{ runner.os }}-npm-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
+          path: ~/.yarn
+          key: ${{ runner.os }}-yarn-${{ matrix.node-version }}-${{ hashFiles('ui/yarn.lock') }}
           restore-keys: |
-            ${{ runner.os }}-npm-${{ matrix.node-version }}-
-            ${{ runner.os }}-npm-
+            ${{ runner.os }}-yarn-${{ matrix.node-version }}-
+            ${{ runner.os }}-yarn-
 
-      - name: Install npm dependencies
-        run: cd ui && npm install
+      - name: Install yarn dependencies
+        run: cd ui && yarn install
+
+      - name: Build UI
+        run: cd ui && yarn build
 
       - name: Run tests
-        run: cd ui && npm run test
+        run: cd ui && yarn test
 
       - name: Send coverage report
         if: ${{ matrix.coverage }}
