@@ -120,13 +120,14 @@ class _Zenity(_FileDialog):
 
 
 class _Windows(_FileDialog):
-    GetOpenFileNameW: Any
-    GetSaveFileNameW: Any
+    _open_w: Any
+    _save_w: Any
 
     def __init__(self):
         from win32gui import GetOpenFileNameW, GetSaveFileNameW
-        self.GetOpenfileNameW = GetOpenFileNameW
-        self.GetSaveFileNameW = GetSaveFileNameW
+        self._open_w = GetOpenFileNameW
+        self._save_w = GetSaveFileNameW
+        self.ok = True
 
     def _resolve(self, method: str, kwargs: dict) -> dict:
         kwargs = super()._resolve(method, kwargs)
@@ -137,11 +138,11 @@ class _Windows(_FileDialog):
         return kwargs
 
     def _load(self, **kwargs) -> Optional[str]:
-        file, _, _ = self.GetOpenFileNameW(**kwargs)
+        file, _, _ = self._open_w(**kwargs)
         return file
 
     def _save(self, **kwargs) -> Optional[str]:
-        file, _, _ = self.GetSaveFileNameW(**kwargs)
+        file, _, _ = self._save_w(**kwargs)
         return file
 
 
