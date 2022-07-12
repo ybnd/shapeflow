@@ -12,7 +12,7 @@ Installation & usage
 
 #. Make sure the following software is installed on your system
 
-  - `Python 3.8 <python38_>`_
+  - `Python 3.10 <python310_>`_
 
     On Windows, **make sure you select the option ‘Add Python to PATH’!**
 
@@ -71,7 +71,7 @@ Dependencies
 .. _shapeflow: https://www.github.com/ybnd/shapeflow
 
 .. _biosensors: https://www.biw.kuleuven.be/biosyst/mebios/biosensors-group
-.. _python38: https://www.python.org/downloads/release/python-386/
+.. _python310: https://www.python.org/downloads/release/python-3105/
 .. _git: https://git-scm.com/downloads
 
 .. _deploy: https://github.com/ybnd/shapeflow/releases/download/0.4.1/deploy_shapeflow-0.4.1.py
