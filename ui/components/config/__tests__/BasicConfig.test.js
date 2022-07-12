@@ -442,13 +442,13 @@ describe('features', () => {
       // make sure the right features are still there
       FEATURES.splice(index, 1);
       expect(w.vm.$props.config.features).toStrictEqual(FEATURES);
-
-      w.destroy();
     }
 
     for (let i = 0; i < OPTIONS.length-1; i++) {
       await _test(i);
     }
+
+    w.destroy();
   });
 
   test('render parameters', async () => {
