@@ -33,7 +33,7 @@
     "json-pointer": "^0.6.0",
     "lodash": "^4.17.20",
     "mathjs": "^7.2.0",
-    "nodemon": "^1.11.0",
+    "nodemon": "^2.0.19",
     "nuxt": "^2.15.8",
     "optimize-css-assets-webpack-plugin": "^5.0.4",
     "prettier": "^2.1.1",
