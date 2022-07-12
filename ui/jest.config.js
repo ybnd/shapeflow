@@ -29,4 +29,5 @@ module.exports = {
   ],
   testEnvironment: "jsdom",
   testURL: 'http://127.0.0.1:7951',
+  verbose: true,
 };

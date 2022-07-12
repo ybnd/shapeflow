@@ -37,13 +37,13 @@ export const endpoints = {
 };
 
 function return_data(response) {
-  if (response.status === 200) {
-    return response.data;
+  if (response?.status === 200) {
+    return response?.data;
   }
 }
 
 function return_success(response) {
-  return response.status === 200;
+  return response?.status === 200;
 }
 
 
@@ -282,7 +282,7 @@ export const api = {
         return axios
           .get(url("va", id, "can_launch"))
           .then((response) => {
-            if (response.status === 200) {
+            if (response?.status === 200) {
               return axios.post(url("va", id, "launch")).then(return_data);
             } else {
               return false;
