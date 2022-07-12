@@ -46,7 +46,13 @@ class _FileDialog(metaclass=abc.ABCMeta):
 
 
 class _SubprocessTkinter(_FileDialog):
-    ok = True
+    def __init__(self):
+        try:
+            from tkinter import Tk
+            import tkinter.filedialog
+            self.ok = True
+        except ModuleNotFoundError:
+            pass
 
     def _load(self, **kwargs) -> Optional[str]:
         return self._call('--load', self._to_args(kwargs))
@@ -74,21 +80,16 @@ class _SubprocessTkinter(_FileDialog):
         return args
 
 
-
-def _has_zenity():
-    try:
-        return not sp.call(['zenity', '--version'], stdout=sp.DEVNULL)
-    except FileNotFoundError:
-        return False
-
-
 class _Zenity(_FileDialog):
     _map = {
         'title': '--title',
         'pattern': '--file-filter',
     }
     def __init__(self):
-        self.ok = _has_zenity()
+        try:
+            self.ok = not sp.call(['zenity', '--version'], stdout=sp.DEVNULL)
+        except FileNotFoundError:
+            pass
 
     def _load(self, **kwargs) -> Optional[str]:
         return self._call(self._compose(False, kwargs))
@@ -147,20 +148,22 @@ class _Windows(_FileDialog):
 
 
 filedialog: _FileDialog
+"""Cross-platform file dialog.
+
+Tries to use `zenity <https://help.gnome.org/users/zenity/stable/>`_
+on Linux if available, because ``tkinter`` looks fugly in GNOME don't @ me.
+
+Uses win32gui dialogs on Windows.
+
+Falls back to ``tkinter`` to support any other platform.
+For MacOS this may mean that you have to install tkinter via
+``brew install tkinter-python`` for these dialogs to work.
+"""
 
 if os.name != "nt":
-    # try using zenity by default
     filedialog = _Zenity()
-    """Cross-platform file dialog.
-    
-    Tries to use `zenity <https://help.gnome.org/users/zenity/stable/>`_
-    if available, because ``tkinter`` looks fugly in GNOME don't @ me.
-    
-    Defaults to ``tkinter`` to support basically any platform.
-    """
-    # if zenity doesn't work (e.g. it's not installed),
-    # default to tkinter.
-    if not filedialog.ok:
-        filedialog = _SubprocessTkinter()
 else:
     filedialog = _Windows()
+
+if not filedialog.ok:
+    filedialog = _SubprocessTkinter()
