@@ -30,7 +30,7 @@
     "font-awesome": "^4.7.0",
     "jquery": "^3.5.1",
     "json-beautify": "^1.1.1",
-    "json-pointer": "^0.6.0",
+    "json-pointer": "^0.6.2",
     "lodash": "^4.17.20",
     "mathjs": "^7.2.0",
     "nodemon": "^2.0.19",
