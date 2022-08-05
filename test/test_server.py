@@ -9,8 +9,6 @@ import subprocess
 
 from shapeflow import settings, ROOTDIR, save_settings
 
-raise unittest.SkipTest('takes too long')
-
 CACHE = os.path.join(ROOTDIR, 'test_main-cache')
 DB = os.path.join(ROOTDIR, 'test_main-history.db')
 STATE = os.path.join(ROOTDIR, 'test_main-state')
@@ -73,7 +71,7 @@ def override_settings():
         if os.path.exists(STATE):
             os.remove(STATE)
 
-
+@unittest.skip("Unreliable")
 class ServerTest(unittest.TestCase):
     def setUp(self) -> None:
         r = post(api('quit'))

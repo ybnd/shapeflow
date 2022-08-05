@@ -63,6 +63,7 @@ jobs:
         uses: codecov/codecov-action@v1
         with:
           flags: backend,${{ runner.os }}
+          files: test/coverage.xml
 
   node:
     runs-on: ubuntu-latest
