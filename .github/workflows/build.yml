@@ -48,8 +48,7 @@ jobs:
         with:
           path: test/.tox
           key: ${{ runner.os }}-tox-${{ matrix.tox }}-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-tox-${{ matrix.tox }}-
+          restore-keys: ${{ runner.os }}-tox-${{ matrix.tox }}-${{ matrix.python-version }}-
 
       - name: Install tox
         run: pip install tox
