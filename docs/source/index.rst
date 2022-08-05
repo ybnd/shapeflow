@@ -12,7 +12,7 @@ Installation & usage
 
 #. Make sure the following software is installed on your system
 
-  - `Python 3.8 <python38_>`_
+  - `Python 3.10 <python310_>`_
 
     On Windows, **make sure you select the option ‘Add Python to PATH’!**
 
@@ -37,10 +37,9 @@ Installation & usage
 
 #. `Download a deployment script <deploy_>`_ and save it to that folder
 
-#. Run the deployment script.
+#. Run the deployment script (on Windows you can just double-click it from explorer)
 
-#. Once the installation is done, you can start the application
-   by running ``sf.py``.
+#. Once the installation is done, you can start the application by running ``sf.py``.
    A new browser window or tab should open with the user interface.
 
 
@@ -71,8 +70,8 @@ Dependencies
 .. _shapeflow: https://www.github.com/ybnd/shapeflow
 
 .. _biosensors: https://www.biw.kuleuven.be/biosyst/mebios/biosensors-group
-.. _python38: https://www.python.org/downloads/release/python-386/
+.. _python310: https://www.python.org/downloads/release/python-3105/
 .. _git: https://git-scm.com/downloads
 
-.. _deploy: https://github.com/ybnd/shapeflow/releases/download/0.4.1/deploy_shapeflow-0.4.1.py
+.. _deploy: https://github.com/ybnd/shapeflow/releases/download/0.4.4/deploy_shapeflow-0.4.4.py
 

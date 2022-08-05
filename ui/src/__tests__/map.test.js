@@ -35,15 +35,15 @@ describe('validate URLs', () => {
     // intercept axios requests & remember HTTP methods
     axios.get = jest.fn((url) => {
       calls = {...calls, [url]: calls[url] !== undefined ? [...calls[url], 'GET'] : ['GET']};
-      return new Promise();
+      return Promise.resolve(undefined);
     })
     axios.put = jest.fn((url) => {
       calls = {...calls, [url]: calls[url] !== undefined ? [...calls[url], 'PUT'] : ['PUT']};
-      return new Promise();
+      return Promise.resolve(undefined);
     })
     axios.post = jest.fn((url) => {
       calls = {...calls, [url]: calls[url] !== undefined ? [...calls[url], 'POST'] : ['POST']};
-      return new Promise();
+      return Promise.resolve(undefined);
     })
   });
 
@@ -139,14 +139,18 @@ describe('validate URLs', () => {
     const ID = "__id__";
 
     _for_every_method(api.va.__id__, (obj, member) => {
-      test(member, () => {
-        // call method
-        obj[member](ID);
-
-        // validate HTTP methods for each URL called
-        _for_every_url_called((url) => {
-          expect(MAP[url]).toEqual(expect.arrayContaining(calls[url]))
-        })
+      test(member, (done) => {
+        obj[member](ID)
+          .catch(() => {
+            // noop
+          })
+          .finally(() => {
+            // validate HTTP methods for each URL called
+            _for_every_url_called((url) => {
+              expect(MAP[url]).toEqual(expect.arrayContaining(calls[url]))
+            })
+            done();
+          })
       });
     });
   });

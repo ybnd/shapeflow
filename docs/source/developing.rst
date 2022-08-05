@@ -79,7 +79,7 @@ Compiling the frontend
 
    .. code-block:: bash
 
-      cd ui/ && npm run generate
+      cd ui/ && npm run build
 
    The compiled files are stored in ``ui/dist/``.
 

@@ -224,7 +224,7 @@ $padding: 0.5rem; // CoreUI
 $fade: 1.5rem;
 $spacing: 1.85rem;
 $name-height: calc(#{$header-height} - 2 * #{$padding});
-$fade-margin: -$name-height;
+$fade-margin: calc(-1 * #{$name-height});
 $name-width: calc(#{$sidebar-width} - #{$spacing});
 
 .analysis-name {

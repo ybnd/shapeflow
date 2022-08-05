@@ -24,6 +24,7 @@ def noop(*_, **__):
 
 @patch('shapeflow.server.ShapeflowServer.serve', Mock('serve'))
 @patch('argparse.ArgumentParser.exit', noop)
+@patch('sys.argv', [])
 class SfTest(unittest.TestCase):
     def test_no_arguments(self):
         shapeflow.cli.Sf()

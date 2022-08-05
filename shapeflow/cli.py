@@ -154,9 +154,11 @@ class Sf(Command):
     if requested.
     """
     parser = argparse.ArgumentParser(
+        prog="sf",
         description=f"""https://github.com/ybnd/shapeflow v{__version__}""",
-        add_help=False  # we're defining a custom --help that should override
-                        #  the built-in one
+        add_help=False,         # we're defining a custom --help that should override
+                                # the built-in one
+        exit_on_error=False     # For testing purposes we should throw instead of exiting
     )
     parser.add_argument(
         '-h', '--help',
