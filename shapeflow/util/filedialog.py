@@ -125,9 +125,9 @@ class _Windows(_FileDialog):
     _save_w: Any
 
     def __init__(self):
-        from win32gui import GetOpenFileNameW, GetSaveFileNameW
-        self._open_w = GetOpenFileNameW
-        self._save_w = GetSaveFileNameW
+        import win32gui
+        self._open_w = win32gui.GetOpenFileNameW
+        self._save_w = win32gui.GetSaveFileNameW
         self.ok = True
 
     def _resolve(self, method: str, kwargs: dict) -> dict:

@@ -1,35 +1,51 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 import os
 import json
 import tkinter
 import tkinter.filedialog
 import subprocess
+import sys
+import platform
 
+if platform.system() == "Windows":
+    import win32gui
+    _win32gui = win32gui
 
-from shapeflow.util.filedialog import _SubprocessTkinter, _Zenity
+win32gui = MagicMock()
+win32gui.GetOpenFileNameW = MagicMock(return_value=(b'...', None, None))
+win32gui.GetSaveFileNameW = MagicMock(return_value=(b'...', None, None))
+sys.modules["win32gui"] = win32gui
+
+from shapeflow.util.filedialog import _SubprocessTkinter, _Zenity, _Windows
 from shapeflow.util.from_venv import _VenvCall, _WindowsVenvCall, from_venv
 
 
 class FileDialogTest(unittest.TestCase):
-    kw = [
-        'title',
-        'pattern',
-        'pattern_description',
-    ]
-    kwargs = {k:k for k in kw}
+    kwargs = {
+        'title': 'title',
+        'pattern': 'pattern1 pattern2 pattern3',
+        'pattern_description': 'pattern_description',
+    }
+
+    @classmethod
+    def tearDownClass(cls) -> None:
+        if platform.system() == "Windows":
+            sys.modules["win32gui"] = _win32gui
+
 
     @patch('subprocess.Popen')
     def test_tkinter_load(self, Popen):
         Popen.return_value.communicate.return_value = (b'...', 0)
         _SubprocessTkinter().load(**self.kwargs)
 
-        self.assertCountEqual(
+        self.assertSequenceEqual(
             [
                 'python', 'shapeflow/util/tk-filedialog.py', '--load',
-                '--title', 'title', '--pattern', 'pattern',
-                '--pattern_description', 'pattern_description'
+                '--pattern', 'pattern1 pattern2 pattern3',
+                '--pattern_description', 'pattern_description',
+                '--title', 'title',
             ],
             Popen.call_args[0][0]
         )
@@ -39,11 +55,12 @@ class FileDialogTest(unittest.TestCase):
         Popen.return_value.communicate.return_value = (b'...', 0)
         _SubprocessTkinter().save(**self.kwargs)
 
-        self.assertCountEqual(
+        self.assertSequenceEqual(
             [
                 'python', 'shapeflow/util/tk-filedialog.py', '--save',
-                '--title', 'title', '--pattern', 'pattern',
-                '--pattern_description', 'pattern_description'
+                '--pattern', 'pattern1 pattern2 pattern3',
+                '--pattern_description', 'pattern_description',
+                '--title', 'title',
             ],
             Popen.call_args[0][0]
         )
@@ -53,23 +70,27 @@ class FileDialogTest(unittest.TestCase):
     def test_zenity_load(self, Popen):
         Popen.return_value.communicate.return_value = (b'...', 0)
         _Zenity().load(**self.kwargs)
-
-        c = 'zenity --file-selection --title title --file-filter pattern'
-
-        self.assertCountEqual(
-            c.split(' '),
+        self.assertSequenceEqual(
+            [
+                'zenity', '--file-selection',
+                '--file-filter', 'pattern1 pattern2 pattern3',
+                '--title', 'title',
+            ],
             Popen.call_args[0][0]
         )
+
 
     @patch('subprocess.Popen')
     def test_zenity_save(self, Popen):
         Popen.return_value.communicate.return_value = (b'...', 0)
         _Zenity().save(**self.kwargs)
 
-        c = 'zenity --file-selection --save --title title --file-filter pattern'
-
-        self.assertCountEqual(
-            c.split(' '),
+        self.assertSequenceEqual(
+            [
+                'zenity', '--file-selection', '--save',
+                '--file-filter', 'pattern1 pattern2 pattern3',
+                '--title', 'title',
+            ],
             Popen.call_args[0][0]
         )
 
@@ -97,6 +118,28 @@ class FileDialogTest(unittest.TestCase):
         Popen.return_value.communicate.return_value = (b'', 0)
         with self.assertRaises(ValueError):
             _Zenity().save(**self.kwargs)
+
+    def test_windows_load(self):
+        _Windows().load(**self.kwargs)
+
+        self.assertDictEqual(
+            {
+              "Title": "title",
+              "Filter": "pattern_description\0pattern1;pattern2;pattern3\0"
+            },
+            win32gui.GetOpenFileNameW.call_args.kwargs
+        )
+
+    def test_windows_save(self):
+        _Windows().save(**self.kwargs)
+
+        self.assertDictEqual(
+            {
+              "Title": "title",
+              "Filter": "pattern_description\0pattern1;pattern2;pattern3\0"
+            },
+            win32gui.GetSaveFileNameW.call_args.kwargs
+        )
 
 
 ENV = '.venv-name'
