@@ -391,6 +391,12 @@ class _Filesystem(object):
     def __init__(self):
         self._history = History()
 
+        if not filedialog.ok:
+            log.error(
+                f"File dialog was resolved to {filedialog.__class__.__name__} "
+                f"but this implementation doesn't work on this system"
+            )
+
     @api.fs.select_video.expose()
     def select_video(self) -> Optional[str]:
         """Open a video selection dialog

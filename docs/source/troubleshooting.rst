@@ -123,8 +123,15 @@ Application runs, but something’s gone wrong
 
   * Refresh the page
 
+* On MacOS, file/directory selection windows don't appear (e.g. when selecting a file to load or a directory to save to)
+
+  * ``tkinter`` `doesn't work out of the box on MacOS <tk_macos_>`_, try installing it via `Homebrew <brew_>`_::
+
+        brew install python-tk
 
 .. _shapeflow-releases: https://github.com/ybnd/shapeflow/releases
 .. _add-path-win10: https://www.architectryan.com/2018/03/17/add-to-the-path-on-windows-10/
 .. _cairo: https://www.cairographics.org/manual/
 .. _cairo-windows: https://github.com/preshing/cairo-windows
+.. _tk_macos: https://www.python.org/download/mac/tcltk/
+.. _brew: https://brew.sh/

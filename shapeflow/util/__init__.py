@@ -8,9 +8,8 @@ import time
 from pathlib import Path
 import json
 from logging import Logger
-from distutils.util import strtobool
-from functools import wraps, lru_cache
-from typing import Any, Generator, Optional, Union
+from functools import wraps
+from typing import Generator, Optional, Union
 from collections import namedtuple
 import threading
 import queue
@@ -277,9 +276,9 @@ def open_path(path: str) -> None:
     if os.path.isfile(path):
         path = os.path.dirname(os.path.realpath(path))
 
-    if os.name == 'nt':  # Windows
+    if sys.platform == 'win32':
         os.startfile(path)  # type: ignore
-    elif os.name == 'darwin':  # MacOS
+    elif sys.platform == 'darwin':  # MacOS
         subprocess.Popen(['open', path])
     else:  # Something else, probably has xdg-open
         subprocess.Popen(['xdg-open', path])

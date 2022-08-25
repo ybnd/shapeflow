@@ -1,6 +1,11 @@
 Changelog
 =========
 
+0.4.5
+-----
+
+* Fixed some issues with file/directory selection dialogs on Windows and MacOS
+
 0.4.4
 -----
 
