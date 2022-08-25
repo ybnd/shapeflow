@@ -28,6 +28,7 @@ deploy_*.py
 build/
 ui/dist/
 .venv/
+.venv
 .local
 .~*.md
 .ploy

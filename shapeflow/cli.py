@@ -628,7 +628,7 @@ class Declutter(Command):
             self._reclutter()
 
     def _declutter(self) -> None:
-        if os.name == 'nt':
+        if sys.platform == 'win32' or sys.platform == 'cygwin':
             # Pre-emptively create __pycache__ so we can hide it now.
             if not os.path.isdir('__pycache__'):
                 os.mkdir('__pycache__')
@@ -636,7 +636,7 @@ class Declutter(Command):
             for file in self.CLUTTER + glob.glob('.*'):
                 if Path(file).exists():
                     os.system(f'attrib +h "{file}"')
-        elif os.name == 'darwin':
+        elif sys.platform == 'darwin':
             for file in self.CLUTTER:
                 if Path(file).exists():
                     os.system(f'chflags hidden "{file}"')
@@ -645,11 +645,11 @@ class Declutter(Command):
                 f.write('\n'.join(self.CLUTTER))
 
     def _reclutter(self) -> None:
-        if os.name == 'nt':
+        if sys.platform == 'win32' or sys.platform == 'cygwin':
             for file in self.CLUTTER + glob.glob('.*'):
                 if Path(file).exists():
                     os.system(f'attrib -h "{file}"')
-        elif os.name == 'darwin':
+        elif sys.platform == 'darwin':
             for file in self.CLUTTER:
                 if Path(file).exists():
                     os.system(f'chflags nohidden "{file}"')
