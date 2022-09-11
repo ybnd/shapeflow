@@ -208,6 +208,8 @@ You’ll find some information on the available transform types
 
 * The masks section can also be accessed from the filter page
 
+.. _application-settings:
+
 Application settings
 ^^^^^^^^^^^^^^^^^^^^
 

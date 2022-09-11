@@ -123,6 +123,17 @@ Application runs, but something’s gone wrong
 
   * Refresh the page
 
+* Previous application state is not restored properly;
+  e.g. unresponsive analyses are queued automatically,
+  or the application opens but crashes immediately
+
+  * You can manually clear the previous state by removing the ``state`` file in
+    :attr:`the root directory <shapeflow.ROOTDIR>` and restarting the application.
+    If the problem persists and this approach mitigates it, you can turn off
+    restoring the previous state in :ref:`the settings <application-settings>`.
+
+  * You can also try to remove ``history.db`` (note that this will clear all previously used files & analysis configuration)
+
 
 .. _shapeflow-releases: https://github.com/ybnd/shapeflow/releases
 .. _add-path-win10: https://www.architectryan.com/2018/03/17/add-to-the-path-on-windows-10/
