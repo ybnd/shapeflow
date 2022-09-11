@@ -104,6 +104,7 @@ class Factory(EnforcedStr, metaclass=abc.ABCMeta):  # todo: add a _class & issub
 class extend(object):  # todo: can this be a function instead? look at the @dataclass decorator, something weird is going on there with * and /
     """Decorator to extend :class:`~shapeflow.core.config.Factory` classes.
     Usage::
+
         from shapeflow.core.config import extend
 
         @extend(SomeFactory)
@@ -168,8 +169,8 @@ class BaseConfig(BaseModel, Described):
     :class:`~shapeflow.core.config.extend` decorator to make your
     configuration class accessible through the
     :class:`~shapeflow.core.config.ConfigType` factory. Configuration fields
-     are declared as ``pydantic.Field`` instances and must be type-annotated
-     for type resolution to work properly.
+    are declared as ``pydantic.Field`` instances and must be type-annotated
+    for type resolution to work properly.
 
     Example::
 

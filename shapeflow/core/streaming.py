@@ -424,8 +424,8 @@ def stream(method):
     """Decorator to mark streaming methods.
 
     Only works for methods exposed at :class:`~shapeflow.core.Endpoint` objects,
-    should be placed *above* the :func:`~shapeflow.core.Endpoint.expose`
-    decorator::
+    should be placed *above* the :func:`~shapeflow.core.Endpoint.expose` decorator::
+
         from shapeflow.core import Endpoint, _Streaming
 
         some_endpoint = Endpoint(Callable[[...], ...], _Streaming())

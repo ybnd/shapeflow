@@ -43,9 +43,9 @@ else:
 
 ROOTDIR = Path(_user_dir, *_subdirs)
 """Root directory of the application.
+All application data is stored here: logs, settings, database, cache
 
-Linux: ``/home/<user>/.local/share/shapeflow``
-
+Linux & MacOS: ``/home/<user>/.local/share/shapeflow``
 Windows: ``C:\\Users\\<user>\\AppData\\Roaming\\shapeflow``
 """
 
@@ -100,6 +100,7 @@ class _Settings(BaseModel):
         Settings will only be modified within this context and restored to
         their previous values afterwards.
         Usage::
+
             with settings.override({"parameter": "override value"}):
                 <do something>
 

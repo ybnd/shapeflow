@@ -26,7 +26,7 @@ Installation & usage
 
     - `ImageMagick <https://imagemagick.org/>`_
 
-      To install on 64-bit Windows you can use `this ìnstaller <https://download.imagemagick.org/ImageMagick/download/binaries/ImageMagick-7.0.11-3-Q8-x64-dll.exe>`_
+      To install on 64-bit Windows you can use `this installer <https://download.imagemagick.org/ImageMagick/download/binaries/ImageMagick-7.0.11-3-Q8-x64-dll.exe>`_
 
     - `Inkscape <https://inkscape.org/>`_
 

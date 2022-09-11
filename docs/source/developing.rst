@@ -7,14 +7,12 @@ Backend
 Setting up a development environment
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To work on shapeflow, you should set up a virtual environment in ``.venv``
-
-.. code-block::
+To work on shapeflow, you should set up a virtual environment in ``.venv`` ::
 
    python -m venv .venv
    (.venv) pip install -r requirements.txt
 
-With this environment in place, the entrypoint ``shapeflow.py`` can be run
+With this environment in place, the entrypoint ``sf.py`` can be run
 either from ``(.venv)`` or with your the global Python interpreter.
 In the latter case, ``.venv`` will be used implicitly.
 
@@ -121,7 +119,7 @@ Deployment scripts are generated with `gitploy`_.
 #. Compile ``ui/dist/``\ , compress it with ``tar czf dist-<tag>.tar.gz dist/``
    and attach it to that release as a binary
 
-#. Create or update your .ploy file in ``shapeflow``\ ‘s root directory:
+#. Create or update your .ploy file in the root directory of this repository:
 
    #. Start from `shapeflow/setup/ploy <ploy>`_
 
@@ -129,7 +127,7 @@ Deployment scripts are generated with `gitploy`_.
 
    #. Double check that the check / setup script paths are still correct
 
-#. Run ``python -m gitploy`` in ``shapeflow``\ ‘s root directory.
+#. Run ``python -m gitploy`` in the root directory of this repository.
 
 
 TODO
@@ -145,7 +143,7 @@ Open `issues`_ for important stuff.
 
 * Frame & state image can get desynchronized sometimes
 
-* Dragging the seek control doesn't update streams, but clicking/arows do 
+* Dragging the seek control doesn't update streams, but clicking/arrows do
   (sometimes, sometimes it's ok)
   
 * Alt scrolls through sidebar navs for some reason
