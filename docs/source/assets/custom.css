@@ -2,3 +2,30 @@
 dl.py.property {
   width: 100%;
 }
+
+/* Fix vertical spacing */
+.rst-content div[class^="highlight"], .rst-content pre.literal-block {
+    margin-top: -6px;
+    margin-bottom: 8px;
+}
+.rst-content p {
+    margin-top: 0px !important;
+    margin-bottom: 12px;
+}
+.rst-content ul {
+    margin-top: 4px !important;
+    margin-bottom: 4px !important;
+}
+.rst-content a.image-reference > img {
+    margin-top: 16px;
+    margin-bottom: 16px;
+}
+.rst-content section + section {
+    margin-top: 48px;
+}
+.rst-content p + section {
+    margin-top: 32px;
+}
+footer {
+    margin-top: 32px;
+}

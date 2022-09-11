@@ -113,7 +113,7 @@ the alignment; any changes you may have made to the rest of the configuration
 will stay unchanged. Clearing the alignment allows you to draw a new rectangle
 and start aligning all over again. Finally, you can toggle the frame
 boundaries, as shown in the image below. This looks wonky, but may be useful
-for cases where the entire chip doesn’t fit into the frame.
+for cases where the entire chip doesn't fit into the frame.
 
 .. image:: /assets/ignore-bounds.png
     :width: 600px
@@ -208,6 +208,8 @@ You’ll find some information on the available transform types
 
 * The masks section can also be accessed from the filter page
 
+.. _application-settings:
+
 Application settings
 ^^^^^^^^^^^^^^^^^^^^
 
@@ -282,10 +284,13 @@ The most relevant settings are explained below
     Because reading individual frames from video files can be relatively slow,
     the application caches frames in the background. Therefore, re-running an
     analysis is significantly faster than running it for the first time.
-    Because uncompressed images are weighty, the cache can become large.
-    If you want to conserve disk space, you can set the size limit to a lower
-    value. Conversely, if you think you get slower re-runs when analyzing many
-    different videos, you may want to increase the cache size limit.
+    The extracted frames are stored in an uncompressed form to avoid adding
+    additional compression artifacts, and can therefore take up considerable
+    space on disk.
+    To conserve disk space, you can set the size limit to a lower value.
+    Conversely, if re-runs start getting slower when you're analyzing multiple
+    different video files at the same time,
+    you may want to increase the cache size limit.
 
 
 .. _preparing-design-files:
@@ -320,7 +325,7 @@ The design file should be an **.svg file** containing:
   These layers should consist of a single continuous shape representing a
   (portion of a) channel. Each of these layers will be used as a mask in the
   image processing stage, and must therefore have a solid fill.
-  The color doesn’t matter however.
+  The color doesn't matter however.
 
   The name of these layers will be used as the name of the mask in the
   configuration of the analysis, legends of the graphs and the column names

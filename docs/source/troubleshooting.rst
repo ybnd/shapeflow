@@ -17,13 +17,13 @@ Application won't install
 
   * If you don't see a ``.deploy.log`` file (make sure to enable hidden files!), it's likely that something
     went wrong *before the script could even start*.
-    This could be because you forgot to install ``python`` and/or ``git``
+    This could be because you forgot to install Python and/or git
 
-  * Check if ``python`` **version 3.10** and ``git`` are installed and accessible from the
+  * Check if **Python version 3.10** and **git** are installed and accessible from the
     terminal
 
     Open a terminal (``cmd.exe`` on Windows) and check if you get
-    something like this::
+    something like this ::
 
            > python --version
            Python 3.10.5
@@ -33,7 +33,7 @@ Application won't install
   * If either of these returns something like ‘command not found’,
     its executable isn’t included in the ``PATH``. On Windows, you can fix
     this `by adding it explicitly <add-path-win10_>`_, or in the case of
-    ``python``, reinstalling and making sure you check the option
+    Python, reinstalling and making sure you check the option
     ``add Python to PATH`` during the installation.
 
 
@@ -55,7 +55,7 @@ Application won’t run
 
   * To make sure this library can be accessed, either
 
-    * run ``python sf.py
+    * run ``python sf.py``
 
     * or download the **.zip of the latest release** from `preshing/cairo-windows <cairo-windows_>`_, extract it, and **copy the .dll** for your computer’s architecture (probably 64-bit) into ``C:\\Windows\\System32``.
 
@@ -64,7 +64,7 @@ Application won’t run
 
   * Most often this is due to a problem with the virtual environment.
     If your installation went correctly, it should be in the ``.venv/``
-    directory. You can check whether it works properly by running::
+    directory. You can check whether it works properly by running ::
 
        > cd .venv/Scripts
        > activate
@@ -72,13 +72,13 @@ Application won’t run
        (.venv) > python
        >>> import shapeflow
 
-    in ``cmd``  on Windows or::
+    in Command Prompt on Windows or ::
 
        > source .venv/bin/activate
        (.venv) > python
        >>> import shapeflow
 
-    everywhere else.
+    in a terminal everywhere else.
 
   * If you can activate the virtual environment but still get import errors on
     ``import shapeflow``, it may be that some (or all) of ``shapeflow``‘s
@@ -96,7 +96,13 @@ Application won’t run
     that there is a bunch of stuff in it.
 
   * If not, you can either
-    * Run ``python sf.py get-compiled-ui`` in a terminal (or ``cmd.exe`` on Windows)
+
+    * Run ::
+
+         python sf.py get-compiled-ui
+
+      in a terminal (or Command Prompt on Windows)
+
     * `download the files for your version <shapeflow-releases_>`_ and extract them into ``ui/dist/`` to try again.
 
   * This means your installation went wrong, please complain to the person
@@ -112,7 +118,7 @@ Application runs, but something’s gone wrong
 
   * Refresh the page
 
-  * The server may have crashed, run ``shapeflow.py`` again.
+  * The server may have crashed, run ``sf.py`` again.
 
 
 * The images on the align/filter page don't load properly
@@ -122,6 +128,17 @@ Application runs, but something’s gone wrong
   * Move to a different page and back
 
   * Refresh the page
+
+* Previous application state is not restored properly;
+  e.g. unresponsive analyses are queued automatically,
+  or the application opens but crashes immediately
+
+  * You can manually clear the previous state by removing the ``state`` file in
+    :attr:`the root directory <shapeflow.ROOTDIR>` and restarting the application.
+    If the problem persists and this approach mitigates it, you can turn off
+    restoring the previous state in :ref:`the settings <application-settings>`.
+
+  * You can also try to remove ``history.db`` (note that this will clear all previously used files & analysis configuration)
 
 
 .. _shapeflow-releases: https://github.com/ybnd/shapeflow/releases

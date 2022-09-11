@@ -199,6 +199,7 @@ class Endpoint(object):
     def expose(self):
         """ Expose a method at this endpoint.
         Used as a decorator::
+
             @endpoint.expose()
             def some_method():
                 pass

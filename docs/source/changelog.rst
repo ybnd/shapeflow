@@ -20,16 +20,12 @@ Changelog
   * For end users that may not want to deal with git
 
   * Throwback to the "mandatory update system" of the olden days:
-
     update to new release versions if any are available, but when you
-
     *actually want to*.
 
 * Setup ~ CLI commands
 
-  * Deployment scripts execute ``shapeflow/setup/post-deploy.py``
-
-    as a setup step
+  * Deployment scripts execute ``shapeflow/setup/post-deploy.py`` as a setup step
 
   * :class:`shapeflow.cli.GetCompiledUi`
 
@@ -51,7 +47,7 @@ Changelog
 * Fix ``tkinter`` dialog windows not appearing on Windows
 
   * ``tkinter`` can't handle not being in the main thread, which was the case
-    in the "updated" version of :module:``shapeflow.util.filedialog``.
+    in the "updated" version of :mod:`shapeflow.util.filedialog`.
 
   * Should not have deprecated subprocess-based filedialog script; it was
     added in the first place to solve this issue.
@@ -206,9 +202,7 @@ Clean-up git history
 
     * `An accidentally huge BMP file <rm2_>`_
 
-* All in all, the repo went from almost 30MB to about 6MB.
-
-.. code-block:: bash
+* All in all, the repo went from almost 30MB to about 6MB ::
 
    bfg --delete-folders dist .
    bfg --delete-files datetime .
@@ -217,10 +211,6 @@ Clean-up git history
    git reflow expire --expire=now --all
    git --prune=now --aggressive
 
-.. note::
-    A short summary of the major changes in the older versions
-    will be added soon.
-
 .. _shapeflow: https://github.com/ybnd/shapeflow
 .. _isimple: https://github.com/ybnd/isimple
 .. _gitsizer: https://github.com/github/git-sizer
@@ -228,7 +218,6 @@ Clean-up git history
 
 .. _rm1: https://github.com/ybnd/isimple/commit/b65a0fe914a44bff6b2bba4ed155a9cd24d54e10
 .. _rm2: https://github.com/ybnd/isimple/commit/af1b251b90efcd670d220de8f25975ff7bc8321d
-
 
 .. |cairo| replace:: ``cairo``
 .. |cairosvg| replace:: ``cairosvg``
