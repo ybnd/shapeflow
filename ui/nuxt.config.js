@@ -1,6 +1,8 @@
 // const BundleAnalyzerPlugin = require("webpack-bundle-analyzer")
 //   .BundleAnalyzerPlugin;
 
+import { defineNuxtConfig } from "@nuxt/bridge";
+
 const changeLoaderOptions = (loaders) => {
   if (loaders) {
     for (const loader of loaders) {
@@ -13,7 +15,7 @@ const changeLoaderOptions = (loaders) => {
   }
 };
 
-module.exports = {
+export default defineNuxtConfig({
   head: {
     title: "shapeflow",
     meta: [
@@ -142,4 +144,4 @@ module.exports = {
   },
 
   lintOnSave: true,
-};
+});
