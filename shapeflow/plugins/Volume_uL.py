@@ -8,7 +8,7 @@ from shapeflow.video import MaskFunction, FeatureType, FeatureConfig
 
 @extend(ConfigType, True)
 class _Config(FeatureConfig):
-    """Configuration for :class:`shapeflow.plugins.Volume_uL._Feature`
+    """Configuration for :class:`shapeflow.plugins.Volume_uL.Volume_uL`
         """
     h: float = Field(default=0.153, description='height (mm)')
     """The channel height of the chip.
@@ -16,7 +16,7 @@ class _Config(FeatureConfig):
 
 
 @extend(FeatureType, True)
-class _Feature(MaskFunction):
+class Volume_uL(MaskFunction):
     """Multiply :mod:`~shapeflow.plugins.Area_mm2` by a channel height in mm
     to estimate the volume in µL.
     """

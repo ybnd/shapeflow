@@ -1,6 +1,17 @@
 Changelog
 =========
 
+0.4.5
+-----
+
+* Analyzers that can't be loaded properly are now skipped when restoring
+  application state (e.g. if the video or design file has been moved since the
+  last run)
+
+* Added a 404 page with instructions in case application is run without UI
+
+* Other minor fixes
+
 0.4.4
 -----
 

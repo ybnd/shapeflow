@@ -16,7 +16,7 @@ COLOR = HsvColor(h=0, s=0, v=0)
 
 @extend(ConfigType, True)
 class _Config(FilterConfig):
-    """Configuration for :class:`shapeflow.plugins.BackgroundFilter._Filter`
+    """Configuration for :class:`shapeflow.plugins.BackgroundFilter.BackgroundFilter`
     """
     color: HsvColor = Field(default=HsvColor())
     """See :attr:`shapeflow.plugins.HsvRangeFilter._Config.color`
@@ -54,7 +54,7 @@ class _Config(FilterConfig):
 
 
 @extend(FilterType, True)
-class _Filter(FilterInterface):
+class BackgroundFilter(FilterInterface):
     """Filters out colors outside of a :class:`~shapeflow.maths.colors.HsvColor`
     radius around a center color and inverts the resulting image.
     """
