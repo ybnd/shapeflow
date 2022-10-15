@@ -154,9 +154,13 @@ class CachingInstance(Instance):  # todo: consider a waterfall cache: e.g. 2 GB 
         del self._cache[key]
 
     def _is_cached(self, method, *args):
+        key = self._get_key(method, *args)
         if self._cache is None:
-            raise CacheAccessError
-        return self._get_key(method, *args) in self._cache
+            if settings.cache.do_cache:
+                raise CacheAccessError
+            else:
+                return False
+        return key in self._cache
 
     def cached_call(self, method, *args, **kwargs):  # todo: kwargs necessary?
         """Call a method or get the result from the cache if available.
