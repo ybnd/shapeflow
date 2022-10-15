@@ -850,10 +850,17 @@ class _VideoAnalyzerManager(object):
                         analyzer._set_id(id)
                         analyzer.set_eventstreamer(self._server.eventstreamer)
 
-                        analyzer.launch()
+                        ok = analyzer.launch()
 
-                        self._add(analyzer)
-                        self._history.add_analysis(analyzer, model)
+                        if ok:
+                            self._add(analyzer)
+                            self._history.add_analysis(analyzer, model)
+                        else:
+                            log.error(
+                                f"Failed to restore analyzer '{id}' from previous application state. "
+                                f"This probably happened because the video or design file(s) have been moved or deleted"
+                            )
+
             except FileNotFoundError:
                 pass
             except EOFError:

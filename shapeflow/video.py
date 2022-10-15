@@ -984,7 +984,7 @@ class VideoAnalyzer(BaseAnalyzer):
                 log.warning(f"invalid video file: {self.config.video_path}")
         if self.config.design_path is not None:
             design_ok = os.path.isfile(self.config.design_path)
-            if not video_ok:
+            if not design_ok:
                 log.warning(f"invalid design file: {self.config.design_path}")
 
         return video_ok and design_ok
@@ -1710,10 +1710,10 @@ class VideoAnalyzer(BaseAnalyzer):
                 self._set_config(config)
                 self.commit()
 
-                log.info(f'config ~ database: {config}')
-                log.info(f'loaded as {self.config}')
+                log.debug(f'config ~ database: {config}')
+                log.debug(f'loaded as {self.config}')
             else:
-                log.warning('could not load config')
+                log.warning('could not load config from database')
 
 
     @property  # todo: this was deprecated, right?

@@ -883,7 +883,6 @@ class BaseAnalyzer(Instance, RootInstance, metaclass=abc.ABCMeta):
 
                 return self.launched
             else:
-                log.warning(f"{self.__class__.__qualname__} can not be launched.")  # todo: try to be more verbose
                 return False
 
     def get_name(self) -> str:
