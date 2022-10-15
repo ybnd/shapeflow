@@ -6,7 +6,7 @@ from shapeflow.video import MaskFunction, FeatureType
 
 
 @extend(FeatureType, True)
-class _Feature(MaskFunction):
+class Area_mm2(MaskFunction):
     """Convert :mod:`~shapeflow.plugins.PixelSum` to an area in mm²,
     taking into account the DPI of the design file.
     """

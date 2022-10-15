@@ -7,7 +7,7 @@ from shapeflow.video import MaskFunction, FeatureType
 
 
 @extend(FeatureType, True)
-class _Feature(MaskFunction):
+class PixelSum(MaskFunction):
     """The most basic feature: it just returns the number of
     ``True`` pixels the filtered frame.
     """

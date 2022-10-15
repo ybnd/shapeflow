@@ -158,7 +158,7 @@ PerspectiveTransform
 
 .. automodule:: shapeflow.plugins.PerspectiveTransform
    :members:
-   :private-members: _Config, _Transform
+   :private-members: _Config
    :show-inheritance:
 
 .. _filters:
@@ -171,7 +171,7 @@ HsvRangeFilter
 
 .. automodule:: shapeflow.plugins.HsvRangeFilter
    :members:
-   :private-members: _Config, _Filter
+   :private-members: _Config
    :show-inheritance:
 
 BackgroundFilter
@@ -179,7 +179,7 @@ BackgroundFilter
 
 .. automodule:: shapeflow.plugins.BackgroundFilter
    :members:
-   :private-members: _Config, _Filter
+   :private-members: _Config
    :show-inheritance:
 
 .. _features:
@@ -192,7 +192,6 @@ PixelSum
 
 .. automodule:: shapeflow.plugins.PixelSum
    :members:
-   :private-members: _Feature
    :show-inheritance:
 
 Area_mm2
@@ -200,7 +199,6 @@ Area_mm2
 
 .. automodule:: shapeflow.plugins.Area_mm2
    :members:
-   :private-members: _Feature
    :show-inheritance:
 
 Volume_uL
@@ -208,7 +206,6 @@ Volume_uL
 
 .. automodule:: shapeflow.plugins.Volume_uL
    :members:
-   :private-members: _Config, _Feature
    :show-inheritance:
 
 
