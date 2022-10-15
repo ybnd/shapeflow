@@ -90,6 +90,9 @@ Application won’t run
 
     in the the ``shapeflow`` root directory.
 
+Application runs, but the interface won't load (properly)
+---------------------------------------------------------
+
 * ``sf.py``  runs fine, but the page says **404 not found**
 
   * Check if you have a folder ``ui/dist/`` in your ``shapeflow`` directory and

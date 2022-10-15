@@ -5,7 +5,8 @@ import subprocess
 from threading import Thread, Event, Lock
 from typing import Optional
 
-from flask import Flask, send_from_directory, jsonify, request, Response, make_response, abort
+import flask
+from flask import Flask, jsonify, request, Response, make_response, abort
 import waitress
 import webbrowser
 
@@ -19,9 +20,10 @@ from shapeflow.main import load, ShapeflowServerInterface
 
 log = shapeflow.get_logger(__name__)
 UI = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    , 'ui', 'dist'
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    'ui'
 )
+DIST = os.path.join(UI, 'dist')
 
 
 class ServerThread(Thread, metaclass=util.Singleton):
@@ -88,10 +90,31 @@ class ShapeflowServer(ShapeflowServerInterface):
         app.config.from_object(__name__)
         app.config['JSON_SORT_KEYS'] = False
 
-        @app.route('/', defaults={'file': 'index.html'}, methods=['GET'])
+        @app.route('/', methods=['GET'])
+        def _index():
+            try:
+                r = self.get_file('index.html')
+
+                # Make sure the index page isn't cached so we can pick up missing ui/dist/ right away
+                r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+                r.headers["Pragma"] = "no-cache"
+                r.headers["Expires"] = "0"
+                r.headers['Cache-Control'] = 'public, max-age=0'
+
+                return r
+            except FileNotFoundError:
+                if not os.path.isdir(DIST) or not os.listdir(DIST):
+                    log.error(f"no compiled UI in '{DIST}'")
+                log.error(f"follow the instructions on the 404 page to restore the application")
+
+                return flask.send_from_directory(UI, '404.html'), 404
+
         @app.route('/<path:file>', methods=['GET'])
         def _get_file(file: str):
-            return self.get_file(file)
+            try:
+                return self.get_file(file)
+            except FileNotFoundError:
+                abort(404)
 
         @app.route('/api/<path:address>', methods=['GET', 'POST', 'PUT'])
         def _call_api(address: str):
@@ -148,11 +171,12 @@ class ShapeflowServer(ShapeflowServerInterface):
         """
         self.active()
 
-        path = os.path.join(UI, *file.split("/"))
+        path = os.path.join(DIST, *file.split("/"))
         if not os.path.isfile(path):
+            log.error(f"no such file: '{file}'")
             raise FileNotFoundError
         log.debug(f"serving '{file}'")
-        return send_from_directory(
+        return flask.send_from_directory(
             os.path.dirname(path),
             os.path.basename(path)
         )
