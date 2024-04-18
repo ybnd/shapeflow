@@ -1,13 +1,18 @@
 import os
 import shutil
 import unittest
+from unittest.mock import patch
 from contextlib import contextmanager
 
 import time
 import json
 import subprocess
 
+import flask
+from flask.testing import FlaskClient
+
 from shapeflow import settings, ROOTDIR, save_settings
+from shapeflow.server import ShapeflowServer, UI, DIST
 
 CACHE = os.path.join(ROOTDIR, 'test_main-cache')
 DB = os.path.join(ROOTDIR, 'test_main-history.db')
@@ -169,6 +174,56 @@ class ServerTest(unittest.TestCase):
             post(api('set_settings'), data=json.dumps({'settings': first_settings}))
             time.sleep(10)
 
+
+@patch('os.path.isfile')
+@patch('flask.send_from_directory')
+@patch('os.path.isdir', lambda _: True)
+@patch('os.listdir', lambda _: ['index.html'])
+class FlaskTest(unittest.TestCase):
+    client: FlaskClient
+
+    def setUp(self) -> None:
+        sfs = ShapeflowServer()
+        sfs._app.config['TESTING'] = True
+
+        self.client = sfs._app.test_client()
+
+    def test_serve_index_200(self, send_from_directory, isfile):
+        isfile.return_value = True
+        send_from_directory.return_value = flask.Response()
+
+        r = self.client.get('/')
+
+        send_from_directory.assert_called_with(DIST, 'index.html')
+        self.assertEqual(r.status_code, 200)
+
+    def test_serve_index_404(self, send_from_directory, isfile):
+        isfile.return_value = False
+        send_from_directory.return_value = flask.Response()
+
+        r = self.client.get('/')
+
+        send_from_directory.assert_called_with(UI, '404.html')
+        self.assertEqual(r.status_code, 404)
+
+    def test_serve_file_200(self, send_from_directory, isfile):
+        isfile.return_value = True
+        send_from_directory.return_value = flask.Response()
+
+        r = self.client.get('/something.txt')
+
+        send_from_directory.assert_called_with(DIST, 'something.txt')
+        self.assertEqual(r.status_code, 200)
+
+    def test_serve_file_404(self, send_from_directory, isfile):
+        isfile.return_value = False
+        send_from_directory.return_value = flask.Response()
+
+        r = self.client.get('/something.txt')
+
+        send_from_directory.assert_not_called()
+        self.assertEqual(r.status_code, 404)
+
+
 if __name__ == '__main__':
     unittest.main()
-

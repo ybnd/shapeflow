@@ -18,7 +18,7 @@ class _Config(TransformConfig):  # todo: not really necessary?
 
 
 @extend(TransformType, True)
-class _Transform(TransformInterface):
+class PerspectiveTransform(TransformInterface):
     """Wraps ``OpenCV``’s `getPerspectiveTransform <https://docs.opencv.org/2.4.13.7/modules/imgproc/doc/geometric_transformations.html?#getperspectivetransform>`_
     function to estimate the transformation matrix and `warpPerspective <https://docs.opencv.org/2.4.13.7/modules/imgproc/doc/geometric_transformations.html?#warpperspective>`_
     to apply it to a video frame or a coordinate.
